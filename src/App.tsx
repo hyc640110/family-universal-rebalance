@@ -71,7 +71,17 @@ function Growth({ points }: { points: { month: number; value: number }[] }) { co
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) { return <div className="stat"><small>{label}</small><b className={tone || ''}>{value}</b></div>; }
 function Card({ title, children }: { title: string; children: ReactNode }) { return <section className="card"><h2>{title}</h2>{children}</section>; }
 function Risk({ label, value }: { label: string; value: number }) { return <div className="risk"><span>{label}</span><div><i style={{ width: `${Math.max(2, Math.min(100, value))}%` }} /></div><b>{(label === 'Beta' || label === '槓桿' ? value / 50 : value).toFixed(2)}</b></div>; }
-function EditableList<T extends { id: string } & Record<string, string | number>>({ items, setItems, fields }: { items: T[]; setItems: (v: T[]) => void; fields: [keyof T & string, string][] }) { const emptyValue = (k: string) => k.toLowerCase().includes('date') ? new Date().toISOString().slice(0, 10) : ['amount', 'principal', 'annualRate', 'monthlyPayment'].includes(k) ? 0 : ''; return <div className="list">{items.map(item => <div className="list-row" key={item.id}>{fields.map(([k, l]) => <label key={k}>{l}<input type={typeof item[k] === 'number' ? 'number' : 'text'} value={item[k]} onChange={e => setItems(items.map(x => x.id === item.id ? { ...x, [k]: typeof item[k] === 'number' ? num(e.target.valueAsNumber) : e.target.value } : x))} /></label>)}<button onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button onClick={() => setItems([...items, { id: uid(), ...Object.fromEntries(fields.map(([k]) => [k, emptyValue(k)])) } as T])}>新增</button></div>; }
+function EditableList<T extends { id: string } & Record<string, string | number>>({ items, setItems, fields }: { items: T[]; setItems: (v: T[]) => void; fields: [keyof T & string, string][] }) {
+  const tenThousandKeys = ['amount', 'principal'];
+  const emptyValue = (k: string) => k.toLowerCase().includes('date') ? new Date().toISOString().slice(0, 10) : ['amount', 'principal', 'annualRate', 'monthlyPayment'].includes(k) ? 0 : '';
+  return <div className="list">{items.map(item => <div className="list-row" key={item.id}>{fields.map(([k, l]) => {
+    const raw = item[k];
+    const isTenThousand = tenThousandKeys.includes(k);
+    const displayLabel = isTenThousand ? `${l}（萬元）` : l;
+    const displayValue = typeof raw === 'number' && isTenThousand ? raw / 10000 : raw;
+    return <label key={k}>{displayLabel}<input type={typeof raw === 'number' ? 'number' : 'text'} value={displayValue} onChange={e => setItems(items.map(x => x.id === item.id ? { ...x, [k]: typeof raw === 'number' ? num(e.target.valueAsNumber) * (isTenThousand ? 10000 : 1) : e.target.value } : x))} /></label>;
+  })}<button onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button onClick={() => setItems([...items, { id: uid(), ...Object.fromEntries(fields.map(([k]) => [k, emptyValue(k)])) } as T])}>新增</button></div>;
+}
 function App() {
   const [tab, setTab] = useState<'dashboard' | 'trades' | 'sync'>('dashboard'); const [state, setState] = useState<AppState>(() => readState()); const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes); const [sync, setSync] = useState('尚未同步'); const [quoteStatus, setQuoteStatus] = useState('尚未更新股價'); const [draft, setDraft] = useState<Trade>({ id: uid(), date: new Date().toISOString().slice(0, 10), symbol: '00631L', action: 'BUY', shares: 1, price: defaultQuotes['00631L'].price, fee: 20, tax: 0, note: '' });
   useEffect(() => writeState(state), [state]);
