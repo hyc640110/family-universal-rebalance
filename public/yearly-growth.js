@@ -2,6 +2,7 @@
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
   function readState() {
     for (const key of STORAGE_KEYS) {
@@ -13,9 +14,18 @@
     return {};
   }
 
+  function saveState(state) {
+    const json = JSON.stringify(state);
+    STORAGE_KEYS.forEach((key) => localStorage.setItem(key, json));
+  }
+
   function parseMoney(text) {
     const cleaned = String(text || '').replace(/[,$NT\s]/g, '').replace(/[^-\d.]/g, '');
     return Number(cleaned) || 0;
+  }
+
+  function findCard(title) {
+    return Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes(title));
   }
 
   function findNetWorthFromStats() {
@@ -42,6 +52,16 @@
     return rows;
   }
 
+  function calcPaidTerms(startDate, totalTerms) {
+    if (!startDate || !totalTerms) return 0;
+    const start = new Date(startDate);
+    if (Number.isNaN(start.getTime())) return 0;
+    const today = new Date();
+    let months = (today.getFullYear() - start.getFullYear()) * 12 + (today.getMonth() - start.getMonth());
+    if (today.getDate() >= start.getDate()) months += 1;
+    return clamp(months, 0, totalTerms);
+  }
+
   function injectStyle() {
     if (document.getElementById('yearly-growth-style')) return;
     const style = document.createElement('style');
@@ -52,14 +72,21 @@
       .year-projection span{color:#9fb3c8;font-size:13px;white-space:nowrap}
       .year-projection b{color:#ff7b7b;font-size:14px;text-align:right}
       .year-projection small{color:#69f0a6;display:block;font-size:12px;margin-top:2px;text-align:right}
-      @media(max-width:900px){.year-projection{grid-template-columns:1fr}}
+      .current-shares-line{background:#0f2f4f;border:1px solid #38bdf8;border-radius:12px;padding:10px 12px;color:#e0f2fe!important;box-shadow:0 0 0 1px #38bdf833}
+      .current-shares-line b{color:#7dd3fc!important;font-size:15px}
+      .current-shares-line .share-number{color:#facc15;font-size:20px;font-weight:900;letter-spacing:.03em}
+      .loan-term-panel{margin-top:14px;background:#09182a;border:1px solid #1d3d66;border-radius:14px;padding:12px;display:grid;gap:10px}
+      .loan-term-panel h3{margin:0;color:#eaf3ff;font-size:15px}
+      .loan-term-row{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:10px;align-items:center;background:#102033;border-radius:10px;padding:10px;color:#dbeafe}
+      .loan-term-row b{color:#facc15}.loan-term-row small{color:#9fb3c8}.loan-extra-term{border:1px dashed #38bdf866!important}
+      @media(max-width:900px){.year-projection{grid-template-columns:1fr}.loan-term-row{grid-template-columns:1fr 1fr}.current-shares-line .share-number{font-size:18px}}
     `;
     document.head.appendChild(style);
   }
 
   function updateYearlyGrowth() {
     injectStyle();
-    const card = Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('十年成長曲線'));
+    const card = findCard('十年成長曲線');
     if (!card) return;
     const state = readState();
     const start = findNetWorthFromStats();
@@ -79,9 +106,72 @@
     `).join('');
   }
 
-  const schedule = () => window.requestAnimationFrame(updateYearlyGrowth);
+  function highlightCurrentShares() {
+    document.querySelectorAll('.holding p').forEach((p) => {
+      if (!p.textContent?.includes('目前股數')) return;
+      p.classList.add('current-shares-line');
+      const label = p.querySelector('b')?.outerHTML || '<b>目前股數：</b>';
+      const value = p.textContent.replace('目前股數：', '').trim();
+      if (!p.querySelector('.share-number')) p.innerHTML = `${label}<span class="share-number">${value}</span>`;
+    });
+  }
+
+  function updateLoanTerms() {
+    const card = findCard('借款管理');
+    if (!card) return;
+    const state = readState();
+    const loans = Array.isArray(state.loans) ? state.loans : [];
+    const rows = Array.from(card.querySelectorAll('.list-row'));
+    rows.forEach((row, index) => {
+      if (row.querySelector('.loan-extra-term')) return;
+      const loan = loans[index] || {};
+      const totalTerms = num(loan.totalTerms || 84);
+      const label = document.createElement('label');
+      label.className = 'loan-extra-term';
+      label.innerHTML = `借款總期數<input type="number" min="1" value="${totalTerms}" />`;
+      const input = label.querySelector('input');
+      input.addEventListener('change', () => {
+        const next = readState();
+        if (!Array.isArray(next.loans)) next.loans = [];
+        if (!next.loans[index]) next.loans[index] = loan;
+        next.loans[index].totalTerms = Math.max(1, num(input.value));
+        saveState(next);
+        renderLoanSummary();
+      });
+      const deleteButton = row.querySelector('button');
+      row.insertBefore(label, deleteButton || null);
+    });
+    renderLoanSummary();
+  }
+
+  function renderLoanSummary() {
+    const card = findCard('借款管理');
+    if (!card) return;
+    const state = readState();
+    const loans = Array.isArray(state.loans) ? state.loans : [];
+    let panel = card.querySelector('.loan-term-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'loan-term-panel';
+      card.appendChild(panel);
+    }
+    panel.innerHTML = `<h3>借款期數進度</h3>` + loans.map((loan, index) => {
+      const total = Math.max(1, num(loan.totalTerms || 84));
+      const paid = calcPaidTerms(loan.startDate, total);
+      const remaining = Math.max(0, total - paid);
+      return `<div class="loan-term-row"><span>${loan.name || `借款 ${index + 1}`}</span><span><small>總期數</small><br><b>${total}</b></span><span><small>已繳期數</small><br><b>${paid}</b></span><span><small>剩餘期數</small><br><b>${remaining}</b></span></div>`;
+    }).join('');
+  }
+
+  function updateAll() {
+    updateYearlyGrowth();
+    highlightCurrentShares();
+    updateLoanTerms();
+  }
+
+  const schedule = () => window.requestAnimationFrame(updateAll);
   window.addEventListener('load', schedule);
   window.addEventListener('storage', schedule);
-  setInterval(updateYearlyGrowth, 1500);
+  setInterval(updateAll, 1500);
   new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
 })();
