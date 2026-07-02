@@ -30,13 +30,12 @@
     const needsSync = autoSyncSec !== FIVE_MINUTES_SEC;
     if (!needsRefresh && !needsSync) return;
 
-    const next = {
+    writeAllState({
       ...state,
       refreshSec: FIVE_MINUTES_SEC,
       autoSyncSec: FIVE_MINUTES_SEC,
       __v7FiveMinuteIntervalsAt: Date.now()
-    };
-    writeAllState(next);
+    });
 
     if (!sessionStorage.getItem('v7-five-minute-reloaded')) {
       sessionStorage.setItem('v7-five-minute-reloaded', '1');
@@ -64,33 +63,26 @@
     style.id = 'v7-stable-style';
     style.textContent = `
       .v7-badge{display:inline-flex;align-items:center;gap:6px;background:#facc15;color:#111827;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;margin-left:8px;vertical-align:middle}
-      .v7-health{margin-top:14px;background:#09182a;border:1px solid #facc1555;border-radius:16px;padding:14px;display:grid;gap:12px}
-      .v7-health h3{margin:0;color:#eaf3ff;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .v7-health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-      .v7-check{background:#102033;border:1px solid #1d3d66;border-radius:12px;padding:10px;color:#dbeafe;line-height:1.5}
-      .v7-check b{display:block;margin-bottom:4px;color:#eaf3ff}.v7-check small{color:#9fb3c8}
+      .v7-health,.v7-four-strategy{margin-top:14px;background:#09182a;border:1px solid #facc1555;border-radius:16px;padding:14px;display:grid;gap:12px}
+      .v7-health h3,.v7-four-strategy h2{margin:0;color:#eaf3ff;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .v7-health-grid,.v7-four-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      .v7-check,.v7-part{background:#102033;border:1px solid #1d3d66;border-radius:12px;padding:10px;color:#dbeafe;line-height:1.5}
+      .v7-check b,.v7-part b{display:block;margin-bottom:4px;color:#eaf3ff}.v7-check small,.v7-part small{color:#9fb3c8}
       .v7-ok{border-color:#22c55e88}.v7-ok b{color:#69f0a6}.v7-warn{border-color:#facc1588}.v7-warn b{color:#facc15}.v7-bad{border-color:#ef444488}.v7-bad b{color:#ff7b7b}
       .v7-version-note{margin:0;color:#9fb3c8;line-height:1.6}
       .tw-profit-up{color:#ff4d4f!important;text-shadow:0 0 10px #ff4d4f33}
       .tw-profit-down{color:#22c55e!important;text-shadow:0 0 10px #22c55e33}
       .tw-profit-flat{color:#dbeafe!important}
-      @media(max-width:900px){.v7-health-grid{grid-template-columns:1fr}.v7-badge{margin-left:0;margin-top:6px}}
+      @media(max-width:900px){.v7-health-grid,.v7-four-grid{grid-template-columns:1fr}.v7-badge{margin-left:0;margin-top:6px}}
     `;
     document.head.appendChild(style);
   }
 
-  function findMainCard() {
-    return Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('同步設定')) ||
-           Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('再平衡')) ||
-           document.querySelector('.card');
-  }
-
-  function updateHeaderVersionText() {
-    const eyebrow = document.querySelector('.eyebrow');
-    if (eyebrow && /00631L PRO WEB APP/i.test(eyebrow.textContent || '')) {
-      eyebrow.textContent = '00631L PRO WEB APP V7 STABLE';
-    }
-    document.title = '00631L Pro Web App v7 Stable';
+  function forceHeaderVersionText() {
+    const candidates = Array.from(document.querySelectorAll('p, .eyebrow, [class*="eyebrow"], header *'));
+    const old = candidates.find((el) => /00631L\s*PRO\s*WEB\s*APP/i.test((el.textContent || '').replace(/\s+/g, ' ')));
+    if (old) old.textContent = '00631L PRO WEB APP V7 STABLE';
+    document.title = VERSION;
   }
 
   function addVersionBadge() {
@@ -100,6 +92,39 @@
     badge.className = 'v7-badge';
     badge.textContent = 'v7 Stable';
     title.appendChild(badge);
+  }
+
+  function findStatsSection() {
+    return document.querySelector('.grid.stats') || Array.from(document.querySelectorAll('section, .card')).find((el) => /總資產|今日損益/.test(el.textContent || ''));
+  }
+
+  function renderFourPartStrategy() {
+    injectStyle();
+    const anchor = findStatsSection();
+    if (!anchor?.parentElement) return;
+    let box = document.querySelector('.v7-four-strategy');
+    if (!box) {
+      box = document.createElement('section');
+      box.className = 'v7-four-strategy';
+      anchor.parentElement.insertBefore(box, anchor.nextSibling);
+    }
+    const state = readState();
+    const holdings = Array.isArray(state.holdings) ? state.holdings : [];
+    const weight = (symbol) => num(holdings.find((h) => h.symbol === symbol)?.targetWeight);
+    const stockTarget = SYMBOLS.reduce((sum, s) => sum + weight(s), 0);
+    const cashTarget = Math.max(0, 100 - stockTarget);
+    const cashTotal = Array.isArray(state.cash) ? state.cash.reduce((sum, c) => sum + num(c.amount), 0) : 0;
+
+    box.innerHTML = `
+      <h2>四部位策略<span class="v7-badge">手機版</span></h2>
+      <div class="v7-four-grid">
+        <div class="v7-part"><b>00631L 台灣50正2</b><small>核心進攻部位｜目標 ${pct(weight('00631L'))}</small></div>
+        <div class="v7-part"><b>0050 台灣50</b><small>穩健股票部位｜目標 ${pct(weight('0050'))}</small></div>
+        <div class="v7-part"><b>00865B 債券</b><small>防守與波動緩衝｜目標 ${pct(weight('00865B'))}</small></div>
+        <div class="v7-part"><b>現金 / 預備金</b><small>逢低加碼資金｜目標 ${pct(cashTarget)}｜目前約 NT$${cashTotal.toLocaleString('zh-TW', { maximumFractionDigits: 0 })}</small></div>
+      </div>
+      <p class="v7-version-note">四部位 = 00631L、0050、00865B、現金。手機版會固定顯示在總資產下方，方便確認配置。</p>
+    `;
   }
 
   function calcPaidTerms(startDate, totalTerms) {
@@ -156,11 +181,18 @@
     return checks;
   }
 
+  function findMainCard() {
+    return Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('同步設定')) ||
+           Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('再平衡')) ||
+           document.querySelector('.card');
+  }
+
   function renderHealth() {
     injectStyle();
-    updateHeaderVersionText();
+    forceHeaderVersionText();
     addVersionBadge();
     colorDailyPnl();
+    renderFourPartStrategy();
     const state = readState();
     const sig = JSON.stringify({ holdings: state.holdings, cash: state.cash, loans: state.loans, tradesLen: Array.isArray(state.trades) ? state.trades.length : 0, firebase: state.firebase, autoSync: state.autoSync, syncAt: state.__autoSyncAt, refreshSec: state.refreshSec, autoSyncSec: state.autoSyncSec });
     if (sig === lastSig) return;
@@ -181,13 +213,15 @@
       <div class="v7-health-grid">
         ${checks.map((c) => `<div class="v7-check v7-${c.status}"><b>${c.title}</b><small>${c.body}</small></div>`).join('')}
       </div>
-      <p class="v7-version-note">v7 Stable Phase 3：股價自動更新與 Firebase 自動同步已調整為 5 分鐘一次。</p>
+      <p class="v7-version-note">v7 Stable Phase 4：已強制修正手機標題，並新增手機版四部位策略卡。</p>
     `;
   }
 
   migrateFiveMinuteIntervals();
+  renderHealth();
   window.addEventListener('load', renderHealth);
   window.addEventListener('storage', renderHealth);
   window.addEventListener('focus', renderHealth);
-  setInterval(renderHealth, 30000);
+  setInterval(forceHeaderVersionText, 1000);
+  setInterval(renderHealth, 5000);
 })();
