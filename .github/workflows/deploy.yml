@@ -30,6 +30,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
       - name: Install dependencies
         run: |
           rm -f package-lock.json
@@ -45,7 +48,3 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          timeout: 1800000
-          reporting_interval: 10000
-          error_count: 60
