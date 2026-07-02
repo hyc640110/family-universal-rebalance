@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
+  const LOAN_TERMS_KEY = '00631l-pro-loan-total-terms';
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -17,6 +18,32 @@
   function saveState(state) {
     const json = JSON.stringify(state);
     STORAGE_KEYS.forEach((key) => localStorage.setItem(key, json));
+  }
+
+  function readLoanTerms() {
+    try { return JSON.parse(localStorage.getItem(LOAN_TERMS_KEY) || '{}') || {}; } catch (_) { return {}; }
+  }
+
+  function saveLoanTerm(loan, index, totalTerms) {
+    const map = readLoanTerms();
+    const key = loanKey(loan, index);
+    map[key] = Math.max(1, num(totalTerms));
+    localStorage.setItem(LOAN_TERMS_KEY, JSON.stringify(map));
+    const next = readState();
+    if (!Array.isArray(next.loans)) next.loans = [];
+    if (next.loans[index]) next.loans[index].totalTerms = map[key];
+    saveState(next);
+    return map[key];
+  }
+
+  function loanKey(loan, index) {
+    return String(loan?.id || `${loan?.name || 'loan'}-${loan?.startDate || 'date'}-${index}`);
+  }
+
+  function getLoanTotalTerms(loan, index) {
+    const map = readLoanTerms();
+    const key = loanKey(loan, index);
+    return Math.max(1, num(map[key] || loan?.totalTerms || 84));
   }
 
   function parseMoney(text) {
@@ -126,21 +153,25 @@
     const loans = Array.isArray(state.loans) ? state.loans : [];
     const rows = Array.from(card.querySelectorAll('.list-row'));
     rows.forEach((row, index) => {
-      if (row.querySelector('.loan-extra-term')) return;
       const loan = loans[index] || {};
-      const totalTerms = num(loan.totalTerms || 84);
+      const totalTerms = getLoanTotalTerms(loan, index);
+      const existing = row.querySelector('.loan-extra-term input');
+      if (existing) {
+        if (document.activeElement !== existing && String(existing.value) !== String(totalTerms)) existing.value = String(totalTerms);
+        return;
+      }
       const label = document.createElement('label');
       label.className = 'loan-extra-term';
       label.innerHTML = `借款總期數<input type="number" min="1" value="${totalTerms}" />`;
       const input = label.querySelector('input');
-      input.addEventListener('change', () => {
-        const next = readState();
-        if (!Array.isArray(next.loans)) next.loans = [];
-        if (!next.loans[index]) next.loans[index] = loan;
-        next.loans[index].totalTerms = Math.max(1, num(input.value));
-        saveState(next);
+      const persist = () => {
+        const saved = saveLoanTerm(loan, index, input.value);
+        input.value = String(saved);
         renderLoanSummary();
-      });
+      };
+      input.addEventListener('input', persist);
+      input.addEventListener('change', persist);
+      input.addEventListener('blur', persist);
       const deleteButton = row.querySelector('button');
       row.insertBefore(label, deleteButton || null);
     });
@@ -159,7 +190,7 @@
       card.appendChild(panel);
     }
     panel.innerHTML = `<h3>借款期數進度</h3>` + loans.map((loan, index) => {
-      const total = Math.max(1, num(loan.totalTerms || 84));
+      const total = getLoanTotalTerms(loan, index);
       const paid = calcPaidTerms(loan.startDate, total);
       const remaining = Math.max(0, total - paid);
       return `<div class="loan-term-row"><span>${loan.name || `借款 ${index + 1}`}</span><span><small>總期數</small><br><b>${total}</b></span><span><small>已繳期數</small><br><b>${paid}</b></span><span><small>剩餘期數</small><br><b>${remaining}</b></span></div>`;
