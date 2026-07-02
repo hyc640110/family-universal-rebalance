@@ -4,6 +4,8 @@
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  let lastCloudPull = 0;
+  let cloudSyncing = false;
 
   function readState() {
     for (const key of STORAGE_KEYS) {
@@ -20,20 +22,22 @@
     STORAGE_KEYS.forEach((key) => localStorage.setItem(key, json));
   }
 
+  function syncPath(config) {
+    return `portfolio/${encodeURIComponent(config?.secretPath || '631128')}`;
+  }
+
+  function syncUrl(config) {
+    const db = String(config?.databaseURL || '').trim();
+    if (!db) return '';
+    return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`;
+  }
+
   function readLoanTerms() {
     try { return JSON.parse(localStorage.getItem(LOAN_TERMS_KEY) || '{}') || {}; } catch (_) { return {}; }
   }
 
-  function saveLoanTerm(loan, index, totalTerms) {
-    const map = readLoanTerms();
-    const key = loanKey(loan, index);
-    map[key] = Math.max(1, num(totalTerms));
-    localStorage.setItem(LOAN_TERMS_KEY, JSON.stringify(map));
-    const next = readState();
-    if (!Array.isArray(next.loans)) next.loans = [];
-    if (next.loans[index]) next.loans[index].totalTerms = map[key];
-    saveState(next);
-    return map[key];
+  function writeLoanTerms(map) {
+    localStorage.setItem(LOAN_TERMS_KEY, JSON.stringify(map || {}));
   }
 
   function loanKey(loan, index) {
@@ -44,6 +48,69 @@
     const map = readLoanTerms();
     const key = loanKey(loan, index);
     return Math.max(1, num(map[key] || loan?.totalTerms || 84));
+  }
+
+  function saveLoanTerm(loan, index, totalTerms) {
+    const map = readLoanTerms();
+    const key = loanKey(loan, index);
+    map[key] = Math.max(1, num(totalTerms));
+    writeLoanTerms(map);
+    const next = readState();
+    if (!Array.isArray(next.loans)) next.loans = [];
+    if (next.loans[index]) next.loans[index].totalTerms = map[key];
+    saveState(next);
+    syncLoanTermsToFirebase(next).catch(() => {});
+    return map[key];
+  }
+
+  async function syncLoanTermsToFirebase(localState = readState()) {
+    if (cloudSyncing) return;
+    const url = syncUrl(localState.firebase);
+    if (!url || !Array.isArray(localState.loans)) return;
+    cloudSyncing = true;
+    try {
+      const remote = await fetch(url, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+      const next = remote && typeof remote === 'object' ? remote : localState;
+      const localLoans = Array.isArray(localState.loans) ? localState.loans : [];
+      next.loans = Array.isArray(next.loans) ? next.loans : localLoans;
+      localLoans.forEach((loan, index) => {
+        const total = getLoanTotalTerms(loan, index);
+        if (!next.loans[index]) next.loans[index] = { ...loan };
+        next.loans[index].totalTerms = total;
+      });
+      next.firebase = next.firebase || localState.firebase;
+      await fetch(url, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) });
+    } finally {
+      cloudSyncing = false;
+    }
+  }
+
+  async function pullLoanTermsFromFirebase() {
+    const localState = readState();
+    const url = syncUrl(localState.firebase);
+    if (!url) return;
+    const remote = await fetch(url, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+    if (!remote || !Array.isArray(remote.loans)) return;
+    const map = readLoanTerms();
+    let changed = false;
+    const next = readState();
+    if (!Array.isArray(next.loans)) next.loans = [];
+    remote.loans.forEach((loan, index) => {
+      const total = num(loan?.totalTerms);
+      if (!total) return;
+      const localLoan = next.loans[index] || loan;
+      const key = loanKey(localLoan, index);
+      if (map[key] !== total) {
+        map[key] = total;
+        changed = true;
+      }
+      if (next.loans[index]) next.loans[index].totalTerms = total;
+    });
+    if (changed) {
+      writeLoanTerms(map);
+      saveState(next);
+      renderLoanSummary();
+    }
   }
 
   function parseMoney(text) {
@@ -216,11 +283,19 @@
     });
   }
 
+  function pullCloudOccasionally() {
+    const now = Date.now();
+    if (now - lastCloudPull < 8000) return;
+    lastCloudPull = now;
+    pullLoanTermsFromFirebase().catch(() => {});
+  }
+
   function updateAll() {
     updateYearlyGrowth();
     highlightCurrentShares();
     updateLoanTerms();
     labelTradeInputs();
+    pullCloudOccasionally();
   }
 
   const schedule = () => window.requestAnimationFrame(updateAll);
