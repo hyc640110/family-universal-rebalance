@@ -16,6 +16,20 @@
     return {};
   }
 
+  function parseNumber(text) {
+    const cleaned = String(text || '').replace(/[,NT$\s]/g, '').replace(/[^+\-\d.]/g, '');
+    return Number(cleaned) || 0;
+  }
+
+  function formatSigned(text, value) {
+    const raw = String(text || '').trim();
+    const prefix = raw.match(/^NT\$|^\$/)?.[0] || (raw.includes('NT$') ? 'NT$' : '');
+    const absText = Math.abs(value).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+    if (value > 0) return `${prefix}+${absText}`;
+    if (value < 0) return `${prefix}-${absText}`;
+    return `${prefix}0`;
+  }
+
   function injectStyle() {
     if (document.getElementById('v7-stable-style')) return;
     const style = document.createElement('style');
@@ -29,6 +43,9 @@
       .v7-check b{display:block;margin-bottom:4px;color:#eaf3ff}.v7-check small{color:#9fb3c8}
       .v7-ok{border-color:#22c55e88}.v7-ok b{color:#69f0a6}.v7-warn{border-color:#facc1588}.v7-warn b{color:#facc15}.v7-bad{border-color:#ef444488}.v7-bad b{color:#ff7b7b}
       .v7-version-note{margin:0;color:#9fb3c8;line-height:1.6}
+      .tw-profit-up{color:#ff4d4f!important;text-shadow:0 0 10px #ff4d4f33}
+      .tw-profit-down{color:#22c55e!important;text-shadow:0 0 10px #22c55e33}
+      .tw-profit-flat{color:#dbeafe!important}
       @media(max-width:900px){.v7-health-grid{grid-template-columns:1fr}.v7-badge{margin-left:0;margin-top:6px}}
     `;
     document.head.appendChild(style);
@@ -57,6 +74,21 @@
     let months = (today.getFullYear() - start.getFullYear()) * 12 + (today.getMonth() - start.getMonth());
     if (today.getDate() >= start.getDate()) months += 1;
     return Math.max(0, Math.min(months, totalTerms));
+  }
+
+  function colorDailyPnl() {
+    injectStyle();
+    const stats = Array.from(document.querySelectorAll('.stat'));
+    const daily = stats.find((el) => /今日損益|今日盈虧|日損益/.test(el.textContent || ''));
+    if (!daily) return;
+    const valueEl = daily.querySelector('b') || daily;
+    const value = parseNumber(valueEl.textContent || '0');
+    valueEl.classList.remove('tw-profit-up', 'tw-profit-down', 'tw-profit-flat', 'up', 'down');
+    valueEl.classList.add(value > 0 ? 'tw-profit-up' : value < 0 ? 'tw-profit-down' : 'tw-profit-flat');
+    if (!valueEl.dataset.twSignedValue || valueEl.dataset.twSignedValue !== String(value)) {
+      valueEl.textContent = formatSigned(valueEl.textContent, value);
+      valueEl.dataset.twSignedValue = String(value);
+    }
   }
 
   function buildChecks(state) {
@@ -118,6 +150,7 @@
   function renderHealth() {
     injectStyle();
     addVersionBadge();
+    colorDailyPnl();
     const state = readState();
     const sig = JSON.stringify({
       holdings: state.holdings,
@@ -146,7 +179,7 @@
       <div class="v7-health-grid">
         ${checks.map((c) => `<div class="v7-check v7-${c.status}"><b>${c.title}</b><small>${c.body}</small></div>`).join('')}
       </div>
-      <p class="v7-version-note">v7 Stable 第一階段：先檢查資料穩定性與同步狀態，下一階段再逐步把外掛功能整合進主程式。</p>
+      <p class="v7-version-note">v7 Stable Phase 2：今日損益顏色與正負號已併入 v7 Stable，逐步減少獨立外掛檔。</p>
     `;
   }
 
