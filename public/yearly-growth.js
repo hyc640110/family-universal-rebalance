@@ -79,7 +79,10 @@
       .loan-term-panel h3{margin:0;color:#eaf3ff;font-size:15px}
       .loan-term-row{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:10px;align-items:center;background:#102033;border-radius:10px;padding:10px;color:#dbeafe}
       .loan-term-row b{color:#facc15}.loan-term-row small{color:#9fb3c8}.loan-extra-term{border:1px dashed #38bdf866!important}
-      @media(max-width:900px){.year-projection{grid-template-columns:1fr}.loan-term-row{grid-template-columns:1fr 1fr}.current-shares-line .share-number{font-size:18px}}
+      .trade-field-labels{display:grid;grid-template-columns:repeat(9,1fr);gap:12px;margin:0 0 -6px;color:#93c5fd;font-size:12px;font-weight:800;letter-spacing:.02em}
+      .trade-field-labels span{background:#0f2f4f;border:1px solid #1d3d66;border-radius:8px;padding:6px 8px;text-align:center}
+      .trade-form input::placeholder{color:#93c5fd;opacity:1}
+      @media(max-width:900px){.year-projection{grid-template-columns:1fr}.loan-term-row{grid-template-columns:1fr 1fr}.current-shares-line .share-number{font-size:18px}.trade-field-labels{display:none}}
     `;
     document.head.appendChild(style);
   }
@@ -163,10 +166,30 @@
     }).join('');
   }
 
+  function labelTradeInputs() {
+    const card = findCard('交易紀錄');
+    const form = card?.querySelector('.trade-form');
+    if (!card || !form || card.querySelector('.trade-field-labels')) return;
+    const labels = ['日期', '股票', '買賣', '股數', '成交價', '手續費', '證交稅', '備註', '操作'];
+    const row = document.createElement('div');
+    row.className = 'trade-field-labels';
+    row.innerHTML = labels.map((x) => `<span>${x}</span>`).join('');
+    form.parentElement?.insertBefore(row, form);
+    const controls = Array.from(form.querySelectorAll('input,select'));
+    ['日期', '股票', '買賣', '股數', '成交價', '手續費', '證交稅', '備註'].forEach((label, i) => {
+      const el = controls[i];
+      if (!el) return;
+      el.setAttribute('aria-label', label);
+      if (el.tagName === 'INPUT') el.setAttribute('placeholder', label);
+      el.setAttribute('title', label);
+    });
+  }
+
   function updateAll() {
     updateYearlyGrowth();
     highlightCurrentShares();
     updateLoanTerms();
+    labelTradeInputs();
   }
 
   const schedule = () => window.requestAnimationFrame(updateAll);
