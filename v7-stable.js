@@ -2,6 +2,7 @@
   const VERSION = '00631L Pro Web App v7 Stable';
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
   const SYMBOLS = ['00631L', '0050', '00865B'];
+  const FIVE_MINUTES_SEC = 300;
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
   const pct = (n) => `${Number(n || 0).toFixed(2)}%`;
   let lastSig = '';
@@ -14,6 +15,33 @@
       } catch (_) {}
     }
     return {};
+  }
+
+  function writeAllState(state) {
+    const next = JSON.stringify(state);
+    STORAGE_KEYS.forEach((key) => localStorage.setItem(key, next));
+  }
+
+  function migrateFiveMinuteIntervals() {
+    const state = readState();
+    const refreshSec = num(state.refreshSec);
+    const autoSyncSec = num(state.autoSyncSec);
+    const needsRefresh = refreshSec !== FIVE_MINUTES_SEC;
+    const needsSync = autoSyncSec !== FIVE_MINUTES_SEC;
+    if (!needsRefresh && !needsSync) return;
+
+    const next = {
+      ...state,
+      refreshSec: FIVE_MINUTES_SEC,
+      autoSyncSec: FIVE_MINUTES_SEC,
+      __v7FiveMinuteIntervalsAt: Date.now()
+    };
+    writeAllState(next);
+
+    if (!sessionStorage.getItem('v7-five-minute-reloaded')) {
+      sessionStorage.setItem('v7-five-minute-reloaded', '1');
+      location.reload();
+    }
   }
 
   function parseNumber(text) {
@@ -110,48 +138,21 @@
     const autoSync = Boolean(state.autoSync);
     const lastSync = Number(state.__autoSyncAt || 0);
 
-    checks.push({
-      title: '目標配置',
-      status: stockTarget > 100 ? 'bad' : 'ok',
-      body: stockTarget > 100 ? `股票目標合計 ${pct(stockTarget)}，已超過 100%，建議調低。` : `股票目標 ${pct(stockTarget)}，現金目標自動補 ${pct(cashTarget)}。`
-    });
-
-    checks.push({
-      title: '現金資料',
-      status: cashTotal < 0 ? 'bad' : 'ok',
-      body: cashTotal < 0 ? '現金為負數，請檢查現金管理。' : `現金資料正常，目前合計約 NT$${cashTotal.toLocaleString('zh-TW', { maximumFractionDigits: 0 })}。`
-    });
+    checks.push({ title: '更新頻率', status: state.refreshSec === FIVE_MINUTES_SEC && state.autoSyncSec === FIVE_MINUTES_SEC ? 'ok' : 'warn', body: `股價自動更新 ${num(state.refreshSec) || FIVE_MINUTES_SEC} 秒；Firebase 自動同步 ${num(state.autoSyncSec) || FIVE_MINUTES_SEC} 秒。建議維持 300 秒。` });
+    checks.push({ title: '目標配置', status: stockTarget > 100 ? 'bad' : 'ok', body: stockTarget > 100 ? `股票目標合計 ${pct(stockTarget)}，已超過 100%，建議調低。` : `股票目標 ${pct(stockTarget)}，現金目標自動補 ${pct(cashTarget)}。` });
+    checks.push({ title: '現金資料', status: cashTotal < 0 ? 'bad' : 'ok', body: cashTotal < 0 ? '現金為負數，請檢查現金管理。' : `現金資料正常，目前合計約 NT$${cashTotal.toLocaleString('zh-TW', { maximumFractionDigits: 0 })}。` });
 
     const badLoan = loans.find((loan) => {
       const total = num(loan.totalTerms || 84);
       const paid = calcPaidTerms(loan.startDate, total);
       return total < paid;
     });
-    checks.push({
-      title: '借款期數',
-      status: badLoan ? 'warn' : 'ok',
-      body: badLoan ? '有借款的總期數小於已繳期數，請檢查借款總期數。' : `借款期數檢查正常，共 ${loans.length} 筆。`
-    });
-
-    checks.push({
-      title: 'Firebase 同步',
-      status: firebaseUrl && autoSync ? 'ok' : firebaseUrl ? 'warn' : 'bad',
-      body: firebaseUrl && autoSync ? 'Firebase 已設定，且自動同步已啟用。' : firebaseUrl ? 'Firebase 已設定，但自動同步未啟用。' : 'Firebase 尚未設定，跨裝置同步不會生效。'
-    });
-
-    checks.push({
-      title: '最後自動同步',
-      status: lastSync ? 'ok' : 'warn',
-      body: lastSync ? new Date(lastSync).toLocaleString('zh-TW') : '尚未偵測到自動同步時間。'
-    });
+    checks.push({ title: '借款期數', status: badLoan ? 'warn' : 'ok', body: badLoan ? '有借款的總期數小於已繳期數，請檢查借款總期數。' : `借款期數檢查正常，共 ${loans.length} 筆。` });
+    checks.push({ title: 'Firebase 同步', status: firebaseUrl && autoSync ? 'ok' : firebaseUrl ? 'warn' : 'bad', body: firebaseUrl && autoSync ? 'Firebase 已設定，且自動同步已啟用。' : firebaseUrl ? 'Firebase 已設定，但自動同步未啟用。' : 'Firebase 尚未設定，跨裝置同步不會生效。' });
+    checks.push({ title: '最後自動同步', status: lastSync ? 'ok' : 'warn', body: lastSync ? new Date(lastSync).toLocaleString('zh-TW') : '尚未偵測到自動同步時間。' });
 
     const maybeDouble = Array.isArray(state.trades) && state.trades.length > 0 && holdings.some((h) => num(h.shares) > 0);
-    checks.push({
-      title: '交易與初始股數',
-      status: maybeDouble ? 'warn' : 'ok',
-      body: maybeDouble ? '同時有初始股數與交易紀錄，若股數異常偏高，可能是重複計入。' : '未偵測到明顯重複計入風險。'
-    });
-
+    checks.push({ title: '交易與初始股數', status: maybeDouble ? 'warn' : 'ok', body: maybeDouble ? '同時有初始股數與交易紀錄，若股數異常偏高，可能是重複計入。' : '未偵測到明顯重複計入風險。' });
     return checks;
   }
 
@@ -161,15 +162,7 @@
     addVersionBadge();
     colorDailyPnl();
     const state = readState();
-    const sig = JSON.stringify({
-      holdings: state.holdings,
-      cash: state.cash,
-      loans: state.loans,
-      tradesLen: Array.isArray(state.trades) ? state.trades.length : 0,
-      firebase: state.firebase,
-      autoSync: state.autoSync,
-      syncAt: state.__autoSyncAt
-    });
+    const sig = JSON.stringify({ holdings: state.holdings, cash: state.cash, loans: state.loans, tradesLen: Array.isArray(state.trades) ? state.trades.length : 0, firebase: state.firebase, autoSync: state.autoSync, syncAt: state.__autoSyncAt, refreshSec: state.refreshSec, autoSyncSec: state.autoSyncSec });
     if (sig === lastSig) return;
     lastSig = sig;
 
@@ -188,10 +181,11 @@
       <div class="v7-health-grid">
         ${checks.map((c) => `<div class="v7-check v7-${c.status}"><b>${c.title}</b><small>${c.body}</small></div>`).join('')}
       </div>
-      <p class="v7-version-note">v7 Stable Phase 2：今日損益顏色與正負號已併入 v7 Stable，逐步減少獨立外掛檔。</p>
+      <p class="v7-version-note">v7 Stable Phase 3：股價自動更新與 Firebase 自動同步已調整為 5 分鐘一次。</p>
     `;
   }
 
+  migrateFiveMinuteIntervals();
   window.addEventListener('load', renderHealth);
   window.addEventListener('storage', renderHealth);
   window.addEventListener('focus', renderHealth);
