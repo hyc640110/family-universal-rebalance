@@ -111,7 +111,7 @@
 
   function render(force = false) {
     const now = Date.now();
-    if (!force && now - lastRenderAt < 4500) return;
+    if (!force && now - lastRenderAt < 55000) return;
     injectStyle();
     const card = findRebalanceCard();
     if (!card) return;
@@ -157,5 +157,5 @@
   window.addEventListener('load', () => schedule(true));
   window.addEventListener('storage', () => schedule(true));
   window.addEventListener('focus', () => schedule(true));
-  setInterval(() => schedule(false), 8000);
+  setInterval(() => schedule(false), 60000);
 })();
