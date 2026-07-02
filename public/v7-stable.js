@@ -57,6 +57,14 @@
            document.querySelector('.card');
   }
 
+  function updateHeaderVersionText() {
+    const eyebrow = document.querySelector('.eyebrow');
+    if (eyebrow && /00631L PRO WEB APP/i.test(eyebrow.textContent || '')) {
+      eyebrow.textContent = '00631L PRO WEB APP V7 STABLE';
+    }
+    document.title = '00631L Pro Web App v7 Stable';
+  }
+
   function addVersionBadge() {
     const title = document.querySelector('header h1, h1');
     if (!title || title.querySelector('.v7-badge')) return;
@@ -149,6 +157,7 @@
 
   function renderHealth() {
     injectStyle();
+    updateHeaderVersionText();
     addVersionBadge();
     colorDailyPnl();
     const state = readState();
