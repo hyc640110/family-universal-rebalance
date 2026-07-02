@@ -4,6 +4,15 @@
     return Number(cleaned) || 0;
   }
 
+  function formatSigned(text, value) {
+    const raw = String(text || '').trim();
+    const prefix = raw.match(/^NT\$|^\$/)?.[0] || (raw.includes('NT$') ? 'NT$' : '');
+    const absText = Math.abs(value).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+    if (value > 0) return `${prefix}+${absText}`;
+    if (value < 0) return `${prefix}-${absText}`;
+    return `${prefix}0`;
+  }
+
   function injectStyle() {
     if (document.getElementById('tw-profit-color-style')) return;
     const style = document.createElement('style');
@@ -25,6 +34,10 @@
     const value = parseNumber(valueEl.textContent || '0');
     valueEl.classList.remove('tw-profit-up', 'tw-profit-down', 'tw-profit-flat');
     valueEl.classList.add(value > 0 ? 'tw-profit-up' : value < 0 ? 'tw-profit-down' : 'tw-profit-flat');
+    if (!valueEl.dataset.twSignedValue || valueEl.dataset.twSignedValue !== String(value)) {
+      valueEl.textContent = formatSigned(valueEl.textContent, value);
+      valueEl.dataset.twSignedValue = String(value);
+    }
   }
 
   window.addEventListener('load', colorDailyPnl);
