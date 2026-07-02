@@ -5,6 +5,9 @@
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const pct = (n) => `${Number(n || 0).toFixed(2)}%`;
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
+  let lastSig = '';
+  let lastRenderAt = 0;
+  let scheduled = false;
 
   function readState() {
     for (const key of STORAGE_KEYS) {
@@ -37,18 +40,24 @@
     return match ? Number(match[1].replace(/,/g, '')) : null;
   }
 
-  function derivedHoldings(state) {
-    const base = Array.isArray(state.holdings) ? state.holdings : [];
-    return base.map((h) => ({ ...h }));
-  }
-
   function cashAmount(state) {
     return Array.isArray(state.cash) ? state.cash.reduce((sum, x) => sum + num(x.amount), 0) : 0;
   }
 
+  function stateSignature(state) {
+    try {
+      const h = (state.holdings || []).map((x) => [x.symbol, x.shares, x.targetWeight]);
+      const c = (state.cash || []).map((x) => [x.amount]);
+      const q = SYMBOLS.map((s) => [s, getCurrentSharesFromDom(s), parsePriceFromHolding(s)]);
+      return JSON.stringify({ h, c, q });
+    } catch (_) {
+      return String(Date.now());
+    }
+  }
+
   function buildRows() {
     const state = readState();
-    const holdings = derivedHoldings(state);
+    const holdings = Array.isArray(state.holdings) ? state.holdings : [];
     const rows = SYMBOLS.map((symbol) => {
       const h = holdings.find((x) => x.symbol === symbol) || { symbol, shares: 0, targetWeight: 0 };
       const domShares = getCurrentSharesFromDom(symbol);
@@ -100,10 +109,17 @@
     return Array.from(document.querySelectorAll('.card')).find((el) => el.querySelector('h2')?.textContent?.includes('再平衡'));
   }
 
-  function render() {
+  function render(force = false) {
+    const now = Date.now();
+    if (!force && now - lastRenderAt < 4500) return;
     injectStyle();
     const card = findRebalanceCard();
     if (!card) return;
+    const state = readState();
+    const sig = stateSignature(state);
+    if (!force && sig === lastSig) return;
+    lastSig = sig;
+    lastRenderAt = now;
     const data = buildRows();
     let box = card.querySelector('.cash-rebalance');
     if (!box) {
@@ -129,8 +145,17 @@
     `;
   }
 
-  window.addEventListener('load', render);
-  window.addEventListener('storage', render);
-  setInterval(render, 2000);
-  new MutationObserver(() => requestAnimationFrame(render)).observe(document.documentElement, { childList: true, subtree: true });
+  function schedule(force = false) {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      render(force);
+    });
+  }
+
+  window.addEventListener('load', () => schedule(true));
+  window.addEventListener('storage', () => schedule(true));
+  window.addEventListener('focus', () => schedule(true));
+  setInterval(() => schedule(false), 8000);
 })();
