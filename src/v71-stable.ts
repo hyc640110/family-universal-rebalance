@@ -58,14 +58,6 @@ function injectStableStyle(): void {
   document.head.appendChild(style);
 }
 
-function fixVersionLabel(): void {
-  const label = document.querySelector('.eyebrow');
-  if (label && /00631L\s+PRO\s+WEB\s+APP/i.test(label.textContent || '')) {
-    label.textContent = '00631L PRO WEB APP V7.1 STABLE';
-  }
-  document.title = '00631L Pro Web App v7.1 Stable';
-}
-
 function findDailyProfitCard(): Element | null {
   return Array.from(document.querySelectorAll('.stat'))
     .find((card) => /今日損益/.test(card.textContent || '')) || null;
@@ -101,7 +93,6 @@ function fixDailyProfit(): void {
 
 function runV71Stable(): void {
   migrateIntervalsToFiveMinutes();
-  fixVersionLabel();
   fixDailyProfit();
 }
 
