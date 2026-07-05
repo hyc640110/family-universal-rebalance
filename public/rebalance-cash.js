@@ -1,7 +1,8 @@
 (() => {
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
-  const DEFAULT_SYMBOLS = ['00631L', '0050', '00865B'];
-  const defaultPrices = { '00631L': 38.42, '0050': 107.8, '00865B': 48.52 };
+  const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
+  const DEFAULT_SYMBOLS = ['00631L'];
+  const defaultPrices = { '00631L': 38.42, '00865B': 48.52 };
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const pct = (n) => `${Number(n || 0).toFixed(2)}%`;
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
@@ -47,10 +48,10 @@
   function uniqueSymbols(state) {
     const holdings = Array.isArray(state.holdings) ? state.holdings.map((h) => h.symbol) : [];
     const trades = Array.isArray(state.trades) ? state.trades.map((t) => t.symbol) : [];
-    return Array.from(new Set([...DEFAULT_SYMBOLS, ...holdings, ...trades].filter(Boolean)));
+    return Array.from(new Set([...DEFAULT_SYMBOLS, ...holdings, ...trades].filter((symbol) => symbol && !REMOVED_SYMBOLS.has(symbol))));
   }
 
-  function fallbackPrice(symbol, holding) {
+  function backupPrice(symbol, holding) {
     return num(holding?.avgCost) || num(defaultPrices[symbol]);
   }
 
@@ -73,7 +74,7 @@
       const h = holdings.find((x) => x.symbol === symbol) || { symbol, shares: 0, targetWeight: 0 };
       const domShares = getCurrentSharesFromDom(symbol);
       const shares = domShares ?? num(h.shares);
-      const price = parsePriceFromHolding(symbol) || fallbackPrice(symbol, h);
+      const price = parsePriceFromHolding(symbol) || backupPrice(symbol, h);
       const value = shares * price;
       return { symbol, shares, price, value, target: num(h.targetWeight) };
     });
