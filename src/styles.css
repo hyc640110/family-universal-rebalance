@@ -51,6 +51,11 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .table{display:flex;flex-direction:column;gap:10px}
 .row{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr minmax(180px,1.2fr);gap:10px;align-items:center;background:#09182a;border-radius:12px;padding:12px}
 .row.head{background:#0f2f4f;color:#93c5fd;font-weight:800}
+.rebalance-group{display:flex;flex-direction:column;gap:0;background:#09182a;border:1px solid #1d3d66;border-radius:12px;overflow:hidden}
+.rebalance-group .row{border-radius:0;background:transparent}
+.rebalance-group .group-main{background:#0b2138}
+.rebalance-group .sub-row{margin-left:18px;border-left:3px solid #214466;background:#0b1728;color:#cbd5e1}
+.rebalance-group .sub-row span:first-child{color:#93c5fd}
 .params{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .file input{display:none}

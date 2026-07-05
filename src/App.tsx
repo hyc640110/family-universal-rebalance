@@ -158,9 +158,10 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const stockShares = Math.round(Math.abs(stockDiff) / Math.max(0.01, stock.quote.price));
   const stockAction = Math.abs(stockDiff) < 1000 ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`;
   const defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`;
-  const detailRows = m.defensiveHoldings.map(r => ({ symbol: `其中 ${r.symbol}`, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '保留實際持股，不參與再平衡', tone: 'hold' }));
-  const rows = [{ symbol: '00631L', currentWeight: m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), action: stockAction, tone: stockDiff >= 0 ? 'up' : 'down' }, { symbol: '防守資產', currentWeight: m.totalAssets ? m.defensive / m.totalAssets * 100 : 0, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), action: defensiveAction, tone: 'hold' }, ...detailRows];
-  return { rows, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`) };
+  const stockRow = { symbol: '00631L', currentWeight: m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), action: stockAction, tone: stockDiff >= 0 ? 'up' : 'down' };
+  const defensiveRow = { symbol: '防守資產', currentWeight: m.totalAssets ? m.defensive / m.totalAssets * 100 : 0, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), action: defensiveAction, tone: 'hold' };
+  const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '保留實際持股，不參與再平衡' }))];
+  return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`) };
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
@@ -273,7 +274,11 @@ function App() {
           </div>
           <div className="table rebalance-table">
             <div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>差額</span><span>建議</span></div>
-            {rb.rows.map(r => <div className="row" key={r.symbol}><span>{r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.diffText}</span><b className={r.tone}>{r.action}</b></div>)}
+            <div className="row"><span>{rb.stockRow.symbol}</span><span>{pct(rb.stockRow.currentWeight)}</span><span>{rb.stockRow.targetText}</span><span>{rb.stockRow.diffText}</span><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
+            <div className="rebalance-group">
+              <div className="row group-main"><span>{rb.defensiveRow.symbol}</span><span>{pct(rb.defensiveRow.currentWeight)}</span><span>{rb.defensiveRow.targetText}</span><span>{rb.defensiveRow.diffText}</span><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
+              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>其中 {r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.diffText}</span><b className="hold">{r.action}</b></div>)}
+            </div>
           </div>
         </Card>
         <div className="two">
