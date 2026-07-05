@@ -2,6 +2,9 @@
   const STORAGE_KEYS = ['00631l-pro-v100-state', '00631l-pro-v62-state', '00631l-pro-v61-state'];
   const META_KEYS = ['__autoSyncAt', '__autoSyncDevice', '__autoSyncSource'];
   const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
+  const DEFAULT_GROWTH_TARGET = 70;
+  const MIN_GROWTH_TARGET = 30;
+  const MAX_GROWTH_TARGET = 90;
   const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades', 'monthlyContribution', 'simCagr', 'simDividend', 'simYears'];
   let applyingRemote = false;
   let uploading = false;
@@ -37,6 +40,12 @@
     return String(value ?? '').includes(removedSymbol());
   }
 
+  function clampTarget(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return DEFAULT_GROWTH_TARGET;
+    return Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, numeric));
+  }
+
   function sanitizeState(value) {
     if (!value || typeof value !== 'object') return {};
     const state = { ...value };
@@ -45,11 +54,11 @@
     state.holdings = holdings
       .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
       .map((h) => {
-        if (h.symbol === '00631L') return { ...h, targetWeight: 70 };
+        if (h.symbol === '00631L') return { ...h, targetWeight: clampTarget(h.targetWeight ?? DEFAULT_GROWTH_TARGET) };
         const { targetWeight: _targetWeight, ...actualHolding } = h;
         return actualHolding;
       });
-    if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 });
+    if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET });
     state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
     return state;
