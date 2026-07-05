@@ -1,6 +1,7 @@
 (() => {
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
   const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
+  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades'];
   const DEFAULT_SYMBOLS = ['00631L'];
   const defaultPrices = { '00631L': 38.42, '00865B': 48.52 };
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
@@ -14,10 +15,42 @@
     for (const key of STORAGE_KEYS) {
       try {
         const raw = localStorage.getItem(key);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const state = sanitizeState(JSON.parse(raw));
+          const json = JSON.stringify(state);
+          if (raw !== json) saveState(state);
+          return state;
+        }
       } catch (_) {}
     }
     return {};
+  }
+
+  function saveState(state) {
+    const json = JSON.stringify(sanitizeState(state));
+    STORAGE_KEYS.forEach((key) => localStorage.setItem(key, json));
+  }
+
+  function removedSymbol() {
+    return Array.from(REMOVED_SYMBOLS)[0];
+  }
+
+  function hasRemovedSymbol(value) {
+    return String(value ?? '').includes(removedSymbol());
+  }
+
+  function sanitizeState(value) {
+    if (!value || typeof value !== 'object') return {};
+    const state = { ...value };
+    LEGACY_KEYS.forEach((key) => delete state[key]);
+    const holdings = Array.isArray(state.holdings) ? state.holdings : [];
+    state.holdings = holdings
+      .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
+      .map((h) => ({ ...h, targetWeight: h.symbol === '00631L' ? 70 : 0 }));
+    if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 });
+    state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
+    state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
+    return state;
   }
 
   function parseMoney(text) {

@@ -46,19 +46,44 @@ const defaultState: AppState = {
   trades: [], monthlyContribution: 5000, simCagr: 10, simDividend: 2, simYears: 10, refreshSec: 60,
   firebase: { databaseURL: '', secretPath: '631128' }, workerUrl: DEFAULT_WORKER_URL, autoSync: false, autoSyncSec: 60
 };
+const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades'];
+const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0];
+function hasRemovedSymbol(value: unknown) { return String(value ?? '').includes(removedSymbol()); }
+function sanitizeHolding(h: Holding): Holding | null {
+  if (!h?.symbol || REMOVED_SYMBOLS.has(h.symbol)) return null;
+  return { ...h, targetWeight: h.symbol === '00631L' ? 70 : 0 };
+}
+function sanitizeCashItem(c: CashItem): CashItem | null {
+  if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
+  return c;
+}
 function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? raw as Partial<AppState> : {};
+  LEGACY_KEYS.forEach((key) => delete (r as Record<string, unknown>)[key]);
   const s = { ...defaultState, ...r };
-  const holdings = (Array.isArray(s.holdings) ? s.holdings : defaultState.holdings).filter(h => !REMOVED_SYMBOLS.has(h.symbol));
-  const trades = (Array.isArray(s.trades) ? s.trades : []).filter(t => !REMOVED_SYMBOLS.has(t.symbol));
-  return { ...s, holdings, cash: Array.isArray(s.cash) ? s.cash : defaultState.cash, loans: Array.isArray(s.loans) ? s.loans : defaultState.loans, trades, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))) };
+  const holdings = (Array.isArray(s.holdings) ? s.holdings : defaultState.holdings).map(sanitizeHolding).filter(Boolean) as Holding[];
+  const has00631L = holdings.some(h => h.symbol === '00631L');
+  const trades = (Array.isArray(s.trades) ? s.trades : []).filter(t => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol));
+  const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(sanitizeCashItem).filter(Boolean) as CashItem[];
+  return { ...s, holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans: Array.isArray(s.loans) ? s.loans : defaultState.loans, trades, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))) };
 }
-function readState(): AppState { try { return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_STORAGE_KEY) || '{}')); } catch { return defaultState; } }
+function readState(): AppState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_STORAGE_KEY) || '{}';
+    const normalized = normalizeState(JSON.parse(raw));
+    const json = JSON.stringify(normalized);
+    if (raw !== json) {
+      localStorage.setItem(STORAGE_KEY, json);
+      localStorage.setItem(OLD_STORAGE_KEY, json);
+    }
+    return normalized;
+  } catch { return defaultState; }
+}
 function writeState(s: AppState) { const v = normalizeState(s); localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); localStorage.setItem(OLD_STORAGE_KEY, JSON.stringify(v)); }
 function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURIComponent(config.secretPath || '631128')}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
-async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState(data); }
+async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); const normalized = normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); await uploadFirebase(config, normalized); return normalized; }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null { const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string }; if (typeof d?.price !== 'number') return null; const prev = Number(d.previousClose ?? d.prev ?? d.price); return { ...backupQuote(symbol), symbol, price: d.price, previousClose: prev, change: d.price - prev, changePct: prev ? (d.price - prev) / prev * 100 : 0, volume: Number(d.volume ?? 0), source: d.source || 'Yahoo Finance via Cloudflare Worker', updatedAt: now() }; }
 async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '平均成本備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 function derivedHoldings(state: AppState): Holding[] {
