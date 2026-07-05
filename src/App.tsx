@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -114,6 +114,9 @@ function readState(): AppState {
   } catch { return defaultState; }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
+function waitForDraftCommit() {
+  return new Promise<void>(resolve => setTimeout(resolve, 0)).then(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+}
 function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURIComponent(config.secretPath || '631128')}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
@@ -185,24 +188,38 @@ function Card({ title, children }: { title: string; children: ReactNode }) { ret
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
   const [draft, setDraft] = useState(String(value ?? ''));
   const [editing, setEditing] = useState(false);
-  useEffect(() => { if (!editing) setDraft(String(value ?? '')); }, [value, editing]);
-  const commit = () => { setEditing(false); onCommit(draft); };
-  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={() => setEditing(true)} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />;
+  const draftRef = useRef(String(value ?? ''));
+  const valueRef = useRef(String(value ?? ''));
+  const editingRef = useRef(false);
+  const onCommitRef = useRef(onCommit);
+  useEffect(() => { onCommitRef.current = onCommit; });
+  useEffect(() => { const next = String(value ?? ''); valueRef.current = next; if (!editing) { draftRef.current = next; setDraft(next); } }, [value, editing]);
+  useEffect(() => () => { if (editingRef.current || draftRef.current !== valueRef.current) onCommitRef.current(draftRef.current); }, []);
+  const commit = () => { editingRef.current = false; setEditing(false); onCommitRef.current(draftRef.current); };
+  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={() => { editingRef.current = true; setEditing(true); }} onChange={e => { editingRef.current = true; setEditing(true); draftRef.current = e.target.value; setDraft(e.target.value); }} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />;
 }
 const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fallback : Math.max(0, num(Number(value)));
 
-function CashList({ items, setItems }: { items: CashItem[]; setItems: (items: CashItem[]) => void }) {
-  const update = (id: string, patch: Partial<CashItem>) => setItems(items.map(item => item.id === id ? { ...item, ...patch } : item));
-  return <div className="list cash-list"><div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => update(item.id, { note: value })} /></label><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
+function CashList({ items, setItems }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void }) {
+  const update = (id: string, patch: Partial<CashItem>) => setItems(items => items.map(item => item.id === id ? { ...item, ...patch } : item));
+  return <div className="list cash-list"><div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => update(item.id, { note: value })} /></label><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
 }
-function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: LoanItem[]) => void }) {
-  const update = (id: string, patch: Partial<LoanItem>) => setItems(items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
-  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining" title="依起始日與今天日期自動計算">{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining" title="總期數減已繳期數">{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
+function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void }) {
+  const update = (id: string, patch: Partial<LoanItem>) => setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
+  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining" title="依起始日與今天日期自動計算">{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining" title="總期數減已繳期數">{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
 function App() {
   const [tab, setTab] = useState<'dashboard' | 'sync'>('dashboard');
-  const [state, setState] = useState<AppState>(() => readState());
+  const [state, setStateValue] = useState<AppState>(() => readState());
+  const stateRef = useRef(state);
+  const setState = (updater: SetStateAction<AppState>) => {
+    setStateValue(prev => {
+      const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(prev) : updater;
+      stateRef.current = next;
+      return next;
+    });
+  };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [sync, setSync] = useState('尚未同步');
   const [loadedAt] = useState(now());
@@ -211,10 +228,20 @@ function App() {
   const [targetDraft, setTargetDraft] = useState(String(growthTargetOf(state)));
   const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
-  useEffect(() => { writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { setLastSavedAt(now()); if (!state.autoSync) setSync('本機已儲存'); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
+  useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { setLastSavedAt(now()); if (!state.autoSync) setSync('本機已儲存'); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   useEffect(() => setTargetDraft(String(growthTargetOf(state))), [state.holdings]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
-  const uploadCloud = async (label = 'Firebase 同步完成') => { setSync('Firebase 同步中…'); const normalized = normalizeState(state); await uploadFirebase(normalized.firebase, normalized); setSync(`${label} ${tw(now())}｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆`); };
+  const flushDrafts = async () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+    await waitForDraftCommit();
+    const normalized = normalizeState(stateRef.current);
+    stateRef.current = normalized;
+    writeState(normalized);
+    setLastSavedAt(now());
+    return normalized;
+  };
+  const uploadCloud = async () => { setSync('本機儲存中…'); const normalized = await flushDrafts(); setSync('Firebase 同步中…'); await uploadFirebase(normalized.firebase, normalized); const syncedAt = now(); setLastSavedAt(syncedAt); setSync(`本機已儲存｜Firebase 同步完成 ${tw(syncedAt)}｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆`); };
   const downloadCloud = async () => { setSync('下載中…'); const remote = await downloadFirebase(state.firebase); isApplyingRemoteRef.current = true; setState(remote); setSync(`Firebase 同步完成 ${tw(now())}｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆`); };
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
@@ -282,14 +309,14 @@ function App() {
           </div>
         </Card>
         <div className="two">
-          <Card title="現金管理"><CashList items={state.cash} setItems={items => setState(s => ({ ...s, cash: items }))} /></Card>
+          <Card title="現金管理"><CashList items={state.cash} setItems={items => setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items }))} /></Card>
           <Card title="借款管理">
             <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /></div>
-            <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: items }))} />
+            <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
           </Card>
         </div>
       </>}
-      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => setSync('上傳失敗：' + e.message))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => setSync('下載失敗：' + e.message))}>下載雲端</button><button onClick={backup}>備份 JSON</button><label className="file">還原 JSON<input type="file" accept="application/json" onChange={e => restore(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p>{sync}</p><p className="note">Firebase 不會自動下載覆蓋本機資料；只有手動按「下載雲端」才會套用雲端資料。</p></Card>}
+      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => setSync('Firebase 同步失敗：' + e.message))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => setSync('下載失敗：' + e.message))}>下載雲端</button><button onClick={backup}>備份 JSON</button><label className="file">還原 JSON<input type="file" accept="application/json" onChange={e => restore(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p>{sync}</p><p className="note">Firebase 不會自動下載覆蓋本機資料；只有手動按「下載雲端」才會套用雲端資料。</p></Card>}
     </main>
   );
 }
