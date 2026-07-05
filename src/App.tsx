@@ -172,12 +172,10 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   return <div className="pie-layout">
     <div className="pie-figure">
       <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties} />
-      <span className="pie-callout growth-label"><b>00631L</b><strong>{pct(growthPct)}</strong></span>
-      <span className="pie-callout defensive-label"><b>防守資產</b><strong>{pct(defensivePct)}</strong></span>
     </div>
     <div className="allocation-detail">
-      <div><h3>成長資產</h3><p><i className="legend growth-dot" />00631L：{pct(growthPct)}</p><small>目標：{pct(m.growthTargetPct)}</small></div>
-      <div><h3>防守資產</h3><p><i className="legend cash-dot" />現金：{pct(cashPct)}</p>{m.defensiveHoldings.map(r => <p key={r.symbol}><i className="legend bond-dot" />{r.symbol}：{r.symbol === '00865B' ? holdingPct('00865B') : pct(m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0)}</p>)}<p><i className="legend defensive-dot" />合計：{pct(defensivePct)}</p><small>目標：{pct(m.defensiveTargetPct)}</small></div>
+      <div><h3>成長資產</h3><p><span><i className="legend growth-dot" />00631L</span><strong>{pct(growthPct)}</strong></p><p><span>目標</span><strong>{pct(m.growthTargetPct)}</strong></p></div>
+      <div><h3>防守資產</h3><p><span><i className="legend cash-dot" />現金</span><strong>{pct(cashPct)}</strong></p>{m.defensiveHoldings.map(r => <p key={r.symbol}><span><i className="legend bond-dot" />{r.symbol}</span><strong>{r.symbol === '00865B' ? holdingPct('00865B') : pct(m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0)}</strong></p>)}<p><span><i className="legend defensive-dot" />合計</span><strong>{pct(defensivePct)}</strong></p><p><span>目標</span><strong>{pct(m.defensiveTargetPct)}</strong></p></div>
     </div>
   </div>;
 }
