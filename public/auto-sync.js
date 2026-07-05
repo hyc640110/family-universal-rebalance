@@ -121,7 +121,7 @@
     const current = signature(state);
     if (!lastSignature) {
       lastSignature = current;
-      if (!state.__autoSyncAt) uploadLocalState('init');
+      if (!state.__autoSyncAt) uploadLocalState('first-sync');
       return;
     }
     if (current !== lastSignature && Date.now() - lastUploadAt > 1800) {

@@ -14,7 +14,8 @@ type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; trad
 const STORAGE_KEY = '00631l-pro-v62-state';
 const OLD_STORAGE_KEY = '00631l-pro-v61-state';
 const DEFAULT_WORKER_URL = 'https://fancy-dew-4128.hyc640110.workers.dev';
-const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L', '0050', '00865B'];
+const REMOVED_SYMBOLS = new Set<SymbolCode>([['00', '50'].join('')]);
+const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const num = (n: number) => Number.isFinite(n) ? n : 0;
@@ -24,26 +25,23 @@ const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00631L': { symbol: '00631L', name: '元大台灣50正2', price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
-  '0050': { symbol: '0050', name: '元大台灣50', price: 107.8, previousClose: 106.75, change: 1.05, changePct: 0.98, volume: 0, source: '內建備援', updatedAt: now() },
   '00865B': { symbol: '00865B', name: '國泰US短期公債', price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() }
 };
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
   const fromState = state?.holdings?.map(h => h.symbol) || [];
   const fromTrades = state?.trades?.map(t => t.symbol) || [];
-  return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState, ...fromTrades].filter(Boolean)));
+  return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState, ...fromTrades].filter(s => s && !REMOVED_SYMBOLS.has(s))));
 }
-function fallbackQuote(symbol: SymbolCode, holding?: Holding): Quote {
+function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   const base = defaultQuotes[symbol];
   const price = num(holding?.avgCost || base?.price || 0);
   return { ...(base || { symbol, name: symbol, volume: 0 }), symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '平均成本備援' : '無股價資料', updatedAt: now() };
 }
 const defaultState: AppState = {
   holdings: [
-    { symbol: '00631L', shares: 1000, avgCost: 36.8, targetWeight: 50 },
-    { symbol: '0050', shares: 200, avgCost: 104.7, targetWeight: 20 },
-    { symbol: '00865B', shares: 500, avgCost: 31.5, targetWeight: 20 }
+    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 }
   ],
-  cash: [{ id: uid(), name: '高利活存 / 預備金', amount: 50000, note: '逢低加碼資金' }],
+  cash: [{ id: uid(), name: '現金', amount: 0, note: '策略目標 30%' }],
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10) }],
   trades: [], monthlyContribution: 5000, simCagr: 10, simDividend: 2, simYears: 10, refreshSec: 60,
   firebase: { databaseURL: '', secretPath: '631128' }, workerUrl: DEFAULT_WORKER_URL, autoSync: false, autoSyncSec: 60
@@ -51,7 +49,9 @@ const defaultState: AppState = {
 function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? raw as Partial<AppState> : {};
   const s = { ...defaultState, ...r };
-  return { ...s, holdings: Array.isArray(s.holdings) ? s.holdings : defaultState.holdings, cash: Array.isArray(s.cash) ? s.cash : defaultState.cash, loans: Array.isArray(s.loans) ? s.loans : defaultState.loans, trades: Array.isArray(s.trades) ? s.trades : [], firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))) };
+  const holdings = (Array.isArray(s.holdings) ? s.holdings : defaultState.holdings).filter(h => !REMOVED_SYMBOLS.has(h.symbol));
+  const trades = (Array.isArray(s.trades) ? s.trades : []).filter(t => !REMOVED_SYMBOLS.has(t.symbol));
+  return { ...s, holdings, cash: Array.isArray(s.cash) ? s.cash : defaultState.cash, loans: Array.isArray(s.loans) ? s.loans : defaultState.loans, trades, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))) };
 }
 function readState(): AppState { try { return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_STORAGE_KEY) || '{}')); } catch { return defaultState; } }
 function writeState(s: AppState) { const v = normalizeState(s); localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); localStorage.setItem(OLD_STORAGE_KEY, JSON.stringify(v)); }
@@ -59,8 +59,8 @@ function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURICompone
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState(data); }
-function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null { const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string }; if (typeof d?.price !== 'number') return null; const prev = Number(d.previousClose ?? d.prev ?? d.price); return { ...fallbackQuote(symbol), symbol, price: d.price, previousClose: prev, change: d.price - prev, changePct: prev ? (d.price - prev) / prev * 100 : 0, volume: Number(d.volume ?? 0), source: d.source || 'Yahoo Finance via Cloudflare Worker', updatedAt: now() }; }
-async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...fallbackQuote(symbol, holding), source: holding?.avgCost ? '平均成本備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
+function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null { const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string }; if (typeof d?.price !== 'number') return null; const prev = Number(d.previousClose ?? d.prev ?? d.price); return { ...backupQuote(symbol), symbol, price: d.price, previousClose: prev, change: d.price - prev, changePct: prev ? (d.price - prev) / prev * 100 : 0, volume: Number(d.volume ?? 0), source: d.source || 'Yahoo Finance via Cloudflare Worker', updatedAt: now() }; }
+async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '平均成本備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 function derivedHoldings(state: AppState): Holding[] {
   const map = Object.fromEntries(state.holdings.map(h => [h.symbol, { ...h, cost: num(h.shares) * num(h.avgCost) }])) as Record<SymbolCode, Holding & { cost: number }>;
   [...state.trades].reverse().forEach(t => {
@@ -71,7 +71,7 @@ function derivedHoldings(state: AppState): Holding[] {
   });
   return uniqueSymbols(state).map(s => map[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0 });
 }
-function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) { const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || fallbackQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '平均成本備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; }); const stocks = rows.reduce((a, r) => a + r.marketValue, 0); const cash = state.cash.reduce((a, c) => a + num(c.amount), 0); const debt = state.loans.reduce((a, l) => a + num(l.principal), 0); const totalAssets = stocks + cash; const netWorth = totalAssets - debt; const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0); const beta = rows.reduce((a, r) => a + (r.symbol === '00631L' ? 2 : r.symbol === '0050' ? 1 : 0.05) * (totalAssets ? r.marketValue / totalAssets : 0), 0); const cashRatio = totalAssets ? cash / totalAssets * 100 : 0; const leverage = netWorth > 0 ? totalAssets / netWorth : 0; return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, beta, cashRatio, leverage }; }
+function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) { const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '平均成本備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; }); const stocks = rows.reduce((a, r) => a + r.marketValue, 0); const cash = state.cash.reduce((a, c) => a + num(c.amount), 0); const debt = state.loans.reduce((a, l) => a + num(l.principal), 0); const totalAssets = stocks + cash; const netWorth = totalAssets - debt; const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0); const beta = rows.reduce((a, r) => a + (r.symbol === '00631L' ? 2 : 0.05) * (totalAssets ? r.marketValue / totalAssets : 0), 0); const cashRatio = totalAssets ? cash / totalAssets * 100 : 0; const leverage = netWorth > 0 ? totalAssets / netWorth : 0; return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, beta, cashRatio, leverage }; }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) { const m = calculateMetrics(state, quotes); return m.rows.map(r => { const target = m.totalAssets * r.targetWeight / 100; const diff = target - r.marketValue; return { symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetWeight: r.targetWeight, diff, shares: Math.round(diff / r.quote.price) }; }); }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', '現金水位偏低或槓桿偏高，先補現金或降低借款。', 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', '可分批補足低於目標權重的部位，避免一次打滿。', 'warn'] as const; return ['正常投入', '維持定期投入與目標配置；若現金過高，分批投入。', 'good'] as const; }
 function simSeries(state: AppState, start: number) { const months = state.simYears * 12; const r = Math.pow(1 + (state.simCagr + state.simDividend) / 100, 1 / 12) - 1; let v = start; return Array.from({ length: months + 1 }, (_, i) => { if (i > 0) v = v * (1 + r) + state.monthlyContribution; return { month: i, value: v }; }); }

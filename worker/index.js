@@ -1,5 +1,5 @@
 const VERSION = '00631L-Pro-Web-App Worker v6.3 CORS';
-const ALLOWED = ['00631L.TW', '0050.TW', '00865B.TW'];
+const ALLOWED = ['00631L.TW', '00865B.TW'];
 
 function corsHeaders(request) {
   const origin = request.headers.get('origin') || '*';
