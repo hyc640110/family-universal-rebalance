@@ -46,7 +46,11 @@
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
     state.holdings = holdings
       .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
-      .map((h) => ({ ...h, targetWeight: h.symbol === '00631L' ? 70 : 0 }));
+      .map((h) => {
+        if (h.symbol === '00631L') return { ...h, targetWeight: 70 };
+        const { targetWeight: _targetWeight, ...actualHolding } = h;
+        return actualHolding;
+      });
     if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 });
     state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
@@ -88,6 +92,10 @@
     return num(holding?.avgCost) || num(defaultPrices[symbol]);
   }
 
+  function strategyTarget(symbol) {
+    return symbol === '00631L' ? 70 : null;
+  }
+
   function stateSignature(state) {
     try {
       const symbols = uniqueSymbols(state);
@@ -104,26 +112,31 @@
     const state = readState();
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
     const rows = uniqueSymbols(state).map((symbol) => {
-      const h = holdings.find((x) => x.symbol === symbol) || { symbol, shares: 0, targetWeight: 0 };
+      const h = holdings.find((x) => x.symbol === symbol) || { symbol, shares: 0 };
       const domShares = getCurrentSharesFromDom(symbol);
       const shares = domShares ?? num(h.shares);
       const price = parsePriceFromHolding(symbol) || backupPrice(symbol, h);
       const value = shares * price;
-      return { symbol, shares, price, value, target: num(h.targetWeight) };
+      return { symbol, shares, price, value, target: strategyTarget(symbol) };
     });
     const cash = cashAmount(state);
     const total = rows.reduce((sum, r) => sum + r.value, 0) + cash;
-    const stockTarget = rows.reduce((sum, r) => sum + r.target, 0);
+    const stockTarget = rows.reduce((sum, r) => sum + num(r.target), 0);
     const cashTarget = Math.max(0, 100 - stockTarget);
     const normalizedTotalTarget = stockTarget + cashTarget;
     const withCash = [
-      ...rows.map((r) => ({ ...r, current: total ? (r.value / total) * 100 : 0, targetValue: total * r.target / 100, diff: total * r.target / 100 - r.value })),
+      ...rows.map((r) => {
+        if (r.target === null) return { ...r, current: total ? (r.value / total) * 100 : 0, targetValue: r.value, diff: 0 };
+        const targetValue = total * r.target / 100;
+        return { ...r, current: total ? (r.value / total) * 100 : 0, targetValue, diff: targetValue - r.value };
+      }),
       { symbol: '現金', shares: 0, price: 1, value: cash, target: cashTarget, current: total ? (cash / total) * 100 : 0, targetValue: total * cashTarget / 100, diff: total * cashTarget / 100 - cash }
     ];
     return { total, stockTarget, cashTarget, normalizedTotalTarget, rows: withCash };
   }
 
   function advice(row) {
+    if (row.target === null) return { text: '保留實際持股', cls: 'hold' };
     const diff = row.diff;
     if (Math.abs(diff) < 1000) return { text: '維持', cls: 'hold' };
     if (row.symbol === '現金') {
@@ -183,7 +196,7 @@
         <div class="cash-rebalance-row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>差額</span><span>建議</span></div>
         ${data.rows.map((row) => {
           const a = advice(row);
-          return `<div class="cash-rebalance-row"><span><b>${row.symbol}</b></span><span>${pct(row.current)}</span><span>${pct(row.target)}</span><span>${money(row.diff)}</span><span class="${a.cls}">${a.text}</span></div>`;
+          return `<div class="cash-rebalance-row"><span><b>${row.symbol}</b></span><span>${pct(row.current)}</span><span>${row.target === null ? '持有' : pct(row.target)}</span><span>${money(row.diff)}</span><span class="${a.cls}">${a.text}</span></div>`;
         }).join('')}
       </div>
       <p class="cash-rebalance-note">計算方式：目前 holdings 內的 ETF 與現金合計 100%。若股票目標合計為 ${pct(data.stockTarget)}，現金目標會自動補成 ${pct(data.cashTarget)}。</p>
