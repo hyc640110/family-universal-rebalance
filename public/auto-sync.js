@@ -66,9 +66,9 @@
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
       const totalMonths = loan?.totalMonths === undefined || loan?.totalMonths === null ? undefined : Math.max(0, Number(loan.totalMonths) || 0);
-      const paidRaw = loan?.paidMonths === undefined || loan?.paidMonths === null ? undefined : Math.max(0, Number(loan.paidMonths) || 0);
-      const paidMonths = totalMonths === undefined || paidRaw === undefined ? paidRaw : Math.min(paidRaw, totalMonths);
-      return { ...loan, totalMonths, paidMonths };
+      const savedLoan = { ...(loan || {}) };
+      delete savedLoan[['paid', 'Months'].join('')];
+      return { ...savedLoan, totalMonths };
     }) : [];
     return state;
   }
