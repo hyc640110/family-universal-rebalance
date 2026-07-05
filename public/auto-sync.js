@@ -44,7 +44,11 @@
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
     state.holdings = holdings
       .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
-      .map((h) => ({ ...h, targetWeight: h.symbol === '00631L' ? 70 : 0 }));
+      .map((h) => {
+        if (h.symbol === '00631L') return { ...h, targetWeight: 70 };
+        const { targetWeight: _targetWeight, ...actualHolding } = h;
+        return actualHolding;
+      });
     if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 });
     state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
