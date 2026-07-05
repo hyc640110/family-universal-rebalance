@@ -18,6 +18,7 @@ const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
 const DEFAULT_GROWTH_TARGET = 70;
 const MIN_GROWTH_TARGET = 30;
 const MAX_GROWTH_TARGET = 90;
+const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const num = (n: number) => Number.isFinite(n) ? n : 0;
@@ -115,7 +116,7 @@ function readState(): AppState {
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function waitForDraftCommit() {
-  return new Promise<void>(resolve => setTimeout(resolve, 0)).then(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+  return new Promise<void>(resolve => setTimeout(resolve, 0)).then(flushFrame).then(flushFrame);
 }
 function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURIComponent(config.secretPath || '631128')}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
@@ -214,11 +215,9 @@ function App() {
   const [state, setStateValue] = useState<AppState>(() => readState());
   const stateRef = useRef(state);
   const setState = (updater: SetStateAction<AppState>) => {
-    setStateValue(prev => {
-      const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(prev) : updater;
-      stateRef.current = next;
-      return next;
-    });
+    const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(stateRef.current) : updater;
+    stateRef.current = next;
+    setStateValue(next);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [sync, setSync] = useState('尚未同步');
