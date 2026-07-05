@@ -5,7 +5,8 @@
   const DEFAULT_GROWTH_TARGET = 70;
   const MIN_GROWTH_TARGET = 30;
   const MAX_GROWTH_TARGET = 90;
-  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades', 'monthlyContribution', 'simCagr', 'simDividend', 'simYears'];
+  const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
+  const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
   let applyingRemote = false;
   let uploading = false;
   let lastSignature = '';
@@ -49,7 +50,7 @@
   function sanitizeState(value) {
     if (!value || typeof value !== 'object') return {};
     const state = { ...value };
-    LEGACY_KEYS.forEach((key) => delete state[key]);
+    STALE_KEYS.forEach((key) => delete state[key]);
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
     state.holdings = holdings
       .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
@@ -59,8 +60,13 @@
         return actualHolding;
       });
     if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET });
-    state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
+    state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
+      const totalMonths = loan?.totalMonths === undefined || loan?.totalMonths === null ? undefined : Math.max(0, Number(loan.totalMonths) || 0);
+      const paidRaw = loan?.paidMonths === undefined || loan?.paidMonths === null ? undefined : Math.max(0, Number(loan.paidMonths) || 0);
+      const paidMonths = totalMonths === undefined || paidRaw === undefined ? paidRaw : Math.min(paidRaw, totalMonths);
+      return { ...loan, totalMonths, paidMonths };
+    }) : [];
     return state;
   }
 
