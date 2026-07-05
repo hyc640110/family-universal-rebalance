@@ -1,6 +1,6 @@
 (() => {
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
-  const SYMBOLS = ['00631L', '0050', '00865B'];
+  const DEFAULT_SYMBOLS = ['00631L', '0050', '00865B'];
   const defaultPrices = { '00631L': 38.42, '0050': 107.8, '00865B': 48.52 };
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
   const pct = (n) => `${Number(n || 0).toFixed(2)}%`;
@@ -26,10 +26,10 @@
 
   function parsePriceFromHolding(symbol) {
     const card = Array.from(document.querySelectorAll('.holding')).find((el) => el.textContent?.includes(symbol));
-    if (!card) return defaultPrices[symbol] || 0;
+    if (!card) return 0;
     const text = card.textContent || '';
     const match = text.match(/現價[^\d]*(\d+(?:\.\d+)?)/) || text.match(/價格[^\d]*(\d+(?:\.\d+)?)/) || text.match(/NT\$\s*(\d+(?:\.\d+)?)/);
-    return match ? Number(match[1]) : (defaultPrices[symbol] || 0);
+    return match ? Number(match[1]) : 0;
   }
 
   function getCurrentSharesFromDom(symbol) {
@@ -44,11 +44,22 @@
     return Array.isArray(state.cash) ? state.cash.reduce((sum, x) => sum + num(x.amount), 0) : 0;
   }
 
+  function uniqueSymbols(state) {
+    const holdings = Array.isArray(state.holdings) ? state.holdings.map((h) => h.symbol) : [];
+    const trades = Array.isArray(state.trades) ? state.trades.map((t) => t.symbol) : [];
+    return Array.from(new Set([...DEFAULT_SYMBOLS, ...holdings, ...trades].filter(Boolean)));
+  }
+
+  function fallbackPrice(symbol, holding) {
+    return num(holding?.avgCost) || num(defaultPrices[symbol]);
+  }
+
   function stateSignature(state) {
     try {
-      const h = (state.holdings || []).map((x) => [x.symbol, x.shares, x.targetWeight]);
+      const symbols = uniqueSymbols(state);
+      const h = (state.holdings || []).map((x) => [x.symbol, x.shares, x.avgCost, x.targetWeight]);
       const c = (state.cash || []).map((x) => [x.amount]);
-      const q = SYMBOLS.map((s) => [s, getCurrentSharesFromDom(s), parsePriceFromHolding(s)]);
+      const q = symbols.map((s) => [s, getCurrentSharesFromDom(s), parsePriceFromHolding(s)]);
       return JSON.stringify({ h, c, q });
     } catch (_) {
       return String(Date.now());
@@ -58,11 +69,11 @@
   function buildRows() {
     const state = readState();
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
-    const rows = SYMBOLS.map((symbol) => {
+    const rows = uniqueSymbols(state).map((symbol) => {
       const h = holdings.find((x) => x.symbol === symbol) || { symbol, shares: 0, targetWeight: 0 };
       const domShares = getCurrentSharesFromDom(symbol);
       const shares = domShares ?? num(h.shares);
-      const price = parsePriceFromHolding(symbol);
+      const price = parsePriceFromHolding(symbol) || fallbackPrice(symbol, h);
       const value = shares * price;
       return { symbol, shares, price, value, target: num(h.targetWeight) };
     });
@@ -141,7 +152,7 @@
           return `<div class="cash-rebalance-row"><span><b>${row.symbol}</b></span><span>${pct(row.current)}</span><span>${pct(row.target)}</span><span>${money(row.diff)}</span><span class="${a.cls}">${a.text}</span></div>`;
         }).join('')}
       </div>
-      <p class="cash-rebalance-note">計算方式：00631L、0050、00865B 與現金合計 100%。若股票目標合計為 ${pct(data.stockTarget)}，現金目標會自動補成 ${pct(data.cashTarget)}。</p>
+      <p class="cash-rebalance-note">計算方式：目前 holdings 內的 ETF 與現金合計 100%。若股票目標合計為 ${pct(data.stockTarget)}，現金目標會自動補成 ${pct(data.cashTarget)}。</p>
     `;
   }
 
