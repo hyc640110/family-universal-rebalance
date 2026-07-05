@@ -5,7 +5,7 @@ type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
 type Holding = { symbol: SymbolCode; shares: number; avgCost: number; targetWeight?: number };
 type CashItem = { id: string; name: string; amount: number; note: string };
-type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number; paidMonths?: number };
+type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number };
 
@@ -38,7 +38,7 @@ const defaultQuotes: Record<SymbolCode, Quote> = {
 const defaultState: AppState = {
   holdings: [{ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET }],
   cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
-  loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84, paidMonths: 0 }],
+  loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
   firebase: { databaseURL: '', secretPath: '631128' },
   workerUrl: DEFAULT_WORKER_URL,
@@ -72,9 +72,22 @@ function sanitizeCashItem(c: CashItem): CashItem | null {
 }
 function sanitizeLoanItem(l: LoanItem): LoanItem {
   const totalMonths = l.totalMonths === undefined || l.totalMonths === null ? undefined : Math.max(0, num(Number(l.totalMonths)));
-  const paidMonthsRaw = l.paidMonths === undefined || l.paidMonths === null ? undefined : Math.max(0, num(Number(l.paidMonths)));
-  const paidMonths = totalMonths === undefined || paidMonthsRaw === undefined ? paidMonthsRaw : Math.min(paidMonthsRaw, totalMonths);
-  return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths, paidMonths };
+  return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths };
+}
+function calculatedPaidMonths(startDate: string, totalMonths?: number, today = new Date()) {
+  if (!startDate || totalMonths === undefined) return undefined;
+  const start = new Date(`${startDate}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return undefined;
+  const total = Math.max(0, Math.floor(totalMonths));
+  const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (start > current) return 0;
+  const monthDelta = (current.getFullYear() - start.getFullYear()) * 12 + current.getMonth() - start.getMonth();
+  const paid = monthDelta + (current.getDate() >= start.getDate() ? 1 : 0);
+  return Math.min(total, Math.max(0, paid));
+}
+function calculatedRemainingMonths(loan: LoanItem) {
+  const paid = calculatedPaidMonths(loan.startDate, loan.totalMonths);
+  return paid === undefined || loan.totalMonths === undefined ? undefined : Math.max(0, loan.totalMonths - paid);
 }
 function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>) } : {};
@@ -126,7 +139,7 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveRatio = totalAssets ? defensive / totalAssets * 100 : 0;
   const leverage = netWorth > 0 ? totalAssets / netWorth : 0;
   const monthlyPayment = state.loans.reduce((a, l) => a + num(l.monthlyPayment), 0);
-  const remainingMonths = state.loans.map(l => l.totalMonths === undefined || l.paidMonths === undefined ? undefined : Math.max(0, num(l.totalMonths) - num(l.paidMonths))).filter((v): v is number => v !== undefined);
+  const remainingMonths = state.loans.map(calculatedRemainingMonths).filter((v): v is number => v !== undefined);
   const averageRemainingMonths = remainingMonths.length ? remainingMonths.reduce((a, v) => a + v, 0) / remainingMonths.length : undefined;
   return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths };
 }
@@ -153,8 +166,8 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const holdingPct = (symbol: SymbolCode) => pct(m.totalAssets ? (m.defensiveHoldings.find(r => r.symbol === symbol)?.marketValue || 0) / m.totalAssets * 100 : 0);
   return <div className="pie-layout">
     <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties}>
-      <span className="pie-label growth-label">00631L<br />{pct(growthPct)}</span>
-      <span className="pie-label defensive-label">防守<br />{pct(defensivePct)}</span>
+      <span className="pie-label growth-label"><b>00631L</b><strong>{pct(growthPct)}</strong></span>
+      <span className="pie-label defensive-label"><b>防守資產</b><strong>{pct(defensivePct)}</strong></span>
     </div>
     <div className="allocation-detail">
       <div><h3>成長資產</h3><p><i className="legend growth-dot" />00631L：{pct(growthPct)}</p><small>目標：{pct(m.growthTargetPct)}</small></div>
@@ -170,7 +183,7 @@ function CashList({ items, setItems }: { items: CashItem[]; setItems: (items: Ca
 }
 function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: LoanItem[]) => void }) {
   const update = (id: string, patch: Partial<LoanItem>) => setItems(items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
-  return <div className="list loan-list"><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳</span><span>剩餘</span><span>操作</span></div>{items.map(item => { const remaining = item.totalMonths === undefined || item.paidMonths === undefined ? undefined : Math.max(0, item.totalMonths - item.paidMonths); return <div className="list-row" key={item.id}><label><span>名稱</span><input value={item.name} onChange={e => update(item.id, { name: e.target.value })} /></label><label><span>本金（萬元）</span><input type="number" value={item.principal / 10000} onChange={e => update(item.id, { principal: Math.max(0, num(e.target.valueAsNumber) * 10000) })} /></label><label><span>利率%</span><input type="number" value={item.annualRate} onChange={e => update(item.id, { annualRate: Math.max(0, num(e.target.valueAsNumber)) })} /></label><label><span>月付金</span><input type="number" value={item.monthlyPayment} onChange={e => update(item.id, { monthlyPayment: Math.max(0, num(e.target.valueAsNumber)) })} /></label><label><span>起始日</span><input type="date" value={item.startDate} onChange={e => update(item.id, { startDate: e.target.value })} /></label><label><span>總期數</span><input type="number" value={item.totalMonths ?? ''} onChange={e => update(item.id, { totalMonths: e.target.value === '' ? undefined : Math.max(0, num(e.target.valueAsNumber)) })} /></label><label><span>已繳</span><input type="number" value={item.paidMonths ?? ''} onChange={e => update(item.id, { paidMonths: e.target.value === '' ? undefined : Math.max(0, num(e.target.valueAsNumber)) })} /></label><span className="remaining">{remaining === undefined ? '—' : `${remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: 0, paidMonths: 0 }])}>新增</button></div>;
+  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const paid = calculatedPaidMonths(item.startDate, item.totalMonths); const remaining = calculatedRemainingMonths(item); return <div className="list-row" key={item.id}><label><span>名稱</span><input value={item.name} onChange={e => update(item.id, { name: e.target.value })} /></label><label><span>本金（萬元）</span><input type="number" value={item.principal / 10000} onChange={e => update(item.id, { principal: Math.max(0, num(e.target.valueAsNumber) * 10000) })} /></label><label><span>利率%</span><input type="number" value={item.annualRate} onChange={e => update(item.id, { annualRate: Math.max(0, num(e.target.valueAsNumber)) })} /></label><label><span>月付金</span><input type="number" value={item.monthlyPayment} onChange={e => update(item.id, { monthlyPayment: Math.max(0, num(e.target.valueAsNumber)) })} /></label><label><span>起始日</span><input type="date" value={item.startDate} onChange={e => update(item.id, { startDate: e.target.value })} /></label><label><span>總期數</span><input type="number" value={item.totalMonths ?? ''} onChange={e => update(item.id, { totalMonths: e.target.value === '' ? undefined : Math.max(0, num(e.target.valueAsNumber)) })} /></label><span className="remaining">{paid === undefined ? '—' : `${paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining">{remaining === undefined ? '—' : `${remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
 function App() {
