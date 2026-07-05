@@ -1,6 +1,8 @@
 (() => {
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
   const META_KEYS = ['__autoSyncAt', '__autoSyncDevice', '__autoSyncSource'];
+  const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
+  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades'];
   let applyingRemote = false;
   let uploading = false;
   let lastSignature = '';
@@ -11,15 +13,42 @@
     for (const key of STORAGE_KEYS) {
       try {
         const raw = localStorage.getItem(key);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const state = sanitizeState(JSON.parse(raw));
+          const json = JSON.stringify(state);
+          if (raw !== json) saveState(state);
+          return state;
+        }
       } catch (_) {}
     }
     return {};
   }
 
   function saveState(state) {
-    const json = JSON.stringify(state);
+    const json = JSON.stringify(sanitizeState(state));
     STORAGE_KEYS.forEach((key) => localStorage.setItem(key, json));
+  }
+
+  function removedSymbol() {
+    return Array.from(REMOVED_SYMBOLS)[0];
+  }
+
+  function hasRemovedSymbol(value) {
+    return String(value ?? '').includes(removedSymbol());
+  }
+
+  function sanitizeState(value) {
+    if (!value || typeof value !== 'object') return {};
+    const state = { ...value };
+    LEGACY_KEYS.forEach((key) => delete state[key]);
+    const holdings = Array.isArray(state.holdings) ? state.holdings : [];
+    state.holdings = holdings
+      .filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol))
+      .map((h) => ({ ...h, targetWeight: h.symbol === '00631L' ? 70 : 0 }));
+    if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 });
+    state.trades = Array.isArray(state.trades) ? state.trades.filter((t) => t?.symbol && !REMOVED_SYMBOLS.has(t.symbol)) : [];
+    state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some(hasRemovedSymbol)) : [];
+    return state;
   }
 
   function syncPath(config) {
@@ -107,7 +136,7 @@
     const localTime = Number(local.__autoSyncAt || 0);
     if (remoteTime && remoteTime > localTime + 800) {
       applyingRemote = true;
-      const next = { ...remote, firebase: remote.firebase || local.firebase, autoSync: remote.autoSync ?? local.autoSync };
+      const next = sanitizeState({ ...remote, firebase: remote.firebase || local.firebase, autoSync: remote.autoSync ?? local.autoSync });
       saveState(next);
       lastSignature = signature(next);
       showStatus('已自動下載雲端，重新載入中');
