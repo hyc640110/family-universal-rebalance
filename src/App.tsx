@@ -89,6 +89,11 @@ function calculatedRemainingMonths(loan: LoanItem) {
   const paid = calculatedPaidMonths(loan.startDate, loan.totalMonths);
   return paid === undefined || loan.totalMonths === undefined ? undefined : Math.max(0, loan.totalMonths - paid);
 }
+function loanPeriodSummary(loan: LoanItem) {
+  const paid = calculatedPaidMonths(loan.startDate, loan.totalMonths);
+  const remaining = paid === undefined || loan.totalMonths === undefined ? undefined : Math.max(0, Math.floor(loan.totalMonths) - paid);
+  return { paid, remaining };
+}
 function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>) } : {};
   STALE_KEYS.forEach((key) => delete r[key]);
@@ -165,9 +170,10 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const cashPct = m.totalAssets ? m.cash / m.totalAssets * 100 : 0;
   const holdingPct = (symbol: SymbolCode) => pct(m.totalAssets ? (m.defensiveHoldings.find(r => r.symbol === symbol)?.marketValue || 0) / m.totalAssets * 100 : 0);
   return <div className="pie-layout">
-    <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties}>
-      <span className="pie-label growth-label"><b>00631L</b><strong>{pct(growthPct)}</strong></span>
-      <span className="pie-label defensive-label"><b>防守資產</b><strong>{pct(defensivePct)}</strong></span>
+    <div className="pie-figure">
+      <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties} />
+      <span className="pie-callout growth-label"><b>00631L</b><strong>{pct(growthPct)}</strong></span>
+      <span className="pie-callout defensive-label"><b>防守資產</b><strong>{pct(defensivePct)}</strong></span>
     </div>
     <div className="allocation-detail">
       <div><h3>成長資產</h3><p><i className="legend growth-dot" />00631L：{pct(growthPct)}</p><small>目標：{pct(m.growthTargetPct)}</small></div>
@@ -192,7 +198,7 @@ function CashList({ items, setItems }: { items: CashItem[]; setItems: (items: Ca
 }
 function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: LoanItem[]) => void }) {
   const update = (id: string, patch: Partial<LoanItem>) => setItems(items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
-  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const paid = calculatedPaidMonths(item.startDate, item.totalMonths); const remaining = calculatedRemainingMonths(item); return <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining">{paid === undefined ? '—' : `${paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining">{remaining === undefined ? '—' : `${remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
+  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining" title="依起始日與今天日期自動計算">{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining" title="總期數減已繳期數">{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems([...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
 function App() {
