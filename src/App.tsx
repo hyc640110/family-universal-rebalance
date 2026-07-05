@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 type SymbolCode = string;
@@ -17,12 +17,17 @@ const OLD_STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
 const DEFAULT_WORKER_URL = 'https://fancy-dew-4128.hyc640110.workers.dev';
 const REMOVED_SYMBOLS = new Set<SymbolCode>([['00', '50'].join('')]);
 const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
+const DEFAULT_GROWTH_TARGET = 70;
+const MIN_GROWTH_TARGET = 30;
+const MAX_GROWTH_TARGET = 90;
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const num = (n: number) => Number.isFinite(n) ? n : 0;
 const money = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 const pct = (n: number) => `${num(n).toFixed(2)}%`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
+const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, num(value) || DEFAULT_GROWTH_TARGET));
+const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00631L': { symbol: '00631L', name: '元大台灣50正2', price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
@@ -40,9 +45,9 @@ function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
 }
 const defaultState: AppState = {
   holdings: [
-    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 70 }
+    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET }
   ],
-  cash: [{ id: uid(), name: '現金', amount: 0, note: '策略目標 30%' }],
+  cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10) }],
   trades: [], refreshSec: 60,
   firebase: { databaseURL: '', secretPath: '631128' }, workerUrl: DEFAULT_WORKER_URL, autoSync: false, autoSyncSec: 60
@@ -52,7 +57,7 @@ const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0];
 function hasRemovedSymbol(value: unknown) { return String(value ?? '').includes(removedSymbol()); }
 function sanitizeHolding(h: Holding): Holding | null {
   if (!h?.symbol || REMOVED_SYMBOLS.has(h.symbol)) return null;
-  if (h.symbol === '00631L') return { ...h, targetWeight: 70 };
+  if (h.symbol === '00631L') return { ...h, targetWeight: clampTarget(Number(h.targetWeight ?? DEFAULT_GROWTH_TARGET)) };
   const { targetWeight: _targetWeight, ...actualHolding } = h;
   return actualHolding;
 }
@@ -96,36 +101,37 @@ function derivedHoldings(state: AppState): Holding[] {
     if (t.action === 'BUY') { h.cost += shares * price + fee; h.shares += shares; h.avgCost = h.shares ? h.cost / h.shares : 0; }
     if (t.action === 'SELL') { const sell = Math.min(shares, h.shares); const avg = h.shares ? h.cost / h.shares : 0; h.shares -= sell; h.cost = Math.max(0, h.cost - sell * avg); h.avgCost = h.shares ? h.cost / h.shares : 0; }
   });
-  return uniqueSymbols(state).map(s => map[s] || { symbol: s, shares: 0, avgCost: 0, ...(s === '00631L' ? { targetWeight: 70 } : {}) });
+  return uniqueSymbols(state).map(s => map[s] || { symbol: s, shares: 0, avgCost: 0, ...(s === '00631L' ? { targetWeight: growthTargetOf(state) } : {}) });
 }
-function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) { const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '平均成本備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; }); const stocks = rows.reduce((a, r) => a + r.marketValue, 0); const cash = state.cash.reduce((a, c) => a + num(c.amount), 0); const debt = state.loans.reduce((a, l) => a + num(l.principal), 0); const totalAssets = stocks + cash; const netWorth = totalAssets - debt; const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0); const growth = rows.find(r => r.symbol === '00631L')?.marketValue || 0; const defensiveHoldings = rows.filter(r => r.symbol !== '00631L'); const defensiveHoldingsValue = defensiveHoldings.reduce((a, r) => a + r.marketValue, 0); const defensive = cash + defensiveHoldingsValue; const beta = rows.reduce((a, r) => a + (r.symbol === '00631L' ? 2 : 0.05) * (totalAssets ? r.marketValue / totalAssets : 0), 0); const cashRatio = totalAssets ? cash / totalAssets * 100 : 0; const defensiveRatio = totalAssets ? defensive / totalAssets * 100 : 0; const leverage = netWorth > 0 ? totalAssets / netWorth : 0; return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, beta, cashRatio, defensiveRatio, leverage }; }
-function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) { const m = calculateMetrics(state, quotes); const stock = m.rows.find(r => r.symbol === '00631L') || { symbol: '00631L', quote: backupQuote('00631L'), marketValue: 0 }; const stockTarget = m.totalAssets * 0.7; const defensiveTarget = m.totalAssets * 0.3; const stockDiff = stockTarget - stock.marketValue; const defensiveDiff = defensiveTarget - m.defensive; const stockShares = Math.round(Math.abs(stockDiff) / Math.max(0.01, stock.quote.price)); const stockAction = Math.abs(stockDiff) < 1000 ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`; const defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`; const bondRows = m.defensiveHoldings.map(r => ({ symbol: `其中 ${r.symbol}`, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '保留實際持股，不參與再平衡', tone: 'hold' })); const rows = [{ symbol: '00631L', currentWeight: m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0, targetText: '70.00%', diffText: money(stockDiff), action: stockAction, tone: stockDiff >= 0 ? 'up' : 'down' }, { symbol: '防守資產', currentWeight: m.totalAssets ? m.defensive / m.totalAssets * 100 : 0, targetText: '30.00%', diffText: money(defensiveDiff), action: defensiveAction, tone: 'hold' }, ...bondRows]; return { rows, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`) }; }
-function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', '現金水位偏低或槓桿偏高，先補現金或降低借款。', 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', '可分批補足低於目標權重的部位，避免一次打滿。', 'warn'] as const; return ['正常投入', '維持定期投入與目標配置；若現金過高，分批投入。', 'good'] as const; }
-function Donut({ m }: { m: ReturnType<typeof calculateMetrics> }) { const parts = [{ label: '成長資產：00631L', value: m.growth }, { label: '防守資產', value: m.defensive }]; const sum = Math.max(1, m.totalAssets); let acc = 0; const colors = ['#60a5fa', '#34d399']; return <><svg viewBox="0 0 42 42" className="donut">{parts.map((p, i) => { const len = p.value / sum * 100; const off = 25 - acc; acc += len; return <circle key={p.label} cx="21" cy="21" r="15.9" fill="transparent" stroke={colors[i]} strokeWidth="6" strokeDasharray={`${len} ${100 - len}`} strokeDashoffset={off} />; })}<circle cx="21" cy="21" r="9" fill="#0b1729" /></svg><div className="allocation-detail"><div><h3>成長資產</h3><p>00631L：{pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}</p><small>目標：70%</small></div><div><h3>防守資產</h3><p>現金：{pct(m.cashRatio)}</p>{m.defensiveHoldings.map(r => <p key={r.symbol}>{r.symbol}：{pct(m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0)}</p>)}<p>合計：{pct(m.defensiveRatio)}</p><small>目標：30%</small></div></div></>; }
+function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) { const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '平均成本備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; }); const stocks = rows.reduce((a, r) => a + r.marketValue, 0); const cash = state.cash.reduce((a, c) => a + num(c.amount), 0); const debt = state.loans.reduce((a, l) => a + num(l.principal), 0); const totalAssets = stocks + cash; const netWorth = totalAssets - debt; const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0); const growth = rows.find(r => r.symbol === '00631L')?.marketValue || 0; const defensiveHoldings = rows.filter(r => r.symbol !== '00631L'); const defensiveHoldingsValue = defensiveHoldings.reduce((a, r) => a + r.marketValue, 0); const defensive = cash + defensiveHoldingsValue; const growthTargetPct = growthTargetOf(state); const defensiveTargetPct = 100 - growthTargetPct; const beta = rows.reduce((a, r) => a + (r.symbol === '00631L' ? 2 : 0.05) * (totalAssets ? r.marketValue / totalAssets : 0), 0); const cashRatio = totalAssets ? cash / totalAssets * 100 : 0; const defensiveRatio = totalAssets ? defensive / totalAssets * 100 : 0; const leverage = netWorth > 0 ? totalAssets / netWorth : 0; return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage }; }
+function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) { const m = calculateMetrics(state, quotes); const stock = m.rows.find(r => r.symbol === '00631L') || { symbol: '00631L', quote: backupQuote('00631L'), marketValue: 0 }; const stockTarget = m.totalAssets * (m.growthTargetPct / 100); const defensiveTarget = m.totalAssets * (m.defensiveTargetPct / 100); const stockDiff = stockTarget - stock.marketValue; const defensiveDiff = defensiveTarget - m.defensive; const stockShares = Math.round(Math.abs(stockDiff) / Math.max(0.01, stock.quote.price)); const stockAction = Math.abs(stockDiff) < 1000 ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`; const defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`; const bondRows = m.defensiveHoldings.map(r => ({ symbol: `其中 ${r.symbol}`, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '保留實際持股，不參與再平衡', tone: 'hold' })); const rows = [{ symbol: '00631L', currentWeight: m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), action: stockAction, tone: stockDiff >= 0 ? 'up' : 'down' }, { symbol: '防守資產', currentWeight: m.totalAssets ? m.defensive / m.totalAssets * 100 : 0, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), action: defensiveAction, tone: 'hold' }, ...bondRows]; return { rows, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`) }; }
+function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
+function Donut({ m }: { m: ReturnType<typeof calculateMetrics> }) { const parts = [{ label: '成長資產：00631L', value: m.growth }, { label: '防守資產', value: m.defensive }]; const sum = Math.max(1, m.totalAssets); let acc = 0; const colors = ['#60a5fa', '#34d399']; return <><svg viewBox="0 0 42 42" className="donut">{parts.map((p, i) => { const len = p.value / sum * 100; const off = 25 - acc; acc += len; return <circle key={p.label} cx="21" cy="21" r="15.9" fill="transparent" stroke={colors[i]} strokeWidth="6" strokeDasharray={`${len} ${100 - len}`} strokeDashoffset={off} />; })}<circle cx="21" cy="21" r="9" fill="#0b1729" /></svg><div className="allocation-detail"><div><h3>成長資產</h3><p>00631L：{pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}</p><small>目標：{pct(m.growthTargetPct)}</small></div><div><h3>防守資產</h3><p>現金：{pct(m.cashRatio)}</p>{m.defensiveHoldings.map(r => <p key={r.symbol}>{r.symbol}：{pct(m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0)}</p>)}<p>合計：{pct(m.defensiveRatio)}</p><small>目標：{pct(m.defensiveTargetPct)}</small></div></div></>; }
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) { return <div className="stat"><small>{label}</small><b className={tone || ''}>{value}</b></div>; }
 function Card({ title, children }: { title: string; children: ReactNode }) { return <section className="card"><h2>{title}</h2>{children}</section>; }
 function EditableList<T extends { id: string } & Record<string, string | number>>({ items, setItems, fields }: { items: T[]; setItems: (v: T[]) => void; fields: [keyof T & string, string][] }) {
   const tenThousandKeys = ['amount', 'principal'];
   const emptyValue = (k: string) => k.toLowerCase().includes('date') ? new Date().toISOString().slice(0, 10) : ['amount', 'principal', 'annualRate', 'monthlyPayment'].includes(k) ? 0 : '';
-  return <div className="list">{items.map(item => <div className="list-row" key={item.id}>{fields.map(([k, l]) => {
+  const columns = { gridTemplateColumns: `repeat(${fields.length}, minmax(120px, 1fr)) auto` };
+  return <div className="list"><div className="list-row list-head" style={columns}>{fields.map(([k, l]) => <span key={k}>{tenThousandKeys.includes(k) ? `${l}（萬元）` : l}</span>)}<span>操作</span></div>{items.map(item => <div className="list-row" style={columns} key={item.id}>{fields.map(([k, l]) => {
     const raw = item[k];
     const isTenThousand = tenThousandKeys.includes(k);
     const displayLabel = isTenThousand ? `${l}（萬元）` : l;
     const displayValue = typeof raw === 'number' && isTenThousand ? raw / 10000 : raw;
-    return <label key={k}>{displayLabel}<input type={typeof raw === 'number' ? 'number' : 'text'} value={displayValue} onChange={e => setItems(items.map(x => x.id === item.id ? { ...x, [k]: typeof raw === 'number' ? num(e.target.valueAsNumber) * (isTenThousand ? 10000 : 1) : e.target.value } : x))} /></label>;
-  })}<button onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button onClick={() => setItems([...items, { id: uid(), ...Object.fromEntries(fields.map(([k]) => [k, emptyValue(k)])) } as T])}>新增</button></div>;
+    return <label key={k}><span>{displayLabel}</span><input type={typeof raw === 'number' ? 'number' : 'text'} value={displayValue} onChange={e => setItems(items.map(x => x.id === item.id ? { ...x, [k]: typeof raw === 'number' ? num(e.target.valueAsNumber) * (isTenThousand ? 10000 : 1) : e.target.value } : x))} /></label>;
+  })}<button className="danger small" onClick={() => setItems(items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems([...items, { id: uid(), ...Object.fromEntries(fields.map(([k]) => [k, emptyValue(k)])) } as T])}>新增</button></div>;
 }
 function App() {
-  const [tab, setTab] = useState<'dashboard' | 'trades' | 'sync'>('dashboard'); const [state, setState] = useState<AppState>(() => readState()); const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes); const [sync, setSync] = useState('尚未同步'); const [quoteStatus, setQuoteStatus] = useState('尚未更新股價'); const [draft, setDraft] = useState<Trade>({ id: uid(), date: new Date().toISOString().slice(0, 10), symbol: '00631L', action: 'BUY', shares: 1, price: defaultQuotes['00631L'].price, fee: 20, tax: 0, note: '' });
-  useEffect(() => writeState(state), [state]);
+  const [tab, setTab] = useState<'dashboard' | 'trades' | 'sync'>('dashboard'); const [state, setState] = useState<AppState>(() => readState()); const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes); const [sync, setSync] = useState('尚未同步'); const [saveStatus, setSaveStatus] = useState('已載入'); const [lastSavedAt, setLastSavedAt] = useState(''); const didMount = useRef(false); const [quoteStatus, setQuoteStatus] = useState('尚未更新股價'); const [draft, setDraft] = useState<Trade>({ id: uid(), date: new Date().toISOString().slice(0, 10), symbol: '00631L', action: 'BUY', shares: 1, price: defaultQuotes['00631L'].price, fee: 20, tax: 0, note: '' });
+  useEffect(() => { writeState(state); const savedAt = now(); setLastSavedAt(savedAt); setSaveStatus(didMount.current ? '已儲存' : '已載入'); if (didMount.current && !state.autoSync) setSync('尚未同步'); didMount.current = true; }, [state]);
   const symbols = useMemo(() => uniqueSymbols(state), [state.holdings, state.trades]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const normalized = normalizeState(state); if (normalized.workerUrl !== state.workerUrl) setState(normalized); const entries = await Promise.all(uniqueSymbols(normalized).map(async s => [s, await fetchQuote(s, normalized.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
-  const uploadCloud = async (label = '已上傳') => { setSync('上傳中…'); const normalized = normalizeState(state); setState(normalized); await uploadFirebase(normalized.firebase, normalized); setSync(`${label} ${tw(now())}｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜交易 ${normalized.trades.length} 筆`); };
-  const downloadCloud = async () => { setSync('下載中…'); const remote = await downloadFirebase(state.firebase); setState(remote); setSync(`已下載 ${tw(now())}｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆｜交易 ${remote.trades.length} 筆`); };
+  const uploadCloud = async (label = 'Firebase 同步完成') => { setSync('上傳中…'); const normalized = normalizeState(state); setState(normalized); await uploadFirebase(normalized.firebase, normalized); setSync(`${label} ${tw(now())}｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜交易 ${normalized.trades.length} 筆`); };
+  const downloadCloud = async () => { setSync('下載中…'); const remote = await downloadFirebase(state.firebase); setState(remote); setSync(`Firebase 同步完成 ${tw(now())}｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆｜交易 ${remote.trades.length} 筆`); };
   useEffect(() => { refreshQuotes(); const id = setInterval(refreshQuotes, Math.max(15, state.refreshSec) * 1000); return () => clearInterval(id); }, [state.refreshSec]);
-  useEffect(() => { if (!state.autoSync || !state.firebase.databaseURL) return; const id = setTimeout(() => uploadCloud('自動同步完成').catch(e => setSync('自動同步失敗：' + e.message)), Math.max(10, state.autoSyncSec) * 1000); return () => clearTimeout(id); }, [state.holdings, state.cash, state.loans, state.trades, state.refreshSec, state.autoSync, state.autoSyncSec, state.firebase.databaseURL, state.firebase.secretPath]);
+  useEffect(() => { if (!state.autoSync || !state.firebase.databaseURL) { if (state.autoSync) setSync('尚未同步：請設定 Firebase URL'); return; } const id = setTimeout(() => uploadCloud('Firebase 同步完成').catch(e => setSync('同步失敗：' + e.message)), Math.max(10, state.autoSyncSec) * 1000); return () => clearTimeout(id); }, [state.holdings, state.cash, state.loans, state.trades, state.refreshSec, state.autoSync, state.autoSyncSec, state.firebase.databaseURL, state.firebase.secretPath]);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]); const rb = useMemo(() => rebalance(state, quotes), [state, quotes]); const [mode, hint, tone] = advice(m);
-  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => ({ ...s, holdings: s.holdings.map(h => h.symbol === symbol ? { ...h, [key]: value } : h) }));
+  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const current = derivedHoldings(s).find(h => h.symbol === symbol); const base = s.holdings.find(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? clampTarget(value) : Math.max(0, num(value)); const adjustedValue = key === 'shares' ? Math.max(0, num(base?.shares ?? 0) + nextValue - num(current?.shares ?? 0)) : nextValue; const exists = s.holdings.some(h => h.symbol === symbol); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: adjustedValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? { ...h, [key]: adjustedValue } : h) : [...s.holdings, nextHolding] }; });
   const applyTrade = (t: Trade) => { setState(s => ({ ...s, trades: [t, ...s.trades] })); setDraft({ ...draft, id: uid() }); };
   const backup = () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `00631l-pro-version-1.0.0-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); };
   const restore = async (f?: File) => { if (!f) return; setState(normalizeState(JSON.parse(await f.text()))); };
@@ -145,7 +151,7 @@ function App() {
         <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>儀表板</button>
         <button className={tab === 'trades' ? 'active' : ''} onClick={() => setTab('trades')}>交易紀錄</button>
         <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>同步設定</button>
-        <span>股價更新 {tw(Object.values(quotes)[0].updatedAt)}</span>
+        <span>股價更新 {tw(Object.values(quotes)[0].updatedAt)}｜{saveStatus}{lastSavedAt ? ` ${tw(lastSavedAt)}` : ''}｜{sync}</span>
       </nav>
 
       {tab === 'dashboard' && <>
@@ -155,7 +161,7 @@ function App() {
           <Stat label="淨資產" value={money(m.netWorth)} />
           <Stat label="借款" value={money(m.debt)} tone="warn" />
           <Stat label="Beta" value={m.beta.toFixed(2)} />
-          <Stat label="現金比例" value={pct(m.cashRatio)} />
+          <Stat label="防守資產比例" value={pct(m.defensiveRatio)} />
           <Stat label="槓桿比例" value={m.leverage.toFixed(2) + 'x'} />
           <Stat label="策略模式" value={mode} tone={tone} />
         </section>
@@ -163,13 +169,12 @@ function App() {
         <Card title="AI 分析與加碼建議">
           <h3>{mode}</h3>
           <p>{hint}</p>
-          <p>Beta {m.beta.toFixed(2)}、現金 {pct(m.cashRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數由初始持股加上交易紀錄自動計算。</p>
+          <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、交易、現金與自訂目標即時更新。</p>
           <small>資料來源：{m.rows.map(r => `${r.symbol}=${r.quote.source}`).join(' / ')}</small>
           <p className="note">{quoteStatus}</p>
         </Card>
 
         <Card title="持股配置">
-          <p className="note">初始股數/初始成本只填舊持股；之後每次買賣請到「交易紀錄」輸入，系統會自動計算目前股數與平均成本。</p>
           <div className="holdings">
             {m.rows.map(r => <article className="holding" key={r.symbol}>
               <h3>{r.symbol}</h3>
@@ -177,11 +182,9 @@ function App() {
               <p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>
               {r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={r.quote.change >= 0 ? 'up' : 'down'}>{r.quote.change.toFixed(2)} / {pct(r.quote.changePct)}</span></div>
-              <p><b>目前股數：</b>{r.shares.toLocaleString('zh-TW')} 股</p>
-              <p><b>平均成本：</b>{r.avgCost.toFixed(2)}（自動計算）</p>
-              <label>初始股數<input type="number" value={state.holdings.find(h => h.symbol === r.symbol)?.shares || 0} onChange={e => updateHolding(r.symbol, 'shares', num(e.target.valueAsNumber))} /></label>
-              <label>初始成本<input type="number" value={state.holdings.find(h => h.symbol === r.symbol)?.avgCost || 0} onChange={e => updateHolding(r.symbol, 'avgCost', num(e.target.valueAsNumber))} /></label>
-              {r.symbol === '00631L' ? <label>策略目標 %<input type="number" value={70} readOnly /></label> : <p className="note">保留實際持股，不參與再平衡。</p>}
+              <label>目前股數<input type="number" min="0" value={r.shares} onChange={e => updateHolding(r.symbol, 'shares', num(e.target.valueAsNumber))} /></label>
+              <label>平均成本<input type="number" min="0" step="0.01" value={r.avgCost} onChange={e => updateHolding(r.symbol, 'avgCost', num(e.target.valueAsNumber))} /></label>
+              {r.symbol === '00631L' ? <label>目標比例 %<input type="number" min={MIN_GROWTH_TARGET} max={MAX_GROWTH_TARGET} value={m.growthTargetPct} onChange={e => updateHolding('00631L', 'targetWeight', num(e.target.valueAsNumber))} /><small>限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%，防守資產自動為 {pct(m.defensiveTargetPct)}。</small></label> : <p className="note">列入防守資產，不參與主動再平衡買賣。</p>}
               <strong>市值 {money(r.marketValue)}</strong>
               <strong>損益 {money(r.pnl)} / {pct(r.cost ? r.pnl / r.cost * 100 : 0)}</strong>
             </article>)}
