@@ -1,8 +1,8 @@
 (() => {
-  const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
+  const STORAGE_KEYS = ['00631l-pro-v100-state', '00631l-pro-v62-state', '00631l-pro-v61-state'];
   const META_KEYS = ['__autoSyncAt', '__autoSyncDevice', '__autoSyncSource'];
   const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
-  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades'];
+  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades', 'monthlyContribution', 'simCagr', 'simDividend', 'simYears'];
   let applyingRemote = false;
   let uploading = false;
   let lastSignature = '';
