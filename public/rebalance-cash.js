@@ -1,7 +1,7 @@
 (() => {
-  const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
+  const STORAGE_KEYS = ['00631l-pro-v100-state', '00631l-pro-v62-state', '00631l-pro-v61-state'];
   const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
-  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades'];
+  const LEGACY_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', 'defaultTrades', 'monthlyContribution', 'simCagr', 'simDividend', 'simYears'];
   const DEFAULT_SYMBOLS = ['00631L'];
   const defaultPrices = { '00631L': 38.42, '00865B': 48.52 };
   const money = (n) => Number(n || 0).toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
@@ -124,14 +124,13 @@
     const stockTarget = rows.reduce((sum, r) => sum + num(r.target), 0);
     const cashTarget = Math.max(0, 100 - stockTarget);
     const normalizedTotalTarget = stockTarget + cashTarget;
-    const withCash = [
-      ...rows.map((r) => {
+    const stockRows = rows.map((r) => {
         if (r.target === null) return { ...r, current: total ? (r.value / total) * 100 : 0, targetValue: r.value, diff: 0 };
         const targetValue = total * r.target / 100;
         return { ...r, current: total ? (r.value / total) * 100 : 0, targetValue, diff: targetValue - r.value };
-      }),
-      { symbol: '現金', shares: 0, price: 1, value: cash, target: cashTarget, current: total ? (cash / total) * 100 : 0, targetValue: total * cashTarget / 100, diff: total * cashTarget / 100 - cash }
-    ];
+      });
+    const cashRow = { symbol: '現金', shares: 0, price: 1, value: cash, target: cashTarget, current: total ? (cash / total) * 100 : 0, targetValue: total * cashTarget / 100, diff: total * cashTarget / 100 - cash };
+    const withCash = [...stockRows.filter((r) => r.symbol === '00631L'), cashRow, ...stockRows.filter((r) => r.symbol !== '00631L')];
     return { total, stockTarget, cashTarget, normalizedTotalTarget, rows: withCash };
   }
 
@@ -140,9 +139,10 @@
     const diff = row.diff;
     if (Math.abs(diff) < 1000) return { text: '維持', cls: 'hold' };
     if (row.symbol === '現金') {
-      return diff > 0 ? { text: `建議保留 / 增加現金 ${money(diff)}`, cls: 'buy' } : { text: `可動用現金 ${money(Math.abs(diff))}`, cls: 'sell' };
+      return diff > 0 ? { text: `增加現金約 ${money(diff)}`, cls: 'buy' } : { text: `保留現金約 ${money(row.value)}`, cls: 'hold' };
     }
-    return diff > 0 ? { text: `建議買進 ${money(diff)}`, cls: 'buy' } : { text: `建議減碼 ${money(Math.abs(diff))}`, cls: 'sell' };
+    const shares = Math.round(Math.abs(diff) / Math.max(0.01, row.price));
+    return diff > 0 ? { text: `買入 ${shares.toLocaleString('zh-TW')} 股（約 ${money(diff)}）`, cls: 'buy' } : { text: `賣出 ${shares.toLocaleString('zh-TW')} 股（約 ${money(Math.abs(diff))}）`, cls: 'sell' };
   }
 
   function injectStyle() {
@@ -186,17 +186,20 @@
       card.appendChild(box);
     }
     box.innerHTML = `
-      <h3>含現金再平衡建議</h3>
+      <h3>再平衡摘要</h3>
       <div class="cash-rebalance-summary">
-        <div><small>股票目標合計</small><b>${pct(data.stockTarget)}</b></div>
-        <div><small>現金目標</small><b>${pct(data.cashTarget)}</b></div>
-        <div><small>總目標配置</small><b>${pct(data.normalizedTotalTarget)}</b></div>
+        ${data.rows.map((row) => {
+          const a = advice(row);
+          const title = row.symbol === '現金' ? '現金' : row.symbol;
+          const text = row.target === null ? `${row.symbol}：保留實際持股（不參與再平衡）` : a.text;
+          return `<div><small>${title}</small><b>${text}</b></div>`;
+        }).join('')}
       </div>
       <div class="cash-rebalance-table">
         <div class="cash-rebalance-row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>差額</span><span>建議</span></div>
         ${data.rows.map((row) => {
           const a = advice(row);
-          return `<div class="cash-rebalance-row"><span><b>${row.symbol}</b></span><span>${pct(row.current)}</span><span>${row.target === null ? '持有' : pct(row.target)}</span><span>${money(row.diff)}</span><span class="${a.cls}">${a.text}</span></div>`;
+          return `<div class="cash-rebalance-row"><span><b>${row.symbol}</b></span><span>${pct(row.current)}</span><span>${row.target === null ? '—' : pct(row.target)}</span><span>${row.target === null ? '—' : money(row.diff)}</span><span class="${a.cls}">${a.text}</span></div>`;
         }).join('')}
       </div>
       <p class="cash-rebalance-note">計算方式：目前 holdings 內的 ETF 與現金合計 100%。若股票目標合計為 ${pct(data.stockTarget)}，現金目標會自動補成 ${pct(data.cashTarget)}。</p>
