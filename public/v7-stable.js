@@ -1,7 +1,6 @@
 (() => {
   const VERSION = '00631L Pro Web App v7 Stable';
   const STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
-  const SYMBOLS = ['00631L', '0050', '00865B'];
   const num = (n) => Number.isFinite(Number(n)) ? Number(n) : 0;
   const pct = (n) => `${Number(n || 0).toFixed(2)}%`;
   let lastSig = '';
@@ -102,7 +101,7 @@
   function buildChecks(state) {
     const checks = [];
     const holdings = Array.isArray(state.holdings) ? state.holdings : [];
-    const stockTarget = SYMBOLS.reduce((sum, s) => sum + num(holdings.find((h) => h.symbol === s)?.targetWeight), 0);
+    const stockTarget = holdings.reduce((sum, h) => sum + num(h.targetWeight), 0);
     const cashTarget = Math.max(0, 100 - stockTarget);
     const cashTotal = Array.isArray(state.cash) ? state.cash.reduce((sum, c) => sum + num(c.amount), 0) : 0;
     const loans = Array.isArray(state.loans) ? state.loans : [];
