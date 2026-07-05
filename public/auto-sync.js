@@ -10,8 +10,11 @@
   let applyingRemote = false;
   let uploading = false;
   let lastSignature = '';
-  let lastPullAt = 0;
   let lastUploadAt = 0;
+  let initialPullDone = false;
+  let isEditing = false;
+  let lastLocalEditAt = 0;
+  let pendingRemote = null;
 
   function readState() {
     for (const key of STORAGE_KEYS) {
@@ -110,6 +113,29 @@
     el.style.opacity = '.92';
   }
 
+  function isEditableTarget(target) {
+    return Boolean(target?.matches?.('input, textarea, select, [contenteditable="true"]'));
+  }
+
+  function markEditing() {
+    isEditing = true;
+    lastLocalEditAt = Date.now();
+  }
+
+  function isEditProtected() {
+    return isEditing || Date.now() - lastLocalEditAt < 3000;
+  }
+
+  function markEditingDone() {
+    lastLocalEditAt = Date.now();
+    setTimeout(() => {
+      if (Date.now() - lastLocalEditAt >= 2500) {
+        isEditing = false;
+        if (pendingRemote) showStatus('雲端有新資料，編輯完成後請手動下載或上傳同步');
+      }
+    }, 2600);
+  }
+
   async function fetchRemote(url) {
     try {
       const res = await fetch(url, { cache: 'no-store' });
@@ -142,23 +168,27 @@
     }
   }
 
-  async function pullRemoteState(force = false) {
+  async function pullRemoteState() {
+    if (initialPullDone) return;
+    initialPullDone = true;
     const local = readState();
     if (!isEnabled(local)) return;
-    const now = Date.now();
-    if (!force && now - lastPullAt < 12000) return;
-    lastPullAt = now;
     const url = syncUrl(local.firebase);
     const remote = await fetchRemote(url);
     if (!remote) return;
     const remoteTime = Number(remote.__autoSyncAt || 0);
     const localTime = Number(local.__autoSyncAt || 0);
     if (remoteTime && remoteTime > localTime + 800) {
+      if (isEditProtected()) {
+        pendingRemote = remote;
+        showStatus('雲端有新資料，編輯完成後再同步');
+        return;
+      }
       applyingRemote = true;
       const next = sanitizeState({ ...remote, firebase: remote.firebase || local.firebase, autoSync: remote.autoSync ?? local.autoSync });
       saveState(next);
       lastSignature = signature(next);
-      showStatus('已自動下載雲端，重新載入中');
+      showStatus('初次載入已套用雲端資料');
       setTimeout(() => location.reload(), 500);
     }
   }
@@ -180,14 +210,15 @@
 
   function tick() {
     detectLocalChange();
-    pullRemoteState(false);
   }
 
   window.addEventListener('load', () => {
     lastSignature = signature(readState());
-    setTimeout(() => pullRemoteState(true), 1200);
+    setTimeout(() => pullRemoteState(), 1200);
     setTimeout(detectLocalChange, 2500);
   });
-  window.addEventListener('focus', () => pullRemoteState(true));
+  window.addEventListener('focusin', (event) => { if (isEditableTarget(event.target)) markEditing(); });
+  window.addEventListener('input', (event) => { if (isEditableTarget(event.target)) markEditing(); }, true);
+  window.addEventListener('focusout', (event) => { if (isEditableTarget(event.target)) markEditingDone(); });
   setInterval(tick, 4000);
 })();
