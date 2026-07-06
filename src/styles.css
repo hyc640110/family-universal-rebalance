@@ -278,4 +278,67 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     font-size: 0.9rem !important;
   }
 }
+/* ==========================================
+   終極手機版 (Mobile) 畫面重構防護網 
+   ========================================== */
+@media (max-width: 768px) {
+  /* 1. 頂層容器與主要區塊：強迫所有卡片在手機上一律上下單欄排列，不橫向擠壓 */
+  .dashboard, .grid, .main-layout, .container, .stats-grid, .summary-box, .loan-summary {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
 
+  /* 2. 所有卡片元件：縮小手機版內邊距，撐滿全寬 */
+  .card, .panel, .section, .stat-item, .metric-box, .list-row {
+    padding: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 3. 頂部總資產大型數字與狀態燈號：大幅瘦身防止字體過大重疊 */
+  h1, h2, .total-assets, .asset-value {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+    word-break: break-all !important;
+  }
+  
+  .status-badge, .badge, .stat-label {
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* 4. 借款與現金管理的輸入框：大小高度高度整齊劃一 */
+  input, select, .stat-value {
+    font-size: 0.95rem !important;
+    height: 38px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 4px 0 !important;
+  }
+
+  /* 5. 一律縮小其他輔助文字，確保橫向塞得下 */
+  span, b, p, div, label {
+    font-size: 0.85rem !important;
+  }
+}
+
+/* 6. 核心修正：強迫下方的現金管理與借款管理卡片，最大寬度必須跟上方完全一致 */
+  .cash-management, .loan-management, #cash-section, #loan-section {
+    max-width: 390px !important; /* 限制最大寬度在標準直式手機範圍，對齊上方 */
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: auto !important; /* 確保全部靠左對齊 */
+    box-sizing: border-box !important;
+  }
+
+  /* 7. 確保輸入框列表內部元件也不會悄悄往右邊爆開 */
+  .list, .list-row, .list-row label {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
