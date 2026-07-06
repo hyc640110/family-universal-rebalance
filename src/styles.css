@@ -31,11 +31,7 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
   font-weight: normal;
   opacity: 0.85;
   margin-top: 4px;
-}
-@media (min-width: 769px) {
-  .stat b .safety-desc {
-    font-size: 13px !important;
-  }
+  font-size: 13px !important;
 }
 .up,.bad{color:#ff5b5b}
 .down,.good{color:#43d17a}
@@ -334,8 +330,5 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   }
   button {
     font-size: 0.9rem !important;
-  }
-  .stat b .safety-desc {
-    font-size: 1.1rem !important;
   }
 }
