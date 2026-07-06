@@ -343,7 +343,7 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   </div>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: string; tone?: string }) { return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>; }
-function Card({ title, children }: { title: string; children: ReactNode }) { return <section className="card"><h2>{title}</h2>{children}</section>; }
+function Card({ title, children, style }: { title: string; children: ReactNode; style?: CSSProperties }) { return <section className="card" style={style}><h2>{title}</h2>{children}</section>; }
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
   const [draft, setDraft] = useState(String(value ?? ''));
   const [editing, setEditing] = useState(false);
@@ -360,20 +360,29 @@ function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { 
 }
 const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fallback : Math.max(0, num(Number(value)));
 
-function CashList({ items, setItems, onInvalid }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void; onInvalid: (message: string) => void }) {
+function CashList({ items, setItems, onInvalid, isMobile }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void; onInvalid: (message: string) => void; isMobile: boolean }) {
   const update = (id: string, patch: Partial<CashItem>) => setItems(items => items.map(item => item.id === id ? { ...item, ...patch } : item));
   const commitText = (id: string, key: 'name' | 'note', value: string) => {
     if (hasRemovedSymbol(value)) { onInvalid(removedSymbolMessage()); return; }
     update(id, { [key]: value });
   };
-  return <div className="list cash-list"><div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => commitText(item.id, 'name', value)} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => commitText(item.id, 'note', value)} /></label><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
+  const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
+  return <div className="list cash-list"><div className="list-row list-head" style={isMobile ? { display: 'none' } : undefined}><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id} style={rowStyle}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => commitText(item.id, 'name', value)} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => commitText(item.id, 'note', value)} /></label><button className="danger small" style={isMobile ? { width: '100%' } : undefined} onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
 }
-function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void }) {
+function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void; isMobile: boolean }) {
   const update = (id: string, patch: Partial<LoanItem>) => setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
-  return <div className="list loan-list"><p className="note">已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p><div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining" title="依起始日與今天日期自動計算">{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining" title="總期數減已繳期數">{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
+  const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
+  return <div className="list loan-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p><div className="list-row list-head" style={isMobile ? { display: 'none' } : undefined}><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id} style={rowStyle}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label><span>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label><span>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label><span>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label><span>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><span className="remaining" title="依起始日與今天日期自動計算">{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span><span className="remaining" title="總期數減已繳期數">{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span><button className="danger small" style={isMobile ? { width: '100%' } : undefined} onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
 function App() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [tab, setTab] = useState<'dashboard' | 'sync'>('dashboard');
   const [state, setStateValue] = useState<AppState>(() => readState());
   const stateRef = useRef(state);
@@ -608,8 +617,8 @@ function App() {
           </div>
         </Card>
 
-        <div className="two">
-          <Card title="現金管理">
+        <div className="two" style={isMobile ? { maxWidth: '390px', width: '100%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' } : undefined}>
+          <Card title="現金管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
             {cashWarning && (
               <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                 {cashWarning}
@@ -618,9 +627,9 @@ function App() {
             <p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
               {removedSymbolMessage()}
             </p>
-            <CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} />
+            <CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} />
           </Card>
-          <Card title="借款管理">
+          <Card title="借款管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
             <div className="loan-summary">
               <Stat label="總借款" value={money(m.debt)} />
               <Stat label="每月還款" value={money(m.monthlyPayment)} />
@@ -636,7 +645,7 @@ function App() {
             <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
               * 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。反映真實的槓桿超額回報。
             </p>
-            <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
+            <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
           </Card>
         </div>
       </>}
