@@ -46,6 +46,17 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .defensive-dot{background:#22c55e}
 .cash-dot{background:#60a5fa}
 .bond-dot{background:#34d399}
+.health-status{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:#09182a;border:1px solid #1d3d66;border-radius:14px;padding:16px;margin-bottom:14px}
+.health-status small{display:block;color:#8da3bd;margin-bottom:6px}
+.health-status h3{margin:0 0 8px;font-size:22px}
+.health-status p{margin:6px 0;color:#dbeafe;line-height:1.55}
+.health-light{width:18px;height:18px;border-radius:50%;margin-top:4px;background:#9fb3c8;box-shadow:0 0 0 5px #ffffff12,0 0 18px currentColor}
+.health-status.good{border-color:#166534}
+.health-status.good .health-light{background:#43d17a;color:#43d17a}
+.health-status.warn{border-color:#a16207}
+.health-status.warn .health-light{background:#ffd166;color:#ffd166}
+.health-status.bad{border-color:#991b1b}
+.health-status.bad .health-light{background:#ff5b5b;color:#ff5b5b}
 .rebalance-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .rebalance-settings label{margin:0}
 .rebalance-alert{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
