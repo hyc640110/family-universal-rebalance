@@ -113,28 +113,92 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .allocation-detail strong{font-size:20px}
 }
 
-/* 確保再平衡表格在手機版能橫向滾動，維持表格水平對齊不跑版 */
 @media (max-width: 768px) {
+  /* 1. 統一所有輸入列表 (.list) 的手機版排版 */
+  .list .list-row {
+    display: flex !important;
+    flex-direction: column !important;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1rem !important;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* 隱藏手機版凌亂的表頭，改由欄位自帶標籤引導 */
+  .list-head {
+    display: none !important;
+  }
+
+  /* 2. 讓每個輸入欄位的標籤與輸入框大小完全一致、整齊排好 */
+  .list .list-row label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .list .list-row label span {
+    font-size: 0.9rem;
+    color: #888;
+    min-width: 90px; /* 固定左側文字標籤寬度，確保整齊對齊 */
+    text-align: left;
+  }
+
+  /* 統一輸入框的大小與高度 */
+  .list .list-row input,
+  .list .list-row select {
+    flex: 1 !important;
+    width: 100% !important;
+    height: 38px !important; /* 固定高度 */
+    box-sizing: border-box !important;
+    padding: 0 0.75rem !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    color: #fff !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* 讓剩餘期數與刪除按鈕也整齊寬度一致 */
+  .list .list-row .remaining {
+    display: flex !important;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    color: #aaa;
+  }
+
+  .list .list-row button.danger {
+    width: 100% !important; /* 按鈕撐滿卡片寬度，更好點擊 */
+    margin-top: 0.5rem;
+    height: 36px;
+  }
+
+  /* 3. 再平衡表格 (rebalance-table) 水平對齊優化 */
   .rebalance-table {
     display: block !important;
     width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
-    white-space: nowrap !important;
-  }
-  
-  .rebalance-table .row {
-    display: flex !important;
-    min-width: 600px; /* 確保表格內容有足夠寬度水平並排 */
-    justify-content: space-between;
   }
 
-  .rebalance-table .row span, 
+  .rebalance-table .row {
+    display: grid !important;
+    grid-template-columns: 80px 75px 75px 75px 65px 180px !important; /* 精確固定每一欄寬度，大小完全一致 */
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: 550px; /* 確保水平總寬度足夠 */
+  }
+
+  .rebalance-table .row span,
   .rebalance-table .row b {
-    flex: 1 !important;
-    text-align: left !important;
-    padding: 0.5rem;
-    display: inline-block !important;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
