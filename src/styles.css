@@ -325,20 +325,26 @@ span, b, p, div, label {
   font-size: 0.85rem !important;
 }
 
-/* 6. 核心修正：強迫下方的現金管理與借款管理卡片對齊上方 */
-.cash-management, .loan-management, #cash-section, #loan-section {
-  max-width: 390px !important;
-  width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  box-sizing: border-box !important;
-}
+/* 6. 核心修正：強迫下方的現金管理與借款管理卡片最大寬度限制，並強迫內部所有文字換行 */
+  .cash-management, .loan-management, #cash-section, #loan-section, [class*="management"] {
+    max-width: 390px !important; /* 強制限制寬度與上方一致 */
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: auto !important; /* 靠左對齊 */
+    box-sizing: border-box !important;
+    
+    /* 💥 終極大絕招：強迫這行長提示文字在寬度不夠時自動斷行，絕對不准往右撐開寬度！ */
+    white-space: normal !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+  }
 
-/* 7. 確保輸入框列表內部元件對齊 */
-.list, .list-row, .list-row label {
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  /* 7. 確保內部所有子元件、段落、提示文字也一律強制換行 */
+  .list, .list-row, .list-row label, p, div, span, .note, .alert {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    word-break: break-all !important;
+  }
 }
-
-} /* <--- 這是全檔案「唯一」留在最後面、用來關閉 @media 的大括號 */
