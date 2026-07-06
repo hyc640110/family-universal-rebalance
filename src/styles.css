@@ -202,3 +202,80 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   }
 }
 
+@media (max-width: 768px) {
+  /* 1. 頂層容器調整：確保所有大區塊在手機上都是單欄上下排列，不橫向擠壓 */
+  .dashboard, .grid, .main-layout, .container, main {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0.5rem !important;
+    gap: 1rem !important;
+  }
+
+  /* 2. 卡片區塊優化：縮小手機版的內邊距，爭取更多橫向空間 */
+  .card, .panel, .section {
+    padding: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 3. 頂部總資產大型數字與狀態燈號瘦身：防止數字與文字重疊 */
+  .total-assets, .asset-value {
+    font-size: 1.8rem !important; /* 縮小超大數字 */
+    line-height: 1.2 !important;
+  }
+  
+  .status-badge, .badge, .health-status h3 {
+    font-size: 1.1rem !important;
+    white-space: nowrap !important; /* 防止狀態文字斷行 */
+  }
+  
+  .health-status {
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  /* 4. 現金、持股、借款管理等 Stat 數據看板：在手機上強制改成 2 欄或 1 欄排列 */
+  .stats-grid, .summary-box, .loan-summary, .grid.stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important; /* 強制變成兩欄 */
+    gap: 0.5rem !important;
+  }
+  
+  .stat-item, .metric-box, .stat {
+    padding: 0.5rem !important;
+  }
+  
+  .stat-label, .stat small {
+    font-size: 0.8rem !important; /* 縮小標籤字體 */
+    white-space: nowrap;
+  }
+  
+  .stat-value, .stat b {
+    font-size: 1.1rem !important; /* 縮小數字字體 */
+    word-break: break-all !important;
+  }
+
+  /* 5. 處理特定的 API 來源文字（如 Yahoo Finance via Cloudflare Worker） */
+  .api-source, .update-time, .text-muted, .sync-bar, .note, small {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+    word-break: break-all !important; /* 容許網址或英文字中途斷行 */
+  }
+
+  /* 6. 持股配置與比例文字擠壓修復 */
+  .holding-item, .ratio-row, .allocation-detail p {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .allocation-detail strong {
+    font-size: 1.2rem !important;
+  }
+
+  /* 7. 確保所有輸入表格內部的按鈕與標籤不會歪斜 */
+  input, select, button {
+    font-size: 0.9rem !important;
+  }
+}
+
