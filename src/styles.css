@@ -9,7 +9,7 @@ h2{font-size:18px;margin:0 0 16px}
 h3{margin:0 0 10px}
 .tabs{display:flex;gap:10px;align-items:center;margin:14px 0 18px}
 .tabs span{margin-left:auto;color:#9fb3c8;font-size:12px;text-align:right}
-.tabs .sync-bar{line-height:1.65;max-width:560px}
+.tabs .sync-bar{font-size:14px;line-height:1.8;max-width:620px}
 button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;padding:10px 16px;cursor:pointer;display:inline-block}
 button:hover,.file:hover{filter:brightness(1.12)}
 button.active{background:#3b82f6}
@@ -85,6 +85,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .list-row button{width:auto;justify-self:start}
   .tabs{flex-wrap:wrap}
   .tabs span{width:100%;margin-left:0;text-align:left}
+  .tabs .sync-bar{font-size:12px;line-height:1.65;max-width:none}
   .quote{align-items:flex-start;flex-direction:column}
   .quote span{text-align:left}
   h1{font-size:30px}

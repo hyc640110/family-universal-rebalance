@@ -9,6 +9,7 @@ type LoanItem = { id: string; name: string; principal: number; annualRate: numbe
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number };
 type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
 
 const APP_VERSION = 'Version 1.0.0';
 const STORAGE_KEY = '00631l-pro-v100-state';
@@ -29,6 +30,11 @@ const signedMoney = (n: number) => `${n > 0 ? '+' : ''}${money(n)}`;
 const pct = (n: number) => `${num(n).toFixed(2)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
+const backupStamp = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+};
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, num(value) || DEFAULT_GROWTH_TARGET));
 const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
@@ -61,7 +67,7 @@ function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   const base = defaultQuotes[symbol];
   const price = num(holding?.avgCost || base?.price || 0);
-  return { ...(base || { symbol, name: symbol, volume: 0 }), symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '平均成本備援' : '無股價資料', updatedAt: now() };
+  return { ...(base || { symbol, name: symbol, volume: 0 }), symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
 }
 function sanitizeHolding(h: Holding): Holding | null {
   if (!h?.symbol || REMOVED_SYMBOLS.has(h.symbol)) return null;
@@ -118,6 +124,23 @@ function readState(): AppState {
   } catch { return defaultState; }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
+function backupPayload(state: AppState): BackupPayload {
+  const normalized = normalizeState(state);
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: 'manual', rebalanceThreshold: 1000, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+}
+function backupHasRemovedStrategy(raw: unknown) {
+  const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const keys = ['holdings', 'assets', 'assetAllocation', 'rebalance', 'strategy', 'strategies', 'defaultHoldings', 'mock', 'fallback', 'demo', 'legacy', 'cashAccounts', 'cash'];
+  return keys.some(key => hasRemovedSymbol(JSON.stringify(r[key] ?? '')));
+}
+function stateFromBackup(raw: unknown, current: AppState): AppState {
+  if (!raw || typeof raw !== 'object') throw new Error('備份檔格式不正確。');
+  if (backupHasRemovedStrategy(raw)) throw new Error(`${removedSymbol()} 已從正式策略移除，備份檔含有已移除的 ${removedSymbol()} 策略資料，請確認後再匯入。`);
+  const r = raw as Partial<BackupPayload> & { cash?: CashItem[]; firebase?: FirebaseConfig };
+  if (!Array.isArray(r.holdings) || !Array.isArray(r.loans) || !Array.isArray(r.cashAccounts || r.cash)) throw new Error('備份檔缺少 holdings / cashAccounts / loans。');
+  const targetRatio = clampTarget(Number(r.targetRatio ?? r.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET));
+  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, firebase: current.firebase });
+}
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta {
   try {
@@ -141,14 +164,14 @@ function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim();
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null { const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string }; if (typeof d?.price !== 'number') return null; const prev = Number(d.previousClose ?? d.prev ?? d.price); return { ...backupQuote(symbol), symbol, price: d.price, previousClose: prev, change: d.price - prev, changePct: prev ? (d.price - prev) / prev * 100 : 0, volume: Number(d.volume ?? 0), source: d.source || 'Yahoo Finance via Cloudflare Worker', updatedAt: now() }; }
-async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '平均成本備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
+async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
 function derivedHoldings(state: AppState): Holding[] {
   const map = Object.fromEntries(state.holdings.map(h => [h.symbol, h])) as Record<SymbolCode, Holding>;
   return uniqueSymbols(state).map(s => map[s] || { symbol: s, shares: 0, avgCost: 0, ...(s === '00631L' ? { targetWeight: growthTargetOf(state) } : {}) });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
-  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '平均成本備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; });
+  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   const cash = state.cash.reduce((a, c) => a + num(c.amount), 0);
   const debt = state.loans.reduce((a, l) => a + num(l.principal), 0);
@@ -288,8 +311,23 @@ function App() {
   const [mode, hint, modeTone] = advice(m);
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
-  const backup = () => { const blob = new Blob([JSON.stringify(normalizeState(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `00631l-pro-version-1.0.0-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); };
-  const restore = async (f?: File) => { if (!f) return; setState(normalizeState(JSON.parse(await f.text()))); };
+  const exportBackup = () => { const blob = new Blob([JSON.stringify(backupPayload(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `00631L-Pro-backup-${backupStamp()}.json`; a.click(); URL.revokeObjectURL(url); updateSyncMeta(current => ({ ...current, status: '備份已匯出' })); };
+  const importBackup = async (f?: File) => {
+    if (!f) return;
+    try {
+      const raw = JSON.parse(await f.text());
+      const next = stateFromBackup(raw, stateRef.current);
+      if (!window.confirm('匯入備份會覆蓋目前本機資料，是否繼續？')) return;
+      isApplyingRemoteRef.current = true;
+      setState(next);
+      writeState(next);
+      const importedAt = now();
+      setLastSavedAt(importedAt);
+      updateSyncMeta(current => ({ ...current, dirty: true, status: '已匯入備份，本機有新資料，尚未上傳雲端' }));
+    } catch (error) {
+      updateSyncMeta(current => ({ ...current, status: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' }));
+    }
+  };
   return (
     <main>
       <header className="hero">
@@ -323,8 +361,8 @@ function App() {
             {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; return <article className="holding" key={r.symbol}>
               <h3>{r.symbol}</h3><p>{r.quote.name}</p><p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>{r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
-              <label>目前股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
-              <label>平均成本<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
+              <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
+              <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
               {r.symbol === '00631L' ? <label>目標比例 %<DraftInput inputMode="decimal" value={targetDraft} onCommit={value => { const next = clampTarget(Number(value)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); }} /><small>限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%，防守資產自動為 {pct(m.defensiveTargetPct)}。</small></label> : <p className="note">列入防守資產，不參與主動再平衡買賣。</p>}
               <strong>市值：{money(r.marketValue)}</strong>
               <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
@@ -355,7 +393,7 @@ function App() {
           </Card>
         </div>
       </>}
-      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: 'Firebase 同步失敗，請稍後再試：' + e.message })))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '下載失敗：' + e.message })))}>下載雲端</button><button onClick={backup}>備份 JSON</button><label className="file">還原 JSON<input type="file" accept="application/json" onChange={e => restore(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p><b>同步狀態：</b>{syncMeta.status}</p><p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料。</p></Card>}
+      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: 'Firebase 同步失敗，請稍後再試：' + e.message })))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '下載失敗：' + e.message })))}>下載雲端</button><button onClick={exportBackup}>匯出備份 JSON</button><label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => importBackup(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p><b>同步狀態：</b>{syncMeta.status}</p><p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p></Card>}
     </main>
   );
 }
