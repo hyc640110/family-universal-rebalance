@@ -322,6 +322,20 @@ function App() {
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
+  const [remoteMeta, setRemoteMeta] = useState<{ holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem('00631l-pro-v100-remote-meta');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+  const updateRemoteMeta = (value: { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null) => {
+    setRemoteMeta(value);
+    if (value) {
+      localStorage.setItem('00631l-pro-v100-remote-meta', JSON.stringify(value));
+    } else {
+      localStorage.removeItem('00631l-pro-v100-remote-meta');
+    }
+  };
   const [cashWarning, setCashWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(now());
@@ -344,8 +358,46 @@ function App() {
     setLastSavedAt(now());
     return normalized;
   };
-  const uploadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '本機儲存中…' })); const normalized = await flushDrafts(); updateSyncMeta(current => ({ ...current, status: 'Firebase 同步中…' })); await uploadFirebase(normalized.firebase, normalized); const syncedAt = now(); setLastSavedAt(syncedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastUploadAt: syncedAt, status: `Firebase 同步完成｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆` })); };
-  const downloadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '下載中…' })); const remote = await downloadFirebase(state.firebase); const downloadedAt = now(); isApplyingRemoteRef.current = true; setState(remote); writeState(remote); setLastSavedAt(downloadedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastDownloadAt: downloadedAt, status: `已下載雲端資料｜雲端資料已套用到本機｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆` })); };
+  const uploadCloud = async () => { 
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' })); 
+    const normalized = await flushDrafts(); 
+    await uploadFirebase(normalized.firebase, normalized); 
+    const syncedAt = now(); 
+    setLastSavedAt(syncedAt); 
+    updateSyncMeta(current => ({ 
+      ...current, 
+      dirty: false, 
+      lastUploadAt: syncedAt, 
+      status: `🎉 上傳成功！已同步本地持股至雲端｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆` 
+    })); 
+    updateRemoteMeta({
+      holdingsCount: normalized.holdings.length,
+      cashCount: normalized.cash.length,
+      loansCount: normalized.loans.length,
+      updatedAt: syncedAt
+    });
+  };
+  const downloadCloud = async () => { 
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
+    const remote = await downloadFirebase(state.firebase); 
+    const downloadedAt = now(); 
+    isApplyingRemoteRef.current = true; 
+    setState(remote); 
+    writeState(remote); 
+    setLastSavedAt(downloadedAt); 
+    updateSyncMeta(current => ({ 
+      ...current, 
+      dirty: false, 
+      lastDownloadAt: downloadedAt, 
+      status: `🎉 下載成功！已套用雲端資料至本機｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆` 
+    })); 
+    updateRemoteMeta({
+      holdingsCount: remote.holdings.length,
+      cashCount: remote.cash.length,
+      loansCount: remote.loans.length,
+      updatedAt: downloadedAt
+    });
+  };
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
