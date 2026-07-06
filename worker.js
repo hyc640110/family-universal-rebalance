@@ -2,9 +2,9 @@
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const raw = url.searchParams.get('symbol') || '00631L.TW';
-    const symbol = raw.includes('.') ? raw : `${raw}.TW`;
-    const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d`;
+    const rawSymbol = url.searchParams.get('symbol') || '00631L';
+    const cleanSymbol = rawSymbol.replace(/\..*$/, '').toUpperCase(); // 00631L.TW -> 00631L
+    const twseUrl = `https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG?response=json&stockNo=${encodeURIComponent(cleanSymbol)}`;
     const headers = {
       'content-type': 'application/json; charset=utf-8',
       'access-control-allow-origin': '*',
@@ -13,35 +13,24 @@ export default {
     };
     if (request.method === 'OPTIONS') return new Response(null, { headers });
     try {
-      const res = await fetch(yahoo, { headers: { 'user-agent': '00631L-Pro-Web-App/6.1' }});
+      const res = await fetch(twseUrl, { headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }});
       const data = await res.json();
-      const result = data?.chart?.result?.[0];
-      const meta = result?.meta;
-      const price = Number(meta?.regularMarketPrice || 0);
-      
-      // 解析歷史收盤價，防呆昨收不準問題
-      let previousClose = Number(meta?.previousClose || meta?.chartPreviousClose || price);
-      const closeList = result?.indicators?.quote?.[0]?.close;
-      if (Array.isArray(closeList)) {
-        const validCloses = closeList.filter(p => typeof p === 'number' && p > 0);
-        if (validCloses.length > 0) {
-          const lastClose = validCloses[validCloses.length - 1];
-          if (validCloses.length >= 2) {
-            const isLastCloseCurrentPrice = Math.abs(lastClose - price) < 0.001;
-            if (isLastCloseCurrentPrice) {
-              previousClose = validCloses[validCloses.length - 2];
-            } else {
-              previousClose = lastClose;
-            }
-          } else {
-            previousClose = lastClose;
-          }
-        }
+      if (data.stat !== 'OK' || !Array.isArray(data.data)) {
+        throw new Error(`TWSE API 狀態錯誤：${data.stat || '未知'}`);
       }
-
-      return new Response(JSON.stringify({ symbol, price, previousClose, volume: Number(meta?.regularMarketVolume || 0), source:'Yahoo Finance via Cloudflare Worker', raw:data }), { headers });
+      const rows = data.data.filter(row => Array.isArray(row) && row[0] !== '月平均收盤價');
+      if (rows.length < 2) {
+        throw new Error('TWSE API 回傳資料筆數不足（少於 2 天）。');
+      }
+      const latestRow = rows[rows.length - 1];
+      const prevRow = rows[rows.length - 2];
+      const price = Number(latestRow[1]);
+      const previousClose = Number(prevRow[1]);
+      const change = price - previousClose;
+      const changePct = previousClose ? (change / previousClose) * 100 : 0;
+      return new Response(JSON.stringify({ symbol: rawSymbol, price, previousClose, change, changePct, volume: 0, source: 'Taiwan Stock Exchange (TWSE) Official API', raw: data }), { headers });
     } catch (error) {
-      return new Response(JSON.stringify({ symbol, error:String(error), source:'Worker error' }), { status: 502, headers });
+      return new Response(JSON.stringify({ symbol: rawSymbol, error: String(error), source: 'Worker error' }), { status: 502, headers });
     }
   }
 };

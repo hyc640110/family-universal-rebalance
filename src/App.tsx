@@ -178,24 +178,41 @@ function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null {
   
   let prev = Number(d.previousClose ?? d.prev ?? d.price);
   
-  // 💥 前端防呆防線：從 Raw Response 的歷史 K 線收盤價中，尋找真實昨收
+  // 💥 前端防呆防線：支援 TWSE API 的 Raw JSON 解析
   try {
-    const result = d.raw?.chart?.result?.[0];
-    const quotes = result?.indicators?.quote?.[0];
-    const closeList = quotes?.close;
-    if (Array.isArray(closeList)) {
-      const validCloses = closeList.filter((p): p is number => typeof p === 'number' && p > 0);
-      if (validCloses.length > 0) {
-        const lastClose = validCloses[validCloses.length - 1];
-        if (validCloses.length >= 2) {
-          const isLastCloseCurrentPrice = Math.abs(lastClose - d.price) < 0.001;
-          if (isLastCloseCurrentPrice) {
-            prev = validCloses[validCloses.length - 2];
+    if (d.raw?.stat === 'OK' && Array.isArray(d.raw?.data)) {
+      const rows = d.raw.data.filter((row: any) => Array.isArray(row) && row[0] !== '月平均收盤價');
+      if (rows.length >= 2) {
+        const latestPrice = Number(rows[rows.length - 1][1]);
+        const prevPrice = Number(rows[rows.length - 2][1]);
+        if (!isNaN(latestPrice) && !isNaN(prevPrice)) {
+          const isLatestCloseCurrentPrice = Math.abs(latestPrice - d.price) < 0.001;
+          if (isLatestCloseCurrentPrice) {
+            prev = prevPrice;
+          } else {
+            prev = latestPrice;
+          }
+        }
+      }
+    } else {
+      // 備份 Yahoo Finance raw chart 數據解析
+      const result = d.raw?.chart?.result?.[0];
+      const quotes = result?.indicators?.quote?.[0];
+      const closeList = quotes?.close;
+      if (Array.isArray(closeList)) {
+        const validCloses = closeList.filter((p): p is number => typeof p === 'number' && p > 0);
+        if (validCloses.length > 0) {
+          const lastClose = validCloses[validCloses.length - 1];
+          if (validCloses.length >= 2) {
+            const isLastCloseCurrentPrice = Math.abs(lastClose - d.price) < 0.001;
+            if (isLastCloseCurrentPrice) {
+              prev = validCloses[validCloses.length - 2];
+            } else {
+              prev = lastClose;
+            }
           } else {
             prev = lastClose;
           }
-        } else {
-          prev = lastClose;
         }
       }
     }
@@ -211,7 +228,7 @@ function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null {
     change: d.price - prev,
     changePct: prev ? (d.price - prev) / prev * 100 : 0,
     volume: Number(d.volume ?? 0),
-    source: d.source || 'Yahoo Finance via Cloudflare Worker',
+    source: d.source || 'Taiwan Stock Exchange (TWSE) Official API',
     updatedAt: now()
   };
 }
