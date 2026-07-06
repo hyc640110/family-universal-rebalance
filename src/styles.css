@@ -33,6 +33,11 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
   margin-top: 4px;
   font-size: 13px !important;
 }
+@media (min-width: 769px) {
+  .stat b .safety-desc {
+    font-size: 15px !important;
+  }
+}
 .up,.bad{color:#ff5b5b}
 .down,.good{color:#43d17a}
 .warn{color:#ffd166}
