@@ -7,7 +7,8 @@ type Holding = { symbol: SymbolCode; shares: number; avgCost: number; targetWeig
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number };
+type RebalanceMode = 'standard' | 'buy-only';
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number };
 type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
 
@@ -21,6 +22,9 @@ const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
 const DEFAULT_GROWTH_TARGET = 70;
 const MIN_GROWTH_TARGET = 30;
 const MAX_GROWTH_TARGET = 90;
+const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
+const DEFAULT_REBALANCE_THRESHOLD = 5;
+const MAX_REBALANCE_THRESHOLD = 20;
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -38,6 +42,9 @@ const backupStamp = () => {
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, num(value) || DEFAULT_GROWTH_TARGET));
 const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
+const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
+const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
+const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00631L': { symbol: '00631L', name: '元大台灣50正2', price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
@@ -52,7 +59,9 @@ const defaultState: AppState = {
   firebase: { databaseURL: '', secretPath: '631128' },
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
-  autoSyncSec: 60
+  autoSyncSec: 60,
+  rebalanceMode: DEFAULT_REBALANCE_MODE,
+  rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD
 };
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
@@ -112,7 +121,7 @@ function normalizeState(raw: unknown): AppState {
   const has00631L = holdings.some(h => h.symbol === '00631L');
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
-  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))) };
+  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
 }
 function readState(): AppState {
   try {
@@ -126,7 +135,7 @@ function readState(): AppState {
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: 'manual', rebalanceThreshold: 1000, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -139,7 +148,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   const r = raw as Partial<BackupPayload> & { cash?: CashItem[]; firebase?: FirebaseConfig };
   if (!Array.isArray(r.holdings) || !Array.isArray(r.loans) || !Array.isArray(r.cashAccounts || r.cash)) throw new Error('備份檔缺少 holdings / cashAccounts / loans。');
   const targetRatio = clampTarget(Number(r.targetRatio ?? r.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET));
-  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, firebase: current.firebase });
+  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase: current.firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta {
@@ -200,13 +209,32 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveTarget = m.totalAssets * (m.defensiveTargetPct / 100);
   const stockDiff = stockTarget - stock.marketValue;
   const defensiveDiff = defensiveTarget - m.defensive;
+  const stockWeight = m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0;
+  const defensiveWeight = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
+  const deviation = stockWeight - m.growthTargetPct;
+  const defensiveDeviation = defensiveWeight - m.defensiveTargetPct;
+  const threshold = clampRebalanceThreshold(state.rebalanceThreshold);
+  const thresholdReached = Math.abs(deviation) >= threshold;
+  const mode = normalizeRebalanceMode(state.rebalanceMode);
   const stockShares = Math.round(Math.abs(stockDiff) / Math.max(0.01, stock.quote.price));
-  const stockAction = Math.abs(stockDiff) < 1000 ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`;
-  const defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`;
-  const stockRow = { symbol: '00631L', currentWeight: m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), action: stockAction, tone: stockDiff >= 0 ? 'up' : 'down' };
-  const defensiveRow = { symbol: '防守資產', currentWeight: m.totalAssets ? m.defensive / m.totalAssets * 100 : 0, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), action: defensiveAction, tone: 'hold' };
-  const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', action: '保留實際持股，不參與再平衡' }))];
-  return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`) };
+  const belowAmountFloor = Math.abs(stockDiff) < 1000;
+  let stockAction = belowAmountFloor ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`;
+  let defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`;
+  let stockTone = stockDiff >= 0 ? 'up' : 'down';
+  let defensiveTone = 'hold';
+  if (!thresholdReached) {
+    stockAction = '維持持有，尚未達再平衡門檻';
+    defensiveAction = '維持防守資產，尚未達再平衡門檻';
+    stockTone = defensiveTone = 'hold';
+  } else if (mode === 'buy-only' && stockDiff < 0) {
+    stockAction = '暫停加碼，維持持有';
+    defensiveAction = `優先增加防守資產，距離目標約 ${money(Math.max(0, defensiveDiff))}`;
+    stockTone = defensiveTone = 'hold';
+  }
+  const stockRow = { symbol: '00631L', currentWeight: stockWeight, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), deviationText: signedPct(deviation), thresholdText: pct(threshold), action: stockAction, tone: stockTone };
+  const defensiveRow = { symbol: '防守資產', currentWeight: defensiveWeight, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), deviationText: signedPct(defensiveDeviation), thresholdText: pct(threshold), action: defensiveAction, tone: defensiveTone };
+  const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
+  return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`), mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
@@ -371,17 +399,35 @@ function App() {
         </Card>
         <Card title="資產配置"><Pie3D m={m} /></Card>
         <Card title="再平衡摘要">
+          <div className="rebalance-settings">
+            <label>再平衡模式
+              <select value={state.rebalanceMode} onChange={e => setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(e.target.value) }))}>
+                <option value="buy-only">只買不賣</option>
+                <option value="standard">標準再平衡</option>
+              </select>
+            </label>
+            <label>再平衡提醒門檻 %
+              <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
+              <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
+            </label>
+          </div>
+          <div className="rebalance-alert">
+            <p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p>
+            <p><span>目前偏離目標</span><strong className={tone(rb.deviation)}>{signedPct(rb.deviation)}</strong></p>
+            <p><span>再平衡門檻</span><strong>{pct(rb.threshold)}</strong></p>
+            <p><span>狀態</span><strong>{rb.thresholdStatus}</strong></p>
+          </div>
           <div className="rebalance-summary">
             <div><small>00631L</small><b>{rb.stockAction}</b></div>
             <div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>
             {rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}
           </div>
           <div className="table rebalance-table">
-            <div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>差額</span><span>建議</span></div>
-            <div className="row"><span>{rb.stockRow.symbol}</span><span>{pct(rb.stockRow.currentWeight)}</span><span>{rb.stockRow.targetText}</span><span>{rb.stockRow.diffText}</span><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
+            <div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div>
+            <div className="row"><span>{rb.stockRow.symbol}</span><span>{pct(rb.stockRow.currentWeight)}</span><span>{rb.stockRow.targetText}</span><span>{rb.stockRow.deviationText}</span><span>{rb.stockRow.thresholdText}</span><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
             <div className="rebalance-group">
-              <div className="row group-main"><span>{rb.defensiveRow.symbol}</span><span>{pct(rb.defensiveRow.currentWeight)}</span><span>{rb.defensiveRow.targetText}</span><span>{rb.defensiveRow.diffText}</span><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
-              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>{r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.diffText}</span><b className="hold">{r.action}</b></div>)}
+              <div className="row group-main"><span>{rb.defensiveRow.symbol}</span><span>{pct(rb.defensiveRow.currentWeight)}</span><span>{rb.defensiveRow.targetText}</span><span>{rb.defensiveRow.deviationText}</span><span>{rb.defensiveRow.thresholdText}</span><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
+              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>{r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.deviationText}</span><span>{r.thresholdText}</span><b className="hold">{r.action}</b></div>)}
             </div>
           </div>
         </Card>

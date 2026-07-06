@@ -46,12 +46,18 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .defensive-dot{background:#22c55e}
 .cash-dot{background:#60a5fa}
 .bond-dot{background:#34d399}
+.rebalance-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.rebalance-settings label{margin:0}
+.rebalance-alert{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.rebalance-alert p{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:12px;margin:0}
+.rebalance-alert span{display:block;color:#8da3bd;font-size:12px;margin-bottom:6px}
+.rebalance-alert strong{font-size:18px}
 .rebalance-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .rebalance-summary div{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:14px}
 .rebalance-summary small{display:block;color:#8da3bd;margin-bottom:6px}
 .rebalance-summary b{display:block;color:#eaf3ff;line-height:1.5}
 .table{display:flex;flex-direction:column;gap:10px}
-.row{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr minmax(180px,1.2fr);gap:10px;align-items:center;background:#09182a;border-radius:12px;padding:12px}
+.row{display:grid;grid-template-columns:1fr .9fr .9fr .9fr .75fr minmax(190px,1.25fr);gap:10px;align-items:center;background:#09182a;border-radius:12px;padding:12px}
 .row.head{background:#0f2f4f;color:#93c5fd;font-weight:800}
 .rebalance-group{display:flex;flex-direction:column;gap:0;background:#09182a;border:1px solid #1d3d66;border-radius:12px;overflow:hidden}
 .rebalance-group .row{border-radius:0;background:transparent}
@@ -78,7 +84,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 @media(max-width:900px){
   main{padding:14px}
   .hero{flex-direction:column;align-items:flex-start}
-  .grid,.holdings,.two,.params,.rebalance-summary,.allocation-detail,.pie-layout,.loan-summary{grid-template-columns:1fr}
+  .grid,.holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.allocation-detail,.pie-layout,.loan-summary{grid-template-columns:1fr}
   .row,.list-row{grid-template-columns:1fr!important;min-width:0}
   .list-head{display:none}
   .list-row label span{display:block}
