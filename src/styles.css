@@ -321,24 +321,24 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   }
 
   /* 5. 一律縮小其他輔助文字，確保橫向塞得下 */
-  span, b, p, div, label {
-    font-size: 0.85rem !important;
-  }
+span, b, p, div, label {
+  font-size: 0.85rem !important;
 }
 
-/* 6. 核心修正：強迫下方的現金管理與借款管理卡片，最大寬度必須跟上方完全一致 */
-  .cash-management, .loan-management, #cash-section, #loan-section {
-    max-width: 390px !important; /* 限制最大寬度在標準直式手機範圍，對齊上方 */
-    width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: auto !important; /* 確保全部靠左對齊 */
-    box-sizing: border-box !important;
-  }
-
-  /* 7. 確保輸入框列表內部元件也不會悄悄往右邊爆開 */
-  .list, .list-row, .list-row label {
-    max-width: 100% !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
+/* 6. 核心修正：強迫下方的現金管理與借款管理卡片對齊上方 */
+.cash-management, .loan-management, #cash-section, #loan-section {
+  max-width: 390px !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
 }
+
+/* 7. 確保輸入框列表內部元件對齊 */
+.list, .list-row, .list-row label {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+} /* <--- 這是全檔案「唯一」留在最後面、用來關閉 @media 的大括號 */
