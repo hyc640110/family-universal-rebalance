@@ -215,6 +215,13 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     font-size: 0.95rem !important;
   }
 
+  /* 解除日期欄位的高度限制，防範 iOS 行高截斷 */
+  .list .list-row input[type="date"] {
+    height: 44px !important;
+    padding: 8px 10px !important;
+    line-height: 1.5 !important;
+  }
+
   /* 剩餘期數與刪除按鈕 */
   .list .list-row .remaining {
     display: flex !important;
@@ -279,7 +286,16 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   }
 
   /* 8. 輔助小字與持股比例優化 */
-  .sync-bar, .allocation-detail p {
+  .sync-bar {
+    display: block !important;
+    font-size: 0.75rem !important;
+    line-height: 1.5 !important;
+    text-align: left !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+  }
+
+  .allocation-detail p {
     display: flex !important;
     justify-content: space-between !important;
     font-size: 0.75rem !important;
