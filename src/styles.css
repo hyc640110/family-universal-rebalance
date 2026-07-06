@@ -9,6 +9,7 @@ h2{font-size:18px;margin:0 0 16px}
 h3{margin:0 0 10px}
 .tabs{display:flex;gap:10px;align-items:center;margin:14px 0 18px}
 .tabs span{margin-left:auto;color:#9fb3c8;font-size:12px;text-align:right}
+.tabs .sync-bar{line-height:1.65;max-width:560px}
 button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;padding:10px 16px;cursor:pointer;display:inline-block}
 button:hover,.file:hover{filter:brightness(1.12)}
 button.active{background:#3b82f6}
