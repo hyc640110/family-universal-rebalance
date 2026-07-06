@@ -452,7 +452,10 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
-function Stat({ label, value, tone: toneClass }: { label: string; value: string; tone?: string }) { return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>; }
+function Stat({ label, value, tone: toneClass }: { label: string; value: string; tone?: string }) {
+  const isLong = value.length > 10;
+  return <div className="stat"><small>{label}</small><b className={`${toneClass || ''} ${isLong ? 'long-text' : ''}`}>{value}</b></div>;
+}
 function Card({ title, children, action, style }: { title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
   return <section className="card" style={style}>
     {action ? (
