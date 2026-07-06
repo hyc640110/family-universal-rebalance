@@ -34,6 +34,13 @@ const signedMoney = (n: number) => `${n > 0 ? '+' : ''}${money(n)}`;
 const pct = (n: number) => `${num(n).toFixed(2)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
+const twShortTime = (iso: string) => {
+  if (!iso) return '尚未更新';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '尚未更新';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
 const backupStamp = () => {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -42,6 +49,18 @@ const backupStamp = () => {
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, num(value) || DEFAULT_GROWTH_TARGET));
 const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
+const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
+  if (monthlyPayment === 0) return '🟢 無貸款壓力';
+  if (months >= 36) return `🟢 極度安全｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
+  if (months >= 12) return `🟡 安全｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
+  return `🔴 需要注意｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
+};
+const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
+  if (monthlyPayment === 0) return 'good';
+  if (months >= 36) return 'good';
+  if (months >= 12) return 'warn';
+  return 'bad';
+};
 const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
@@ -434,7 +453,19 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   </div>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: string; tone?: string }) { return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>; }
-function Card({ title, children, style }: { title: string; children: ReactNode; style?: CSSProperties }) { return <section className="card" style={style}><h2>{title}</h2>{children}</section>; }
+function Card({ title, children, action, style }: { title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
+  return <section className="card" style={style}>
+    {action ? (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ margin: 0 }}>{title}</h2>
+        {action}
+      </div>
+    ) : (
+      <h2>{title}</h2>
+    )}
+    {children}
+  </section>;
+}
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
   const [draft, setDraft] = useState(String(value ?? ''));
   const [editing, setEditing] = useState(false);
@@ -487,6 +518,7 @@ function App() {
     setStateValue(next);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
+  const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
   const [remoteMeta, setRemoteMeta] = useState<{ holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null>(() => {
     try {
@@ -512,7 +544,7 @@ function App() {
   const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater; writeSyncMeta(next); return next; });
   useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   useEffect(() => setTargetDraft(String(growthTargetOf(state))), [state.holdings]);
-  const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
+  const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
@@ -568,6 +600,70 @@ function App() {
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+
+  const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
+  const generateRebalanceSummaryText = () => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const timeStr = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    
+    const targetGrowth = growthTargetOf(state);
+    const targetDefensive = 100 - targetGrowth;
+    
+    const currentGrowth = rb.stockRow.currentWeight;
+    const currentDefensive = rb.defensiveRow.currentWeight;
+    
+    const deviation = rb.deviation;
+    const threshold = rb.threshold;
+    const status = rb.thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置';
+    
+    let text = `00631L Pro 再平衡摘要\n`;
+    text += `時間：${timeStr}\n\n`;
+    
+    text += `策略目標：\n`;
+    text += `00631L：${targetGrowth.toFixed(2)}%\n`;
+    text += `防守資產：${targetDefensive.toFixed(2)}%\n\n`;
+    
+    text += `目前配置：\n`;
+    text += `00631L：${currentGrowth.toFixed(2)}%\n`;
+    text += `防守資產：${currentDefensive.toFixed(2)}%\n\n`;
+    
+    text += `偏離狀態：\n`;
+    text += `目前偏離目標：${deviation > 0 ? '+' : ''}${deviation.toFixed(2)}%\n`;
+    text += `再平衡門檻：${threshold.toFixed(2)}%\n`;
+    text += `狀態：${status}\n\n`;
+    
+    text += `再平衡建議：\n`;
+    text += `00631L：${rb.stockAction}\n`;
+    text += `防守資產：${rb.defensiveAction}\n`;
+    
+    rb.defensiveDetails.forEach(item => {
+      if (item.symbol !== '現金' && item.symbol !== '防守資產') {
+        text += `${item.symbol}：${item.action}\n`;
+      }
+    });
+    
+    text += `\n注意事項：\n`;
+    text += `Firebase 同步仍需手動上傳 / 下載。`;
+    return text;
+  };
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const text = generateRebalanceSummaryText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        setCopyStatus('已複製再平衡摘要');
+        setTimeout(() => setCopyStatus('📋 複製摘要'), 2000);
+      } else {
+        throw new Error('Clipboard API not supported');
+      }
+    } catch (err) {
+      setCopyStatus('複製失敗，請手動選取文字');
+      setTimeout(() => setCopyStatus('📋 複製摘要'), 3000);
+    }
+  };
 
   const syncDiagnostics = useMemo(() => {
     if (!state.firebase.databaseURL.trim()) {
@@ -635,7 +731,7 @@ function App() {
       <nav className="tabs">
         <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>儀表板</button>
         <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>同步設定</button>
-        <span className="sync-bar"><b>股價更新：</b>{tw(Object.values(quotes)[0].updatedAt)}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
+        <span className="sync-bar"><b>股價更新：</b>{hasUpdatedQuotes ? `${twShortTime(Object.values(quotes)[0]?.updatedAt)} 更新` : '尚未更新'}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
       </nav>
       {tab === 'dashboard' && <>
         <section className="grid stats">
@@ -668,7 +764,18 @@ function App() {
           </div>
         </Card>
         <Card title="資產配置"><Pie3D m={m} /></Card>
-        <Card title="再平衡摘要">
+        <Card 
+          title="再平衡摘要" 
+          action={
+            <button 
+              className="small" 
+              style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} 
+              onClick={handleCopy}
+            >
+              {copyStatus}
+            </button>
+          }
+        >
           <div className={`health-status ${health.tone}`}>
             <div className="health-light" />
             <div>
@@ -731,8 +838,8 @@ function App() {
               <Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} />
               <Stat 
                 label="還款安全存量" 
-                value={m.monthlyPayment > 0 ? `可支應未來 ${m.repaymentSafetyMonths.toFixed(1)} 個月還款 (約 ${m.repaymentSafetyDays} 天)` : '無限大'} 
-                tone={m.monthlyPayment > 0 ? (m.repaymentSafetyMonths > 6 ? 'good' : m.repaymentSafetyMonths < 3 ? 'warn' : '') : 'good'} 
+                value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} 
+                tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} 
               />
               <Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" />
               <Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} />
