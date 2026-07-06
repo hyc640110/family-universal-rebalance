@@ -112,3 +112,29 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .allocation-detail p{font-size:14px}
   .allocation-detail strong{font-size:20px}
 }
+
+/* 確保再平衡表格在手機版能橫向滾動，維持表格水平對齊不跑版 */
+@media (max-width: 768px) {
+  .rebalance-table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap !important;
+  }
+  
+  .rebalance-table .row {
+    display: flex !important;
+    min-width: 600px; /* 確保表格內容有足夠寬度水平並排 */
+    justify-content: space-between;
+  }
+
+  .rebalance-table .row span, 
+  .rebalance-table .row b {
+    flex: 1 !important;
+    text-align: left !important;
+    padding: 0.5rem;
+    display: inline-block !important;
+  }
+}
+
