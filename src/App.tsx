@@ -50,10 +50,17 @@ const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_
 const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
-  if (monthlyPayment === 0) return '🟢 無貸款壓力';
-  if (months >= 36) return `🟢 極度安全｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
-  if (months >= 12) return `🟡 安全｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
-  return `🔴 需要注意｜可支應 ${months.toFixed(1)} 個月（約 ${days} 天）`;
+  if (monthlyPayment === 0) return <span className="safety-badge">🟢 無貸款壓力</span>;
+  let badgeText = '';
+  if (months >= 36) badgeText = '🟢 極度安全';
+  else if (months >= 12) badgeText = '🟡 安全';
+  else badgeText = '🔴 需要注意';
+  return (
+    <span className="safety-container">
+      <span className="safety-badge">{badgeText}</span>
+      <span className="safety-desc">可支應 {months.toFixed(1)} 個月（約 {days} 天）</span>
+    </span>
+  );
 };
 const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
   if (monthlyPayment === 0) return 'good';
@@ -452,9 +459,8 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
-function Stat({ label, value, tone: toneClass }: { label: string; value: string; tone?: string }) {
-  const isLong = value.length > 10;
-  return <div className="stat"><small>{label}</small><b className={`${toneClass || ''} ${isLong ? 'long-text' : ''}`}>{value}</b></div>;
+function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
+  return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
 }
 function Card({ title, children, action, style }: { title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
   return <section className="card" style={style}>

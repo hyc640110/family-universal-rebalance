@@ -19,9 +19,22 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .stat,.card,.holding{background:#102033;border:1px solid #1d3d66;border-radius:14px;padding:16px}
 .stat small{display:block;color:#8da3bd}
 .stat b{font-size:24px}
+.stat b .safety-container {
+  display: flex;
+  flex-direction: column;
+}
+.stat b .safety-badge {
+  display: block;
+}
+.stat b .safety-desc {
+  display: block;
+  font-weight: normal;
+  opacity: 0.85;
+  margin-top: 4px;
+}
 @media (min-width: 769px) {
-  .stat b.long-text {
-    font-size: 0.9rem;
+  .stat b .safety-desc {
+    font-size: 13px !important;
   }
 }
 .up,.bad{color:#ff5b5b}
@@ -321,5 +334,8 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   }
   button {
     font-size: 0.9rem !important;
+  }
+  .stat b .safety-desc {
+    font-size: 1.1rem !important;
   }
 }
