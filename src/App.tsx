@@ -174,13 +174,23 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
+function pieLabelStyle(startDeg: number, endDeg: number): CSSProperties {
+  const centerDeg = (startDeg + endDeg) / 2;
+  const rad = centerDeg * Math.PI / 180;
+  const x = 50 + Math.sin(rad) * 27;
+  const y = 50 - Math.cos(rad) * 15;
+  return { '--x': `${x.toFixed(1)}%`, '--y': `${y.toFixed(1)}%` } as CSSProperties;
+}
+
 function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const growthPct = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
   const defensivePct = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
   const cashPct = m.totalAssets ? m.cash / m.totalAssets * 100 : 0;
   const holdingPct = (symbol: SymbolCode) => pct(m.totalAssets ? (m.defensiveHoldings.find(r => r.symbol === symbol)?.marketValue || 0) / m.totalAssets * 100 : 0);
-  const growthLabelStyle = { '--x': '41%', '--y': '31%' } as CSSProperties;
-  const defensiveLabelStyle = { '--x': '61%', '--y': '63%' } as CSSProperties;
+  const pieStart = -35;
+  const growthEnd = pieStart + growthPct / 100 * 360;
+  const growthLabelStyle = pieLabelStyle(pieStart, growthEnd);
+  const defensiveLabelStyle = pieLabelStyle(growthEnd, pieStart + 360);
   return <div className="pie-layout">
     <div className="pie-figure">
       <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties} />
@@ -319,7 +329,7 @@ function App() {
             <div className="row"><span>{rb.stockRow.symbol}</span><span>{pct(rb.stockRow.currentWeight)}</span><span>{rb.stockRow.targetText}</span><span>{rb.stockRow.diffText}</span><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
             <div className="rebalance-group">
               <div className="row group-main"><span>{rb.defensiveRow.symbol}</span><span>{pct(rb.defensiveRow.currentWeight)}</span><span>{rb.defensiveRow.targetText}</span><span>{rb.defensiveRow.diffText}</span><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
-              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>其中 {r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.diffText}</span><b className="hold">{r.action}</b></div>)}
+              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>{r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.diffText}</span><b className="hold">{r.action}</b></div>)}
             </div>
           </div>
         </Card>
