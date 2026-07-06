@@ -8,9 +8,9 @@ type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; monthlyContribution: number };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number };
 type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; monthlyContribution: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
 
 const APP_VERSION = 'Version 1.0.0';
 const STORAGE_KEY = '00631l-pro-v100-state';
@@ -25,7 +25,6 @@ const MAX_GROWTH_TARGET = 90;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const MAX_REBALANCE_THRESHOLD = 20;
-const DEFAULT_MONTHLY_CONTRIBUTION = 10000;
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -62,8 +61,7 @@ const defaultState: AppState = {
   autoSync: false,
   autoSyncSec: 60,
   rebalanceMode: DEFAULT_REBALANCE_MODE,
-  rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
-  monthlyContribution: DEFAULT_MONTHLY_CONTRIBUTION
+  rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD
 };
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
@@ -123,7 +121,7 @@ function normalizeState(raw: unknown): AppState {
   const has00631L = holdings.some(h => h.symbol === '00631L');
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
-  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), monthlyContribution: Math.max(0, num(Number(s.monthlyContribution ?? DEFAULT_MONTHLY_CONTRIBUTION))) };
+  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
 }
 function readState(): AppState {
   try {
@@ -137,7 +135,7 @@ function readState(): AppState {
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, monthlyContribution: normalized.monthlyContribution, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -150,7 +148,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   const r = raw as Partial<BackupPayload> & { cash?: CashItem[]; firebase?: FirebaseConfig };
   if (!Array.isArray(r.holdings) || !Array.isArray(r.loans) || !Array.isArray(r.cashAccounts || r.cash)) throw new Error('備份檔缺少 holdings / cashAccounts / loans。');
   const targetRatio = clampTarget(Number(r.targetRatio ?? r.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET));
-  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), monthlyContribution: Number(r.monthlyContribution ?? current.monthlyContribution), firebase: current.firebase });
+  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase: current.firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta {
@@ -404,41 +402,7 @@ function App() {
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
-  const monthlySuggest = useMemo(() => {
-    const contrib = state.monthlyContribution;
-    const stock = m.rows.find(r => r.symbol === '00631L') || { marketValue: 0, quote: { price: 0 } };
-    const price = Math.max(0.01, stock.quote.price);
-    const deviation = rb.deviation;
-    const thresholdReached = rb.thresholdReached;
 
-    let stockAmount = 0;
-    let defensiveAmount = 0;
-    let reason = '';
-
-    if (!thresholdReached) {
-      stockAmount = contrib * (m.growthTargetPct / 100);
-      defensiveAmount = contrib * (m.defensiveTargetPct / 100);
-      reason = '目前配置尚未達再平衡門檻，建議依目標比例分配本月投入金額。';
-    } else if (deviation > 0) {
-      stockAmount = 0;
-      defensiveAmount = contrib;
-      reason = '00631L 目前高於目標，建議暫停加碼，優先增加現金或防守資產。';
-    } else {
-      const stockTarget = m.totalAssets * (m.growthTargetPct / 100);
-      const stockDiff = stockTarget - stock.marketValue;
-      if (stockDiff >= contrib) {
-        stockAmount = contrib;
-        defensiveAmount = 0;
-      } else {
-        stockAmount = Math.max(0, stockDiff);
-        defensiveAmount = contrib - stockAmount;
-      }
-      reason = '00631L 目前低於目標，可優先加碼至接近目標配置。';
-    }
-
-    const shares = Math.floor(stockAmount / price);
-    return { contrib, stockAmount, defensiveAmount, reason, shares };
-  }, [state.monthlyContribution, m, rb]);
   const syncDiagnostics = useMemo(() => {
     if (!state.firebase.databaseURL.trim()) {
       return { status: '未啟用雲端同步', tone: 'hold', reason: '尚未設定 Firebase Database URL。', suggestion: '請至上方輸入 Firebase URL 與金鑰以啟用同步功能。' };
@@ -559,17 +523,7 @@ function App() {
               <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
               <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
             </label>
-            <label>本月可投入金額
-              <DraftInput 
-                type="number" 
-                value={state.monthlyContribution} 
-                onCommit={value => {
-                  const val = parsePositive(value, DEFAULT_MONTHLY_CONTRIBUTION);
-                  setState(s => ({ ...s, monthlyContribution: val }));
-                }} 
-              />
-              <small>限制大於 0 的正整數，預設為 10,000 元，將儲存設定。</small>
-            </label>
+
           </div>
           <div className="rebalance-alert">
             <p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p>
@@ -591,38 +545,7 @@ function App() {
             </div>
           </div>
         </Card>
-        <Card title="本月加碼建議">
-          <div className="rebalance-alert">
-            <p>
-              <span>本月可投入金額</span>
-              <strong>{money(monthlySuggest.contrib)}</strong>
-            </p>
-            <p>
-              <span>建議投入 00631L</span>
-              <strong className={monthlySuggest.stockAmount > 0 ? 'up' : 'hold'}>
-                {money(monthlySuggest.stockAmount)}
-                {monthlySuggest.stockAmount > 0 && <small style={{ display: 'block', fontSize: '12px', fontWeight: 'normal', color: '#8da3bd', marginTop: '4px' }}>約 {monthlySuggest.shares.toLocaleString('zh-TW')} 股</small>}
-              </strong>
-            </p>
-            <p>
-              <span>建議保留防守資產</span>
-              <strong className="hold">{money(monthlySuggest.defensiveAmount)}</strong>
-            </p>
-            <p>
-              <span>分配狀態</span>
-              <strong className={monthlySuggest.stockAmount > 0 ? 'up' : 'hold'}>
-                {monthlySuggest.stockAmount > 0 ? '優先加碼' : '暫停加碼'}
-              </strong>
-            </p>
-          </div>
-          <div style={{ background: '#09182a', border: '1px solid #1d3d66', borderRadius: '12px', padding: '14px', marginTop: '12px' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '14px', color: '#93c5fd' }}>建議原因</h3>
-            <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6', color: '#eaf3ff' }}>{monthlySuggest.reason}</p>
-          </div>
-          <p className="note" style={{ marginTop: '12px', fontSize: '12px' }}>
-            防守資產建議金額預設保留為現金；00865B 保留實際持股，不參與主動加碼建議。
-          </p>
-        </Card>
+
         <div className="two">
           <Card title="現金管理">{cashWarning && <p className="warning-message">{cashWarning}</p>}<p className="note cash-policy-note">{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} /></Card>
           <Card title="借款管理">
