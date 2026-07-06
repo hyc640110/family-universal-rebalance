@@ -89,7 +89,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .list-row button{min-height:38px;white-space:nowrap;justify-self:start}
 .list>button{align-self:start}
 .remaining{align-self:center;color:#eaf3ff;font-weight:800}
-.loan-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.loan-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
 .note{color:#9fb3c8;line-height:1.7}
 .warning-message{background:#3a1d12;border:1px solid #f97316;color:#fed7aa;border-radius:10px;padding:10px 12px;font-weight:800;line-height:1.5}
 @media(max-width:900px){

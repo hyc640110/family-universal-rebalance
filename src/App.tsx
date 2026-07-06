@@ -200,7 +200,9 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const monthlyPayment = state.loans.reduce((a, l) => a + num(l.monthlyPayment), 0);
   const remainingMonths = state.loans.map(calculatedRemainingMonths).filter((v): v is number => v !== undefined);
   const averageRemainingMonths = remainingMonths.length ? remainingMonths.reduce((a, v) => a + v, 0) / remainingMonths.length : undefined;
-  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths };
+  const repaymentSafetyMonths = monthlyPayment > 0 ? num(cash / monthlyPayment) : Infinity;
+  const repaymentSafetyDays = monthlyPayment > 0 ? Math.round(repaymentSafetyMonths * 30) : Infinity;
+  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays };
 }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const m = calculateMetrics(state, quotes);
@@ -242,12 +244,55 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
   const underTarget = rb.deviation < 0;
   const stockDiff = m.totalAssets * (m.growthTargetPct / 100) - m.growth;
   const defensiveGap = Math.max(0, rb.defensiveTarget - rb.defensiveCurrent);
-  if (!rb.thresholdReached) return { status: '正常', tone: 'good', reason: '目前配置尚未達再平衡門檻。', suggestion: '維持目前配置。' };
-  if (rb.deviation >= 10) return { status: '槓桿風險提高', tone: 'bad', reason: `00631L 高於目標 ${pct(rb.deviation)}，已超過 10%。`, suggestion: '暫停加碼 00631L，優先累積現金或防守資產。' };
-  if (absDeviation >= 10) return { status: '偏離過大', tone: 'bad', reason: `00631L ${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`, suggestion: underTarget ? '依目前再平衡模式分批補足 00631L。' : '優先補強防守資產，降低配置偏離。' };
-  if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) return { status: '現金不足', tone: 'warn', reason: `00631L 低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`, suggestion: '先累積現金，再分批買入 00631L。' };
-  if (overTarget && defensiveGap > 0) return { status: '注意', tone: 'warn', reason: `00631L 高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`, suggestion: rb.mode === 'buy-only' ? '暫停加碼 00631L，優先累積現金或防守資產。' : '可依標準再平衡增加防守資產。' };
-  return { status: '注意', tone: 'warn', reason: `00631L 低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`, suggestion: '可依目前再平衡模式分批補足 00631L。' };
+  
+  let status = '正常';
+  let tone: 'good' | 'warn' | 'bad' = 'good';
+  let reason = '目前配置尚未達再平衡門檻。';
+  let suggestion = '維持目前配置。';
+
+  if (!rb.thresholdReached) {
+    status = '正常';
+    tone = 'good';
+    reason = '目前配置尚未達再平衡門檻。';
+    suggestion = '維持目前配置。';
+  } else if (rb.deviation >= 10) {
+    status = '槓桿風險提高';
+    tone = 'bad';
+    reason = `00631L 高於目標 ${pct(rb.deviation)}，已超過 10%。`;
+    suggestion = '暫停加碼 00631L，優先累積現金或防守資產。';
+  } else if (absDeviation >= 10) {
+    status = '偏離過大';
+    tone = 'bad';
+    reason = `00631L ${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`;
+    suggestion = underTarget ? '依目前再平衡模式分批補足 00631L。' : '優先補強防守資產，降低配置偏離。';
+  } else if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) {
+    status = '現金不足';
+    tone = 'warn';
+    reason = `00631L 低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`;
+    suggestion = '先累積現金，再分批買入 00631L。';
+  } else if (overTarget && defensiveGap > 0) {
+    status = '注意';
+    tone = 'warn';
+    reason = `00631L 高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
+    suggestion = rb.mode === 'buy-only' ? '暫停加碼 00631L，優先累積現金或防守資產。' : '可依標準再平衡增加防守資產。';
+  } else {
+    status = '注意';
+    tone = 'warn';
+    reason = `00631L 低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
+    suggestion = '可依目前再平衡模式分批補足 00631L。';
+  }
+
+  // 流動性風險覆蓋邏輯：可用現金可支應還款月數低於 3 個月且月付金 > 0
+  if (m.monthlyPayment > 0 && m.repaymentSafetyMonths < 3) {
+    if (tone !== 'bad') {
+      status = '現金不足';
+      tone = 'warn';
+      reason = `目前防守現金僅夠支應未來 ${m.repaymentSafetyMonths.toFixed(1)} 個月的信貸還款，還款準備金偏低，請注意流動性風險。`;
+      suggestion = '暫停任何投資性加碼，優先累積防守現金準備金。';
+    }
+  }
+
+  return { status, tone, reason, suggestion };
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
@@ -549,7 +594,16 @@ function App() {
         <div className="two">
           <Card title="現金管理">{cashWarning && <p className="warning-message">{cashWarning}</p>}<p className="note cash-policy-note">{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} /></Card>
           <Card title="借款管理">
-            <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /></div>
+            <div className="loan-summary">
+              <Stat label="總借款" value={money(m.debt)} />
+              <Stat label="每月還款" value={money(m.monthlyPayment)} />
+              <Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} />
+              <Stat 
+                label="還款安全存量" 
+                value={m.monthlyPayment > 0 ? `可支應未來 ${m.repaymentSafetyMonths.toFixed(1)} 個月還款 (約 ${m.repaymentSafetyDays} 天)` : '無限大'} 
+                tone={m.monthlyPayment > 0 ? (m.repaymentSafetyMonths > 6 ? 'good' : m.repaymentSafetyMonths < 3 ? 'warn' : '') : 'good'} 
+              />
+            </div>
             <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
           </Card>
         </div>
