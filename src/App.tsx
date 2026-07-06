@@ -606,9 +606,14 @@ function App() {
 
   const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
   const generateRebalanceSummaryText = () => {
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const timeStr = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const quoteTime = Object.values(quotes)[0]?.updatedAt;
+    const formatTime = (iso: string) => {
+      const qd = new Date(iso);
+      if (Number.isNaN(qd.getTime())) return '尚未更新';
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${qd.getFullYear()}/${pad(qd.getMonth() + 1)}/${pad(qd.getDate())} ${pad(qd.getHours())}:${pad(qd.getMinutes())}`;
+    };
+    const timeStr = hasUpdatedQuotes && quoteTime ? formatTime(quoteTime) : '尚未更新';
     
     const targetGrowth = growthTargetOf(state);
     const targetDefensive = 100 - targetGrowth;

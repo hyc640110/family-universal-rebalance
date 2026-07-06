@@ -119,6 +119,11 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 }
 
 @media (max-width: 768px) {
+  /* 💥 阻斷 iPhone 手機版輸入框自動放大 */
+  input, select {
+    font-size: 16px !important;
+  }
+
   /* 1. 頂層容器與卡片：強制限制所有卡片與外層容器最大寬度為 390px，且置中對齊 */
   .card, .two, .hero, .tabs, .grid.stats, .health-status {
     max-width: 390px !important;
@@ -217,7 +222,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 6px !important;
     color: #fff !important;
-    font-size: 0.95rem !important;
+    font-size: 16px !important;
   }
 
   /* 解除日期欄位的高度限制，防範 iOS 行高截斷 */
@@ -311,7 +316,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     font-size: 1.2rem !important;
   }
 
-  input, select, button {
+  input, select {
+    font-size: 16px !important;
+  }
+  button {
     font-size: 0.9rem !important;
   }
 }
