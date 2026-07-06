@@ -25,6 +25,7 @@ const MAX_GROWTH_TARGET = 90;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const MAX_REBALANCE_THRESHOLD = 20;
+const DEFAULT_MONTHLY_CONTRIBUTION = 10000;
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -62,7 +63,7 @@ const defaultState: AppState = {
   autoSyncSec: 60,
   rebalanceMode: DEFAULT_REBALANCE_MODE,
   rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
-  monthlyContribution: 10000
+  monthlyContribution: DEFAULT_MONTHLY_CONTRIBUTION
 };
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
@@ -122,7 +123,7 @@ function normalizeState(raw: unknown): AppState {
   const has00631L = holdings.some(h => h.symbol === '00631L');
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
-  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), monthlyContribution: Math.max(0, num(Number(s.monthlyContribution ?? 10000))) };
+  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), monthlyContribution: Math.max(0, num(Number(s.monthlyContribution ?? DEFAULT_MONTHLY_CONTRIBUTION))) };
 }
 function readState(): AppState {
   try {
@@ -470,8 +471,15 @@ function App() {
               <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
             </label>
             <label>本月可投入金額
-              <DraftInput type="number" min="0" value={state.monthlyContribution} onCommit={value => setState(s => ({ ...s, monthlyContribution: parsePositive(value, 10000) }))} />
-              <small>預設為 10,000 元，將儲存設定。</small>
+              <DraftInput 
+                type="number" 
+                value={state.monthlyContribution} 
+                onCommit={value => {
+                  const val = parsePositive(value, DEFAULT_MONTHLY_CONTRIBUTION);
+                  setState(s => ({ ...s, monthlyContribution: val }));
+                }} 
+              />
+              <small>限制大於 0 的正整數，預設為 10,000 元，將儲存設定。</small>
             </label>
           </div>
           <div className="rebalance-alert">
