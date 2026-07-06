@@ -34,6 +34,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .pie-figure{position:relative;width:min(320px,80vw);min-height:300px;margin:auto;display:grid;place-items:center}
 .pie-3d{--growth:70%;position:relative;width:min(300px,72vw);aspect-ratio:1;border-radius:50%;background:conic-gradient(from -35deg,#ef4444 0 var(--growth),#22c55e var(--growth) 100%);box-shadow:0 28px 0 #071827,0 38px 24px #0009,inset -26px -34px 38px #0005,inset 18px 18px 24px #ffffff20;transform:perspective(700px) rotateX(54deg);border:1px solid #ffffff1a}
 .pie-3d:before{content:"";position:absolute;inset:7%;border-radius:50%;background:radial-gradient(circle at 35% 25%,#ffffff42,transparent 28%),radial-gradient(circle at 65% 70%,#0006,transparent 42%);pointer-events:none}
+.pie-slice-label{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);z-index:3;color:#fff;font-size:19px;font-weight:950;letter-spacing:.01em;text-shadow:0 2px 3px #000,0 0 8px #000,0 0 1px #000;background:#02081780;border:1px solid #ffffff45;border-radius:999px;padding:5px 9px;pointer-events:none;white-space:nowrap}
 .allocation-detail{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 .allocation-detail div{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:14px}
 .allocation-detail p{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:10px 0;color:#dbeafe;font-size:15px}
@@ -72,6 +73,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .remaining{align-self:center;color:#eaf3ff;font-weight:800}
 .loan-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
 .note{color:#9fb3c8;line-height:1.7}
+.warning-message{background:#3a1d12;border:1px solid #f97316;color:#fed7aa;border-radius:10px;padding:10px 12px;font-weight:800;line-height:1.5}
 @media(max-width:900px){
   main{padding:14px}
   .hero{flex-direction:column;align-items:flex-start}
@@ -87,6 +89,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   h1{font-size:30px}
   .pie-figure{width:min(300px,92vw);min-height:300px;margin-top:4px}
   .pie-3d{width:min(250px,76vw)}
+  .pie-slice-label{font-size:15px;padding:4px 7px}
   .allocation-detail p{font-size:14px}
   .allocation-detail strong{font-size:20px}
 }

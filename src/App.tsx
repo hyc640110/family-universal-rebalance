@@ -51,6 +51,7 @@ const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
 const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
 const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0];
 function hasRemovedSymbol(value: unknown) { return String(value ?? '').includes(removedSymbol()); }
+function removedSymbolMessage() { return `${removedSymbol()} 已從正式策略移除，請勿在現金項目中使用 ${removedSymbol()} 作為名稱或備註。`; }
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
   const fromState = state?.holdings?.map(h => h.symbol) || [];
   return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState].filter(s => s && !REMOVED_SYMBOLS.has(s))));
@@ -115,6 +116,10 @@ function readState(): AppState {
   } catch { return defaultState; }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
+function validateBeforeUpload(s: AppState) {
+  if (s.holdings.some(h => REMOVED_SYMBOLS.has(h.symbol))) throw new Error(`${removedSymbol()} 已從正式策略移除，不能出現在持股資料。`);
+  if (s.cash.some(c => [c.name, c.note].some(hasRemovedSymbol))) throw new Error(removedSymbolMessage());
+}
 function waitForDraftCommit() {
   return new Promise<void>(resolve => setTimeout(resolve, 0)).then(flushFrame).then(flushFrame);
 }
@@ -174,9 +179,13 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const defensivePct = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
   const cashPct = m.totalAssets ? m.cash / m.totalAssets * 100 : 0;
   const holdingPct = (symbol: SymbolCode) => pct(m.totalAssets ? (m.defensiveHoldings.find(r => r.symbol === symbol)?.marketValue || 0) / m.totalAssets * 100 : 0);
+  const growthLabelStyle = { '--x': '41%', '--y': '31%' } as CSSProperties;
+  const defensiveLabelStyle = { '--x': '61%', '--y': '63%' } as CSSProperties;
   return <div className="pie-layout">
     <div className="pie-figure">
       <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties} />
+      {growthPct >= 8 && <span className="pie-slice-label growth-slice-label" style={growthLabelStyle}>{pct(growthPct)}</span>}
+      {defensivePct >= 8 && <span className="pie-slice-label defensive-slice-label" style={defensiveLabelStyle}>{pct(defensivePct)}</span>}
     </div>
     <div className="allocation-detail">
       <div><h3>成長資產</h3><p><span><i className="legend growth-dot" />00631L</span><strong>{pct(growthPct)}</strong></p><p><span>目標</span><strong>{pct(m.growthTargetPct)}</strong></p></div>
@@ -196,14 +205,19 @@ function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { 
   useEffect(() => { onCommitRef.current = onCommit; });
   useEffect(() => { const next = String(value ?? ''); valueRef.current = next; if (!editing) { draftRef.current = next; setDraft(next); } }, [value, editing]);
   useEffect(() => () => { if (editingRef.current || draftRef.current !== valueRef.current) onCommitRef.current(draftRef.current); }, []);
-  const commit = () => { editingRef.current = false; setEditing(false); onCommitRef.current(draftRef.current); };
-  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={() => { editingRef.current = true; setEditing(true); }} onChange={e => { editingRef.current = true; setEditing(true); draftRef.current = e.target.value; setDraft(e.target.value); }} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />;
+  const updateDraft = (next: string) => { editingRef.current = true; setEditing(true); draftRef.current = next; setDraft(next); };
+  const commit = (next = draftRef.current) => { editingRef.current = false; setEditing(false); draftRef.current = next; setDraft(next); onCommitRef.current(next); };
+  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={() => { editingRef.current = true; setEditing(true); }} onInput={e => updateDraft(e.currentTarget.value)} onChange={e => updateDraft(e.currentTarget.value)} onBlur={e => commit(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') commit(e.currentTarget.value); }} />;
 }
 const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fallback : Math.max(0, num(Number(value)));
 
-function CashList({ items, setItems }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void }) {
+function CashList({ items, setItems, onInvalid }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void; onInvalid: (message: string) => void }) {
   const update = (id: string, patch: Partial<CashItem>) => setItems(items => items.map(item => item.id === id ? { ...item, ...patch } : item));
-  return <div className="list cash-list"><div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => update(item.id, { note: value })} /></label><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
+  const commitText = (id: string, key: 'name' | 'note', value: string) => {
+    if (hasRemovedSymbol(value)) { onInvalid(removedSymbolMessage()); return; }
+    update(id, { [key]: value });
+  };
+  return <div className="list cash-list"><div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>{items.map(item => <div className="list-row" key={item.id}><label><span>名稱</span><DraftInput value={item.name} onCommit={value => commitText(item.id, 'name', value)} /></label><label><span>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label><span>備註</span><DraftInput value={item.note} onCommit={value => commitText(item.id, 'note', value)} /></label><button className="danger small" onClick={() => setItems(items => items.filter(x => x.id !== item.id))}>刪除</button></div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
 }
 function LoanList({ items, setItems }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void }) {
   const update = (id: string, patch: Partial<LoanItem>) => setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
@@ -221,6 +235,7 @@ function App() {
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [sync, setSync] = useState('尚未同步');
+  const [cashWarning, setCashWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(now());
   const isApplyingRemoteRef = useRef(false);
@@ -234,6 +249,7 @@ function App() {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
     await waitForDraftCommit();
+    validateBeforeUpload(stateRef.current);
     const normalized = normalizeState(stateRef.current);
     stateRef.current = normalized;
     writeState(normalized);
@@ -308,7 +324,7 @@ function App() {
           </div>
         </Card>
         <div className="two">
-          <Card title="現金管理"><CashList items={state.cash} setItems={items => setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items }))} /></Card>
+          <Card title="現金管理">{cashWarning && <p className="warning-message">{cashWarning}</p>}<p className="note cash-policy-note">{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} /></Card>
           <Card title="借款管理">
             <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /></div>
             <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
