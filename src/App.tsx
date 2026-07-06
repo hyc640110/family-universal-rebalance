@@ -236,6 +236,19 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
   return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`), mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
 }
+function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
+  const absDeviation = Math.abs(rb.deviation);
+  const overTarget = rb.deviation > 0;
+  const underTarget = rb.deviation < 0;
+  const stockDiff = m.totalAssets * (m.growthTargetPct / 100) - m.growth;
+  const defensiveGap = Math.max(0, rb.defensiveTarget - rb.defensiveCurrent);
+  if (!rb.thresholdReached) return { status: '正常', tone: 'good', reason: '目前配置尚未達再平衡門檻。', suggestion: '維持目前配置。' };
+  if (rb.deviation >= 10) return { status: '槓桿風險提高', tone: 'bad', reason: `00631L 高於目標 ${pct(rb.deviation)}，已超過 10%。`, suggestion: '暫停加碼 00631L，優先累積現金或防守資產。' };
+  if (absDeviation >= 10) return { status: '偏離過大', tone: 'bad', reason: `00631L ${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`, suggestion: underTarget ? '依目前再平衡模式分批補足 00631L。' : '優先補強防守資產，降低配置偏離。' };
+  if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) return { status: '現金不足', tone: 'warn', reason: `00631L 低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`, suggestion: '先累積現金，再分批買入 00631L。' };
+  if (overTarget && defensiveGap > 0) return { status: '注意', tone: 'warn', reason: `00631L 高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`, suggestion: rb.mode === 'buy-only' ? '暫停加碼 00631L，優先累積現金或防守資產。' : '可依標準再平衡增加防守資產。' };
+  return { status: '注意', tone: 'warn', reason: `00631L 低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`, suggestion: '可依目前再平衡模式分批補足 00631L。' };
+}
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
 function pieLabelStyle(startDeg: number, endDeg: number): CSSProperties {
@@ -336,6 +349,7 @@ function App() {
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
+  const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const [mode, hint, modeTone] = advice(m);
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
@@ -399,6 +413,15 @@ function App() {
         </Card>
         <Card title="資產配置"><Pie3D m={m} /></Card>
         <Card title="再平衡摘要">
+          <div className={`health-status ${health.tone}`}>
+            <div className="health-light" />
+            <div>
+              <small>投資健康狀態</small>
+              <h3>目前狀態：{health.status}</h3>
+              <p>原因：{health.reason}</p>
+              <p>建議：{health.suggestion}</p>
+            </div>
+          </div>
           <div className="rebalance-settings">
             <label>再平衡模式
               <select value={state.rebalanceMode} onChange={e => setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(e.target.value) }))}>
