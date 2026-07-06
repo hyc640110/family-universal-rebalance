@@ -8,9 +8,9 @@ type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; monthlyContribution: number };
 type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; monthlyContribution: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
 
 const APP_VERSION = 'Version 1.0.0';
 const STORAGE_KEY = '00631l-pro-v100-state';
@@ -25,6 +25,7 @@ const MAX_GROWTH_TARGET = 90;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const MAX_REBALANCE_THRESHOLD = 20;
+const DEFAULT_MONTHLY_CONTRIBUTION = 10000;
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -61,7 +62,8 @@ const defaultState: AppState = {
   autoSync: false,
   autoSyncSec: 60,
   rebalanceMode: DEFAULT_REBALANCE_MODE,
-  rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD
+  rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
+  monthlyContribution: DEFAULT_MONTHLY_CONTRIBUTION
 };
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
@@ -121,7 +123,7 @@ function normalizeState(raw: unknown): AppState {
   const has00631L = holdings.some(h => h.symbol === '00631L');
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
-  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
+  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), monthlyContribution: Math.max(0, num(Number(s.monthlyContribution ?? DEFAULT_MONTHLY_CONTRIBUTION))) };
 }
 function readState(): AppState {
   try {
@@ -135,7 +137,7 @@ function readState(): AppState {
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, monthlyContribution: normalized.monthlyContribution, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -148,7 +150,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   const r = raw as Partial<BackupPayload> & { cash?: CashItem[]; firebase?: FirebaseConfig };
   if (!Array.isArray(r.holdings) || !Array.isArray(r.loans) || !Array.isArray(r.cashAccounts || r.cash)) throw new Error('備份檔缺少 holdings / cashAccounts / loans。');
   const targetRatio = clampTarget(Number(r.targetRatio ?? r.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET));
-  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase: current.firebase });
+  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), monthlyContribution: Number(r.monthlyContribution ?? current.monthlyContribution), firebase: current.firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta {
@@ -322,6 +324,20 @@ function App() {
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
+  const [remoteMeta, setRemoteMeta] = useState<{ holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem('00631l-pro-v100-remote-meta');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+  const updateRemoteMeta = (value: { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null) => {
+    setRemoteMeta(value);
+    if (value) {
+      localStorage.setItem('00631l-pro-v100-remote-meta', JSON.stringify(value));
+    } else {
+      localStorage.removeItem('00631l-pro-v100-remote-meta');
+    }
+  };
   const [cashWarning, setCashWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(now());
@@ -344,12 +360,122 @@ function App() {
     setLastSavedAt(now());
     return normalized;
   };
-  const uploadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '本機儲存中…' })); const normalized = await flushDrafts(); updateSyncMeta(current => ({ ...current, status: 'Firebase 同步中…' })); await uploadFirebase(normalized.firebase, normalized); const syncedAt = now(); setLastSavedAt(syncedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastUploadAt: syncedAt, status: `Firebase 同步完成｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆` })); };
-  const downloadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '下載中…' })); const remote = await downloadFirebase(state.firebase); const downloadedAt = now(); isApplyingRemoteRef.current = true; setState(remote); writeState(remote); setLastSavedAt(downloadedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastDownloadAt: downloadedAt, status: `已下載雲端資料｜雲端資料已套用到本機｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆` })); };
+  const uploadCloud = async () => { 
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' })); 
+    const normalized = await flushDrafts(); 
+    await uploadFirebase(normalized.firebase, normalized); 
+    const syncedAt = now(); 
+    setLastSavedAt(syncedAt); 
+    updateSyncMeta(current => ({ 
+      ...current, 
+      dirty: false, 
+      lastUploadAt: syncedAt, 
+      status: `🎉 上傳成功！已同步本地持股至雲端｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆` 
+    })); 
+    updateRemoteMeta({
+      holdingsCount: normalized.holdings.length,
+      cashCount: normalized.cash.length,
+      loansCount: normalized.loans.length,
+      updatedAt: syncedAt
+    });
+  };
+  const downloadCloud = async () => { 
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
+    const remote = await downloadFirebase(state.firebase); 
+    const downloadedAt = now(); 
+    isApplyingRemoteRef.current = true; 
+    setState(remote); 
+    writeState(remote); 
+    setLastSavedAt(downloadedAt); 
+    updateSyncMeta(current => ({ 
+      ...current, 
+      dirty: false, 
+      lastDownloadAt: downloadedAt, 
+      status: `🎉 下載成功！已套用雲端資料至本機｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆` 
+    })); 
+    updateRemoteMeta({
+      holdingsCount: remote.holdings.length,
+      cashCount: remote.cash.length,
+      loansCount: remote.loans.length,
+      updatedAt: downloadedAt
+    });
+  };
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+  const monthlySuggest = useMemo(() => {
+    const contrib = state.monthlyContribution;
+    const stock = m.rows.find(r => r.symbol === '00631L') || { marketValue: 0, quote: { price: 0 } };
+    const price = Math.max(0.01, stock.quote.price);
+    const deviation = rb.deviation;
+    const thresholdReached = rb.thresholdReached;
+
+    let stockAmount = 0;
+    let defensiveAmount = 0;
+    let reason = '';
+
+    if (!thresholdReached) {
+      stockAmount = contrib * (m.growthTargetPct / 100);
+      defensiveAmount = contrib * (m.defensiveTargetPct / 100);
+      reason = '目前配置尚未達再平衡門檻，建議依目標比例分配本月投入金額。';
+    } else if (deviation > 0) {
+      stockAmount = 0;
+      defensiveAmount = contrib;
+      reason = '00631L 目前高於目標，建議暫停加碼，優先增加現金或防守資產。';
+    } else {
+      const stockTarget = m.totalAssets * (m.growthTargetPct / 100);
+      const stockDiff = stockTarget - stock.marketValue;
+      if (stockDiff >= contrib) {
+        stockAmount = contrib;
+        defensiveAmount = 0;
+      } else {
+        stockAmount = Math.max(0, stockDiff);
+        defensiveAmount = contrib - stockAmount;
+      }
+      reason = '00631L 目前低於目標，可優先加碼至接近目標配置。';
+    }
+
+    const shares = Math.floor(stockAmount / price);
+    return { contrib, stockAmount, defensiveAmount, reason, shares };
+  }, [state.monthlyContribution, m, rb]);
+  const syncDiagnostics = useMemo(() => {
+    if (!state.firebase.databaseURL.trim()) {
+      return { status: '未啟用雲端同步', tone: 'hold', reason: '尚未設定 Firebase Database URL。', suggestion: '請至上方輸入 Firebase URL 與金鑰以啟用同步功能。' };
+    }
+    if (!remoteMeta) {
+      return { status: '未進行資料比對', tone: 'hold', reason: '本機尚未與雲端資料進行上傳或下載。', suggestion: '請點選「下載雲端」或「上傳雲端」進行第一次比對。' };
+    }
+    const isCountMatch = 
+      state.holdings.length === remoteMeta.holdingsCount &&
+      state.cash.length === remoteMeta.cashCount &&
+      state.loans.length === remoteMeta.loansCount;
+
+    if (syncMeta.dirty) {
+      return { 
+        status: '本機有未上傳的修改', 
+        tone: 'warn', 
+        reason: '本機資料有變動，與上次同步的狀態不一致。', 
+        suggestion: '如果您希望將此變更同步到雲端，請點選「上傳雲端」。' 
+      };
+    }
+
+    if (!isCountMatch) {
+      return { 
+        status: '資料與雲端不一致', 
+        tone: 'warn', 
+        reason: '本機與雲端的持股、現金或借款筆數不相同。', 
+        suggestion: '請確認需要以本機為準（點選「上傳雲端」）或以雲端為準（點選「下載雲端」）。' 
+      };
+    }
+
+    return { 
+      status: '兩端資料完全一致', 
+      tone: 'good', 
+      reason: '本機資料與最近一次同步的雲端數據相符。', 
+      suggestion: '目前已是最新狀態，無需任何操作。' 
+    };
+  }, [state.firebase.databaseURL, state.holdings.length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
   const [mode, hint, modeTone] = advice(m);
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
@@ -433,6 +559,17 @@ function App() {
               <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
               <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
             </label>
+            <label>本月可投入金額
+              <DraftInput 
+                type="number" 
+                value={state.monthlyContribution} 
+                onCommit={value => {
+                  const val = parsePositive(value, DEFAULT_MONTHLY_CONTRIBUTION);
+                  setState(s => ({ ...s, monthlyContribution: val }));
+                }} 
+              />
+              <small>限制大於 0 的正整數，預設為 10,000 元，將儲存設定。</small>
+            </label>
           </div>
           <div className="rebalance-alert">
             <p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p>
@@ -454,6 +591,38 @@ function App() {
             </div>
           </div>
         </Card>
+        <Card title="本月加碼建議">
+          <div className="rebalance-alert">
+            <p>
+              <span>本月可投入金額</span>
+              <strong>{money(monthlySuggest.contrib)}</strong>
+            </p>
+            <p>
+              <span>建議投入 00631L</span>
+              <strong className={monthlySuggest.stockAmount > 0 ? 'up' : 'hold'}>
+                {money(monthlySuggest.stockAmount)}
+                {monthlySuggest.stockAmount > 0 && <small style={{ display: 'block', fontSize: '12px', fontWeight: 'normal', color: '#8da3bd', marginTop: '4px' }}>約 {monthlySuggest.shares.toLocaleString('zh-TW')} 股</small>}
+              </strong>
+            </p>
+            <p>
+              <span>建議保留防守資產</span>
+              <strong className="hold">{money(monthlySuggest.defensiveAmount)}</strong>
+            </p>
+            <p>
+              <span>分配狀態</span>
+              <strong className={monthlySuggest.stockAmount > 0 ? 'up' : 'hold'}>
+                {monthlySuggest.stockAmount > 0 ? '優先加碼' : '暫停加碼'}
+              </strong>
+            </p>
+          </div>
+          <div style={{ background: '#09182a', border: '1px solid #1d3d66', borderRadius: '12px', padding: '14px', marginTop: '12px' }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '14px', color: '#93c5fd' }}>建議原因</h3>
+            <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6', color: '#eaf3ff' }}>{monthlySuggest.reason}</p>
+          </div>
+          <p className="note" style={{ marginTop: '12px', fontSize: '12px' }}>
+            防守資產建議金額預設保留為現金；00865B 保留實際持股，不參與主動加碼建議。
+          </p>
+        </Card>
         <div className="two">
           <Card title="現金管理">{cashWarning && <p className="warning-message">{cashWarning}</p>}<p className="note cash-policy-note">{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} /></Card>
           <Card title="借款管理">
@@ -462,7 +631,78 @@ function App() {
           </Card>
         </div>
       </>}
-      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: 'Firebase 同步失敗，請稍後再試：' + e.message })))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '下載失敗：' + e.message })))}>下載雲端</button><button onClick={exportBackup}>匯出備份 JSON</button><label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => importBackup(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p><b>同步狀態：</b>{syncMeta.status}</p><p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p></Card>}
+      {tab === 'sync' && <>
+        <Card title="Firebase / 備份 / 還原">
+          <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
+          <div className="params">
+            <DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} />
+            <DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} />
+            <input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly />
+            <DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} />
+            <label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label>
+            <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
+          </div>
+          <div className="actions">
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button onClick={exportBackup}>匯出備份 JSON</button>
+            <label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => importBackup(e.target.files?.[0])} /></label>
+            <button onClick={() => setState(defaultState)}>重設</button>
+          </div>
+          <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
+          <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
+          <p>
+            <b>同步狀態：</b>
+            <span className={syncMeta.status.startsWith('❌') ? 'bad' : syncMeta.status.startsWith('🎉') ? 'good' : ''}>
+              {syncMeta.status}
+            </span>
+          </p>
+          <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p>
+        </Card>
+        <Card title="雲端同步狀態診斷與比對">
+          <div className={`health-status ${syncDiagnostics.tone}`}>
+            <div className="health-light" />
+            <div>
+              <small>雲端同步診斷結果</small>
+              <h3>狀態：{syncDiagnostics.status}</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px' }}><b>原因：</b>{syncDiagnostics.reason}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '13px' }}><b>建議：</b>{syncDiagnostics.suggestion}</p>
+            </div>
+          </div>
+          <div className="table rebalance-table" style={{ marginTop: '16px' }}>
+            <div className="row head">
+              <span>資料項目</span>
+              <span>本機數據 (Local)</span>
+              <span>雲端數據 (Remote)</span>
+              <span>狀態比對</span>
+            </div>
+            <div className="row">
+              <span>持股項目</span>
+              <span>{state.holdings.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.holdingsCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.holdings.length === remoteMeta.holdingsCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>現金帳戶</span>
+              <span>{state.cash.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.cashCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.cash.length === remoteMeta.cashCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>借款項目</span>
+              <span>{state.loans.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.loansCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.loans.length === remoteMeta.loansCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>最後更新時間</span>
+              <span>{tw(lastSavedAt)}</span>
+              <span>{remoteMeta && remoteMeta.updatedAt ? tw(remoteMeta.updatedAt) : '—'}</span>
+              <span>時戳對照</span>
+            </div>
+          </div>
+        </Card>
+      </>}
     </main>
   );
 }
