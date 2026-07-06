@@ -172,7 +172,49 @@ function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURICompone
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
-function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null { const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string }; if (typeof d?.price !== 'number') return null; const prev = Number(d.previousClose ?? d.prev ?? d.price); return { ...backupQuote(symbol), symbol, price: d.price, previousClose: prev, change: d.price - prev, changePct: prev ? (d.price - prev) / prev * 100 : 0, volume: Number(d.volume ?? 0), source: d.source || 'Yahoo Finance via Cloudflare Worker', updatedAt: now() }; }
+function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null {
+  const d = data as { price?: number; previousClose?: number; prev?: number; volume?: number; source?: string; raw?: any };
+  if (typeof d?.price !== 'number') return null;
+  
+  let prev = Number(d.previousClose ?? d.prev ?? d.price);
+  
+  // 💥 前端防呆防線：從 Raw Response 的歷史 K 線收盤價中，尋找真實昨收
+  try {
+    const result = d.raw?.chart?.result?.[0];
+    const quotes = result?.indicators?.quote?.[0];
+    const closeList = quotes?.close;
+    if (Array.isArray(closeList)) {
+      const validCloses = closeList.filter((p): p is number => typeof p === 'number' && p > 0);
+      if (validCloses.length > 0) {
+        const lastClose = validCloses[validCloses.length - 1];
+        if (validCloses.length >= 2) {
+          const isLastCloseCurrentPrice = Math.abs(lastClose - d.price) < 0.001;
+          if (isLastCloseCurrentPrice) {
+            prev = validCloses[validCloses.length - 2];
+          } else {
+            prev = lastClose;
+          }
+        } else {
+          prev = lastClose;
+        }
+      }
+    }
+  } catch (e) {
+    // 發生異常則使用默認昨收
+  }
+
+  return {
+    ...backupQuote(symbol),
+    symbol,
+    price: d.price,
+    previousClose: prev,
+    change: d.price - prev,
+    changePct: prev ? (d.price - prev) / prev * 100 : 0,
+    volume: Number(d.volume ?? 0),
+    source: d.source || 'Yahoo Finance via Cloudflare Worker',
+    updatedAt: now()
+  };
+}
 async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
 function derivedHoldings(state: AppState): Holding[] {
