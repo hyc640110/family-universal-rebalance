@@ -613,13 +613,7 @@ function App() {
   const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
   const generateRebalanceSummaryText = () => {
     const quoteTime = Object.values(quotes)[0]?.updatedAt;
-    const formatTime = (iso: string) => {
-      const qd = new Date(iso);
-      if (Number.isNaN(qd.getTime())) return '尚未更新';
-      const pad = (n: number) => String(n).padStart(2, '0');
-      return `${qd.getFullYear()}/${pad(qd.getMonth() + 1)}/${pad(qd.getDate())} ${pad(qd.getHours())}:${pad(qd.getMinutes())}`;
-    };
-    const timeStr = hasUpdatedQuotes && quoteTime ? formatTime(quoteTime) : '尚未更新';
+    const timeStr = hasUpdatedQuotes && quoteTime ? twShortTime(quoteTime) : '尚未更新';
     
     const targetGrowth = growthTargetOf(state);
     const targetDefensive = 100 - targetGrowth;
@@ -631,34 +625,27 @@ function App() {
     const threshold = rb.threshold;
     const status = rb.thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置';
     
-    let text = `00631L Pro 再平衡摘要\n`;
-    text += `時間：${timeStr}\n\n`;
+    let text = `📊 00631L Pro 再平衡摘要\n`;
+    text += `⏰ 時間：${timeStr}\n\n`;
     
-    text += `策略目標：\n`;
-    text += `00631L：${targetGrowth.toFixed(2)}%\n`;
-    text += `防守資產：${targetDefensive.toFixed(2)}%\n\n`;
+    text += `【策略目標】 00631L：${targetGrowth.toFixed(2)}%  │  防守資產：${targetDefensive.toFixed(2)}%\n`;
+    text += `【目前配置】 00631L：${currentGrowth.toFixed(2)}%  │  防守資產：${currentDefensive.toFixed(2)}%\n\n`;
     
-    text += `目前配置：\n`;
-    text += `00631L：${currentGrowth.toFixed(2)}%\n`;
-    text += `防守資產：${currentDefensive.toFixed(2)}%\n\n`;
+    text += `【偏離狀態】 目前偏離：${deviation > 0 ? '+' : ''}${deviation.toFixed(2)}% (門檻 ${threshold.toFixed(2)}%)\n`;
+    text += `【目前狀態】 ${status}\n\n`;
     
-    text += `偏離狀態：\n`;
-    text += `目前偏離目標：${deviation > 0 ? '+' : ''}${deviation.toFixed(2)}%\n`;
-    text += `再平衡門檻：${threshold.toFixed(2)}%\n`;
-    text += `狀態：${status}\n\n`;
-    
-    text += `再平衡建議：\n`;
-    text += `00631L：${rb.stockAction}\n`;
-    text += `防守資產：${rb.defensiveAction}\n`;
+    text += `【再平衡建議】\n`;
+    text += `  - 00631L  ：${rb.stockAction}\n`;
+    text += `  - 防守資產：${rb.defensiveAction}\n`;
     
     rb.defensiveDetails.forEach(item => {
       if (item.symbol !== '現金' && item.symbol !== '防守資產') {
-        text += `${item.symbol}：${item.action}\n`;
+        const paddedSymbol = item.symbol.padEnd(8, ' ');
+        text += `  - ${paddedSymbol}：${item.action}\n`;
       }
     });
     
-    text += `\n注意事項：\n`;
-    text += `Firebase 同步仍需手動上傳 / 下載。`;
+    text += `\n⚠️ 提示：Firebase 雲端備份仍需透過「同步設定」手動操作。`;
     return text;
   };
 
@@ -744,8 +731,10 @@ function App() {
       </header>
       <nav className="tabs">
         <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>儀表板</button>
-        <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>同步設定</button>
-        <span className="sync-bar"><b>股價更新：</b>{hasUpdatedQuotes ? `${twShortTime(Object.values(quotes)[0]?.updatedAt)} 更新` : '尚未更新'}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
+        <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>
+          同步設定{syncMeta.dirty && <span style={{ color: '#ffd166', marginLeft: '4px' }} title="有本機修改尚未上傳">⚠️</span>}
+        </button>
+        <span className="sync-bar"><b>股價更新：</b>{hasUpdatedQuotes ? `${twShortTime(Object.values(quotes)[0]?.updatedAt)} 更新` : '尚未更新'}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}{syncMeta.dirty && <span style={{ color: '#ffd166', fontSize: '11px', fontWeight: 'bold', marginLeft: '6px' }}>(有本機修改尚未上傳)</span>}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
       </nav>
       {tab === 'dashboard' && <>
         <section className="grid stats">
