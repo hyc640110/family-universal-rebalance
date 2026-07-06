@@ -202,7 +202,24 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const averageRemainingMonths = remainingMonths.length ? remainingMonths.reduce((a, v) => a + v, 0) / remainingMonths.length : undefined;
   const repaymentSafetyMonths = monthlyPayment > 0 ? num(cash / monthlyPayment) : Infinity;
   const repaymentSafetyDays = monthlyPayment > 0 ? Math.round(repaymentSafetyMonths * 30) : Infinity;
-  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays };
+
+  // 計算每筆信貸累積利息成本（已繳期數已在 loanPeriodSummary 中限制在 0 至總期數之間，已還本金保守估計為 0）
+  const totalLoanInterestPaid = state.loans.reduce((sum, l) => {
+    const paid = loanPeriodSummary(l).paid ?? 0;
+    const payment = num(l.monthlyPayment);
+    const totalPaid = payment * paid;
+    const principalPaid = 0;
+    const interestCost = Math.max(0, totalPaid - principalPaid);
+    return sum + interestCost;
+  }, 0);
+
+  // 整體股票組合總損益 (包含 00631L 與 00865B，排除現金)
+  const portfolioTotalPnl = rows.reduce((a, r) => a + r.pnl, 0);
+
+  // 扣利息後真實淨利
+  const trueNetPnlAfterInterest = portfolioTotalPnl - totalLoanInterestPaid;
+
+  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
 }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const m = calculateMetrics(state, quotes);
@@ -603,7 +620,12 @@ function App() {
                 value={m.monthlyPayment > 0 ? `可支應未來 ${m.repaymentSafetyMonths.toFixed(1)} 個月還款 (約 ${m.repaymentSafetyDays} 天)` : '無限大'} 
                 tone={m.monthlyPayment > 0 ? (m.repaymentSafetyMonths > 6 ? 'good' : m.repaymentSafetyMonths < 3 ? 'warn' : '') : 'good'} 
               />
+              <Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" />
+              <Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} />
             </div>
+            <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px' }}>
+              * 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。反映真實的槓桿超額回報。
+            </p>
             <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
           </Card>
         </div>
