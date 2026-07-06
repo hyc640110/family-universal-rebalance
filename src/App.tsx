@@ -439,6 +439,43 @@ function App() {
     const shares = Math.floor(stockAmount / price);
     return { contrib, stockAmount, defensiveAmount, reason, shares };
   }, [state.monthlyContribution, m, rb]);
+  const syncDiagnostics = useMemo(() => {
+    if (!state.firebase.databaseURL.trim()) {
+      return { status: '未啟用雲端同步', tone: 'hold', reason: '尚未設定 Firebase Database URL。', suggestion: '請至上方輸入 Firebase URL 與金鑰以啟用同步功能。' };
+    }
+    if (!remoteMeta) {
+      return { status: '未進行資料比對', tone: 'hold', reason: '本機尚未與雲端資料進行上傳或下載。', suggestion: '請點選「下載雲端」或「上傳雲端」進行第一次比對。' };
+    }
+    const isCountMatch = 
+      state.holdings.length === remoteMeta.holdingsCount &&
+      state.cash.length === remoteMeta.cashCount &&
+      state.loans.length === remoteMeta.loansCount;
+
+    if (syncMeta.dirty) {
+      return { 
+        status: '本機有未上傳的修改', 
+        tone: 'warn', 
+        reason: '本機資料有變動，與上次同步的狀態不一致。', 
+        suggestion: '如果您希望將此變更同步到雲端，請點選「上傳雲端」。' 
+      };
+    }
+
+    if (!isCountMatch) {
+      return { 
+        status: '資料與雲端不一致', 
+        tone: 'warn', 
+        reason: '本機與雲端的持股、現金或借款筆數不相同。', 
+        suggestion: '請確認需要以本機為準（點選「上傳雲端」）或以雲端為準（點選「下載雲端」）。' 
+      };
+    }
+
+    return { 
+      status: '兩端資料完全一致', 
+      tone: 'good', 
+      reason: '本機資料與最近一次同步的雲端數據相符。', 
+      suggestion: '目前已是最新狀態，無需任何操作。' 
+    };
+  }, [state.firebase.databaseURL, state.holdings.length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
   const [mode, hint, modeTone] = advice(m);
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
@@ -594,7 +631,78 @@ function App() {
           </Card>
         </div>
       </>}
-      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: 'Firebase 同步失敗，請稍後再試：' + e.message })))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '下載失敗：' + e.message })))}>下載雲端</button><button onClick={exportBackup}>匯出備份 JSON</button><label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => importBackup(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p><b>同步狀態：</b>{syncMeta.status}</p><p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p></Card>}
+      {tab === 'sync' && <>
+        <Card title="Firebase / 備份 / 還原">
+          <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
+          <div className="params">
+            <DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} />
+            <DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} />
+            <input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly />
+            <DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} />
+            <label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label>
+            <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
+          </div>
+          <div className="actions">
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button onClick={exportBackup}>匯出備份 JSON</button>
+            <label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => importBackup(e.target.files?.[0])} /></label>
+            <button onClick={() => setState(defaultState)}>重設</button>
+          </div>
+          <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
+          <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
+          <p>
+            <b>同步狀態：</b>
+            <span className={syncMeta.status.startsWith('❌') ? 'bad' : syncMeta.status.startsWith('🎉') ? 'good' : ''}>
+              {syncMeta.status}
+            </span>
+          </p>
+          <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p>
+        </Card>
+        <Card title="雲端同步狀態診斷與比對">
+          <div className={`health-status ${syncDiagnostics.tone}`}>
+            <div className="health-light" />
+            <div>
+              <small>雲端同步診斷結果</small>
+              <h3>狀態：{syncDiagnostics.status}</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px' }}><b>原因：</b>{syncDiagnostics.reason}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '13px' }}><b>建議：</b>{syncDiagnostics.suggestion}</p>
+            </div>
+          </div>
+          <div className="table rebalance-table" style={{ marginTop: '16px' }}>
+            <div className="row head">
+              <span>資料項目</span>
+              <span>本機數據 (Local)</span>
+              <span>雲端數據 (Remote)</span>
+              <span>狀態比對</span>
+            </div>
+            <div className="row">
+              <span>持股項目</span>
+              <span>{state.holdings.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.holdingsCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.holdings.length === remoteMeta.holdingsCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>現金帳戶</span>
+              <span>{state.cash.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.cashCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.cash.length === remoteMeta.cashCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>借款項目</span>
+              <span>{state.loans.length} 筆</span>
+              <span>{remoteMeta ? `${remoteMeta.loansCount} 筆` : '—'}</span>
+              <span>{remoteMeta ? (state.loans.length === remoteMeta.loansCount ? <b className="good">✅ 一致</b> : <b className="bad">⚠️ 不一致</b>) : '—'}</span>
+            </div>
+            <div className="row">
+              <span>最後更新時間</span>
+              <span>{tw(lastSavedAt)}</span>
+              <span>{remoteMeta && remoteMeta.updatedAt ? tw(remoteMeta.updatedAt) : '—'}</span>
+              <span>時戳對照</span>
+            </div>
+          </div>
+        </Card>
+      </>}
     </main>
   );
 }
