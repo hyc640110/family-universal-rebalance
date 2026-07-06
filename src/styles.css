@@ -114,8 +114,58 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 }
 
 @media (max-width: 768px) {
-  /* 1. 統一所有輸入列表 (.list) 的手機版排版 */
-  .list .list-row {
+  /* 1. 頂層容器與卡片：強制限制所有卡片與外層容器最大寬度為 390px，且置中對齊 */
+  .card, .two, .hero, .tabs, .grid.stats, .health-status {
+    max-width: 390px !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard, .grid, .main-layout, .container, main {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0.5rem !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. 縮小內距，爭取更多橫向空間 */
+  .card, .panel, .section {
+    padding: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 3. 💥 終極換行大絕招：強迫所有文字在寬度不足時自動換行，絕對不准往右撐開寬度！ */
+  p, span, div, label, .note, .warning-message, .cash-policy-note, .alert {
+    white-space: normal !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+  }
+
+  /* 4. 頂部總資產大型數字與狀態燈號瘦身 */
+  h1, h2, .total-assets, .asset-value {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+    word-break: break-all !important;
+  }
+  
+  .status-badge, .badge, .health-status h3 {
+    font-size: 1.1rem !important;
+    white-space: nowrap !important;
+  }
+  
+  .health-status {
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  /* 5. 統一所有輸入列表 (.list) 的手機版排版，消除桌機版 min-width */
+  .list .list-row, .list-row, .loan-list .list-row {
     display: flex !important;
     flex-direction: column !important;
     background: rgba(255, 255, 255, 0.03);
@@ -123,35 +173,39 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     border-radius: 8px;
     margin-bottom: 1rem;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: 0 !important; /* 💥 解除桌機版 min-width (720px / 1060px) 限制 */
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  /* 隱藏手機版凌亂的表頭，改由欄位自帶標籤引導 */
+  /* 隱藏手機版表頭 */
   .list-head {
     display: none !important;
   }
 
-  /* 2. 讓每個輸入欄位的標籤與輸入框大小完全一致、整齊排好 */
+  /* 每個輸入欄位的標籤與輸入框對齊 */
   .list .list-row label {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     width: 100% !important;
     margin-bottom: 0.75rem !important;
+    box-sizing: border-box !important;
   }
 
   .list .list-row label span {
     font-size: 0.9rem;
     color: #888;
-    min-width: 90px; /* 固定左側文字標籤寬度，確保整齊對齊 */
+    min-width: 90px; /* 固定左側標籤寬度 */
     text-align: left;
   }
 
-  /* 統一輸入框的大小與高度 */
+  /* 統一輸入框與選擇框 */
   .list .list-row input,
   .list .list-row select {
     flex: 1 !important;
     width: 100% !important;
-    height: 38px !important; /* 固定高度 */
+    height: 38px !important;
     box-sizing: border-box !important;
     padding: 0 0.75rem !important;
     background: rgba(0, 0, 0, 0.2) !important;
@@ -161,22 +215,45 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     font-size: 0.95rem !important;
   }
 
-  /* 讓剩餘期數與刪除按鈕也整齊寬度一致 */
+  /* 剩餘期數與刪除按鈕 */
   .list .list-row .remaining {
     display: flex !important;
     justify-content: space-between;
     padding: 0.25rem 0;
     font-size: 0.9rem;
     color: #aaa;
+    width: 100% !important;
   }
 
   .list .list-row button.danger {
-    width: 100% !important; /* 按鈕撐滿卡片寬度，更好點擊 */
+    width: 100% !important;
     margin-top: 0.5rem;
     height: 36px;
   }
 
-  /* 3. 再平衡表格 (rebalance-table) 水平對齊優化 */
+  /* 6. 看板數據改為 2 欄排列 */
+  .grid.stats, .loan-summary {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .stat {
+    padding: 0.5rem !important;
+  }
+  
+  .stat small {
+    font-size: 0.8rem !important;
+    white-space: nowrap;
+  }
+  
+  .stat b {
+    font-size: 1.1rem !important;
+    word-break: break-all !important;
+  }
+
+  /* 7. 再平衡表格橫向滾動與欄位對齊 */
   .rebalance-table {
     display: block !important;
     width: 100% !important;
@@ -186,10 +263,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 
   .rebalance-table .row {
     display: grid !important;
-    grid-template-columns: 80px 75px 75px 75px 65px 180px !important; /* 精確固定每一欄寬度，大小完全一致 */
+    grid-template-columns: 80px 75px 75px 75px 65px 180px !important;
     align-items: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    min-width: 550px; /* 確保水平總寬度足夠 */
+    min-width: 550px;
   }
 
   .rebalance-table .row span,
@@ -200,151 +277,20 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     overflow: hidden;
     text-overflow: ellipsis;
   }
-}
 
-@media (max-width: 768px) {
-  /* 1. 頂層容器調整：確保所有大區塊在手機上都是單欄上下排列，不橫向擠壓 */
-  .dashboard, .grid, .main-layout, .container, main {
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 0.5rem !important;
-    gap: 1rem !important;
-  }
-
-  /* 2. 卡片區塊優化：縮小手機版的內邊距，爭取更多橫向空間 */
-  .card, .panel, .section {
-    padding: 0.75rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* 3. 頂部總資產大型數字與狀態燈號瘦身：防止數字與文字重疊 */
-  .total-assets, .asset-value {
-    font-size: 1.8rem !important; /* 縮小超大數字 */
-    line-height: 1.2 !important;
-  }
-  
-  .status-badge, .badge, .health-status h3 {
-    font-size: 1.1rem !important;
-    white-space: nowrap !important; /* 防止狀態文字斷行 */
-  }
-  
-  .health-status {
-    gap: 10px !important;
-    padding: 12px !important;
-  }
-
-  /* 4. 現金、持股、借款管理等 Stat 數據看板：在手機上強制改成 2 欄或 1 欄排列 */
-  .stats-grid, .summary-box, .loan-summary, .grid.stats {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important; /* 強制變成兩欄 */
-    gap: 0.5rem !important;
-  }
-  
-  .stat-item, .metric-box, .stat {
-    padding: 0.5rem !important;
-  }
-  
-  .stat-label, .stat small {
-    font-size: 0.8rem !important; /* 縮小標籤字體 */
-    white-space: nowrap;
-  }
-  
-  .stat-value, .stat b {
-    font-size: 1.1rem !important; /* 縮小數字字體 */
-    word-break: break-all !important;
-  }
-
-  /* 5. 處理特定的 API 來源文字（如 Yahoo Finance via Cloudflare Worker） */
-  .api-source, .update-time, .text-muted, .sync-bar, .note, small {
-    font-size: 0.7rem !important;
-    line-height: 1.3 !important;
-    word-break: break-all !important; /* 容許網址或英文字中途斷行 */
-  }
-
-  /* 6. 持股配置與比例文字擠壓修復 */
-  .holding-item, .ratio-row, .allocation-detail p {
+  /* 8. 輔助小字與持股比例優化 */
+  .sync-bar, .allocation-detail p {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.45 !important;
   }
-  
+
   .allocation-detail strong {
     font-size: 1.2rem !important;
   }
 
-  /* 7. 確保所有輸入表格內部的按鈕與標籤不會歪斜 */
   input, select, button {
     font-size: 0.9rem !important;
-  }
-}
-/* ==========================================
-   終極手機版 (Mobile) 畫面重構防護網 
-   ========================================== */
-@media (max-width: 768px) {
-  /* 1. 頂層容器與主要區塊：強迫所有卡片在手機上一律上下單欄排列，不橫向擠壓 */
-  .dashboard, .grid, .main-layout, .container, .stats-grid, .summary-box, .loan-summary {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0.75rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* 2. 所有卡片元件：縮小手機版內邊距，撐滿全寬 */
-  .card, .panel, .section, .stat-item, .metric-box, .list-row {
-    padding: 0.75rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* 3. 頂部總資產大型數字與狀態燈號：大幅瘦身防止字體過大重疊 */
-  h1, h2, .total-assets, .asset-value {
-    font-size: 1.5rem !important;
-    line-height: 1.2 !important;
-    word-break: break-all !important;
-  }
-  
-  .status-badge, .badge, .stat-label {
-    font-size: 0.8rem !important;
-    white-space: nowrap !important;
-  }
-
-  /* 4. 借款與現金管理的輸入框：大小高度高度整齊劃一 */
-  input, select, .stat-value {
-    font-size: 0.95rem !important;
-    height: 38px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    margin: 4px 0 !important;
-  }
-
-  /* 5. 一律縮小其他輔助文字，確保橫向塞得下 */
-span, b, p, div, label {
-  font-size: 0.85rem !important;
-}
-
-/* 6. 核心修正：強迫下方的現金管理與借款管理卡片最大寬度限制，並強迫內部所有文字換行 */
-  .cash-management, .loan-management, #cash-section, #loan-section, [class*="management"] {
-    max-width: 390px !important; /* 強制限制寬度與上方一致 */
-    width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: auto !important; /* 靠左對齊 */
-    box-sizing: border-box !important;
-    
-    /* 💥 終極大絕招：強迫這行長提示文字在寬度不夠時自動斷行，絕對不准往右撐開寬度！ */
-    white-space: normal !important;
-    word-break: break-all !important;
-    overflow-wrap: break-word !important;
-  }
-
-  /* 7. 確保內部所有子元件、段落、提示文字也一律強制換行 */
-  .list, .list-row, .list-row label, p, div, span, .note, .alert {
-    max-width: 100% !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    white-space: normal !important;
-    word-break: break-all !important;
   }
 }

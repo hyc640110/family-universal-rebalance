@@ -609,7 +609,17 @@ function App() {
         </Card>
 
         <div className="two">
-          <Card title="現金管理">{cashWarning && <p className="warning-message">{cashWarning}</p>}<p className="note cash-policy-note">{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} /></Card>
+          <Card title="現金管理">
+            {cashWarning && (
+              <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                {cashWarning}
+              </p>
+            )}
+            <p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+              {removedSymbolMessage()}
+            </p>
+            <CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} />
+          </Card>
           <Card title="借款管理">
             <div className="loan-summary">
               <Stat label="總借款" value={money(m.debt)} />
@@ -623,7 +633,7 @@ function App() {
               <Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" />
               <Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} />
             </div>
-            <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px' }}>
+            <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
               * 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。反映真實的槓桿超額回報。
             </p>
             <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} />
