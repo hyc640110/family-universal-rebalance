@@ -8,9 +8,11 @@ type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number };
+type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
 
 const APP_VERSION = 'Version 1.0.0';
 const STORAGE_KEY = '00631l-pro-v100-state';
+const SYNC_META_KEY = '00631l-pro-v100-sync-meta';
 const OLD_STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
 const DEFAULT_WORKER_URL = 'https://fancy-dew-4128.hyc640110.workers.dev';
 const REMOVED_SYMBOLS = new Set<SymbolCode>([['00', '50'].join('')]);
@@ -116,6 +118,17 @@ function readState(): AppState {
   } catch { return defaultState; }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
+function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
+function readSyncMeta(state: AppState): SyncMeta {
+  try {
+    const meta = JSON.parse(localStorage.getItem(SYNC_META_KEY) || '{}') as Partial<SyncMeta>;
+    return { dirty: Boolean(meta.dirty), lastUploadAt: meta.lastUploadAt, lastDownloadAt: meta.lastDownloadAt, status: meta.status || defaultSyncStatus(state) };
+  } catch { return { dirty: false, status: defaultSyncStatus(state) }; }
+}
+function writeSyncMeta(meta: SyncMeta) { localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta)); }
+function localDirtyStatus(state: AppState) {
+  return state.firebase.databaseURL ? '本機有新資料，請按「上傳雲端」同步到其他裝置' : '本機有新資料，尚未設定 Firebase，同步僅保存在本機';
+}
 function validateBeforeUpload(s: AppState) {
   if (s.holdings.some(h => REMOVED_SYMBOLS.has(h.symbol))) throw new Error(`${removedSymbol()} 已從正式策略移除，不能出現在持股資料。`);
   if (s.cash.some(c => [c.name, c.note].some(hasRemovedSymbol))) throw new Error(removedSymbolMessage());
@@ -244,7 +257,7 @@ function App() {
     setStateValue(next);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
-  const [sync, setSync] = useState('尚未同步');
+  const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
   const [cashWarning, setCashWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(now());
@@ -252,7 +265,8 @@ function App() {
   const [targetDraft, setTargetDraft] = useState(String(growthTargetOf(state)));
   const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
-  useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { setLastSavedAt(now()); if (!state.autoSync) setSync('本機已儲存'); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
+  const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater; writeSyncMeta(next); return next; });
+  useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   useEffect(() => setTargetDraft(String(growthTargetOf(state))), [state.holdings]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
   const flushDrafts = async () => {
@@ -266,8 +280,8 @@ function App() {
     setLastSavedAt(now());
     return normalized;
   };
-  const uploadCloud = async () => { setSync('本機儲存中…'); const normalized = await flushDrafts(); setSync('Firebase 同步中…'); await uploadFirebase(normalized.firebase, normalized); const syncedAt = now(); setLastSavedAt(syncedAt); setSync(`本機已儲存｜Firebase 同步完成 ${tw(syncedAt)}｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆`); };
-  const downloadCloud = async () => { setSync('下載中…'); const remote = await downloadFirebase(state.firebase); isApplyingRemoteRef.current = true; setState(remote); setSync(`Firebase 同步完成 ${tw(now())}｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆`); };
+  const uploadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '本機儲存中…' })); const normalized = await flushDrafts(); updateSyncMeta(current => ({ ...current, status: 'Firebase 同步中…' })); await uploadFirebase(normalized.firebase, normalized); const syncedAt = now(); setLastSavedAt(syncedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastUploadAt: syncedAt, status: `Firebase 同步完成｜${syncPath(normalized.firebase)}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆` })); };
+  const downloadCloud = async () => { updateSyncMeta(current => ({ ...current, status: '下載中…' })); const remote = await downloadFirebase(state.firebase); const downloadedAt = now(); isApplyingRemoteRef.current = true; setState(remote); writeState(remote); setLastSavedAt(downloadedAt); updateSyncMeta(current => ({ ...current, dirty: false, lastDownloadAt: downloadedAt, status: `已下載雲端資料｜雲端資料已套用到本機｜${syncPath(remote.firebase)}｜持股 ${remote.holdings.length} 筆` })); };
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
@@ -285,7 +299,7 @@ function App() {
       <nav className="tabs">
         <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>儀表板</button>
         <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>同步設定</button>
-        <span>股價更新 {tw(Object.values(quotes)[0].updatedAt)}｜已載入 {tw(loadedAt)}｜儲存 {tw(lastSavedAt)}｜{sync}</span>
+        <span className="sync-bar"><b>股價更新：</b>{tw(Object.values(quotes)[0].updatedAt)}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
       </nav>
       {tab === 'dashboard' && <>
         <section className="grid stats">
@@ -341,7 +355,7 @@ function App() {
           </Card>
         </div>
       </>}
-      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => setSync('Firebase 同步失敗：' + e.message))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => setSync('下載失敗：' + e.message))}>下載雲端</button><button onClick={backup}>備份 JSON</button><label className="file">還原 JSON<input type="file" accept="application/json" onChange={e => restore(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p>{sync}</p><p className="note">Firebase 不會自動下載覆蓋本機資料；只有手動按「下載雲端」才會套用雲端資料。</p></Card>}
+      {tab === 'sync' && <Card title="Firebase / 備份 / 還原"><p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p><div className="params"><DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /><DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /><input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly /><DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /><label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label><label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label></div><div className="actions"><button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: 'Firebase 同步失敗，請稍後再試：' + e.message })))}>上傳雲端</button><button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '下載失敗：' + e.message })))}>下載雲端</button><button onClick={backup}>備份 JSON</button><label className="file">還原 JSON<input type="file" accept="application/json" onChange={e => restore(e.target.files?.[0])} /></label><button onClick={() => setState(defaultState)}>重設</button></div><p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p><p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p><p><b>同步狀態：</b>{syncMeta.status}</p><p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料。</p></Card>}
     </main>
   );
 }
