@@ -57,7 +57,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .health-status.warn .health-light{background:#ffd166;color:#ffd166}
 .health-status.bad{border-color:#991b1b}
 .health-status.bad .health-light{background:#ff5b5b;color:#ff5b5b}
-.rebalance-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.rebalance-settings{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
 .rebalance-settings label{margin:0}
 .rebalance-alert{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .rebalance-alert p{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:12px;margin:0}
