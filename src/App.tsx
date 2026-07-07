@@ -27,6 +27,13 @@ const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
   { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
 ];
+const SYMBOL_NAMES: Record<SymbolCode, string> = {
+  '00662': '富邦NASDAQ',
+  '00670L': '富邦NASDAQ正2',
+  '00631L': '元大台灣50正2',
+  '00865B': '國泰US短期公債',
+  '0050': '元大台灣50'
+};
 const DEFENSIVE_SYMBOLS = new Set<SymbolCode>(['00865B']);
 const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
@@ -112,11 +119,11 @@ const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESH
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
-  '00662': { symbol: '00662', name: '富邦NASDAQ', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
-  '00670L': { symbol: '00670L', name: '元大台灣50正2', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
-  '00631L': { symbol: '00631L', name: '元大台灣50正2', price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
-  '00865B': { symbol: '00865B', name: '國泰US短期公債', price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() },
-  '0050': { symbol: '0050', name: '元大台灣50', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() }
+  '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
+  '00670L': { symbol: '00670L', name: SYMBOL_NAMES['00670L'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
+  '00631L': { symbol: '00631L', name: SYMBOL_NAMES['00631L'], price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
+  '00865B': { symbol: '00865B', name: SYMBOL_NAMES['00865B'], price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() },
+  '0050': { symbol: '0050', name: SYMBOL_NAMES['0050'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() }
 };
 
 const defaultState: AppState = {
@@ -144,7 +151,7 @@ function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   const base = defaultQuotes[symbol];
   const price = num(holding?.avgCost || base?.price || 0);
-  return { ...(base || { symbol, name: symbol, volume: 0 }), symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
+  return { ...(base || { symbol, name: SYMBOL_NAMES[symbol] || symbol, volume: 0 }), symbol, name: SYMBOL_NAMES[symbol] || base?.name || symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
 }
 function sanitizeHolding(h: Holding): Holding | null {
   const symbol = normalizeSymbol(h?.symbol);
@@ -885,10 +892,10 @@ function App() {
           </div>
           <div className="table rebalance-table">
             <div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div>
-            <div className="row"><span>{rb.stockRow.symbol}</span><span>{pct(rb.stockRow.currentWeight)}</span><span>{rb.stockRow.targetText}</span><span>{rb.stockRow.deviationText}</span><span>{rb.stockRow.thresholdText}</span><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
+            <div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
             <div className="rebalance-group">
-              <div className="row group-main"><span>{rb.defensiveRow.symbol}</span><span>{pct(rb.defensiveRow.currentWeight)}</span><span>{rb.defensiveRow.targetText}</span><span>{rb.defensiveRow.deviationText}</span><span>{rb.defensiveRow.thresholdText}</span><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
-              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span>{r.symbol}</span><span>{pct(r.currentWeight)}</span><span>{r.targetText}</span><span>{r.deviationText}</span><span>{r.thresholdText}</span><b className="hold">{r.action}</b></div>)}
+              <div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
+              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}
             </div>
           </div>
         </Card>
