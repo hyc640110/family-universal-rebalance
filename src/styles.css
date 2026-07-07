@@ -80,6 +80,8 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .health-status.bad .health-light{background:#ff5b5b;color:#ff5b5b}
 .rebalance-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .rebalance-settings label{margin:0}
+.mode-description{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:12px;margin:0 0 12px;color:#dbeafe;line-height:1.65}
+.mode-description strong{color:#93c5fd}
 .rebalance-alert{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .rebalance-alert p{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:12px;margin:0}
 .rebalance-alert span{display:block;color:#8da3bd;font-size:12px;margin-bottom:6px}
@@ -90,10 +92,12 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .rebalance-summary b{display:block;color:#eaf3ff;line-height:1.5}
 .order-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
 .order-section{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:14px;min-width:0}
+.order-section.order-muted{border-color:#34445c;background:#0a1524}
 .order-section h3{margin:0 0 12px;color:#eaf3ff}
 .order-list{display:flex;flex-direction:column;gap:10px}
 .order-item{display:grid;grid-template-columns:38px 1fr;gap:12px;background:#0b1728;border:1px solid #214466;border-radius:12px;padding:12px;min-width:0}
 .order-rank{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#2563eb;color:#fff;font-weight:900}
+.order-rank.muted{background:#475569}
 .order-body{min-width:0}
 .order-body h4{margin:0 0 10px;font-size:16px;color:#fff;overflow-wrap:anywhere}
 .order-body h4 span{color:#9fb3c8;font-weight:700;margin-left:6px}
