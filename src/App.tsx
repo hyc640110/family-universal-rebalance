@@ -19,11 +19,18 @@ const STORAGE_KEY = 'family-universal-rebalance-v100-state';
 const SYNC_META_KEY = 'family-universal-rebalance-v100-sync-meta';
 const REMOTE_META_KEY = 'family-universal-rebalance-v100-remote-meta';
 const DEFAULT_WORKER_URL = 'https://00631l-pro-price-proxy.hyc640110.workers.dev';
-const REMOVED_SYMBOLS = new Set<SymbolCode>([['00', '50'].join('')]);
-const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
-const DEFAULT_GROWTH_TARGET = 70;
-const MIN_GROWTH_TARGET = 30;
-const MAX_GROWTH_TARGET = 90;
+const REMOVED_SYMBOLS = new Set<SymbolCode>();
+const DEFAULT_HOLDINGS: Holding[] = [
+  { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
+  { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38 },
+  { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20 },
+  { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
+  { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
+];
+const DEFAULT_SYMBOLS: SymbolCode[] = DEFAULT_HOLDINGS.map(h => h.symbol);
+const DEFAULT_GROWTH_TARGET = 1;
+const MIN_GROWTH_TARGET = 0;
+const MAX_GROWTH_TARGET = 100;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const MAX_REBALANCE_THRESHOLD = 20;
@@ -48,7 +55,7 @@ const backupStamp = () => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 };
-const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, num(value) || DEFAULT_GROWTH_TARGET));
+const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, Number.isFinite(value) ? value : DEFAULT_GROWTH_TARGET));
 const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
@@ -75,12 +82,15 @@ const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESH
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
+  '00662': { symbol: '00662', name: '富邦NASDAQ', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
+  '00670L': { symbol: '00670L', name: '元大台灣50正2', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
   '00631L': { symbol: '00631L', name: '元大台灣50正2', price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
-  '00865B': { symbol: '00865B', name: '國泰US短期公債', price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() }
+  '00865B': { symbol: '00865B', name: '國泰US短期公債', price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() },
+  '0050': { symbol: '0050', name: '元大台灣50', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() }
 };
 
 const defaultState: AppState = {
-  holdings: [{ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET }],
+  holdings: DEFAULT_HOLDINGS,
   cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
@@ -94,9 +104,9 @@ const defaultState: AppState = {
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
 const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
-const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0];
-function hasRemovedSymbol(value: unknown) { return String(value ?? '').includes(removedSymbol()); }
-function removedSymbolMessage() { return `${removedSymbol()} 已從正式策略移除，請勿在現金項目中使用 ${removedSymbol()} 作為名稱或備註。`; }
+const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0] || '';
+function hasRemovedSymbol(value: unknown) { const symbol = removedSymbol(); return Boolean(symbol) && String(value ?? '').includes(symbol); }
+function removedSymbolMessage() { const symbol = removedSymbol(); return symbol ? `${symbol} 已從正式策略移除，請勿在現金項目中使用 ${symbol} 作為名稱或備註。` : '目前沒有停用的策略代號。'; }
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
   const fromState = state?.holdings?.map(h => h.symbol) || [];
   return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState].filter(s => s && !REMOVED_SYMBOLS.has(s))));
@@ -110,8 +120,8 @@ function sanitizeHolding(h: Holding): Holding | null {
   if (!h?.symbol || REMOVED_SYMBOLS.has(h.symbol)) return null;
   const shares = Math.max(0, num(Number(h.shares)));
   const avgCost = Math.max(0, num(Number(h.avgCost)));
-  if (h.symbol === '00631L') return { symbol: h.symbol, shares, avgCost, targetWeight: clampTarget(Number(h.targetWeight ?? DEFAULT_GROWTH_TARGET)) };
-  return { symbol: h.symbol, shares, avgCost };
+  const targetWeight = h.targetWeight === undefined ? undefined : clampTarget(Number(h.targetWeight));
+  return { symbol: h.symbol, shares, avgCost, ...(targetWeight === undefined ? {} : { targetWeight }) };
 }
 function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
@@ -146,10 +156,11 @@ function normalizeState(raw: unknown): AppState {
   STALE_KEYS.forEach((key) => delete r[key]);
   const s = { ...defaultState, ...r } as Partial<AppState>;
   const holdings = (Array.isArray(s.holdings) ? s.holdings : defaultState.holdings).map(h => sanitizeHolding(h as Holding)).filter(Boolean) as Holding[];
-  const has00631L = holdings.some(h => h.symbol === '00631L');
+  const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && holdings[0].shares === 0 && holdings[0].avgCost === 0 && holdings[0].targetWeight === 70;
+  const normalizedHoldings = holdings.length === 0 || isOldCleanDefault ? defaultState.holdings : holdings;
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
-  return { holdings: has00631L ? holdings : [...defaultState.holdings, ...holdings], cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
+  return { holdings: normalizedHoldings, cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
 }
 function readState(): AppState {
   try {
@@ -296,7 +307,8 @@ async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote>
 
 function derivedHoldings(state: AppState): Holding[] {
   const map = Object.fromEntries(state.holdings.map(h => [h.symbol, h])) as Record<SymbolCode, Holding>;
-  return uniqueSymbols(state).map(s => map[s] || { symbol: s, shares: 0, avgCost: 0, ...(s === '00631L' ? { targetWeight: growthTargetOf(state) } : {}) });
+  const defaultMap = Object.fromEntries(DEFAULT_HOLDINGS.map(h => [h.symbol, h])) as Record<SymbolCode, Holding>;
+  return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0 });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; });
@@ -762,7 +774,7 @@ function App() {
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
               <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
               <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
-              {r.symbol === '00631L' ? <label>目標比例 %<DraftInput inputMode="decimal" value={targetDraft} onCommit={value => { const next = clampTarget(Number(value)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); }} /><small>限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%，防守資產自動為 {pct(m.defensiveTargetPct)}。</small></label> : <p className="note">列入防守資產，不參與主動再平衡買賣。</p>}
+              <label>目標比例 %<DraftInput inputMode="decimal" value={r.symbol === '00631L' ? targetDraft : r.targetWeight ?? ''} onCommit={value => { const next = clampTarget(Number(value)); if (r.symbol === '00631L') setTargetDraft(String(next)); updateHolding(r.symbol, 'targetWeight', next); }} /><small>{r.symbol === '00631L' ? `限制 ${MIN_GROWTH_TARGET}%～${MAX_GROWTH_TARGET}%，防守資產自動為 ${pct(m.defensiveTargetPct)}。` : '萬用資產配置目標。'}</small></label>
               <strong>市值：{money(r.marketValue)}</strong>
               <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
             </article>; })}

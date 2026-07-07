@@ -1,4 +1,4 @@
-const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-storage-isolation';
+const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-default-universal-assets';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
