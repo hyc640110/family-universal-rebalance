@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
+import { APP_BUILD_TIME, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -14,11 +15,6 @@ type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 
-const APP_VERSION = 'Universal Rebalance v1.1.0';
-const APP_NAME = '萬用資產再平衡儀表板';
-const APP_SUBTITLE = '家庭多資產配置管理';
-const STORAGE_KEY = 'family-universal-rebalance-v100-state';
-const DEFAULT_WORKER_URL = 'https://00631l-pro-price-proxy.hyc640110.workers.dev';
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
@@ -66,6 +62,41 @@ const backupStamp = () => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 };
+function downloadTextFile(filename: string, text: string, type = 'text/plain;charset=utf-8') {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function copyTextWithFallback(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall through to textarea copy for Safari or restricted clipboard contexts.
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '0';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.opacity = '0.01';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+  const ok = document.execCommand('copy');
+  textarea.remove();
+  if (!ok) throw new Error('copy command failed');
+}
 const safeNumber = (value: unknown) => {
   const n = Number(value) || 0;
   return Number.isFinite(n) ? n : 0;
@@ -132,7 +163,7 @@ const defaultState: AppState = {
   cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
-  firebase: { databaseURL: '', secretPath: 'family-universal-rebalance' },
+  firebase: { databaseURL: '', secretPath: FIREBASE_BASE_PATH },
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
   autoSyncSec: 60,
@@ -141,6 +172,8 @@ const defaultState: AppState = {
   syncMeta: defaultSyncMeta(),
   remoteMeta: null
 };
+type StartupIssue = { message: string; raw?: string };
+let startupIssue: StartupIssue | null = null;
 
 const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
 const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
@@ -217,23 +250,27 @@ function normalizeState(raw: unknown): AppState {
   STALE_KEYS.forEach((key) => delete r[key]);
   const s = { ...defaultState, ...r } as Partial<AppState>;
   const hasHoldingsData = Array.isArray(r.holdings);
-  const rawHoldings = (hasHoldingsData ? r.holdings : defaultState.holdings) as Holding[];
+  const rawHoldings = (hasHoldingsData ? r.holdings : []) as Holding[];
   const holdings = rawHoldings.map(h => sanitizeHolding(h)).filter(Boolean) as Holding[];
-  const normalizedHoldings = applyAutoDefensiveTarget(!hasHoldingsData ? defaultState.holdings : holdings);
-  const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
-  const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
+  const normalizedHoldings = applyAutoDefensiveTarget(hasHoldingsData ? holdings : []);
+  const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
+  const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
   return { ...normalizedCore, syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
 }
 function readState(): AppState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || '{}';
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState;
     const normalized = normalizeState(JSON.parse(raw));
     const json = JSON.stringify(normalized);
     if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
     return normalized;
-  } catch { return defaultState; }
+  } catch (error) {
+    try { startupIssue = { message: error instanceof Error ? error.message : 'localStorage JSON 解析失敗', raw: localStorage.getItem(STORAGE_KEY) || '' }; } catch { startupIssue = { message: 'localStorage JSON 解析失敗' }; }
+    return defaultState;
+  }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
@@ -265,7 +302,7 @@ function validateBeforeUpload(s: AppState) {
 function waitForDraftCommit() {
   return new Promise<void>(resolve => setTimeout(resolve, 0)).then(flushFrame).then(flushFrame);
 }
-function syncPath(config: FirebaseConfig) { return `family-universal-rebalance/${encodeURIComponent(config.secretPath || 'family-universal-rebalance')}`; }
+function syncPath(config: FirebaseConfig) { return `${FIREBASE_BASE_PATH}/${encodeURIComponent(config.secretPath || FIREBASE_BASE_PATH)}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
@@ -583,6 +620,9 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
 }
 
 function App() {
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
+    throw new Error('Error Boundary 測試錯誤');
+  }
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -621,6 +661,9 @@ function App() {
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
+  const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
+  const [debugInfoText, setDebugInfoText] = useState('');
+  const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
   const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater, stateRef.current); persistStatePatch({ syncMeta: next }); return next; });
   useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, source: '本機資料', lastLocalSaveAt: savedAt, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const currentHoldings = safeHoldings(currentState.holdings); const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentHoldings.find(h => normalizeSymbol(h.symbol) === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
@@ -691,6 +734,47 @@ function App() {
     const bondTarget = hasBond ? defensiveTargetOf(state) : undefined;
     return { growthTotal, hasBond, bondTarget, total: hasBond ? growthTotal + (bondTarget || 0) : growthTotal, status: growthTotal > 100 ? '成長資產超過 100%，請調低比例' : '正常' };
   }, [state]);
+  const latestQuoteTime = useMemo(() => {
+    const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
+    return times.length ? new Date(Math.max(...times)).toISOString() : '';
+  }, [quotes]);
+  const generateDebugInfo = () => [
+    'family-universal-rebalance debug info',
+    `Version: ${APP_VERSION}`,
+    `Build: ${APP_BUILD_TIME}`,
+    `URL: ${typeof location !== 'undefined' ? location.href : ''}`,
+    `UserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
+    `StorageKey: ${STORAGE_KEY}`,
+    `FirebaseBasePath: ${FIREBASE_BASE_PATH}`,
+    `SyncCode: ${state.firebase.secretPath || FIREBASE_BASE_PATH}`,
+    `FirebasePath: ${syncPath(state.firebase)}`,
+    `WorkerURL: ${DEFAULT_WORKER_URL}`,
+    `HoldingsCount: ${safeHoldings(state.holdings).length}`,
+    `CashAccountsCount: ${state.cash.length}`,
+    `GrowthTargetTotal: ${pct(targetCheck.growthTotal)}`,
+    `Auto00865BTarget: ${targetCheck.hasBond ? pct(targetCheck.bondTarget || 0) : '未持有 00865B'}`,
+    `Has00865B: ${targetCheck.hasBond}`,
+    `LastPriceUpdate: ${latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}`,
+    `LastLocalSave: ${syncMeta.lastLocalSaveAt ? tw(syncMeta.lastLocalSaveAt) : tw(lastSavedAt)}`,
+    `LastCloudUpload: ${syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '尚未執行'}`,
+    `LastCloudDownload: ${syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '尚未執行'}`,
+    `LastBackupExport: ${syncMeta.lastBackupExportAt ? tw(syncMeta.lastBackupExportAt) : '尚未執行'}`,
+    `LastBackupImport: ${syncMeta.lastBackupImportAt ? tw(syncMeta.lastBackupImportAt) : '尚未執行'}`,
+    `TotalAssets: ${money(m.totalAssets)}`,
+    `GrowthCurrentRatio: ${pct(rb.stockRow.currentWeight)}`,
+    `DefensiveCurrentRatio: ${pct(rb.defensiveRow.currentWeight)}`
+  ].join('\n');
+  const copyDebugInfo = async () => {
+    const text = generateDebugInfo();
+    setDebugInfoText(text);
+    try {
+      await copyTextWithFallback(text);
+      setDebugCopyStatus('已複製除錯資訊');
+      setTimeout(() => setDebugCopyStatus('複製除錯資訊'), 2500);
+    } catch {
+      setDebugCopyStatus('複製失敗，請手動截圖或回報');
+    }
+  };
 
   const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
   const generateRebalanceSummaryText = () => {
@@ -845,10 +929,20 @@ function App() {
     setLastSavedAt(resetAt);
     updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產，本機有新資料，尚未上傳雲端' }));
   };
+  const exportDamagedLocalData = () => {
+    if (!startupWarning?.raw) return;
+    downloadTextFile(`family-universal-rebalance-damaged-localStorage-${backupStamp()}.txt`, startupWarning.raw);
+  };
+  const clearDamagedLocalData = () => {
+    if (!window.confirm('這會清除本機 localStorage 資料，但不會刪除雲端資料。是否繼續？')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    setStartupWarning(null);
+    location.reload();
+  };
   return (
     <main>
       <header className="hero">
-        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p></div>
+        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build：{APP_BUILD_TIME}</p></div>
         <button onClick={refreshQuotes}>更新股價</button>
       </header>
       <nav className="tabs">
@@ -858,6 +952,15 @@ function App() {
         </button>
         <span className="sync-bar"><b>股價更新：</b>{hasUpdatedQuotes ? `${twShortTime(Object.values(quotes)[0]?.updatedAt)} 更新` : '尚未更新'}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}{syncMeta.dirty && <span style={{ color: '#ffd166', fontSize: '11px', fontWeight: 'bold', marginLeft: '6px' }}>(有本機修改尚未上傳)</span>}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
       </nav>
+      {startupWarning && <Card title="啟動資料安全檢查">
+        <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
+        <p className="note">{startupWarning.message}</p>
+        <div className="actions">
+          <button onClick={exportDamagedLocalData} disabled={!startupWarning.raw}>匯出原始損壞資料</button>
+          <button className="danger" onClick={clearDamagedLocalData}>重設本機資料</button>
+          <button className="small" onClick={() => setStartupWarning(null)}>隱藏提示</button>
+        </div>
+      </Card>}
       {tab === 'dashboard' && <>
         <section className="grid stats">
           <Stat label="總資產" value={money(m.totalAssets)} />
@@ -980,6 +1083,54 @@ function App() {
         </div>
       </>}
       {tab === 'sync' && <>
+        <Card title="版本與除錯">
+          <div className="status-grid">
+            <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
+            <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+            <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
+            <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
+          </div>
+          <div className="actions">
+            <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
+          </div>
+          {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
+            <summary>查看除錯資訊文字</summary>
+            <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
+          </details>}
+          <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
+        </Card>
+        <Card title="更新紀錄">
+          <details className="release-notes">
+            <summary>查看更新紀錄</summary>
+            <div className="release-group">
+              <h3>v1.1.1</h3>
+              <ul>
+                <li>新增版本號與 Build 資訊。</li>
+                <li>新增一鍵複製除錯資訊。</li>
+                <li>新增 Error Boundary，避免整頁空白。</li>
+              </ul>
+            </div>
+            <div className="release-group">
+              <h3>v1.1.0</h3>
+              <ul>
+                <li>新增 JSON 備份匯出 / 匯入。</li>
+                <li>新增同步狀態提示。</li>
+                <li>新增危險操作確認。</li>
+                <li>新增目標比例檢查。</li>
+              </ul>
+            </div>
+            <div className="release-group">
+              <h3>v1.0.x</h3>
+              <ul>
+                <li>修正成長 / 防守資產分類。</li>
+                <li>00865B 目標比例改為自動計算。</li>
+                <li>預設資產可刪除。</li>
+                <li>修正 00670L 名稱為富邦NASDAQ正2。</li>
+                <li>優化手機版防守資產表格。</li>
+              </ul>
+            </div>
+          </details>
+        </Card>
         <Card title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
