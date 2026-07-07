@@ -12,6 +12,7 @@ h3{margin:0 0 10px}
 .tabs .sync-bar{font-size:14px;line-height:1.8;max-width:620px}
 button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;padding:10px 16px;cursor:pointer;display:inline-block}
 button:hover,.file:hover{filter:brightness(1.12)}
+button:disabled{cursor:not-allowed;opacity:.45;filter:none}
 button.active{background:#3b82f6}
 button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .danger{background:#7f1d1d}
@@ -96,10 +97,12 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .rebalance-group .sub-row span:first-child{color:#93c5fd}
 .params{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.asset-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-bottom:12px}
 .file input{display:none}
 .list{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
 .list-row{display:grid;gap:8px;background:#09182a;border-radius:10px;padding:10px;align-items:end;min-width:720px}
 .cash-list .list-row{grid-template-columns:1.1fr 1fr 1.4fr auto}
+.asset-list .list-row{grid-template-columns:1fr .8fr .8fr minmax(220px,1.5fr) auto}
 .loan-list .list-row{grid-template-columns:1fr 1fr .8fr 1fr 1fr .8fr .8fr .8fr auto;min-width:1060px}
 .list-head{background:#0f2f4f;color:#93c5fd;font-weight:800;align-items:center}
 .list-row label{margin:0;font-size:12px}
@@ -115,6 +118,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   main{padding:14px}
   .hero{flex-direction:column;align-items:flex-start}
   .grid,.holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.allocation-detail,.pie-layout,.loan-summary{grid-template-columns:1fr}
+  .asset-add-row{grid-template-columns:1fr}
   .row,.list-row{grid-template-columns:1fr!important;min-width:0}
   .list-head{display:none}
   .list-row label span{display:block}

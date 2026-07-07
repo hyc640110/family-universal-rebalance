@@ -28,6 +28,7 @@ const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
 ];
 const DEFAULT_SYMBOLS: SymbolCode[] = DEFAULT_HOLDINGS.map(h => h.symbol);
+const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
 const MIN_GROWTH_TARGET = 0;
 const MAX_GROWTH_TARGET = 100;
@@ -80,6 +81,8 @@ const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
 const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
+const normalizeSymbol = (value: unknown) => String(value ?? '').trim().toUpperCase().replace(/\s+/g, '');
+const isTaiwanSymbol = (value: unknown) => TAIWAN_SYMBOL_RE.test(normalizeSymbol(value));
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00662': { symbol: '00662', name: '富邦NASDAQ', price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
@@ -106,9 +109,9 @@ const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
 const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
 const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0] || '';
 function hasRemovedSymbol(value: unknown) { const symbol = removedSymbol(); return Boolean(symbol) && String(value ?? '').includes(symbol); }
-function removedSymbolMessage() { const symbol = removedSymbol(); return symbol ? `${symbol} 已從正式策略移除，請勿在現金項目中使用 ${symbol} 作為名稱或備註。` : '目前沒有停用的策略代號。'; }
+function removedSymbolMessage() { const symbol = removedSymbol(); return symbol ? `${symbol} 已從正式策略移除，請勿在現金項目中使用 ${symbol} 作為名稱或備註。` : '可自行新增合法台股代號，系統會在更新股價時動態查詢。'; }
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
-  const fromState = state?.holdings?.map(h => h.symbol) || [];
+  const fromState = state?.holdings?.map(h => normalizeSymbol(h.symbol)).filter(isTaiwanSymbol) || [];
   return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState].filter(s => s && !REMOVED_SYMBOLS.has(s))));
 }
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
@@ -117,11 +120,12 @@ function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   return { ...(base || { symbol, name: symbol, volume: 0 }), symbol, price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
 }
 function sanitizeHolding(h: Holding): Holding | null {
-  if (!h?.symbol || REMOVED_SYMBOLS.has(h.symbol)) return null;
+  const symbol = normalizeSymbol(h?.symbol);
+  if (!symbol || !isTaiwanSymbol(symbol) || REMOVED_SYMBOLS.has(symbol)) return null;
   const shares = Math.max(0, num(Number(h.shares)));
   const avgCost = Math.max(0, num(Number(h.avgCost)));
   const targetWeight = h.targetWeight === undefined ? undefined : clampTarget(Number(h.targetWeight));
-  return { symbol: h.symbol, shares, avgCost, ...(targetWeight === undefined ? {} : { targetWeight }) };
+  return { symbol, shares, avgCost, ...(targetWeight === undefined ? {} : { targetWeight }) };
 }
 function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
@@ -303,7 +307,7 @@ function parseWorkerQuote(symbol: SymbolCode, data: unknown): Quote | null {
     updatedAt: now()
   };
 }
-async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`; try { const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(symbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(symbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
+async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(querySymbol)}`; try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
 function derivedHoldings(state: AppState): Holding[] {
   const map = Object.fromEntries(state.holdings.map(h => [h.symbol, h])) as Record<SymbolCode, Holding>;
@@ -564,10 +568,12 @@ function App() {
   const [targetDraft, setTargetDraft] = useState(String(growthTargetOf(state)));
   const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
+  const [newSymbolDraft, setNewSymbolDraft] = useState('');
+  const [assetMessage, setAssetMessage] = useState('');
   const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater; writeSyncMeta(next); return next; });
   useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   useEffect(() => setTargetDraft(String(growthTargetOf(state))), [state.holdings]);
-  const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => h.symbol === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
+  const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => normalizeSymbol(h.symbol) === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
@@ -718,7 +724,31 @@ function App() {
     };
   }, [state.firebase.databaseURL, state.holdings.length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
   const [mode, hint, modeTone] = advice(m);
-  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
+  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const normalizedSymbol = normalizeSymbol(symbol); const exists = s.holdings.some(h => normalizeSymbol(h.symbol) === normalizedSymbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const defaultHolding = DEFAULT_HOLDINGS.find(h => h.symbol === normalizedSymbol); const nextHolding: Holding = { symbol: normalizedSymbol, shares: 0, avgCost: 0, ...(defaultHolding?.targetWeight === undefined ? {} : { targetWeight: defaultHolding.targetWeight }), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
+  const addHoldingAsset = () => {
+    const symbol = normalizeSymbol(newSymbolDraft);
+    if (!isTaiwanSymbol(symbol)) {
+      setAssetMessage('請輸入合法台股代號，例如 00981A、00670L、00662、00670L.TW 或 00670L.TWO。');
+      return;
+    }
+    if (state.holdings.some(h => normalizeSymbol(h.symbol) === symbol)) {
+      setAssetMessage(`${symbol} 已在持股清單中。`);
+      return;
+    }
+    setState(s => ({ ...s, holdings: [...s.holdings, { symbol, shares: 0, avgCost: 0 }] }));
+    setNewSymbolDraft('');
+    setAssetMessage(`${symbol} 已新增；按「更新股價」會自動查詢 Worker。`);
+  };
+  const removeHoldingAsset = (symbol: SymbolCode) => {
+    const normalizedSymbol = normalizeSymbol(symbol);
+    if (DEFAULT_SYMBOLS.includes(normalizedSymbol)) {
+      setAssetMessage(`${normalizedSymbol} 是預設資產，請保留在清單中。`);
+      return;
+    }
+    setState(s => ({ ...s, holdings: s.holdings.filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol) }));
+    setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
+    setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
+  };
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
   const exportBackup = () => { const blob = new Blob([JSON.stringify(backupPayload(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `family-universal-rebalance-backup-${backupStamp()}.json`; a.click(); URL.revokeObjectURL(url); updateSyncMeta(current => ({ ...current, status: '備份已匯出' })); };
   const importBackup = async (f?: File) => {
@@ -869,6 +899,32 @@ function App() {
         </div>
       </>}
       {tab === 'sync' && <>
+        <Card title="持股資產管理">
+          <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
+          <div className="asset-add-row">
+            <input
+              placeholder="輸入台股代號，例如 00981A、00670L、00662"
+              value={newSymbolDraft}
+              onChange={e => setNewSymbolDraft(e.currentTarget.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }}
+            />
+            <button onClick={addHoldingAsset}>新增資產</button>
+          </div>
+          {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
+          <div className="list asset-list">
+            <div className="list-row list-head"><span>資產代號</span><span>總股數</span><span>成交均價</span><span>股價來源</span><span>操作</span></div>
+            {derivedHoldings(state).map(item => {
+              const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
+              return <div className="list-row" key={item.symbol}>
+                <span>{item.symbol}</span>
+                <span>{item.shares.toLocaleString('zh-TW')}</span>
+                <span>{item.avgCost.toFixed(2)}</span>
+                <span>{quote.source}</span>
+                <button className="danger small" disabled={DEFAULT_SYMBOLS.includes(item.symbol)} onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
+              </div>;
+            })}
+          </div>
+        </Card>
         <Card title="Firebase / 備份 / 還原">
           <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
           <div className="params">
