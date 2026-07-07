@@ -1,4 +1,4 @@
-const CACHE = '00631l-pro-v100-cache-disabled-20260706';
+const CACHE = '00631l-pro-v100-cache-disabled-20260707-dynamic-asset-quotes';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
