@@ -1,4 +1,4 @@
-const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-auto-00865b-target';
+const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-auto-00865b-target-crashfix';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
