@@ -68,8 +68,7 @@
       const targetWeight = clampTarget(getEffectiveTargetPercent(h, state.holdings));
       return { ...h, symbol: normalizeSymbol(h.symbol), targetWeight };
     }) : [];
-    const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && Number(holdings[0].shares) === 0 && Number(holdings[0].avgCost) === 0 && Number(holdings[0].targetWeight) === 70;
-    state.holdings = applyAutoDefensiveTarget(!hasHoldingsData || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings);
+    state.holdings = applyAutoDefensiveTarget(!hasHoldingsData ? DEFAULT_HOLDINGS : holdings);
     const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
