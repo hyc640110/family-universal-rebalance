@@ -1,11 +1,18 @@
 (() => {
-  const STORAGE_KEYS = ['00631l-pro-v100-state', '00631l-pro-v62-state', '00631l-pro-v61-state'];
+  const STORAGE_KEYS = ['family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set();
+  const DEFAULT_HOLDINGS = [
+    { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
+    { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38 },
+    { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20 },
+    { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
+    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
+  ];
   const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
   const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
-  const DEFAULT_GROWTH_TARGET = 70;
-  const MIN_GROWTH_TARGET = 30;
-  const MAX_GROWTH_TARGET = 90;
+  const DEFAULT_GROWTH_TARGET = 1;
+  const MIN_GROWTH_TARGET = 0;
+  const MAX_GROWTH_TARGET = 100;
 
   function clampTarget(value) {
     const numeric = Number(value);
@@ -17,12 +24,12 @@
     if (!value || typeof value !== 'object') return {};
     const state = { ...value };
     STALE_KEYS.forEach((key) => delete state[key]);
-    state.holdings = Array.isArray(state.holdings) ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol)).map((h) => {
-      if (h.symbol === '00631L') return { ...h, targetWeight: clampTarget(h.targetWeight ?? DEFAULT_GROWTH_TARGET) };
-      const { targetWeight: _targetWeight, ...actualHolding } = h;
-      return actualHolding;
+    const holdings = Array.isArray(state.holdings) ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol)).map((h) => {
+      const targetWeight = h.targetWeight === undefined ? undefined : clampTarget(h.targetWeight);
+      return { ...h, ...(targetWeight === undefined ? {} : { targetWeight }) };
     }) : [];
-    if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET });
+    const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && Number(holdings[0].shares) === 0 && Number(holdings[0].avgCost) === 0 && Number(holdings[0].targetWeight) === 70;
+    state.holdings = holdings.length === 0 || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings;
     const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
@@ -51,7 +58,7 @@
       navigator.serviceWorker.getRegistrations?.().then((registrations) => registrations.forEach((registration) => registration.unregister())).catch(() => {});
     }
     if ('caches' in window) {
-      caches.keys().then((keys) => keys.filter((key) => key.includes('00631l-pro')).forEach((key) => caches.delete(key))).catch(() => {});
+      caches.keys().then((keys) => keys.filter((key) => key.includes('00631l-pro') || key.includes('family-universal-rebalance')).forEach((key) => caches.delete(key))).catch(() => {});
     }
   });
 })();
