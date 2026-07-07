@@ -1,4 +1,4 @@
-const CACHE = '00631l-pro-v100-cache-disabled-20260707-price-worker-url';
+const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-storage-isolation';
 
 self.addEventListener('install', event => {
   self.skipWaiting();

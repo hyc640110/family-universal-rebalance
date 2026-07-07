@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEYS = ['00631l-pro-v100-state', '00631l-pro-v62-state', '00631l-pro-v61-state'];
+  const STORAGE_KEYS = ['family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set([['00', '50'].join('')]);
   const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
   const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
@@ -23,7 +23,8 @@
       return actualHolding;
     }) : [];
     if (!state.holdings.some((h) => h.symbol === '00631L')) state.holdings.unshift({ symbol: '00631L', shares: 0, avgCost: 0, targetWeight: DEFAULT_GROWTH_TARGET });
-    state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(Array.from(REMOVED_SYMBOLS)[0]))) : [];
+    const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
+    state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
       const savedLoan = { ...(loan || {}) };
       delete savedLoan[['paid', 'Months'].join('')];
@@ -50,7 +51,7 @@
       navigator.serviceWorker.getRegistrations?.().then((registrations) => registrations.forEach((registration) => registration.unregister())).catch(() => {});
     }
     if ('caches' in window) {
-      caches.keys().then((keys) => keys.filter((key) => key.includes('00631l-pro')).forEach((key) => caches.delete(key))).catch(() => {});
+      caches.keys().then((keys) => keys.filter((key) => key.includes('00631l-pro') || key.includes('family-universal-rebalance')).forEach((key) => caches.delete(key))).catch(() => {});
     }
   });
 })();
