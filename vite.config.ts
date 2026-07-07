@@ -2,6 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/00631L-Pro-Web-App/',
+  base: '/family-universal-rebalance/',
   plugins: [react()],
 })
