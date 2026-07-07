@@ -12,9 +12,10 @@ type RebalanceMode = 'standard' | 'buy-only';
 type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
+type OrderHelper = { buy: OrderSuggestion[]; sell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -38,6 +39,7 @@ const MIN_GROWTH_TARGET = 0;
 const MAX_GROWTH_TARGET = 100;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
+const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const MAX_REBALANCE_THRESHOLD = 20;
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -150,7 +152,9 @@ const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
 };
 const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
+const normalizeBuyOnlyBudget = (value: unknown) => Math.max(0, safeNumber(value));
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
+const rebalanceModeDescription = (mode: RebalanceMode) => mode === 'standard' ? '允許買入與賣出，目標是讓配置回到目標比例。' : '不賣出超標資產，只用現金或新資金補足低配資產，適合分批投入。';
 function getLotAndOddLot(shares: number) {
   const safeShares = Math.max(0, Math.floor(safeNumber(shares)));
   return { lots: Math.floor(safeShares / 1000), oddLots: safeShares % 1000 };
@@ -180,6 +184,7 @@ const defaultState: AppState = {
   autoSyncSec: 60,
   rebalanceMode: DEFAULT_REBALANCE_MODE,
   rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
+  buyOnlyBudget: DEFAULT_BUY_ONLY_BUDGET,
   syncMeta: defaultSyncMeta(),
   remoteMeta: null
 };
@@ -267,7 +272,7 @@ function normalizeState(raw: unknown): AppState {
   const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
-  const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET) };
   return { ...normalizedCore, syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
 }
 function readState(): AppState {
@@ -286,7 +291,7 @@ function readState(): AppState {
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -299,7 +304,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   const r = raw as Partial<BackupPayload> & { assets?: Holding[]; cash?: CashItem[]; firebase?: FirebaseConfig };
   const syncSettings = (r.syncSettings || {}) as Partial<BackupPayload['syncSettings']>;
   const firebase = syncSettings.firebase || r.firebase || current.firebase;
-  return normalizeState({ ...current, holdings: Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [], cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase });
+  return normalizeState({ ...current, holdings: Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [], cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -492,37 +497,55 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
   return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: [], mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
 }
-function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>, m: ReturnType<typeof calculateMetrics>) {
+function withOrderAmount(item: Omit<OrderSuggestion, 'amount' | 'shares' | 'lots' | 'oddLots' | 'conversionText'>, amount: number): OrderSuggestion {
+  const safeAmount = Math.max(0, safeNumber(amount));
+  const shares = item.price > 0 ? Math.floor(safeAmount / item.price) : null;
+  const lotInfo = getLotAndOddLot(shares ?? 0);
+  return {
+    ...item,
+    amount: safeAmount,
+    shares,
+    lots: lotInfo.lots,
+    oddLots: lotInfo.oddLots,
+    conversionText: formatShares(shares)
+  };
+}
+function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>, m: ReturnType<typeof calculateMetrics>): OrderHelper {
+  const mode = normalizeRebalanceMode(state.rebalanceMode);
   const rows = m.rows.map(row => {
     const targetPercent = getEffectiveTargetPercent(row, state.holdings);
     const targetValue = m.totalAssets * (targetPercent / 100);
     const diff = num(targetValue - row.marketValue);
-    const amount = Math.abs(diff);
     const quote = quotes[row.symbol] || row.quote;
     const price = Math.max(0, safeNumber(quote?.price));
-    const shares = price > 0 ? Math.floor(amount / price) : null;
-    const lotInfo = getLotAndOddLot(shares ?? 0);
     return {
       symbol: row.symbol,
       name: row.quote.name || SYMBOL_NAMES[row.symbol] || row.symbol,
       diff,
-      amount,
       price,
       targetPercent,
       currentValue: row.marketValue,
-      targetValue,
-      shares,
-      lots: lotInfo.lots,
-      oddLots: lotInfo.oddLots,
-      conversionText: formatShares(shares)
+      targetValue
     };
-  }).filter(item => item.amount >= 1);
-  const buy = rows.filter(item => item.diff > 0).sort((a, b) => b.amount - a.amount);
-  const sell = rows.filter(item => item.diff < 0).sort((a, b) => b.amount - a.amount);
-  const totalBuyAmount = buy.reduce((total, item) => total + item.amount, 0);
+  });
   const cash = Math.max(0, safeNumber(m.cash));
-  const shortage = Math.max(0, totalBuyAmount - cash);
-  return { buy, sell, cash, totalBuyAmount, shortage, cashEnough: cash >= totalBuyAmount };
+  const buyOnlyBudget = normalizeBuyOnlyBudget(state.buyOnlyBudget);
+  const buyOnlyLimit = Math.min(buyOnlyBudget, cash);
+  const hasInvalidBuyOnlyBudget = mode === 'buy-only' && buyOnlyBudget <= 0;
+  const buyGaps = rows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
+  const fullBuyGap = buyGaps.reduce((total, item) => total + Math.max(0, safeNumber(item.diff)), 0);
+  let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : cash;
+  const buy = buyGaps.map(item => {
+    const amount = mode === 'buy-only' ? Math.min(Math.max(0, item.diff), remainingBudget) : Math.max(0, item.diff);
+    remainingBudget = mode === 'buy-only' ? Math.max(0, remainingBudget - amount) : remainingBudget;
+    return withOrderAmount(item, amount);
+  }).filter(item => item.amount >= 1);
+  const overTargets = rows.filter(item => item.diff < 0).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
+  const sell = mode === 'standard' ? overTargets : [];
+  const skippedSell = mode === 'buy-only' ? overTargets : [];
+  const totalBuyAmount = buy.reduce((total, item) => total + item.amount, 0);
+  const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - cash) : Math.max(0, fullBuyGap - buyOnlyLimit);
+  return { buy, sell, skippedSell, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
 }
 function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
   const absDeviation = Math.abs(rb.deviation);
@@ -639,6 +662,26 @@ function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: 
             <p><span>{actionLabel}金額</span><strong>{formatCurrency(item.amount)}</strong></p>
             <p><span>目前價格</span><strong>{item.price > 0 ? item.price.toFixed(2) : '價格不足'}</strong></p>
             <p><span>{actionLabel === '加碼' ? '約可買' : '約可賣'}</span><strong>{item.conversionText}</strong></p>
+            <p><span>目標比例</span><strong>{pct(item.targetPercent)}</strong></p>
+          </div>
+        </div>
+      </article>)}
+    </div>}
+  </div>;
+}
+function SkippedSellList({ items }: { items: OrderSuggestion[] }) {
+  return <div className="order-section order-muted">
+    <h3>超標資產暫不處理</h3>
+    <p className="note">只買不賣模式不提供賣出建議；以下資產目前超標，暫不加碼。</p>
+    {items.length === 0 ? <p className="note">目前沒有明顯超標資產。</p> : <div className="order-list">
+      {items.map((item, index) => <article className="order-item" key={`skip-${item.symbol}`}>
+        <div className="order-rank muted">{index + 1}</div>
+        <div className="order-body">
+          <h4>{item.symbol} <span>{item.name}</span></h4>
+          <div className="order-grid">
+            <p><span>超標金額</span><strong>{formatCurrency(item.amount)}</strong></p>
+            <p><span>目前價格</span><strong>{item.price > 0 ? item.price.toFixed(2) : '價格不足'}</strong></p>
+            <p><span>模式處理</span><strong>暫不賣出，也不加碼</strong></p>
             <p><span>目標比例</span><strong>{pct(item.targetPercent)}</strong></p>
           </div>
         </div>
@@ -1085,10 +1128,15 @@ function App() {
                 <option value="buy-only">只買不賣</option>
                 <option value="standard">標準再平衡</option>
               </select>
+              <small>{rebalanceModeDescription(state.rebalanceMode)}</small>
             </label>
             <label>再平衡提醒門檻 %
               <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
               <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
+            </label>
+            <label>只買不賣可用加碼預算
+              <DraftInput type="number" min="0" inputMode="numeric" value={state.buyOnlyBudget} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: normalizeBuyOnlyBudget(value) }))} />
+              <small>預設 NT$100,000；只買不賣模式會以此預算與目前現金兩者較低者為上限。</small>
             </label>
 
           </div>
@@ -1113,18 +1161,41 @@ function App() {
           </div>
         </Card>
         <Card title="實際下單輔助">
+          <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
+            {orderHelper.mode === 'buy-only' && <>
+              <p><span>只買不賣可用加碼預算</span><strong>{formatCurrency(orderHelper.buyOnlyBudget)}</strong></p>
+              <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
+            </>}
             <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
             <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
-            <p><span>現金檢查</span><strong className={orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
+            <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.cash <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>
+              {orderHelper.mode === 'buy-only'
+                ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.cash <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠'
+                : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}
+            </strong></p>
             <p><span>下單單位</span><strong>1 張 = 1000 股</strong></p>
           </div>
-          <p className={orderHelper.cashEnough ? 'note' : 'warning-message'}>
-            {orderHelper.cashEnough ? '目前現金足夠完成本次加碼建議。' : `目前現金不足，差額約 ${formatCurrency(orderHelper.shortage)}。可先依加碼順序分批投入。`}
+          {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
+          {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
+          <p className={orderHelper.mode === 'buy-only' ? (orderHelper.cashLimited || orderHelper.cash <= 0 ? 'warning-message' : 'note') : orderHelper.cashEnough ? 'note' : 'warning-message'}>
+            {orderHelper.mode === 'buy-only'
+              ? orderHelper.fullBuyGap <= 0
+                ? '目前沒有低配資產，只買不賣模式下暫無可執行加碼建議。'
+                : orderHelper.cash <= 0
+                  ? '目前沒有可用現金，只買不賣模式下暫無可執行加碼建議。'
+                  : orderHelper.hasInvalidBuyOnlyBudget
+                    ? '目前可用加碼預算為 0，請先輸入有效的可用加碼預算。'
+                  : orderHelper.cashLimited
+                    ? `只買不賣模式已依本次實際可加碼上限分配，尚未補足低配差額約 ${formatCurrency(orderHelper.shortage)}。`
+                    : '目前現金足夠完成本次加碼建議。'
+              : orderHelper.cashEnough ? '目前現金足夠完成本次加碼建議。' : `目前現金不足，差額約 ${formatCurrency(orderHelper.shortage)}。可先依加碼順序分批投入。`}
           </p>
           <div className="order-layout">
             <OrderSuggestionList title="建議加碼順序" items={orderHelper.buy} actionLabel="加碼" emptyText="目前沒有明顯加碼項目。" />
-            <OrderSuggestionList title="建議減碼順序" items={orderHelper.sell} actionLabel="減碼" emptyText="目前沒有明顯減碼項目。" />
+            {orderHelper.mode === 'standard'
+              ? <OrderSuggestionList title="建議減碼順序" items={orderHelper.sell} actionLabel="減碼" emptyText="目前沒有明顯減碼項目。" />
+              : <SkippedSellList items={orderHelper.skippedSell} />}
           </div>
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </Card>
