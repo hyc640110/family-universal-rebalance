@@ -12,11 +12,13 @@ type RebalanceMode = 'standard' | 'buy-only';
 type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
+type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -41,6 +43,7 @@ const MAX_GROWTH_TARGET = 100;
 const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const DEFAULT_BUY_ONLY_BUDGET = 100000;
+const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -158,6 +161,21 @@ const budgetWanOf = (value: unknown) => safeNumber(value) / 10000;
 const budgetFromWan = (value: unknown) => Math.max(0, safeNumber(value) * 10000);
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 const rebalanceModeDescription = (mode: RebalanceMode) => mode === 'standard' ? '允許買入與賣出，目標是讓配置回到目標比例。' : '不賣出超標資產，只用現金或新資金補足低配資產，適合分批投入。';
+const defaultDipAlertSetting = (): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: DEFAULT_DIP_ALERT_THRESHOLD });
+function normalizeDipAlertSetting(raw: unknown): DipAlertSetting {
+  const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const rawThreshold = r.thresholdPct;
+  const threshold = rawThreshold === undefined || rawThreshold === null || rawThreshold === '' ? DEFAULT_DIP_ALERT_THRESHOLD : safeNumber(rawThreshold);
+  return { enabled: Boolean(r.enabled), referencePrice: Math.max(0, safeNumber(r.referencePrice)), thresholdPct: threshold };
+}
+function normalizeDipAlerts(raw: unknown, holdings: unknown): Record<SymbolCode, DipAlertSetting> {
+  const source = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  return safeHoldings(holdings).reduce<Record<SymbolCode, DipAlertSetting>>((next, holding) => {
+    const symbol = normalizeSymbol(holding?.symbol);
+    if (symbol && isTaiwanSymbol(symbol)) next[symbol] = normalizeDipAlertSetting(source[symbol]);
+    return next;
+  }, {});
+}
 function getLotAndOddLot(shares: number) {
   const safeShares = Math.max(0, Math.floor(safeNumber(shares)));
   return { lots: Math.floor(safeShares / 1000), oddLots: safeShares % 1000 };
@@ -188,6 +206,7 @@ const defaultState: AppState = {
   rebalanceMode: DEFAULT_REBALANCE_MODE,
   rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
   buyOnlyBudget: DEFAULT_BUY_ONLY_BUDGET,
+  dipAlerts: {},
   syncMeta: defaultSyncMeta(),
   remoteMeta: null
 };
@@ -275,7 +294,7 @@ function normalizeState(raw: unknown): AppState {
   const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
-  const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   return { ...normalizedCore, syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
 }
 function readState(): AppState {
@@ -294,7 +313,7 @@ function readState(): AppState {
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -307,7 +326,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   const r = raw as Partial<BackupPayload> & { assets?: Holding[]; cash?: CashItem[]; firebase?: FirebaseConfig };
   const syncSettings = (r.syncSettings || {}) as Partial<BackupPayload['syncSettings']>;
   const firebase = syncSettings.firebase || r.firebase || current.firebase;
-  return normalizeState({ ...current, holdings: Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [], cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), firebase });
+  return normalizeState({ ...current, holdings: Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [], cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -650,8 +669,8 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
   return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
 }
-function Card({ title, children, action, style }: { title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
-  return <section className="card" style={style}>
+function Card({ id, title, children, action, style }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
+  return <section id={id} className="card" style={style}>
     {action ? (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ margin: 0 }}>{title}</h2>
@@ -719,6 +738,31 @@ function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
       </div>
     </article>}
   </div>;
+}
+function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void }) {
+  return <article className={`dip-alert-item ${row.triggered ? 'triggered' : ''}`}>
+    <div className="dip-alert-head">
+      <div>
+        <h3>{row.symbol} <span>{row.name}</span></h3>
+        <p>目前價格：{row.price > 0 ? row.price.toFixed(2) : '價格不足'}</p>
+      </div>
+      <label className="dip-toggle"><input type="checkbox" checked={row.setting.enabled} onChange={e => onChange(row.symbol, { enabled: e.currentTarget.checked })} /> 啟用</label>
+    </div>
+    <div className="dip-alert-fields">
+      <label>逢低參考價
+        <DraftInput type="number" min="0" step="0.01" inputMode="decimal" value={row.setting.referencePrice || ''} onCommit={value => onChange(row.symbol, { referencePrice: Math.max(0, safeNumber(value)) })} />
+      </label>
+      <label>跌幅提醒門檻 %
+        <DraftInput type="number" step="0.1" inputMode="decimal" value={row.setting.thresholdPct} onCommit={value => onChange(row.symbol, { thresholdPct: safeNumber(value) || DEFAULT_DIP_ALERT_THRESHOLD })} />
+      </label>
+    </div>
+    <div className="dip-alert-result">
+      <p><span>參考價</span><strong>{row.setting.referencePrice > 0 ? row.setting.referencePrice.toFixed(2) : '尚未設定'}</strong></p>
+      <p><span>目前跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效參考價' : signedPct(row.drawdownPct)}</strong></p>
+      <p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p>
+      <p><span>狀態</span><strong className={row.triggered ? 'warn' : ''}>{row.status}</strong></p>
+    </div>
+  </article>;
 }
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
   const [draft, setDraft] = useState(String(value ?? ''));
@@ -864,6 +908,16 @@ function App() {
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+  const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
+    const symbol = normalizeSymbol(row.symbol);
+    const setting = normalizeDipAlertSetting(state.dipAlerts?.[symbol] ?? defaultDipAlertSetting());
+    const price = Math.max(0, safeNumber((quotes[symbol] || row.quote)?.price));
+    const referencePrice = Math.max(0, safeNumber(setting.referencePrice));
+    const drawdownPct = price > 0 && referencePrice > 0 ? (price - referencePrice) / referencePrice * 100 : null;
+    const triggered = Boolean(setting.enabled && drawdownPct !== null && drawdownPct <= setting.thresholdPct);
+    const status = !setting.enabled ? '未啟用' : drawdownPct === null ? '尚未設定有效參考價' : triggered ? '已達逢低加碼觀察條件，可列入加碼觀察' : '尚未觸發';
+    return { symbol, name: row.quote.name || SYMBOL_NAMES[symbol] || symbol, price, setting, drawdownPct, triggered, status };
+  }), [m.rows, quotes, state.dipAlerts]);
   const targetWarning = isGrowthTargetOverLimit(state) ? '成長資產目標比例已超過 100%，請調整配置' : '';
   const targetCheck = useMemo(() => {
     const growthTotal = growthTargetTotalOf(state);
@@ -888,6 +942,7 @@ function App() {
     `WorkerURL: ${DEFAULT_WORKER_URL}`,
     `HoldingsCount: ${safeHoldings(state.holdings).length}`,
     `CashAccountsCount: ${state.cash.length}`,
+    `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
     `GrowthTargetTotal: ${pct(targetCheck.growthTotal)}`,
     `Auto00865BTarget: ${targetCheck.hasBond ? pct(targetCheck.bondTarget || 0) : '未持有 00865B'}`,
     `Has00865B: ${targetCheck.hasBond}`,
@@ -1007,6 +1062,30 @@ function App() {
     };
   }, [state.firebase.databaseURL, safeHoldings(state.holdings).length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
   const [mode, hint, modeTone] = advice(m);
+  const updateDipAlert = (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => {
+    const normalizedSymbol = normalizeSymbol(symbol);
+    setState(s => ({
+      ...s,
+      dipAlerts: normalizeDipAlerts({
+        ...(s.dipAlerts || {}),
+        [normalizedSymbol]: normalizeDipAlertSetting({ ...(s.dipAlerts?.[normalizedSymbol] || defaultDipAlertSetting()), ...patch })
+      }, s.holdings)
+    }));
+  };
+  const scrollToSection = (id: string, nextTab: 'dashboard' | 'sync' = 'dashboard') => {
+    setTab(nextTab);
+    let attempts = 0;
+    const run = () => {
+      const target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      attempts += 1;
+      if (attempts < 8) window.setTimeout(run, 50);
+    };
+    window.setTimeout(run, 50);
+  };
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const holdings = safeHoldings(s.holdings); const normalizedSymbol = normalizeSymbol(symbol); const exists = holdings.some(h => normalizeSymbol(h.symbol) === normalizedSymbol); const nextValue = key === 'targetWeight' ? clampTarget(safeNumber(value)) : Math.max(0, safeNumber(value)); const defaultHolding = DEFAULT_HOLDINGS.find(h => h.symbol === normalizedSymbol); const nextHolding: Holding = { symbol: normalizedSymbol, shares: 0, avgCost: 0, ...(defaultHolding?.targetWeight === undefined ? {} : { targetWeight: defaultHolding.targetWeight }), [key]: nextValue }; return { ...s, holdings: exists ? holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue }) || h : h) : [...holdings, nextHolding] }; });
   const addHoldingAsset = () => {
     const symbol = normalizeSymbol(newSymbolDraft);
@@ -1024,7 +1103,7 @@ function App() {
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
-    setState(s => ({ ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol) }));
+    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol), dipAlerts }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
   };
@@ -1078,7 +1157,7 @@ function App() {
   };
   return (
     <main>
-      <header className="hero">
+      <header id="overview-section" className="hero">
         <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build：{APP_BUILD_TIME}</p></div>
         <button onClick={refreshQuotes}>更新股價</button>
       </header>
@@ -1132,6 +1211,7 @@ function App() {
         </Card>
         <Card title="資產配置"><Pie3D m={m} /></Card>
         <Card 
+          id="rebalance-section"
           title="再平衡摘要" 
           action={
             <button 
@@ -1191,7 +1271,7 @@ function App() {
             </div>
           </div>
         </Card>
-        <Card title="實際下單輔助">
+        <Card id="order-section" title="實際下單輔助">
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
             {orderHelper.mode === 'buy-only' && <>
@@ -1232,6 +1312,14 @@ function App() {
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </Card>
 
+        <Card id="dip-alert-section" title="逢低加碼提醒">
+          <p className="note">每檔目前持有資產都可設定觀察價與跌幅門檻。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>
+          {dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">
+            {dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}
+          </div>}
+          <p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p>
+        </Card>
+
         <div className="two" style={isMobile ? { maxWidth: '390px', width: '100%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' } : undefined}>
           <Card title="現金管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
             {cashWarning && (
@@ -1244,7 +1332,7 @@ function App() {
             </p>
             <CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} />
           </Card>
-          <Card title="借款管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
+          <Card id="loan-section" title="借款管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
             <div className="loan-summary">
               <Stat label="總借款" value={money(m.debt)} />
               <Stat label="每月還款" value={money(m.monthlyPayment)} />
@@ -1265,7 +1353,7 @@ function App() {
         </div>
       </>}
       {tab === 'sync' && <>
-        <Card title="Firebase / 雲端同步設定">
+        <Card id="sync-section" title="Firebase / 雲端同步設定">
           <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
           <div className="params">
             <label>Firebase URL<DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /></label>
@@ -1410,6 +1498,14 @@ function App() {
           <details className="release-notes">
             <summary>查看更新紀錄</summary>
             <div className="release-group">
+              <h3>v1.3.1</h3>
+              <ul>
+                <li>新增逢低加碼提醒，可為每檔持股設定觀察價與跌幅門檻。</li>
+                <li>新增手機底部快捷導覽，快速跳到總覽、再平衡、下單、借款與同步。</li>
+                <li>逢低提醒僅提供觀察訊號，不會自動買賣、扣現金或同步雲端。</li>
+              </ul>
+            </div>
+            <div className="release-group">
               <h3>v1.2.0</h3>
               <ul>
                 <li>新增實際下單輔助，將再平衡差額換算為金額、股數與張數。</li>
@@ -1447,6 +1543,13 @@ function App() {
           </details>
         </Card>
       </footer>
+      <nav className="mobile-bottom-nav" aria-label="手機快捷導覽">
+        <button type="button" onClick={() => scrollToSection('overview-section')}>總覽</button>
+        <button type="button" onClick={() => scrollToSection('rebalance-section')}>再平衡</button>
+        <button type="button" onClick={() => scrollToSection('order-section')}>下單</button>
+        <button type="button" onClick={() => scrollToSection('loan-section')}>借款</button>
+        <button type="button" onClick={() => scrollToSection('sync-section', 'sync')}>同步</button>
+      </nav>
     </main>
   );
 }
