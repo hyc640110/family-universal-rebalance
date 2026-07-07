@@ -1,4 +1,4 @@
-const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-dynamic-asset-quotes-v2';
+const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-growth-defensive-delete-assets';
 
 self.addEventListener('install', event => {
   self.skipWaiting();

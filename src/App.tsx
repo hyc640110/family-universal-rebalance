@@ -27,7 +27,7 @@ const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
   { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
 ];
-const DEFAULT_SYMBOLS: SymbolCode[] = DEFAULT_HOLDINGS.map(h => h.symbol);
+const DEFENSIVE_SYMBOLS = new Set<SymbolCode>(['00865B']);
 const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
 const MIN_GROWTH_TARGET = 0;
@@ -57,7 +57,13 @@ const backupStamp = () => {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 };
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, Number.isFinite(value) ? value : DEFAULT_GROWTH_TARGET));
-const growthTargetOf = (state: Pick<AppState, 'holdings'>) => clampTarget(state.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET);
+const growthTargetOf = (state: Pick<AppState, 'holdings'>) => {
+  const weights = state.holdings
+    .filter(h => !DEFENSIVE_SYMBOLS.has(normalizeSymbol(h.symbol)))
+    .map(h => Number(h.targetWeight))
+    .filter(Number.isFinite);
+  return weights.length ? clampTarget(weights.reduce((a, v) => a + v, 0)) : DEFAULT_GROWTH_TARGET;
+};
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
   if (monthlyPayment === 0) return <span className="safety-badge">🟢 無貸款壓力</span>;
@@ -112,7 +118,7 @@ function hasRemovedSymbol(value: unknown) { const symbol = removedSymbol(); retu
 function removedSymbolMessage() { const symbol = removedSymbol(); return symbol ? `${symbol} 已從正式策略移除，請勿在現金項目中使用 ${symbol} 作為名稱或備註。` : '可自行新增合法台股代號，系統會在更新股價時動態查詢。'; }
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
   const fromState = state?.holdings?.map(h => normalizeSymbol(h.symbol)).filter(isTaiwanSymbol) || [];
-  return Array.from(new Set([...DEFAULT_SYMBOLS, ...fromState].filter(s => s && !REMOVED_SYMBOLS.has(s))));
+  return Array.from(new Set(fromState.filter(s => s && !REMOVED_SYMBOLS.has(s))));
 }
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   const base = defaultQuotes[symbol];
@@ -159,9 +165,11 @@ function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>) } : {};
   STALE_KEYS.forEach((key) => delete r[key]);
   const s = { ...defaultState, ...r } as Partial<AppState>;
-  const holdings = (Array.isArray(s.holdings) ? s.holdings : defaultState.holdings).map(h => sanitizeHolding(h as Holding)).filter(Boolean) as Holding[];
+  const hasHoldingsData = Array.isArray(r.holdings);
+  const rawHoldings = (hasHoldingsData ? r.holdings : defaultState.holdings) as Holding[];
+  const holdings = rawHoldings.map(h => sanitizeHolding(h)).filter(Boolean) as Holding[];
   const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && holdings[0].shares === 0 && holdings[0].avgCost === 0 && holdings[0].targetWeight === 70;
-  const normalizedHoldings = holdings.length === 0 || isOldCleanDefault ? defaultState.holdings : holdings;
+  const normalizedHoldings = !hasHoldingsData || isOldCleanDefault ? defaultState.holdings : holdings;
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
   return { holdings: normalizedHoldings, cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
@@ -322,8 +330,9 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const totalAssets = stocks + cash;
   const netWorth = totalAssets - debt;
   const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0);
-  const growth = rows.find(r => r.symbol === '00631L')?.marketValue || 0;
-  const defensiveHoldings = rows.filter(r => r.symbol !== '00631L');
+  const defensiveHoldings = rows.filter(r => DEFENSIVE_SYMBOLS.has(r.symbol));
+  const growthHoldings = rows.filter(r => !DEFENSIVE_SYMBOLS.has(r.symbol));
+  const growth = growthHoldings.reduce((a, r) => a + r.marketValue, 0);
   const defensiveHoldingsValue = defensiveHoldings.reduce((a, r) => a + r.marketValue, 0);
   const defensive = cash + defensiveHoldingsValue;
   const growthTargetPct = growthTargetOf(state);
@@ -354,25 +363,23 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   // 扣利息後真實淨利
   const trueNetPnlAfterInterest = portfolioTotalPnl - totalLoanInterestPaid;
 
-  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
+  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, growthHoldings, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
 }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const m = calculateMetrics(state, quotes);
-  const stock = m.rows.find(r => r.symbol === '00631L') || { symbol: '00631L', quote: backupQuote('00631L'), marketValue: 0 };
   const stockTarget = m.totalAssets * (m.growthTargetPct / 100);
   const defensiveTarget = m.totalAssets * (m.defensiveTargetPct / 100);
-  const stockDiff = stockTarget - stock.marketValue;
+  const stockDiff = stockTarget - m.growth;
   const defensiveDiff = defensiveTarget - m.defensive;
-  const stockWeight = m.totalAssets ? stock.marketValue / m.totalAssets * 100 : 0;
+  const stockWeight = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
   const defensiveWeight = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
   const deviation = stockWeight - m.growthTargetPct;
   const defensiveDeviation = defensiveWeight - m.defensiveTargetPct;
   const threshold = clampRebalanceThreshold(state.rebalanceThreshold);
   const thresholdReached = Math.abs(deviation) >= threshold;
   const mode = normalizeRebalanceMode(state.rebalanceMode);
-  const stockShares = Math.round(Math.abs(stockDiff) / Math.max(0.01, stock.quote.price));
   const belowAmountFloor = Math.abs(stockDiff) < 1000;
-  let stockAction = belowAmountFloor ? '維持持有' : `建議${stockDiff >= 0 ? '買入' : '賣出'} ${stockShares.toLocaleString('zh-TW')} 股，約 ${money(Math.abs(stockDiff))}`;
+  let stockAction = belowAmountFloor ? '維持成長資產' : `建議${stockDiff >= 0 ? '增加' : '降低'}成長資產約 ${money(Math.abs(stockDiff))}`;
   let defensiveAction = Math.abs(defensiveDiff) < 1000 ? '維持防守資產' : defensiveDiff > 0 ? `需增加防守資產約 ${money(defensiveDiff)}` : `可使用現金約 ${money(Math.abs(defensiveDiff))}`;
   let stockTone = stockDiff >= 0 ? 'up' : 'down';
   let defensiveTone = 'hold';
@@ -385,10 +392,10 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
     defensiveAction = `優先增加防守資產，距離目標約 ${money(Math.max(0, defensiveDiff))}`;
     stockTone = defensiveTone = 'hold';
   }
-  const stockRow = { symbol: '00631L', currentWeight: stockWeight, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), deviationText: signedPct(deviation), thresholdText: pct(threshold), action: stockAction, tone: stockTone };
+  const stockRow = { symbol: '成長資產', currentWeight: stockWeight, targetText: pct(m.growthTargetPct), diffText: money(stockDiff), deviationText: signedPct(deviation), thresholdText: pct(threshold), action: stockAction, tone: stockTone };
   const defensiveRow = { symbol: '防守資產', currentWeight: defensiveWeight, targetText: pct(m.defensiveTargetPct), diffText: money(defensiveDiff), deviationText: signedPct(defensiveDeviation), thresholdText: pct(threshold), action: defensiveAction, tone: defensiveTone };
   const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
-  return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: m.defensiveHoldings.map(r => `${r.symbol}：保留實際持股，不參與再平衡`), mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
+  return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: [], mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
 }
 function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
   const absDeviation = Math.abs(rb.deviation);
@@ -410,28 +417,28 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
   } else if (rb.deviation >= 10) {
     status = '槓桿風險提高';
     tone = 'bad';
-    reason = `00631L 高於目標 ${pct(rb.deviation)}，已超過 10%。`;
-    suggestion = '暫停加碼 00631L，優先累積現金或防守資產。';
+    reason = `成長資產高於目標 ${pct(rb.deviation)}，已超過 10%。`;
+    suggestion = '暫停加碼成長資產，優先累積現金或 00865B。';
   } else if (absDeviation >= 10) {
     status = '偏離過大';
     tone = 'bad';
-    reason = `00631L ${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`;
-    suggestion = underTarget ? '依目前再平衡模式分批補足 00631L。' : '優先補強防守資產，降低配置偏離。';
+    reason = `成長資產${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`;
+    suggestion = underTarget ? '依目前再平衡模式分批補足成長資產。' : '優先補強現金或 00865B，降低配置偏離。';
   } else if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) {
     status = '現金不足';
     tone = 'warn';
-    reason = `00631L 低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`;
-    suggestion = '先累積現金，再分批買入 00631L。';
+    reason = `成長資產低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`;
+    suggestion = '先累積現金，再分批買入成長資產。';
   } else if (overTarget && defensiveGap > 0) {
     status = '注意';
     tone = 'warn';
-    reason = `00631L 高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
-    suggestion = rb.mode === 'buy-only' ? '暫停加碼 00631L，優先累積現金或防守資產。' : '可依標準再平衡增加防守資產。';
+    reason = `成長資產高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
+    suggestion = rb.mode === 'buy-only' ? '暫停加碼成長資產，優先累積現金或 00865B。' : '可依標準再平衡增加現金或 00865B。';
   } else {
     status = '注意';
     tone = 'warn';
-    reason = `00631L 低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
-    suggestion = '可依目前再平衡模式分批補足 00631L。';
+    reason = `成長資產低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
+    suggestion = '可依目前再平衡模式分批補足成長資產。';
   }
 
   // 流動性風險覆蓋邏輯：可用現金可支應還款月數低於 3 個月且月付金 > 0
@@ -446,7 +453,7 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
 
   return { status, tone, reason, suggestion };
 }
-function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的部位，避免一次打滿；目前目標為 00631L ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為 00631L ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
+function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的成長資產部位，避免一次打滿；目前目標為成長資產 ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
 function pieLabelStyle(startDeg: number, endDeg: number): CSSProperties {
   const centerDeg = (startDeg + endDeg) / 2;
@@ -460,7 +467,7 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const growthPct = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
   const defensivePct = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
   const cashPct = m.totalAssets ? m.cash / m.totalAssets * 100 : 0;
-  const holdingPct = (symbol: SymbolCode) => pct(m.totalAssets ? (m.defensiveHoldings.find(r => r.symbol === symbol)?.marketValue || 0) / m.totalAssets * 100 : 0);
+  const rowPct = (marketValue: number) => pct(m.totalAssets ? marketValue / m.totalAssets * 100 : 0);
   const pieStart = -35;
   const growthEnd = pieStart + growthPct / 100 * 360;
   const growthLabelStyle = pieLabelStyle(pieStart, growthEnd);
@@ -472,8 +479,8 @@ function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
       {defensivePct >= 8 && <span className="pie-slice-label defensive-slice-label" style={defensiveLabelStyle}>{pct(defensivePct)}</span>}
     </div>
     <div className="allocation-detail">
-      <div><h3>成長資產</h3><p><span><i className="legend growth-dot" />00631L</span><strong>{pct(growthPct)}</strong></p><p><span>目標</span><strong>{pct(m.growthTargetPct)}</strong></p></div>
-      <div><h3>防守資產</h3><p><span><i className="legend cash-dot" />現金</span><strong>{pct(cashPct)}</strong></p>{m.defensiveHoldings.map(r => <p key={r.symbol}><span><i className="legend bond-dot" />{r.symbol}</span><strong>{r.symbol === '00865B' ? holdingPct('00865B') : pct(m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0)}</strong></p>)}<p><span><i className="legend defensive-dot" />合計</span><strong>{pct(defensivePct)}</strong></p><p><span>目標</span><strong>{pct(m.defensiveTargetPct)}</strong></p></div>
+      <div><h3>成長資產</h3>{m.growthHoldings.map(r => <p key={r.symbol}><span><i className="legend growth-dot" />{r.symbol}</span><strong>{rowPct(r.marketValue)}</strong></p>)}<p><span><i className="legend growth-dot" />合計</span><strong>{pct(growthPct)}</strong></p><p><span>目標</span><strong>{pct(m.growthTargetPct)}</strong></p></div>
+      <div><h3>防守資產</h3><p><span><i className="legend cash-dot" />現金</span><strong>{pct(cashPct)}</strong></p>{m.defensiveHoldings.map(r => <p key={r.symbol}><span><i className="legend bond-dot" />{r.symbol}</span><strong>{rowPct(r.marketValue)}</strong></p>)}<p><span><i className="legend defensive-dot" />合計</span><strong>{pct(defensivePct)}</strong></p><p><span>目標</span><strong>{pct(m.defensiveTargetPct)}</strong></p></div>
     </div>
   </div>;
 }
@@ -648,14 +655,14 @@ function App() {
     let text = `📊 ${APP_NAME} 再平衡摘要\n`;
     text += `⏰ 時間：${timeStr}\n\n`;
     
-    text += `【策略目標】 00631L：${targetGrowth.toFixed(2)}%  │  防守資產：${targetDefensive.toFixed(2)}%\n`;
-    text += `【目前配置】 00631L：${currentGrowth.toFixed(2)}%  │  防守資產：${currentDefensive.toFixed(2)}%\n\n`;
+    text += `【策略目標】 成長資產：${targetGrowth.toFixed(2)}%  │  防守資產：${targetDefensive.toFixed(2)}%\n`;
+    text += `【目前配置】 成長資產：${currentGrowth.toFixed(2)}%  │  防守資產：${currentDefensive.toFixed(2)}%\n\n`;
     
     text += `【偏離狀態】 目前偏離：${deviation > 0 ? '+' : ''}${deviation.toFixed(2)}% (門檻 ${threshold.toFixed(2)}%)\n`;
     text += `【目前狀態】 ${status}\n\n`;
     
     text += `【再平衡建議】\n`;
-    text += `  - 00631L  ：${rb.stockAction}\n`;
+    text += `  - 成長資產：${rb.stockAction}\n`;
     text += `  - 防守資產：${rb.defensiveAction}\n`;
     
     rb.defensiveDetails.forEach(item => {
@@ -741,10 +748,6 @@ function App() {
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
-    if (DEFAULT_SYMBOLS.includes(normalizedSymbol)) {
-      setAssetMessage(`${normalizedSymbol} 是預設資產，請保留在清單中。`);
-      return;
-    }
     setState(s => ({ ...s, holdings: s.holdings.filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol) }));
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
@@ -852,7 +855,7 @@ function App() {
             <p><span>狀態</span><strong>{rb.thresholdStatus}</strong></p>
           </div>
           <div className="rebalance-summary">
-            <div><small>00631L</small><b>{rb.stockAction}</b></div>
+            <div><small>成長資產</small><b>{rb.stockAction}</b></div>
             <div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>
             {rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}
           </div>
@@ -920,7 +923,7 @@ function App() {
                 <span>{item.shares.toLocaleString('zh-TW')}</span>
                 <span>{item.avgCost.toFixed(2)}</span>
                 <span>{quote.source}</span>
-                <button className="danger small" disabled={DEFAULT_SYMBOLS.includes(item.symbol)} onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
+                <button className="danger small" onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
               </div>;
             })}
           </div>

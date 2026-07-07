@@ -24,12 +24,13 @@
     if (!value || typeof value !== 'object') return {};
     const state = { ...value };
     STALE_KEYS.forEach((key) => delete state[key]);
-    const holdings = Array.isArray(state.holdings) ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol)).map((h) => {
+    const hasHoldingsData = Array.isArray(state.holdings);
+    const holdings = hasHoldingsData ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol)).map((h) => {
       const targetWeight = h.targetWeight === undefined ? undefined : clampTarget(h.targetWeight);
       return { ...h, ...(targetWeight === undefined ? {} : { targetWeight }) };
     }) : [];
     const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && Number(holdings[0].shares) === 0 && Number(holdings[0].avgCost) === 0 && Number(holdings[0].targetWeight) === 70;
-    state.holdings = holdings.length === 0 || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings;
+    state.holdings = !hasHoldingsData || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings;
     const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
