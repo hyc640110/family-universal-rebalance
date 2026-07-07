@@ -12,10 +12,12 @@ type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refr
 type SyncMeta = { dirty: boolean; lastUploadAt?: string; lastDownloadAt?: string; status: string };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebaseConfigured: boolean } };
 
-const APP_VERSION = 'Version 1.0.0';
-const STORAGE_KEY = '00631l-pro-v100-state';
-const SYNC_META_KEY = '00631l-pro-v100-sync-meta';
-const OLD_STORAGE_KEYS = ['00631l-pro-v62-state', '00631l-pro-v61-state'];
+const APP_VERSION = 'Universal Rebalance v1.0.0';
+const APP_NAME = '萬用資產再平衡儀表板';
+const APP_SUBTITLE = '家庭多資產配置管理';
+const STORAGE_KEY = 'family-universal-rebalance-v100-state';
+const SYNC_META_KEY = 'family-universal-rebalance-v100-sync-meta';
+const REMOTE_META_KEY = 'family-universal-rebalance-v100-remote-meta';
 const DEFAULT_WORKER_URL = 'https://00631l-pro-price-proxy.hyc640110.workers.dev';
 const REMOVED_SYMBOLS = new Set<SymbolCode>([['00', '50'].join('')]);
 const DEFAULT_SYMBOLS: SymbolCode[] = ['00631L'];
@@ -82,7 +84,7 @@ const defaultState: AppState = {
   cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
-  firebase: { databaseURL: '', secretPath: '631128' },
+  firebase: { databaseURL: '', secretPath: 'family-universal-rebalance' },
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
   autoSyncSec: 60,
@@ -151,7 +153,7 @@ function normalizeState(raw: unknown): AppState {
 }
 function readState(): AppState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || OLD_STORAGE_KEYS.map(key => localStorage.getItem(key)).find(Boolean) || '{}';
+    const raw = localStorage.getItem(STORAGE_KEY) || '{}';
     const normalized = normalizeState(JSON.parse(raw));
     const json = JSON.stringify(normalized);
     if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
@@ -194,7 +196,7 @@ function validateBeforeUpload(s: AppState) {
 function waitForDraftCommit() {
   return new Promise<void>(resolve => setTimeout(resolve, 0)).then(flushFrame).then(flushFrame);
 }
-function syncPath(config: FirebaseConfig) { return `portfolio/${encodeURIComponent(config.secretPath || '631128')}`; }
+function syncPath(config: FirebaseConfig) { return `family-universal-rebalance/${encodeURIComponent(config.secretPath || 'family-universal-rebalance')}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
@@ -531,16 +533,16 @@ function App() {
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
   const [remoteMeta, setRemoteMeta] = useState<{ holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null>(() => {
     try {
-      const raw = localStorage.getItem('00631l-pro-v100-remote-meta');
+      const raw = localStorage.getItem(REMOTE_META_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   });
   const updateRemoteMeta = (value: { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string } | null) => {
     setRemoteMeta(value);
     if (value) {
-      localStorage.setItem('00631l-pro-v100-remote-meta', JSON.stringify(value));
+      localStorage.setItem(REMOTE_META_KEY, JSON.stringify(value));
     } else {
-      localStorage.removeItem('00631l-pro-v100-remote-meta');
+      localStorage.removeItem(REMOTE_META_KEY);
     }
   };
   const [cashWarning, setCashWarning] = useState('');
@@ -625,7 +627,7 @@ function App() {
     const threshold = rb.threshold;
     const status = rb.thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置';
     
-    let text = `📊 00631L Pro 再平衡摘要\n`;
+    let text = `📊 ${APP_NAME} 再平衡摘要\n`;
     text += `⏰ 時間：${timeStr}\n\n`;
     
     text += `【策略目標】 00631L：${targetGrowth.toFixed(2)}%  │  防守資產：${targetDefensive.toFixed(2)}%\n`;
@@ -706,7 +708,7 @@ function App() {
   const [mode, hint, modeTone] = advice(m);
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const exists = s.holdings.some(h => h.symbol === symbol); const nextValue = key === 'targetWeight' ? value : Math.max(0, num(value)); const nextHolding: Holding = { symbol, shares: 0, avgCost: 0, ...(symbol === '00631L' ? { targetWeight: growthTargetOf(s) } : {}), [key]: nextValue }; return { ...s, holdings: exists ? s.holdings.map(h => h.symbol === symbol ? sanitizeHolding({ ...h, [key]: nextValue }) || h : h) : [...s.holdings, nextHolding] }; });
   const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
-  const exportBackup = () => { const blob = new Blob([JSON.stringify(backupPayload(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `00631L-Pro-backup-${backupStamp()}.json`; a.click(); URL.revokeObjectURL(url); updateSyncMeta(current => ({ ...current, status: '備份已匯出' })); };
+  const exportBackup = () => { const blob = new Blob([JSON.stringify(backupPayload(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `family-universal-rebalance-backup-${backupStamp()}.json`; a.click(); URL.revokeObjectURL(url); updateSyncMeta(current => ({ ...current, status: '備份已匯出' })); };
   const importBackup = async (f?: File) => {
     if (!f) return;
     try {
@@ -726,7 +728,7 @@ function App() {
   return (
     <main>
       <header className="hero">
-        <div><p className="eyebrow">{APP_VERSION}</p><h1>00631L Pro</h1><h3>台股槓桿投資管理</h3><p>即時股價｜再平衡｜Firebase 雲端同步</p></div>
+        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p></div>
         <button onClick={refreshQuotes}>更新股價</button>
       </header>
       <nav className="tabs">
