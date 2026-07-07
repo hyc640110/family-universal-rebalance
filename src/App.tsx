@@ -15,7 +15,8 @@ type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
-type OrderHelper = { buy: OrderSuggestion[]; sell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
+type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; currentWeight: number; targetPercent: number };
+type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -153,6 +154,8 @@ const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
 const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
 const normalizeBuyOnlyBudget = (value: unknown) => Math.max(0, safeNumber(value));
+const budgetWanOf = (value: unknown) => safeNumber(value) / 10000;
+const budgetFromWan = (value: unknown) => Math.max(0, safeNumber(value) * 10000);
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 const rebalanceModeDescription = (mode: RebalanceMode) => mode === 'standard' ? '允許買入與賣出，目標是讓配置回到目標比例。' : '不賣出超標資產，只用現金或新資金補足低配資產，適合分批投入。';
 function getLotAndOddLot(shares: number) {
@@ -532,20 +535,30 @@ function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>,
   const buyOnlyBudget = normalizeBuyOnlyBudget(state.buyOnlyBudget);
   const buyOnlyLimit = Math.min(buyOnlyBudget, cash);
   const hasInvalidBuyOnlyBudget = mode === 'buy-only' && buyOnlyBudget <= 0;
-  const buyGaps = rows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
+  const growthRows = rows.filter(item => normalizeSymbol(item.symbol) !== '00865B');
+  const bondRow = rows.find(item => normalizeSymbol(item.symbol) === '00865B');
+  const buyGaps = growthRows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
   const fullBuyGap = buyGaps.reduce((total, item) => total + Math.max(0, safeNumber(item.diff)), 0);
   let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : cash;
-  const buy = buyGaps.map(item => {
+  const growthBuy = buyGaps.map(item => {
     const amount = mode === 'buy-only' ? Math.min(Math.max(0, item.diff), remainingBudget) : Math.max(0, item.diff);
     remainingBudget = mode === 'buy-only' ? Math.max(0, remainingBudget - amount) : remainingBudget;
     return withOrderAmount(item, amount);
   }).filter(item => item.amount >= 1);
-  const overTargets = rows.filter(item => item.diff < 0).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
-  const sell = mode === 'standard' ? overTargets : [];
+  const overTargets = growthRows.filter(item => item.diff < 0).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
+  const growthSell = mode === 'standard' ? overTargets : [];
   const skippedSell = mode === 'buy-only' ? overTargets : [];
-  const totalBuyAmount = buy.reduce((total, item) => total + item.amount, 0);
+  const bondTargetPercent = defensiveTargetOf(state);
+  const defensiveReminder: DefensiveReminder = !bondRow
+    ? { status: 'missing', message: '目前未持有 00865B，防守資產主要由現金承擔。', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetPercent: bondTargetPercent }
+    : bondRow.diff > 999
+      ? { status: 'under', message: '00865B 為防守資產，主要用於補足防守比例。若目前有信貸或現金安全不足，請優先確認還款安全存量。', item: withOrderAmount(bondRow, bondRow.diff), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent }
+      : bondRow.diff < -999
+        ? { status: 'over', message: '00865B 目前高於自動目標。', item: withOrderAmount(bondRow, Math.abs(bondRow.diff)), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent }
+        : { status: 'ok', message: '00865B 目前未明顯低配。', item: withOrderAmount(bondRow, Math.abs(bondRow.diff)), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent };
+  const totalBuyAmount = growthBuy.reduce((total, item) => total + item.amount, 0);
   const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - cash) : Math.max(0, fullBuyGap - buyOnlyLimit);
-  return { buy, sell, skippedSell, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
+  return { growthBuy, growthSell, skippedSell, defensiveReminder, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
 }
 function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
   const absDeviation = Math.abs(rb.deviation);
@@ -687,6 +700,24 @@ function SkippedSellList({ items }: { items: OrderSuggestion[] }) {
         </div>
       </article>)}
     </div>}
+  </div>;
+}
+function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
+  return <div className={`order-section defensive-reminder ${reminder.status}`}>
+    <h3>防守資產補足提醒</h3>
+    <p className="note">{reminder.message}</p>
+    {reminder.item && <article className="order-item">
+      <div className="order-rank muted">防</div>
+      <div className="order-body">
+        <h4>{reminder.item.symbol} <span>{reminder.item.name}</span></h4>
+        <div className="order-grid">
+          <p><span>目前比例</span><strong>{pct(reminder.currentWeight)}</strong></p>
+          <p><span>自動目標比例</span><strong>{pct(reminder.targetPercent)}</strong></p>
+          <p><span>{reminder.status === 'over' ? '高於目標金額' : '防守資產缺口金額'}</span><strong>{formatCurrency(reminder.item.amount)}</strong></p>
+          <p><span>約可買股數</span><strong>{reminder.status === 'under' ? reminder.item.conversionText : '目前不需補買'}</strong></p>
+        </div>
+      </div>
+    </article>}
   </div>;
 }
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
@@ -1134,9 +1165,9 @@ function App() {
               <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
               <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
             </label>
-            <label>只買不賣可用加碼預算
-              <DraftInput type="number" min="0" inputMode="numeric" value={state.buyOnlyBudget} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: normalizeBuyOnlyBudget(value) }))} />
-              <small>預設 NT$100,000；只買不賣模式會以此預算與目前現金兩者較低者為上限。</small>
+            <label>只買不賣可用加碼預算（萬）
+              <DraftInput type="number" min="0" step="0.1" inputMode="decimal" value={budgetWanOf(state.buyOnlyBudget)} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: budgetFromWan(value) }))} />
+              <small>預設 10 萬；輸入 10 代表約 NT$100,000，系統會以此預算與目前現金兩者較低者為上限。</small>
             </label>
 
           </div>
@@ -1164,7 +1195,7 @@ function App() {
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
             {orderHelper.mode === 'buy-only' && <>
-              <p><span>只買不賣可用加碼預算</span><strong>{formatCurrency(orderHelper.buyOnlyBudget)}</strong></p>
+              <p><span>只買不賣可用加碼預算</span><strong>{budgetWanOf(orderHelper.buyOnlyBudget).toLocaleString('zh-TW')} 萬<br /><small>約 {formatCurrency(orderHelper.buyOnlyBudget)}</small></strong></p>
               <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
             </>}
             <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
@@ -1192,11 +1223,12 @@ function App() {
               : orderHelper.cashEnough ? '目前現金足夠完成本次加碼建議。' : `目前現金不足，差額約 ${formatCurrency(orderHelper.shortage)}。可先依加碼順序分批投入。`}
           </p>
           <div className="order-layout">
-            <OrderSuggestionList title="建議加碼順序" items={orderHelper.buy} actionLabel="加碼" emptyText="目前沒有明顯加碼項目。" />
+            <OrderSuggestionList title="成長資產加碼順序" items={orderHelper.growthBuy} actionLabel="加碼" emptyText="目前沒有明顯需要加碼的成長資產。" />
             {orderHelper.mode === 'standard'
-              ? <OrderSuggestionList title="建議減碼順序" items={orderHelper.sell} actionLabel="減碼" emptyText="目前沒有明顯減碼項目。" />
+              ? <OrderSuggestionList title="成長資產減碼順序" items={orderHelper.growthSell} actionLabel="減碼" emptyText="目前沒有明顯需要減碼的成長資產。" />
               : <SkippedSellList items={orderHelper.skippedSell} />}
           </div>
+          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </Card>
 
@@ -1233,6 +1265,51 @@ function App() {
         </div>
       </>}
       {tab === 'sync' && <>
+        <Card title="Firebase / 雲端同步設定">
+          <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
+          <div className="params">
+            <label>Firebase URL<DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /></label>
+            <label>同步代號<DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /></label>
+            <label>Cloudflare Worker URL<input value={DEFAULT_WORKER_URL} readOnly /></label>
+            <label>股價更新間隔秒數<DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /></label>
+            <label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label>
+            <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
+          </div>
+          <div className="actions">
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+          </div>
+          <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
+          <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
+          <p>
+            <b>同步狀態：</b>
+            <span className={syncMeta.status.startsWith('❌') ? 'bad' : syncMeta.status.startsWith('🎉') ? 'good' : ''}>
+              {syncMeta.status}
+            </span>
+          </p>
+          <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料。</p>
+        </Card>
+        <Card title="同步狀態">
+          <div className="status-grid">
+            <p><span>目前資料來源</span><strong>{syncMeta.source}</strong></p>
+            <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
+            <p><span>最後雲端上傳</span><strong>{metaTime(syncMeta.lastUploadAt)}</strong></p>
+            <p><span>最後雲端下載</span><strong>{metaTime(syncMeta.lastDownloadAt)}</strong></p>
+            <p><span>最後備份匯出</span><strong>{metaTime(syncMeta.lastBackupExportAt)}</strong></p>
+            <p><span>最後備份匯入</span><strong>{metaTime(syncMeta.lastBackupImportAt)}</strong></p>
+            <p><span>目前同步代號</span><strong>{state.firebase.secretPath || 'family-universal-rebalance'}</strong></p>
+            <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+          </div>
+          <p className="note">匯出、匯入與同步狀態只會更新本機資料，不會自動上傳或下載 Firebase。</p>
+        </Card>
+        <Card title="備份 / 還原">
+          <p className="note">匯出備份與匯入還原只處理本機資料，不會自動觸發 Firebase 上傳或下載。</p>
+          <div className="actions">
+            <button onClick={exportBackup}>匯出 JSON 備份</button>
+            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { importBackup(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>
+            <button className="danger" onClick={resetState}>重設</button>
+          </div>
+        </Card>
         <Card title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
@@ -1267,46 +1344,6 @@ function App() {
             <p><span>狀態</span><strong className={targetCheck.growthTotal > 100 ? 'bad' : 'good'}>{targetCheck.status}</strong></p>
           </div>
           {targetCheck.growthTotal > 100 && <p className="warning-message">成長資產目標比例已超過 100%，請調整配置。</p>}
-        </Card>
-        <Card title="同步狀態">
-          <div className="status-grid">
-            <p><span>目前資料來源</span><strong>{syncMeta.source}</strong></p>
-            <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
-            <p><span>最後雲端上傳</span><strong>{metaTime(syncMeta.lastUploadAt)}</strong></p>
-            <p><span>最後雲端下載</span><strong>{metaTime(syncMeta.lastDownloadAt)}</strong></p>
-            <p><span>最後備份匯出</span><strong>{metaTime(syncMeta.lastBackupExportAt)}</strong></p>
-            <p><span>最後備份匯入</span><strong>{metaTime(syncMeta.lastBackupImportAt)}</strong></p>
-            <p><span>目前同步代號</span><strong>{state.firebase.secretPath || 'family-universal-rebalance'}</strong></p>
-            <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
-          </div>
-          <p className="note">匯出、匯入與同步狀態只會更新本機資料，不會自動上傳或下載 Firebase。</p>
-        </Card>
-        <Card title="Firebase / 備份 / 還原">
-          <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
-          <div className="params">
-            <DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} />
-            <DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} />
-            <input placeholder="Cloudflare Worker URL" value={DEFAULT_WORKER_URL} readOnly />
-            <DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} />
-            <label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label>
-            <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
-          </div>
-          <div className="actions">
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
-            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
-            <button onClick={exportBackup}>匯出備份 JSON</button>
-            <label className="file">匯入備份 JSON<input type="file" accept="application/json" onChange={e => { importBackup(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>
-            <button className="danger" onClick={resetState}>重設</button>
-          </div>
-          <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
-          <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
-          <p>
-            <b>同步狀態：</b>
-            <span className={syncMeta.status.startsWith('❌') ? 'bad' : syncMeta.status.startsWith('🎉') ? 'good' : ''}>
-              {syncMeta.status}
-            </span>
-          </p>
-          <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料；匯入備份也只會覆蓋本機資料，不會自動上傳。</p>
         </Card>
         <Card title="雲端同步狀態診斷與比對">
           <div className={`health-status ${syncDiagnostics.tone}`}>
