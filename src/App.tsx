@@ -14,6 +14,7 @@ type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; 
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -44,6 +45,7 @@ const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const num = (n: number) => Number.isFinite(n) ? n : 0;
 const money = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
+const formatCurrency = (n: number) => `NT$ ${Math.round(num(n)).toLocaleString('zh-TW')}`;
 const signedMoney = (n: number) => `${n > 0 ? '+' : ''}${money(n)}`;
 const pct = (n: number) => `${num(n).toFixed(2)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
@@ -149,6 +151,15 @@ const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
 const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
 const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
+function getLotAndOddLot(shares: number) {
+  const safeShares = Math.max(0, Math.floor(safeNumber(shares)));
+  return { lots: Math.floor(safeShares / 1000), oddLots: safeShares % 1000 };
+}
+function formatShares(shares: number | null) {
+  if (shares === null) return '價格不足，無法換算股數';
+  const { lots, oddLots } = getLotAndOddLot(shares);
+  return `${shares.toLocaleString('zh-TW')} 股（${lots} 張 + ${oddLots} 股）`;
+}
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
@@ -481,6 +492,38 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
   return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: [], mode, modeLabel: rebalanceModeLabel(mode), deviation, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
 }
+function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>, m: ReturnType<typeof calculateMetrics>) {
+  const rows = m.rows.map(row => {
+    const targetPercent = getEffectiveTargetPercent(row, state.holdings);
+    const targetValue = m.totalAssets * (targetPercent / 100);
+    const diff = num(targetValue - row.marketValue);
+    const amount = Math.abs(diff);
+    const quote = quotes[row.symbol] || row.quote;
+    const price = Math.max(0, safeNumber(quote?.price));
+    const shares = price > 0 ? Math.floor(amount / price) : null;
+    const lotInfo = getLotAndOddLot(shares ?? 0);
+    return {
+      symbol: row.symbol,
+      name: row.quote.name || SYMBOL_NAMES[row.symbol] || row.symbol,
+      diff,
+      amount,
+      price,
+      targetPercent,
+      currentValue: row.marketValue,
+      targetValue,
+      shares,
+      lots: lotInfo.lots,
+      oddLots: lotInfo.oddLots,
+      conversionText: formatShares(shares)
+    };
+  }).filter(item => item.amount >= 1);
+  const buy = rows.filter(item => item.diff > 0).sort((a, b) => b.amount - a.amount);
+  const sell = rows.filter(item => item.diff < 0).sort((a, b) => b.amount - a.amount);
+  const totalBuyAmount = buy.reduce((total, item) => total + item.amount, 0);
+  const cash = Math.max(0, safeNumber(m.cash));
+  const shortage = Math.max(0, totalBuyAmount - cash);
+  return { buy, sell, cash, totalBuyAmount, shortage, cashEnough: cash >= totalBuyAmount };
+}
 function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
   const absDeviation = Math.abs(rb.deviation);
   const overTarget = rb.deviation > 0;
@@ -583,6 +626,25 @@ function Card({ title, children, action, style }: { title: string; children: Rea
     )}
     {children}
   </section>;
+}
+function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: string; items: OrderSuggestion[]; actionLabel: string; emptyText: string }) {
+  return <div className="order-section">
+    <h3>{title}</h3>
+    {items.length === 0 ? <p className="note">{emptyText}</p> : <div className="order-list">
+      {items.map((item, index) => <article className="order-item" key={`${title}-${item.symbol}`}>
+        <div className="order-rank">{index + 1}</div>
+        <div className="order-body">
+          <h4>{item.symbol} <span>{item.name}</span></h4>
+          <div className="order-grid">
+            <p><span>{actionLabel}金額</span><strong>{formatCurrency(item.amount)}</strong></p>
+            <p><span>目前價格</span><strong>{item.price > 0 ? item.price.toFixed(2) : '價格不足'}</strong></p>
+            <p><span>{actionLabel === '加碼' ? '約可買' : '約可賣'}</span><strong>{item.conversionText}</strong></p>
+            <p><span>目標比例</span><strong>{pct(item.targetPercent)}</strong></p>
+          </div>
+        </div>
+      </article>)}
+    </div>}
+  </div>;
 }
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
   const [draft, setDraft] = useState(String(value ?? ''));
@@ -726,6 +788,7 @@ function App() {
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
+  const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const targetWarning = isGrowthTargetOverLimit(state) ? '成長資產目標比例已超過 100%，請調整配置' : '';
   const targetCheck = useMemo(() => {
@@ -1049,6 +1112,22 @@ function App() {
             </div>
           </div>
         </Card>
+        <Card title="實際下單輔助">
+          <div className="status-grid">
+            <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
+            <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
+            <p><span>現金檢查</span><strong className={orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
+            <p><span>下單單位</span><strong>1 張 = 1000 股</strong></p>
+          </div>
+          <p className={orderHelper.cashEnough ? 'note' : 'warning-message'}>
+            {orderHelper.cashEnough ? '目前現金足夠完成本次加碼建議。' : `目前現金不足，差額約 ${formatCurrency(orderHelper.shortage)}。可先依加碼順序分批投入。`}
+          </p>
+          <div className="order-layout">
+            <OrderSuggestionList title="建議加碼順序" items={orderHelper.buy} actionLabel="加碼" emptyText="目前沒有明顯加碼項目。" />
+            <OrderSuggestionList title="建議減碼順序" items={orderHelper.sell} actionLabel="減碼" emptyText="目前沒有明顯減碼項目。" />
+          </div>
+          <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
+        </Card>
 
         <div className="two" style={isMobile ? { maxWidth: '390px', width: '100%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' } : undefined}>
           <Card title="現金管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
@@ -1083,54 +1162,6 @@ function App() {
         </div>
       </>}
       {tab === 'sync' && <>
-        <Card title="版本與除錯">
-          <div className="status-grid">
-            <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
-            <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
-            <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
-            <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
-          </div>
-          <div className="actions">
-            <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
-          </div>
-          {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
-            <summary>查看除錯資訊文字</summary>
-            <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
-          </details>}
-          <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
-        </Card>
-        <Card title="更新紀錄">
-          <details className="release-notes">
-            <summary>查看更新紀錄</summary>
-            <div className="release-group">
-              <h3>v1.1.1</h3>
-              <ul>
-                <li>新增版本號與 Build 資訊。</li>
-                <li>新增一鍵複製除錯資訊。</li>
-                <li>新增 Error Boundary，避免整頁空白。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.1.0</h3>
-              <ul>
-                <li>新增 JSON 備份匯出 / 匯入。</li>
-                <li>新增同步狀態提示。</li>
-                <li>新增危險操作確認。</li>
-                <li>新增目標比例檢查。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.0.x</h3>
-              <ul>
-                <li>修正成長 / 防守資產分類。</li>
-                <li>00865B 目標比例改為自動計算。</li>
-                <li>預設資產可刪除。</li>
-                <li>修正 00670L 名稱為富邦NASDAQ正2。</li>
-                <li>優化手機版防守資產表格。</li>
-              </ul>
-            </div>
-          </details>
-        </Card>
         <Card title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
@@ -1250,6 +1281,64 @@ function App() {
           </div>
         </Card>
       </>}
+      <footer className="app-footer">
+        <Card title="版本與除錯">
+          <div className="status-grid">
+            <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
+            <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+            <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
+            <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
+          </div>
+          <div className="actions">
+            <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
+          </div>
+          {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
+            <summary>查看除錯資訊文字</summary>
+            <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
+          </details>}
+          <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
+        </Card>
+        <Card title="更新紀錄">
+          <details className="release-notes">
+            <summary>查看更新紀錄</summary>
+            <div className="release-group">
+              <h3>v1.2.0</h3>
+              <ul>
+                <li>新增實際下單輔助，將再平衡差額換算為金額、股數與張數。</li>
+                <li>新增建議加碼 / 減碼順序與現金檢查。</li>
+                <li>將版本與除錯、更新紀錄移至頁面最下方。</li>
+              </ul>
+            </div>
+            <div className="release-group">
+              <h3>v1.1.1</h3>
+              <ul>
+                <li>新增版本號與 Build 資訊。</li>
+                <li>新增一鍵複製除錯資訊。</li>
+                <li>新增 Error Boundary，避免整頁空白。</li>
+              </ul>
+            </div>
+            <div className="release-group">
+              <h3>v1.1.0</h3>
+              <ul>
+                <li>新增 JSON 備份匯出 / 匯入。</li>
+                <li>新增同步狀態提示。</li>
+                <li>新增危險操作確認。</li>
+                <li>新增目標比例檢查。</li>
+              </ul>
+            </div>
+            <div className="release-group">
+              <h3>v1.0.x</h3>
+              <ul>
+                <li>修正成長 / 防守資產分類。</li>
+                <li>00865B 目標比例改為自動計算。</li>
+                <li>預設資產可刪除。</li>
+                <li>修正 00670L 名稱為富邦NASDAQ正2。</li>
+                <li>優化手機版防守資產表格。</li>
+              </ul>
+            </div>
+          </details>
+        </Card>
+      </footer>
     </main>
   );
 }
