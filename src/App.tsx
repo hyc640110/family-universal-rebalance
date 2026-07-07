@@ -57,12 +57,20 @@ const backupStamp = () => {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 };
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, Number.isFinite(value) ? value : DEFAULT_GROWTH_TARGET));
-const growthTargetOf = (state: Pick<AppState, 'holdings'>) => {
-  const weights = state.holdings
+const growthTargetTotalOf = (state: Pick<AppState, 'holdings'>) => {
+  return state.holdings
     .filter(h => !DEFENSIVE_SYMBOLS.has(normalizeSymbol(h.symbol)))
     .map(h => Number(h.targetWeight))
-    .filter(Number.isFinite);
-  return weights.length ? clampTarget(weights.reduce((a, v) => a + v, 0)) : DEFAULT_GROWTH_TARGET;
+    .filter(Number.isFinite)
+    .reduce((a, v) => a + Math.max(0, v), 0);
+};
+const growthTargetOf = (state: Pick<AppState, 'holdings'>) => Math.min(MAX_GROWTH_TARGET, growthTargetTotalOf(state));
+const defensiveTargetOf = (state: Pick<AppState, 'holdings'>) => Math.max(0, 100 - growthTargetTotalOf(state));
+const isGrowthTargetOverLimit = (state: Pick<AppState, 'holdings'>) => growthTargetTotalOf(state) > 100;
+const applyAutoDefensiveTarget = (holdings: Holding[]) => {
+  const base = holdings.map(h => ({ ...h, symbol: normalizeSymbol(h.symbol) }));
+  const bondTarget = Math.max(0, 100 - growthTargetTotalOf({ holdings: base }));
+  return base.map(h => DEFENSIVE_SYMBOLS.has(h.symbol) ? { ...h, targetWeight: bondTarget } : h);
 };
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
@@ -169,7 +177,7 @@ function normalizeState(raw: unknown): AppState {
   const rawHoldings = (hasHoldingsData ? r.holdings : defaultState.holdings) as Holding[];
   const holdings = rawHoldings.map(h => sanitizeHolding(h)).filter(Boolean) as Holding[];
   const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && holdings[0].shares === 0 && holdings[0].avgCost === 0 && holdings[0].targetWeight === 70;
-  const normalizedHoldings = !hasHoldingsData || isOldCleanDefault ? defaultState.holdings : holdings;
+  const normalizedHoldings = applyAutoDefensiveTarget(!hasHoldingsData || isOldCleanDefault ? defaultState.holdings : holdings);
   const cash = (Array.isArray(s.cash) ? s.cash : defaultState.cash).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(s.loans) ? s.loans : defaultState.loans).map(l => sanitizeLoanItem(l as LoanItem));
   return { holdings: normalizedHoldings, cash, loans, firebase: { ...defaultState.firebase, ...(s.firebase || {}) }, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)) };
@@ -198,8 +206,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
   if (backupHasRemovedStrategy(raw)) throw new Error(`${removedSymbol()} 已從正式策略移除，備份檔含有已移除的 ${removedSymbol()} 策略資料，請確認後再匯入。`);
   const r = raw as Partial<BackupPayload> & { cash?: CashItem[]; firebase?: FirebaseConfig };
   if (!Array.isArray(r.holdings) || !Array.isArray(r.loans) || !Array.isArray(r.cashAccounts || r.cash)) throw new Error('備份檔缺少 holdings / cashAccounts / loans。');
-  const targetRatio = clampTarget(Number(r.targetRatio ?? r.holdings.find(h => h.symbol === '00631L')?.targetWeight ?? DEFAULT_GROWTH_TARGET));
-  return normalizeState({ ...current, holdings: r.holdings.map(h => h.symbol === '00631L' ? { ...h, targetWeight: targetRatio } : h), cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase: current.firebase });
+  return normalizeState({ ...current, holdings: r.holdings, cash: r.cashAccounts || r.cash, loans: r.loans, refreshSec: r.syncSettings?.refreshSec ?? current.refreshSec, autoSync: r.syncSettings?.autoSync ?? current.autoSync, autoSyncSec: r.syncSettings?.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), firebase: current.firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta {
@@ -336,7 +343,7 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveHoldingsValue = defensiveHoldings.reduce((a, r) => a + r.marketValue, 0);
   const defensive = cash + defensiveHoldingsValue;
   const growthTargetPct = growthTargetOf(state);
-  const defensiveTargetPct = 100 - growthTargetPct;
+  const defensiveTargetPct = defensiveTargetOf(state);
   const beta = rows.reduce((a, r) => a + (r.symbol === '00631L' ? 2 : 0.05) * (totalAssets ? r.marketValue / totalAssets : 0), 0);
   const cashRatio = totalAssets ? cash / totalAssets * 100 : 0;
   const defensiveRatio = totalAssets ? defensive / totalAssets * 100 : 0;
@@ -548,8 +555,9 @@ function App() {
   const stateRef = useRef(state);
   const setState = (updater: SetStateAction<AppState>) => {
     const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(stateRef.current) : updater;
-    stateRef.current = next;
-    setStateValue(next);
+    const normalized = normalizeState(next);
+    stateRef.current = normalized;
+    setStateValue(normalized);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
@@ -572,14 +580,12 @@ function App() {
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(now());
   const isApplyingRemoteRef = useRef(false);
-  const [targetDraft, setTargetDraft] = useState(String(growthTargetOf(state)));
   const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
   const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater; writeSyncMeta(next); return next; });
   useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
-  useEffect(() => setTargetDraft(String(growthTargetOf(state))), [state.holdings]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentState.holdings.find(h => normalizeSymbol(h.symbol) === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
   const flushDrafts = async () => {
     const active = document.activeElement;
@@ -636,6 +642,7 @@ function App() {
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+  const targetWarning = isGrowthTargetOverLimit(state) ? '成長資產目標比例已超過 100%，請調整配置' : '';
 
   const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
   const generateRebalanceSummaryText = () => {
@@ -643,7 +650,7 @@ function App() {
     const timeStr = hasUpdatedQuotes && quoteTime ? twShortTime(quoteTime) : '尚未更新';
     
     const targetGrowth = growthTargetOf(state);
-    const targetDefensive = 100 - targetGrowth;
+    const targetDefensive = defensiveTargetOf(state);
     
     const currentGrowth = rb.stockRow.currentWeight;
     const currentDefensive = rb.defensiveRow.currentWeight;
@@ -752,7 +759,6 @@ function App() {
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
   };
-  const commitTarget = () => { const next = clampTarget(Number(targetDraft)); setTargetDraft(String(next)); updateHolding('00631L', 'targetWeight', next); };
   const exportBackup = () => { const blob = new Blob([JSON.stringify(backupPayload(state), null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `family-universal-rebalance-backup-${backupStamp()}.json`; a.click(); URL.revokeObjectURL(url); updateSyncMeta(current => ({ ...current, status: '備份已匯出' })); };
   const importBackup = async (f?: File) => {
     if (!f) return;
@@ -796,18 +802,20 @@ function App() {
         </section>
         <Card title="AI 分析與加碼建議">
           <h3>{mode}</h3><p>{hint}</p>
+          {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <small>資料來源：{m.rows.map(r => `${r.symbol}=${r.quote.source}`).join(' / ')}</small>
           <p className="note">{quoteStatus}</p>
         </Card>
         <Card title="持股配置">
+          {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
             {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; return <article className="holding" key={r.symbol}>
               <h3>{r.symbol}</h3><p>{r.quote.name}</p><p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>{r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
               <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
               <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
-              <label>目標比例 %<DraftInput inputMode="decimal" value={r.symbol === '00631L' ? targetDraft : r.targetWeight ?? ''} onCommit={value => { const next = clampTarget(Number(value)); if (r.symbol === '00631L') setTargetDraft(String(next)); updateHolding(r.symbol, 'targetWeight', next); }} /><small>{r.symbol === '00631L' ? `限制 ${MIN_GROWTH_TARGET}%～${MAX_GROWTH_TARGET}%，防守資產自動為 ${pct(m.defensiveTargetPct)}。` : '萬用資產配置目標。'}</small></label>
+              <label>目標比例 %{DEFENSIVE_SYMBOLS.has(r.symbol) ? <input inputMode="decimal" value={pct(r.targetWeight ?? defensiveTargetOf(state))} readOnly disabled /> : <DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} />}<small>{DEFENSIVE_SYMBOLS.has(r.symbol) ? '自動計算，由成長資產比例反推。' : `成長資產配置目標，限制 ${MIN_GROWTH_TARGET}%～${MAX_GROWTH_TARGET}%。`}</small></label>
               <strong>市值：{money(r.marketValue)}</strong>
               <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
             </article>; })}
@@ -826,6 +834,7 @@ function App() {
             </button>
           }
         >
+          {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className={`health-status ${health.tone}`}>
             <div className="health-light" />
             <div>

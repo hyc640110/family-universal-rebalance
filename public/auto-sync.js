@@ -1,6 +1,7 @@
 (() => {
   const STORAGE_KEYS = ['family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set();
+  const DEFENSIVE_SYMBOLS = new Set(['00865B']);
   const DEFAULT_HOLDINGS = [
     { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
     { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38 },
@@ -20,17 +21,35 @@
     return Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, numeric));
   }
 
+  function normalizeSymbol(value) {
+    return String(value ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  }
+
+  function growthTargetTotalOf(holdings) {
+    return holdings
+      .filter((h) => !DEFENSIVE_SYMBOLS.has(normalizeSymbol(h.symbol)))
+      .map((h) => Number(h.targetWeight))
+      .filter(Number.isFinite)
+      .reduce((a, v) => a + Math.max(0, v), 0);
+  }
+
+  function applyAutoDefensiveTarget(holdings) {
+    const base = holdings.map((h) => ({ ...h, symbol: normalizeSymbol(h.symbol) }));
+    const bondTarget = Math.max(0, 100 - growthTargetTotalOf(base));
+    return base.map((h) => DEFENSIVE_SYMBOLS.has(h.symbol) ? { ...h, targetWeight: bondTarget } : h);
+  }
+
   function sanitizeState(value) {
     if (!value || typeof value !== 'object') return {};
     const state = { ...value };
     STALE_KEYS.forEach((key) => delete state[key]);
     const hasHoldingsData = Array.isArray(state.holdings);
-    const holdings = hasHoldingsData ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(h.symbol)).map((h) => {
+    const holdings = hasHoldingsData ? state.holdings.filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(normalizeSymbol(h.symbol))).map((h) => {
       const targetWeight = h.targetWeight === undefined ? undefined : clampTarget(h.targetWeight);
-      return { ...h, ...(targetWeight === undefined ? {} : { targetWeight }) };
+      return { ...h, symbol: normalizeSymbol(h.symbol), ...(targetWeight === undefined ? {} : { targetWeight }) };
     }) : [];
     const isOldCleanDefault = holdings.length === 1 && holdings[0]?.symbol === '00631L' && Number(holdings[0].shares) === 0 && Number(holdings[0].avgCost) === 0 && Number(holdings[0].targetWeight) === 70;
-    state.holdings = !hasHoldingsData || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings;
+    state.holdings = applyAutoDefensiveTarget(!hasHoldingsData || isOldCleanDefault ? DEFAULT_HOLDINGS : holdings);
     const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {

@@ -1,4 +1,4 @@
-const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-growth-defensive-delete-assets';
+const CACHE = 'family-universal-rebalance-v100-cache-disabled-20260707-auto-00865b-target';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
