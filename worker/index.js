@@ -1,5 +1,6 @@
-const VERSION = '00631L-Pro-Web-App Worker v6.3 CORS';
-const ALLOWED = ['00631L.TW', '00865B.TW'];
+const VERSION = '00631L-Pro-Web-App Worker v6.4 Taiwan symbol normalization';
+const DEFAULT_SYMBOL = '00631L.TW';
+const TAIWAN_SYMBOL_RE = /^[0-9A-Z]{4,8}\.(TW|TWO)$/;
 
 function corsHeaders(request) {
   const origin = request.headers.get('origin') || '*';
@@ -17,9 +18,10 @@ function corsHeaders(request) {
 }
 
 function normalizeSymbol(raw) {
-  const value = String(raw || '00631L').trim().toUpperCase();
-  const symbol = value.includes('.') ? value : `${value}.TW`;
-  if (!ALLOWED.includes(symbol)) throw new Error(`unsupported symbol: ${symbol}`);
+  const value = String(raw || DEFAULT_SYMBOL).trim().toUpperCase();
+  const [code, market = 'TW'] = value.split('.');
+  const symbol = `${code}.${market}`;
+  if (!TAIWAN_SYMBOL_RE.test(symbol)) throw new Error(`unsupported symbol: ${symbol}`);
   return symbol;
 }
 
