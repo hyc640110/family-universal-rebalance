@@ -164,7 +164,12 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .error-page{min-height:100vh;display:grid;place-items:center}
 .error-card{width:min(900px,100%);margin:0}
 .app-footer{margin-top:28px;padding-top:10px;border-top:1px solid #1d3d66}
-.mobile-bottom-nav{display:none}
+.mobile-bottom-nav,.desktop-side-nav{display:none}
+@media (min-width:1024px){
+  main{padding-right:112px}
+  .desktop-side-nav{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:8px;padding:10px;background:rgba(7,18,33,.9);border:1px solid #1d3d66;border-radius:14px;box-shadow:0 18px 45px #0007;backdrop-filter:blur(12px)}
+  .desktop-side-nav button{min-width:58px;min-height:36px;padding:8px 10px;border-radius:9px;font-size:12px;line-height:1;white-space:nowrap}
+}
 @media(max-width:900px){
   main{padding:14px}
   .hero{flex-direction:column;align-items:flex-start}

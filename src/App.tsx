@@ -1556,6 +1556,14 @@ function App() {
         <button type="button" onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳</button>
         <button type="button" onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載</button>
       </nav>
+      <nav className="desktop-side-nav" aria-label="桌機快捷導覽">
+        <button type="button" onClick={() => scrollToSection('overview-section')}>總覽</button>
+        <button type="button" onClick={() => scrollToSection('rebalance-section')}>再平衡</button>
+        <button type="button" onClick={() => scrollToSection('order-section')}>下單</button>
+        <button type="button" onClick={() => scrollToSection('loan-section')}>借款</button>
+        <button type="button" onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳</button>
+        <button type="button" onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載</button>
+      </nav>
     </main>
   );
 }
