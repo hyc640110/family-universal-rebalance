@@ -1478,22 +1478,26 @@ function App() {
         </Card>
       </>}
       <footer className="app-footer">
-        <Card title="版本與除錯">
-          <div className="status-grid">
-            <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
-            <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
-            <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
-            <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
-          </div>
-          <div className="actions">
-            <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
-          </div>
-          {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
-            <summary>查看除錯資訊文字</summary>
-            <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
-          </details>}
-          <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
-        </Card>
+        <section className="card footer-debug-card">
+          <details className="debug-details footer-debug-details">
+            <summary><span>版本與除錯</span><small>點開查看版本、Build、除錯資訊</small></summary>
+            <div className="status-grid">
+              <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
+              <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+              <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
+              <p><span>Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+              <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
+            </div>
+            <div className="actions">
+              <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
+            </div>
+            {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
+              <summary>查看除錯資訊文字</summary>
+              <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
+            </details>}
+            <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
+          </details>
+        </section>
         <Card title="更新紀錄">
           <details className="release-notes">
             <summary>查看更新紀錄</summary>
@@ -1502,6 +1506,7 @@ function App() {
               <ul>
                 <li>新增逢低加碼提醒，可為每檔持股設定觀察價與跌幅門檻。</li>
                 <li>新增手機底部快捷導覽，快速跳到總覽、再平衡、下單、借款與同步。</li>
+                <li>手機底部快捷列改為直接提供上傳 / 下載雲端，並將版本與除錯改為預設收合。</li>
                 <li>逢低提醒僅提供觀察訊號，不會自動買賣、扣現金或同步雲端。</li>
               </ul>
             </div>
@@ -1548,7 +1553,8 @@ function App() {
         <button type="button" onClick={() => scrollToSection('rebalance-section')}>再平衡</button>
         <button type="button" onClick={() => scrollToSection('order-section')}>下單</button>
         <button type="button" onClick={() => scrollToSection('loan-section')}>借款</button>
-        <button type="button" onClick={() => scrollToSection('sync-section', 'sync')}>同步</button>
+        <button type="button" onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳</button>
+        <button type="button" onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載</button>
       </nav>
     </main>
   );
