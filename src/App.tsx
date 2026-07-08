@@ -749,7 +749,7 @@ function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: 
       <label className="dip-toggle"><input type="checkbox" checked={row.setting.enabled} onChange={e => onChange(row.symbol, { enabled: e.currentTarget.checked })} /> 啟用</label>
     </div>
     <div className="dip-alert-fields">
-      <label>逢低參考價
+      <label>波段最高價
         <DraftInput type="number" min="0" step="0.01" inputMode="decimal" value={row.setting.referencePrice || ''} onCommit={value => onChange(row.symbol, { referencePrice: Math.max(0, safeNumber(value)) })} />
       </label>
       <label>跌幅提醒門檻 %
@@ -757,8 +757,8 @@ function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: 
       </label>
     </div>
     <div className="dip-alert-result">
-      <p><span>參考價</span><strong>{row.setting.referencePrice > 0 ? row.setting.referencePrice.toFixed(2) : '尚未設定'}</strong></p>
-      <p><span>目前跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效參考價' : signedPct(row.drawdownPct)}</strong></p>
+      <p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? row.setting.referencePrice.toFixed(2) : '尚未設定'}</strong></p>
+      <p><span>目前跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p>
       <p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p>
       <p><span>狀態</span><strong className={row.triggered ? 'warn' : ''}>{row.status}</strong></p>
     </div>
@@ -915,7 +915,7 @@ function App() {
     const referencePrice = Math.max(0, safeNumber(setting.referencePrice));
     const drawdownPct = price > 0 && referencePrice > 0 ? (price - referencePrice) / referencePrice * 100 : null;
     const triggered = Boolean(setting.enabled && drawdownPct !== null && drawdownPct <= setting.thresholdPct);
-    const status = !setting.enabled ? '未啟用' : drawdownPct === null ? '尚未設定有效參考價' : triggered ? '已達逢低加碼觀察條件，可列入加碼觀察' : '尚未觸發';
+    const status = !setting.enabled ? '未啟用' : drawdownPct === null ? '尚未設定有效波段最高價' : triggered ? '已達逢低加碼觀察條件，可列入加碼觀察' : '尚未觸發';
     return { symbol, name: row.quote.name || SYMBOL_NAMES[symbol] || symbol, price, setting, drawdownPct, triggered, status };
   }), [m.rows, quotes, state.dipAlerts]);
   const targetWarning = isGrowthTargetOverLimit(state) ? '成長資產目標比例已超過 100%，請調整配置' : '';
@@ -1313,7 +1313,7 @@ function App() {
         </Card>
 
         <Card id="dip-alert-section" title="逢低加碼提醒">
-          <p className="note">每檔目前持有資產都可設定觀察價與跌幅門檻。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>
+          <p className="note">每檔目前持有資產都可設定波段最高價與跌幅門檻。系統會用目前股價相對波段最高價的跌幅，判斷是否達到逢低加碼觀察條件。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>
           {dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">
             {dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}
           </div>}
@@ -1504,10 +1504,10 @@ function App() {
             <div className="release-group">
               <h3>v1.3.1</h3>
               <ul>
-                <li>新增逢低加碼提醒，可為每檔持股設定觀察價與跌幅門檻。</li>
+                <li>新增逢低加碼提醒，可為每檔持股設定波段最高價與跌幅門檻。</li>
                 <li>新增手機底部快捷導覽，快速跳到總覽、再平衡、下單、借款與同步。</li>
                 <li>手機底部快捷列改為直接提供上傳 / 下載雲端，並將版本與除錯改為預設收合。</li>
-                <li>統一逢低提醒欄位為逢低參考價，並放大桌機右側快捷列。</li>
+                <li>統一逢低提醒欄位為波段最高價，並放大桌機右側快捷列。</li>
                 <li>逢低提醒僅提供觀察訊號，不會自動買賣、扣現金或同步雲端。</li>
               </ul>
             </div>

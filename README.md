@@ -36,6 +36,30 @@ npm.cmd run dev
 
 `.github/workflows/deploy.yml` 已包含 GitHub Pages 部署流程。
 
+### PR 預覽版部署
+
+PR 尚未合併前，請使用預覽版部署，不要覆蓋正式 GitHub Pages。
+
+```cmd
+npm.cmd run build:preview
+npm.cmd run deploy:preview
+```
+
+預覽網址：
+
+https://hyc640110.github.io/family-universal-rebalance/preview/
+
+預覽版設定：
+
+- Vite base：`/family-universal-rebalance/preview/`
+- localStorage key：`family-universal-rebalance-preview-v100-state`
+- Firebase path 仍為 `family-universal-rebalance/...`，測試時請使用測試同步代號，避免覆蓋正式同步資料。
+
+正式版仍使用：
+
+- Vite base：`/family-universal-rebalance/`
+- localStorage key：`family-universal-rebalance-v100-state`
+
 ## 台股盤後 Yahoo API 昨收價防呆機制說明
 
 本專案在 v6.1 進行了報價 API 來源與前端解析的防呆重構。
