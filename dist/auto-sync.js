@@ -1,5 +1,5 @@
 (() => {
-  const isPreview = window.location.pathname.startsWith('/family-universal-rebalance-preview/');
+  const isPreview = window.location.pathname.startsWith('/family-universal-rebalance/preview/');
   const STORAGE_KEYS = [isPreview ? 'family-universal-rebalance-preview-v100-state' : 'family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set();
   const DEFENSIVE_SYMBOLS = new Set(['00865B']);
