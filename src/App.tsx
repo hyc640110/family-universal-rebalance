@@ -1252,7 +1252,7 @@ function App() {
         </div>
       </Card>}
       {tab === 'dashboard' && <>
-        <section className="grid stats">
+        <section id="dashboard-stats" className="grid stats">
           <Stat label="總資產" value={money(m.totalAssets)} />
           <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
           <Stat label="淨資產" value={money(m.netWorth)} />
@@ -1262,14 +1262,14 @@ function App() {
           <Stat label="槓桿比例" value={m.leverage.toFixed(2) + 'x'} />
           <Stat label="策略模式" value={mode} tone={modeTone} />
         </section>
-        <Card title="AI 分析與加碼建議">
+        <Card id="ai-section" title="AI 分析與加碼建議">
           <h3>{mode}</h3><p>{hint}</p>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <small>資料來源：{m.rows.map(r => `${r.symbol}=${r.quote.source}`).join(' / ')}</small>
           <p className="note">{quoteStatus}</p>
         </Card>
-        <Card title="資產總覽"><Pie3D m={m} /></Card>
+        <Card id="asset-overview-card" title="資產總覽"><Pie3D m={m} /></Card>
         <Card 
           id="rebalance-section"
           title="再平衡與加碼建議" 
@@ -1386,7 +1386,7 @@ function App() {
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </Card>
-        <Card title="持股配置">
+        <Card id="holdings-section" title="持股配置">
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
             {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; return <article className="holding" key={r.symbol}>
@@ -1400,7 +1400,7 @@ function App() {
             </article>; })}
           </div>
         </Card>
-        <Card title="資產分類設定">
+        <Card id="asset-classification-section" title="資產分類設定">
           <p className="note">防守資產固定只包含現金與 00865B；其他目前持股都列為成長資產。00865B 目標比例由成長資產目標合計自動反推。</p>
           <div className="status-grid">
             <p><span>成長資產目標合計</span><strong className={targetCheck.growthTotal > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p>

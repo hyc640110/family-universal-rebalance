@@ -234,7 +234,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     box-sizing: border-box !important;
   }
 
-  .dashboard, .grid, .main-layout, .container, main {
+  .dashboard, .main-layout, .container, main {
     display: flex !important;
     flex-direction: column !important;
     padding: 0.45rem 0.5rem calc(92px + env(safe-area-inset-bottom)) !important;
@@ -380,6 +380,20 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
     gap: 0.45rem !important;
     width: 100% !important;
   }
+
+  /* 手機版儀表板順序：總覽數字 → AI → 持股配置 → 再平衡 → 交易清單 → 資產總覽 */
+  .grid.stats {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  #ai-section { order: 2 !important; }
+  #holdings-section { order: 3 !important; }
+  #rebalance-section { order: 4 !important; }
+  #order-section { order: 5 !important; }
+  #asset-overview-card { order: 6 !important; }
+  #asset-classification-section { order: 7 !important; }
+  main > .two { order: 8 !important; }
   
   .stat {
     padding: 0.45rem !important;
