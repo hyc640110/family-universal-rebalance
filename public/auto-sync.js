@@ -2,13 +2,11 @@
   const isPreview = window.location.pathname.startsWith('/family-universal-rebalance/preview/');
   const STORAGE_KEYS = [isPreview ? 'family-universal-rebalance-preview-v100-state' : 'family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set();
-  const DEFENSIVE_SYMBOLS = new Set(['00865B']);
   const DEFAULT_HOLDINGS = [
-    { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
-    { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38 },
-    { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20 },
-    { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
-    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
+    { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40, assetClass: 'growth' },
+    { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38, assetClass: 'growth' },
+    { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
+    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
   ];
   const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
   const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
@@ -39,25 +37,23 @@
     return asset?.targetWeight ?? asset?.targetPercent ?? asset?.targetRatio ?? asset?.allocation ?? 0;
   }
 
-  function growthTargetTotalOf(holdings) {
-    return safeHoldings(holdings)
-      .filter((h) => !DEFENSIVE_SYMBOLS.has(normalizeSymbol(h.symbol)))
-      .reduce((a, h) => a + Math.max(0, safeNumber(rawTargetOf(h))), 0);
+  function normalizeAssetClass(value, symbol) {
+    if (value === 'defensive') return 'defensive';
+    if (value === 'growth') return 'growth';
+    return normalizeSymbol(symbol) === '00865B' ? 'defensive' : 'growth';
   }
 
-  function getAutoBondTarget(holdings) {
-    return Math.max(0, safeNumber(100 - growthTargetTotalOf(holdings)));
-  }
-
-  function getEffectiveTargetPercent(asset, holdings) {
-    if (!asset) return 0;
-    return normalizeSymbol(asset.symbol) === '00865B' ? getAutoBondTarget(holdings) : Math.max(0, safeNumber(rawTargetOf(asset)));
-  }
-
-  function applyAutoDefensiveTarget(holdings) {
-    const base = safeHoldings(holdings).map((h) => ({ ...h, symbol: normalizeSymbol(h.symbol) }));
-    const bondTarget = getAutoBondTarget(base);
-    return base.map((h) => DEFENSIVE_SYMBOLS.has(h.symbol) ? { ...h, targetWeight: bondTarget } : h);
+  function normalizeHolding(asset) {
+    const symbol = normalizeSymbol(asset?.symbol);
+    if (!symbol || REMOVED_SYMBOLS.has(symbol)) return null;
+    return {
+      ...asset,
+      symbol,
+      shares: Math.max(0, safeNumber(asset?.shares)),
+      avgCost: Math.max(0, safeNumber(asset?.avgCost)),
+      targetWeight: clampTarget(rawTargetOf(asset)),
+      assetClass: normalizeAssetClass(asset?.assetClass, symbol)
+    };
   }
 
   function sanitizeState(value) {
@@ -65,11 +61,8 @@
     const state = { ...value };
     STALE_KEYS.forEach((key) => delete state[key]);
     const hasHoldingsData = Array.isArray(state.holdings);
-    const holdings = hasHoldingsData ? safeHoldings(state.holdings).filter((h) => h?.symbol && !REMOVED_SYMBOLS.has(normalizeSymbol(h.symbol))).map((h) => {
-      const targetWeight = clampTarget(getEffectiveTargetPercent(h, state.holdings));
-      return { ...h, symbol: normalizeSymbol(h.symbol), targetWeight };
-    }) : [];
-    state.holdings = applyAutoDefensiveTarget(!hasHoldingsData ? DEFAULT_HOLDINGS : holdings);
+    const sourceHoldings = hasHoldingsData ? state.holdings : (localStorage.getItem(STORAGE_KEYS[0]) ? [] : DEFAULT_HOLDINGS);
+    state.holdings = safeHoldings(sourceHoldings).map(normalizeHolding).filter(Boolean);
     const removedSymbol = Array.from(REMOVED_SYMBOLS)[0];
     state.cash = Array.isArray(state.cash) ? state.cash.filter((c) => !removedSymbol || ![c?.id, c?.name, c?.note].some((v) => String(v ?? '').includes(removedSymbol))) : [];
     state.loans = Array.isArray(state.loans) ? state.loans.map((loan) => {
