@@ -4,7 +4,8 @@ import { APP_BUILD_TIME, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
-type Holding = { symbol: SymbolCode; shares: number; avgCost: number; targetWeight?: number };
+type AssetClass = 'growth' | 'defensive';
+type Holding = { symbol: SymbolCode; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
@@ -16,19 +17,21 @@ type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct:
 type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
-type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; currentWeight: number; targetPercent: number };
+type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
 type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
+type MobileDisplayMode = 'compact' | 'full';
+type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug';
+type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
-  { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40 },
-  { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38 },
-  { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20 },
-  { symbol: '0050', shares: 0, avgCost: 0, targetWeight: 1 },
-  { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1 }
+  { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40, assetClass: 'growth' },
+  { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38, assetClass: 'growth' },
+  { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
+  { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
 ];
 const SYMBOL_NAMES: Record<SymbolCode, string> = {
   '00662': '富邦NASDAQ',
@@ -37,7 +40,6 @@ const SYMBOL_NAMES: Record<SymbolCode, string> = {
   '00865B': '國泰US短期公債',
   '0050': '元大台灣50'
 };
-const DEFENSIVE_SYMBOLS = new Set<SymbolCode>(['00865B']);
 const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
 const MIN_GROWTH_TARGET = 0;
@@ -47,6 +49,8 @@ const DEFAULT_REBALANCE_THRESHOLD = 5;
 const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
+const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
+const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false } };
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
@@ -119,25 +123,35 @@ const rawTargetOf = (asset: unknown) => {
   const a = asset && typeof asset === 'object' ? asset as Record<string, unknown> : {};
   return a.targetWeight ?? a.targetPercent ?? a.targetRatio ?? a.allocation ?? 0;
 };
+const normalizeAssetClass = (value: unknown, symbol?: SymbolCode): AssetClass => {
+  if (value === 'defensive') return 'defensive';
+  if (value === 'growth') return 'growth';
+  return normalizeSymbol(symbol) === '00865B' ? 'defensive' : 'growth';
+};
+const assetClassLabel = (value: AssetClass) => value === 'defensive' ? '防守資產' : '成長資產';
+const isDefensiveHolding = (asset: Pick<Holding, 'assetClass'> | null | undefined) => asset?.assetClass === 'defensive';
+const isGrowthHolding = (asset: Pick<Holding, 'assetClass'> | null | undefined) => asset?.assetClass !== 'defensive';
 const getGrowthTargetTotal = (holdings: unknown) => {
   return safeHoldings(holdings)
-    .filter(asset => normalizeSymbol(asset?.symbol) !== '00865B')
+    .filter(asset => isGrowthHolding(asset))
     .reduce((total, asset) => total + Math.max(0, safeNumber(rawTargetOf(asset))), 0);
 };
-const getAutoBondTarget = (holdings: unknown) => Math.max(0, safeNumber(100 - getGrowthTargetTotal(holdings)));
+const getDefensiveStockTargetTotal = (holdings: unknown) => {
+  return safeHoldings(holdings)
+    .filter(asset => isDefensiveHolding(asset))
+    .reduce((total, asset) => total + Math.max(0, safeNumber(rawTargetOf(asset))), 0);
+};
+const getHoldingTargetTotal = (holdings: unknown) => getGrowthTargetTotal(holdings) + getDefensiveStockTargetTotal(holdings);
+const getCashTarget = (holdings: unknown) => Math.max(0, 100 - getHoldingTargetTotal(holdings));
 const getEffectiveTargetPercent = (asset: Holding | null | undefined, holdings: unknown) => {
   if (!asset) return 0;
-  return normalizeSymbol(asset.symbol) === '00865B' ? getAutoBondTarget(holdings) : Math.max(0, safeNumber(rawTargetOf(asset)));
+  return Math.max(0, safeNumber(rawTargetOf(asset)));
 };
 const growthTargetTotalOf = (state: Partial<Pick<AppState, 'holdings'>>) => getGrowthTargetTotal(state?.holdings);
 const growthTargetOf = (state: Partial<Pick<AppState, 'holdings'>>) => Math.min(MAX_GROWTH_TARGET, growthTargetTotalOf(state));
-const defensiveTargetOf = (state: Partial<Pick<AppState, 'holdings'>>) => getAutoBondTarget(state?.holdings);
-const isGrowthTargetOverLimit = (state: Partial<Pick<AppState, 'holdings'>>) => growthTargetTotalOf(state) > 100;
-const applyAutoDefensiveTarget = (holdings: unknown) => {
-  const base = safeHoldings(holdings).map(h => ({ ...h, symbol: normalizeSymbol(h?.symbol) }));
-  const bondTarget = getAutoBondTarget(base);
-  return base.map(h => normalizeSymbol(h.symbol) === '00865B' ? { ...h, targetWeight: bondTarget } : { ...h, targetWeight: getEffectiveTargetPercent(h, base) });
-};
+const defensiveTargetOf = (state: Partial<Pick<AppState, 'holdings'>>) => Math.max(0, 100 - growthTargetOf(state));
+const isTargetOverLimit = (state: Partial<Pick<AppState, 'holdings'>>) => getHoldingTargetTotal(state?.holdings) > 100;
+const normalizeHoldingTargets = (holdings: unknown) => safeHoldings(holdings).map(h => ({ ...h, symbol: normalizeSymbol(h?.symbol), targetWeight: getEffectiveTargetPercent(h, holdings) }));
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const getRepaymentSafetyText = (months: number, days: number, monthlyPayment: number) => {
   if (monthlyPayment === 0) return <span className="safety-badge">🟢 無貸款壓力</span>;
@@ -238,7 +252,8 @@ function sanitizeHolding(h: Holding): Holding | null {
   const avgCost = Math.max(0, safeNumber(h.avgCost));
   const rawTarget = rawTargetOf(h);
   const targetWeight = rawTarget === undefined ? undefined : clampTarget(safeNumber(rawTarget));
-  return { symbol, shares, avgCost, ...(targetWeight === undefined ? {} : { targetWeight }) };
+  const assetClass = normalizeAssetClass((h as Partial<Holding>)?.assetClass, symbol);
+  return { symbol, shares, avgCost, assetClass, ...(targetWeight === undefined ? {} : { targetWeight }) };
 }
 function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
@@ -294,7 +309,7 @@ function normalizeState(raw: unknown): AppState {
   const hasHoldingsData = Array.isArray(r.holdings);
   const rawHoldings = (hasHoldingsData ? r.holdings : []) as Holding[];
   const holdings = rawHoldings.map(h => sanitizeHolding(h)).filter(Boolean) as Holding[];
-  const normalizedHoldings = applyAutoDefensiveTarget(hasHoldingsData ? holdings : []);
+  const normalizedHoldings = normalizeHoldingTargets(hasHoldingsData ? holdings : []);
   const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
@@ -315,6 +330,19 @@ function readState(): AppState {
   }
 }
 function writeState(s: AppState) { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(s))); }
+function normalizeUiState(raw: unknown): UiState {
+  const r = raw && typeof raw === 'object' ? raw as Partial<UiState> : {};
+  return { displayMode: r.displayMode === 'full' ? 'full' : 'compact', sections: { ...DEFAULT_UI_STATE.sections, ...(r.sections || {}) } };
+}
+function readUiState(): UiState {
+  try {
+    const raw = localStorage.getItem(UI_STATE_KEY);
+    return raw ? normalizeUiState(JSON.parse(raw)) : DEFAULT_UI_STATE;
+  } catch {
+    return DEFAULT_UI_STATE;
+  }
+}
+function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify(normalizeUiState(state))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
   return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
@@ -446,7 +474,7 @@ function derivedHoldings(state: AppState): Holding[] {
   const holdings = safeHoldings(state.holdings);
   const map = Object.fromEntries(holdings.map(h => [normalizeSymbol(h.symbol), h])) as Record<SymbolCode, Holding>;
   const defaultMap = Object.fromEntries(DEFAULT_HOLDINGS.map(h => [h.symbol, h])) as Record<SymbolCode, Holding>;
-  return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0 });
+  return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? q : { ...q, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, quote, marketValue, cost, pnl, dayPnl }; });
@@ -456,8 +484,8 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const totalAssets = stocks + cash;
   const netWorth = totalAssets - debt;
   const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0);
-  const defensiveHoldings = rows.filter(r => DEFENSIVE_SYMBOLS.has(r.symbol));
-  const growthHoldings = rows.filter(r => !DEFENSIVE_SYMBOLS.has(r.symbol));
+  const defensiveHoldings = rows.filter(r => isDefensiveHolding(r));
+  const growthHoldings = rows.filter(r => isGrowthHolding(r));
   const growth = growthHoldings.reduce((a, r) => a + r.marketValue, 0);
   const defensiveHoldingsValue = defensiveHoldings.reduce((a, r) => a + r.marketValue, 0);
   const defensive = cash + defensiveHoldingsValue;
@@ -483,7 +511,7 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
     return sum + interestCost;
   }, 0);
 
-  // 整體股票組合總損益 (包含 00631L 與 00865B，排除現金)
+  // 整體股票組合總損益，排除現金。
   const portfolioTotalPnl = rows.reduce((a, r) => a + r.pnl, 0);
 
   // 扣利息後真實淨利
@@ -558,8 +586,9 @@ function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>,
   const buyOnlyBudget = normalizeBuyOnlyBudget(state.buyOnlyBudget);
   const buyOnlyLimit = Math.min(buyOnlyBudget, cash);
   const hasInvalidBuyOnlyBudget = mode === 'buy-only' && buyOnlyBudget <= 0;
-  const growthRows = rows.filter(item => normalizeSymbol(item.symbol) !== '00865B');
-  const bondRow = rows.find(item => normalizeSymbol(item.symbol) === '00865B');
+  const rowClassMap = Object.fromEntries(m.rows.map(row => [normalizeSymbol(row.symbol), row.assetClass])) as Record<SymbolCode, AssetClass>;
+  const growthRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] !== 'defensive');
+  const defensiveRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] === 'defensive');
   const buyGaps = growthRows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
   const fullBuyGap = buyGaps.reduce((total, item) => total + Math.max(0, safeNumber(item.diff)), 0);
   let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : cash;
@@ -571,14 +600,19 @@ function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>,
   const overTargets = growthRows.filter(item => item.diff < 0).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
   const growthSell = mode === 'standard' ? overTargets : [];
   const skippedSell = mode === 'buy-only' ? overTargets : [];
-  const bondTargetPercent = defensiveTargetOf(state);
-  const defensiveReminder: DefensiveReminder = !bondRow
-    ? { status: 'missing', message: '目前未持有 00865B，防守資產主要由現金承擔。', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetPercent: bondTargetPercent }
-    : bondRow.diff > 999
-      ? { status: 'under', message: '00865B 為防守資產，主要用於補足防守比例。若目前有信貸或現金安全不足，請優先確認還款安全存量。', item: withOrderAmount(bondRow, bondRow.diff), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent }
-      : bondRow.diff < -999
-        ? { status: 'over', message: '00865B 目前高於自動目標。', item: withOrderAmount(bondRow, Math.abs(bondRow.diff)), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent }
-        : { status: 'ok', message: '00865B 目前未明顯低配。', item: withOrderAmount(bondRow, Math.abs(bondRow.diff)), currentWeight: m.totalAssets ? bondRow.currentValue / m.totalAssets * 100 : 0, targetPercent: bondRow.targetPercent };
+  const defensiveTargetPercent = getDefensiveStockTargetTotal(state.holdings);
+  const defensiveCurrentWeight = m.totalAssets ? m.defensiveHoldingsValue / m.totalAssets * 100 : 0;
+  const defensiveUnder = defensiveRows.filter(item => item.diff > 999).map(item => withOrderAmount(item, item.diff)).sort((a, b) => b.amount - a.amount);
+  const defensiveOver = defensiveRows.filter(item => item.diff < -999).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
+  const defensiveNeutral = defensiveRows.filter(item => Math.abs(item.diff) <= 999).map(item => withOrderAmount(item, Math.abs(item.diff)));
+  const defensiveItems = defensiveUnder.length ? defensiveUnder : defensiveOver.length ? defensiveOver : defensiveNeutral;
+  const defensiveReminder: DefensiveReminder = defensiveRows.length === 0
+    ? { status: 'missing', message: '目前沒有防守股票，防守資產由現金承擔。', items: [], currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
+    : defensiveUnder.length
+      ? { status: 'under', message: '以下防守標的低於自訂目標，可依現金與還款安全存量分批補足。', item: defensiveUnder[0], items: defensiveUnder, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
+      : defensiveOver.length
+        ? { status: 'over', message: '以下防守標的高於自訂目標，標準再平衡時可作為資金來源。', item: defensiveOver[0], items: defensiveOver, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
+        : { status: 'ok', message: '防守股票目前未明顯低配或高配。', item: defensiveItems[0], items: defensiveItems, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent };
   const totalBuyAmount = growthBuy.reduce((total, item) => total + item.amount, 0);
   const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - cash) : Math.max(0, fullBuyGap - buyOnlyLimit);
   return { growthBuy, growthSell, skippedSell, defensiveReminder, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
@@ -601,8 +635,8 @@ function getTradePlan(orderHelper: OrderHelper): TradeStep[] {
   const steps: TradeStep[] = [];
   let order = 1;
   if (orderHelper.mode === 'standard') {
-    if (orderHelper.defensiveReminder.status === 'over' && orderHelper.defensiveReminder.item) {
-      steps.push(tradeStepFromSuggestion('賣出', orderHelper.defensiveReminder.item, order++, '00865B 高於自動目標，可作為加碼資金來源。'));
+    if (orderHelper.defensiveReminder.status === 'over' && orderHelper.defensiveReminder.items.length) {
+      orderHelper.defensiveReminder.items.forEach(item => steps.push(tradeStepFromSuggestion('賣出', item, order++, '防守標的高於自訂目標，可作為加碼資金來源。')));
     }
     orderHelper.growthSell.forEach(item => steps.push(tradeStepFromSuggestion('賣出', item, order++, '標準再平衡：降低高於目標的成長資產。')));
   }
@@ -618,7 +652,7 @@ function getTradePlan(orderHelper: OrderHelper): TradeStep[] {
 function getFundingSource(orderHelper: OrderHelper) {
   if (orderHelper.totalBuyAmount <= 0) return '目前沒有建議加碼金額。';
   if (orderHelper.totalBuyAmount <= orderHelper.cash) return '現金';
-  if (orderHelper.mode === 'standard' && orderHelper.defensiveReminder.status === 'over') return '現金 + 00865B';
+  if (orderHelper.mode === 'standard' && orderHelper.defensiveReminder.status === 'over') return '現金 + 高配防守標的';
   return orderHelper.mode === 'buy-only' ? '現金或新資金分批投入' : '現金不足，需補充新資金或調整賣出順序';
 }
 function getDecisionSummary(rb: ReturnType<typeof rebalance>, orderHelper: OrderHelper, dipAlertRows: DipAlertRow[]) {
@@ -655,12 +689,12 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
     status = '槓桿風險提高';
     tone = 'bad';
     reason = `成長資產高於目標 ${pct(rb.deviation)}，已超過 10%。`;
-    suggestion = '暫停加碼成長資產，優先累積現金或 00865B。';
+    suggestion = '暫停加碼成長資產，優先累積現金或防守標的。';
   } else if (absDeviation >= 10) {
     status = '偏離過大';
     tone = 'bad';
     reason = `成長資產${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`;
-    suggestion = underTarget ? '依目前再平衡模式分批補足成長資產。' : '優先補強現金或 00865B，降低配置偏離。';
+    suggestion = underTarget ? '依目前再平衡模式分批補足成長資產。' : '優先補強現金或防守標的，降低配置偏離。';
   } else if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) {
     status = '現金不足';
     tone = 'warn';
@@ -670,7 +704,7 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
     status = '注意';
     tone = 'warn';
     reason = `成長資產高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
-    suggestion = rb.mode === 'buy-only' ? '暫停加碼成長資產，優先累積現金或 00865B。' : '可依標準再平衡增加現金或 00865B。';
+    suggestion = rb.mode === 'buy-only' ? '暫停加碼成長資產，優先累積現金或防守標的。' : '可依標準再平衡增加現金或防守標的。';
   } else {
     status = '注意';
     tone = 'warn';
@@ -737,6 +771,18 @@ function Card({ id, title, children, action, style }: { id?: string; title: stri
     {children}
   </section>;
 }
+function SectionCard({ id, title, children, action, style, isMobile, collapsible = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; isMobile?: boolean; collapsible?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
+  if (!isMobile || !collapsible) return <Card id={id} title={title} action={action} style={style}>{children}</Card>;
+  const contentId = id ? `${id}-content` : `section-${title}-content`;
+  return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'}`} style={style}>
+    <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
+      <span>{title}</span>
+      <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
+    </button>
+    {!open && summary && <p className="section-summary">{summary}</p>}
+    {open && <div id={contentId} className="section-content">{action && <div className="section-action">{action}</div>}{children}</div>}
+  </section>;
+}
 function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: string; items: OrderSuggestion[]; actionLabel: string; emptyText: string }) {
   return <div className="order-section">
     <h3>{title}</h3>
@@ -780,18 +826,18 @@ function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
   return <div className={`order-section defensive-reminder ${reminder.status}`}>
     <h3>防守資產補足提醒</h3>
     <p className="note">{reminder.message}</p>
-    {reminder.item && <article className="order-item">
-      <div className="order-rank muted">防</div>
+    {reminder.items.map((item, index) => <article className="order-item" key={`defensive-${item.symbol}`}>
+      <div className="order-rank muted">{index + 1}</div>
       <div className="order-body">
-        <h4>{reminder.item.symbol} <span>{reminder.item.name}</span></h4>
+        <h4>{item.symbol} <span>{item.name}</span></h4>
         <div className="order-grid">
-          <p><span>目前比例</span><strong>{pct(reminder.currentWeight)}</strong></p>
-          <p><span>自動目標比例</span><strong>{pct(reminder.targetPercent)}</strong></p>
-          <p><span>{reminder.status === 'over' ? '高於目標金額' : '防守資產缺口金額'}</span><strong>{formatCurrency(reminder.item.amount)}</strong></p>
-          <p><span>約可買股數</span><strong>{reminder.status === 'under' ? reminder.item.conversionText : '目前不需補買'}</strong></p>
+          <p><span>防守股票目前比例</span><strong>{pct(reminder.currentWeight)}</strong></p>
+          <p><span>防守股票目標合計</span><strong>{pct(reminder.targetPercent)}</strong></p>
+          <p><span>{reminder.status === 'over' ? '高於目標金額' : '防守資產缺口金額'}</span><strong>{formatCurrency(item.amount)}</strong></p>
+          <p><span>約可買股數</span><strong>{reminder.status === 'under' ? item.conversionText : '目前不需補買'}</strong></p>
         </div>
       </div>
-    </article>}
+    </article>)}
   </div>;
 }
 function TradeStepList({ steps }: { steps: TradeStep[] }) {
@@ -883,6 +929,7 @@ function App() {
   }, []);
 
   const [tab, setTab] = useState<'dashboard' | 'sync'>('dashboard');
+  const [uiState, setUiState] = useState<UiState>(() => readUiState());
   const [state, setStateValue] = useState<AppState>(() => readState());
   const stateRef = useRef(state);
   const setState = (updater: SetStateAction<AppState>) => {
@@ -916,6 +963,9 @@ function App() {
   const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
+  useEffect(() => { writeUiState(uiState); }, [uiState]);
+  const sectionOpen = (key: SectionKey) => !isMobile || uiState.displayMode === 'full' ? key !== 'debug' : uiState.sections[key] ?? Boolean(DEFAULT_UI_STATE.sections[key]);
+  const toggleSection = (key: SectionKey) => setUiState(current => ({ ...current, sections: { ...current.sections, [key]: !(current.sections[key] ?? DEFAULT_UI_STATE.sections[key]) } }));
   const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater, stateRef.current); persistStatePatch({ syncMeta: next }); return next; });
   useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, source: '本機資料', lastLocalSaveAt: savedAt, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   const refreshQuotes = async () => { setQuoteStatus('股價更新中…'); const currentState = state; const currentHoldings = safeHoldings(currentState.holdings); const entries = await Promise.all(uniqueSymbols(currentState).map(async s => [s, await fetchQuote(s, currentHoldings.find(h => normalizeSymbol(h.symbol) === s))] as const)); const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>; setQuotes(next); setHasUpdatedQuotes(true); const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`); setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`); };
@@ -992,12 +1042,26 @@ function App() {
   }), [m.rows, quotes, state.dipAlerts]);
   const decisionSummary = useMemo(() => getDecisionSummary(rb, orderHelper, dipAlertRows), [rb, orderHelper, dipAlertRows]);
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
-  const targetWarning = isGrowthTargetOverLimit(state) ? '成長資產目標比例已超過 100%，請調整配置' : '';
+  const todayDecision = useMemo(() => {
+    const dipTriggered = decisionSummary.triggeredDipAlerts.length > 0;
+    const lowCashSafety = m.monthlyPayment > 0 && m.repaymentSafetyMonths < 3;
+    const defensiveUnder = orderHelper.defensiveReminder.status === 'under';
+    const conclusion = !m.totalAssets ? '資料不足，暫時無法產生建議'
+      : lowCashSafety ? '現金安全存量不足'
+      : rb.thresholdReached ? '已達再平衡門檻'
+      : dipTriggered ? '建議分批加碼觀察'
+      : defensiveUnder ? '防守資產不足'
+      : orderHelper.totalBuyAmount > 0 ? '建議分批加碼'
+      : '維持持有，暫不需要操作';
+    return { conclusion, dipTriggered, lowCashSafety };
+  }, [decisionSummary.triggeredDipAlerts.length, m.totalAssets, m.monthlyPayment, m.repaymentSafetyMonths, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
+  const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
   const targetCheck = useMemo(() => {
     const growthTotal = growthTargetTotalOf(state);
-    const hasBond = safeHoldings(state.holdings).some(h => normalizeSymbol(h.symbol) === '00865B');
-    const bondTarget = hasBond ? defensiveTargetOf(state) : undefined;
-    return { growthTotal, hasBond, bondTarget, total: hasBond ? growthTotal + (bondTarget || 0) : growthTotal, status: growthTotal > 100 ? '成長資產超過 100%，請調低比例' : '正常' };
+    const defensiveStockTotal = getDefensiveStockTargetTotal(state.holdings);
+    const cashTarget = getCashTarget(state.holdings);
+    const total = getHoldingTargetTotal(state.holdings);
+    return { growthTotal, defensiveStockTotal, cashTarget, total, status: total > 100 ? '持股目標比例超過 100%，請調低比例' : total < 100 ? '未分配比例由現金承擔' : '正常' };
   }, [state]);
   const latestQuoteTime = useMemo(() => {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
@@ -1018,8 +1082,8 @@ function App() {
     `CashAccountsCount: ${state.cash.length}`,
     `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
     `GrowthTargetTotal: ${pct(targetCheck.growthTotal)}`,
-    `Auto00865BTarget: ${targetCheck.hasBond ? pct(targetCheck.bondTarget || 0) : '未持有 00865B'}`,
-    `Has00865B: ${targetCheck.hasBond}`,
+    `DefensiveStockTargetTotal: ${pct(targetCheck.defensiveStockTotal)}`,
+    `CashTarget: ${pct(targetCheck.cashTarget)}`,
     `LastPriceUpdate: ${latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}`,
     `LastLocalSave: ${syncMeta.lastLocalSaveAt ? tw(syncMeta.lastLocalSaveAt) : tw(lastSavedAt)}`,
     `LastCloudUpload: ${syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '尚未執行'}`,
@@ -1160,7 +1224,15 @@ function App() {
     };
     window.setTimeout(run, 50);
   };
-  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number) => setState(s => { const holdings = safeHoldings(s.holdings); const normalizedSymbol = normalizeSymbol(symbol); const exists = holdings.some(h => normalizeSymbol(h.symbol) === normalizedSymbol); const nextValue = key === 'targetWeight' ? clampTarget(safeNumber(value)) : Math.max(0, safeNumber(value)); const defaultHolding = DEFAULT_HOLDINGS.find(h => h.symbol === normalizedSymbol); const nextHolding: Holding = { symbol: normalizedSymbol, shares: 0, avgCost: 0, ...(defaultHolding?.targetWeight === undefined ? {} : { targetWeight: defaultHolding.targetWeight }), [key]: nextValue }; return { ...s, holdings: exists ? holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue }) || h : h) : [...holdings, nextHolding] }; });
+  const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
+    const holdings = safeHoldings(s.holdings);
+    const normalizedSymbol = normalizeSymbol(symbol);
+    const exists = holdings.some(h => normalizeSymbol(h.symbol) === normalizedSymbol);
+    const nextValue = key === 'assetClass' ? normalizeAssetClass(value, normalizedSymbol) : key === 'targetWeight' ? clampTarget(safeNumber(value)) : Math.max(0, safeNumber(value));
+    const defaultHolding = DEFAULT_HOLDINGS.find(h => h.symbol === normalizedSymbol);
+    const nextHolding: Holding = { symbol: normalizedSymbol, shares: 0, avgCost: 0, targetWeight: defaultHolding?.targetWeight ?? 0, assetClass: normalizeAssetClass(defaultHolding?.assetClass, normalizedSymbol), [key]: nextValue } as Holding;
+    return { ...s, holdings: exists ? holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue } as Holding) || h : h) : [...holdings, nextHolding] };
+  });
   const addHoldingAsset = () => {
     const symbol = normalizeSymbol(newSymbolDraft);
     if (!isTaiwanSymbol(symbol)) {
@@ -1171,7 +1243,7 @@ function App() {
       setAssetMessage(`${symbol} 已在持股清單中。`);
       return;
     }
-    setState(s => ({ ...s, holdings: [...safeHoldings(s.holdings), { symbol, shares: 0, avgCost: 0 }] }));
+    setState(s => ({ ...s, holdings: [...safeHoldings(s.holdings), { symbol, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' }] }));
     setNewSymbolDraft('');
     setAssetMessage(`${symbol} 已新增；按「更新股價」會自動查詢 Worker。`);
   };
@@ -1252,47 +1324,84 @@ function App() {
         </div>
       </Card>}
       {tab === 'dashboard' && <>
-        <section className="grid stats">
-          <Stat label="總資產" value={money(m.totalAssets)} />
-          <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
-          <Stat label="淨資產" value={money(m.netWorth)} />
-          <Stat label="借款" value={money(m.debt)} tone="warn" />
-          <Stat label="Beta" value={m.beta.toFixed(2)} />
-          <Stat label="防守資產比例" value={pct(m.defensiveRatio)} />
-          <Stat label="槓桿比例" value={m.leverage.toFixed(2) + 'x'} />
-          <Stat label="策略模式" value={mode} tone={modeTone} />
-        </section>
-        <Card title="AI 分析與加碼建議">
+        {isMobile && <div className="mobile-mode-switch" aria-label="手機顯示模式">
+          <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => setUiState(current => ({ ...current, displayMode: 'compact' }))}>簡潔模式</button>
+          <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => setUiState(current => ({ ...current, displayMode: 'full' }))}>完整模式</button>
+        </div>}
+        <SectionCard id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
+          <section className="grid stats">
+            <Stat label="總資產" value={money(m.totalAssets)} />
+            <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
+            <Stat label="淨資產" value={money(m.netWorth)} />
+            <Stat label="借款" value={money(m.debt)} tone="warn" />
+            <Stat label="Beta" value={m.beta.toFixed(2)} />
+            <Stat label="防守資產比例" value={pct(m.defensiveRatio)} />
+            <Stat label="槓桿比例" value={m.leverage.toFixed(2) + 'x'} />
+            <Stat label="策略模式" value={mode} tone={modeTone} />
+          </section>
+        </SectionCard>
+        <SectionCard title="今日決策" isMobile={isMobile} collapsible open={sectionOpen('today')} onToggle={() => toggleSection('today')} summary={todayDecision.conclusion}>
+          <div className={`health-status ${todayDecision.lowCashSafety ? 'bad' : rb.thresholdReached || todayDecision.dipTriggered ? 'warn' : 'good'}`}>
+            <div className="health-light" />
+            <div>
+              <small>今日建議結論</small>
+              <h3>{todayDecision.conclusion}</h3>
+              <p>整合再平衡門檻、逢低提醒、現金、防守資產、交易建議與還款安全後產生。</p>
+            </div>
+          </div>
+          <div className="status-grid">
+            <p><span>成長資產目前比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p>
+            <p><span>成長資產目標比例</span><strong>{pct(m.growthTargetPct)}</strong></p>
+            <p><span>偏離幅度</span><strong className={tone(rb.deviation)}>{signedPct(rb.deviation)}</strong></p>
+            <p><span>是否達再平衡門檻</span><strong className={rb.thresholdReached ? 'warn' : 'good'}>{rb.thresholdReached ? '已達門檻' : '尚未達門檻'}</strong></p>
+            <p><span>是否觸發逢低加碼</span><strong className={todayDecision.dipTriggered ? 'warn' : 'hold'}>{todayDecision.dipTriggered ? '已觸發' : '尚未觸發'}</strong></p>
+            <p><span>防守資產比例</span><strong>{pct(m.defensiveRatio)}</strong></p>
+          </div>
+        </SectionCard>
+        <SectionCard title="AI 分析與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('ai')} onToggle={() => toggleSection('ai')} summary={`目前建議：${mode}`}>
           <h3>{mode}</h3><p>{hint}</p>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <small>資料來源：{m.rows.map(r => `${r.symbol}=${r.quote.source}`).join(' / ')}</small>
           <p className="note">{quoteStatus}</p>
-        </Card>
-        <Card title="資產總覽"><Pie3D m={m} /></Card>
-        <Card 
-          id="rebalance-section"
-          title="再平衡與加碼建議" 
-          action={
-            <button 
-              className="small" 
-              style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} 
-              onClick={handleCopy}
-            >
-              {copyStatus}
-            </button>
-          }
-        >
+        </SectionCard>
+        <SectionCard title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
-          <div className={`health-status ${health.tone}`}>
-            <div className="health-light" />
-            <div>
-              <small>投資健康狀態</small>
-              <h3>目前狀態：{health.status}</h3>
-              <p>原因：{health.reason}</p>
-              <p>建議：{health.suggestion}</p>
-            </div>
+          <div className="holdings">
+            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; return <article className="holding" key={r.symbol}>
+              <h3>{r.symbol}</h3><p>{r.quote.name}</p><p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>{r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
+              <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
+              <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
+              <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
+              <label>目標比例 %<DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(r.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
+              <label>資產分類<select value={r.assetClass} onChange={e => updateHolding(r.symbol, 'assetClass', normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
+              <strong>目前比例：{pct(holdingWeight)}</strong>
+              <strong>市值：{money(r.marketValue)}</strong>
+              <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
+            </article>; })}
           </div>
+        </SectionCard>
+        <SectionCard id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
+          <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
+          <div className="status-grid">
+            {orderHelper.mode === 'buy-only' && <>
+              <p><span>只買不賣可用加碼預算</span><strong>{budgetWanOf(orderHelper.buyOnlyBudget).toLocaleString('zh-TW')} 萬<br /><small>約 {formatCurrency(orderHelper.buyOnlyBudget)}</small></strong></p>
+              <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
+            </>}
+            <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
+            <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
+            <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.cash <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.mode === 'buy-only' ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.cash <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠' : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
+            <p><span>下單單位</span><strong>1 張 = 1000 股</strong></p>
+          </div>
+          {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
+          {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
+          <TradeStepList steps={tradeSteps} />
+          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
+          <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
+        </SectionCard>
+        <SectionCard title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><Pie3D m={m} /></SectionCard>
+        <SectionCard id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${signedPct(rb.deviation)}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
+          {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="decision-grid">
             <p><span>目前需不需要調整？</span><strong className={decisionSummary.adjustmentStatus === '需要關注' ? 'warn' : 'good'}>{decisionSummary.adjustmentStatus}</strong></p>
             <p><span>是否觸發再平衡？</span><strong className={rb.thresholdReached ? 'warn' : 'good'}>{decisionSummary.rebalanceStatus}</strong></p>
@@ -1302,145 +1411,40 @@ function App() {
             <p><span>目前模式</span><strong>{rb.modeLabel}</strong></p>
           </div>
           <div className="rebalance-settings">
-            <label>再平衡模式
-              <select value={state.rebalanceMode} onChange={e => setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(e.target.value) }))}>
-                <option value="buy-only">只買不賣</option>
-                <option value="standard">標準再平衡</option>
-              </select>
-              <small>{rebalanceModeDescription(state.rebalanceMode)}</small>
-            </label>
-            <label>再平衡提醒門檻 %
-              <DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} />
-              <small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small>
-            </label>
-            <label>只買不賣可用加碼預算（萬）
-              <DraftInput type="number" min="0" step="0.1" inputMode="decimal" value={budgetWanOf(state.buyOnlyBudget)} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: budgetFromWan(value) }))} />
-              <small>預設 10 萬；輸入 10 代表約 10.0 萬元，系統會以此預算與目前現金兩者較低者為上限。</small>
-            </label>
-
+            <label>再平衡模式<select value={state.rebalanceMode} onChange={e => setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(e.target.value) }))}><option value="buy-only">只買不賣</option><option value="standard">標準再平衡</option></select><small>{rebalanceModeDescription(state.rebalanceMode)}</small></label>
+            <label>再平衡提醒門檻 %<DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} /><small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small></label>
+            <label>只買不賣可用加碼預算（萬）<DraftInput type="number" min="0" step="0.1" inputMode="decimal" value={budgetWanOf(state.buyOnlyBudget)} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: budgetFromWan(value) }))} /><small>預設 10 萬；輸入 10 代表約 10.0 萬元。</small></label>
           </div>
-          <div className="rebalance-alert">
-            <p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p>
-            <p><span>目前偏離目標</span><strong className={tone(rb.deviation)}>{signedPct(rb.deviation)}</strong></p>
-            <p><span>再平衡門檻</span><strong>{pct(rb.threshold)}</strong></p>
-            <p><span>狀態</span><strong>{rb.thresholdStatus}</strong></p>
-          </div>
-          <div className="rebalance-summary">
-            <div><small>成長資產</small><b>{rb.stockAction}</b></div>
-            <div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>
-            {rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}
-          </div>
-          {decisionSummary.triggeredDipAlerts.length > 0 && <div className="decision-callout">
-            <h3>逢低加碼觀察標的</h3>
-            {decisionSummary.triggeredDipAlerts.map(row => <p key={row.symbol}><strong>{row.symbol} {row.name}</strong> 目前跌幅 {row.drawdownPct === null ? '—' : signedPct(row.drawdownPct)}，門檻 {pct(row.setting.thresholdPct)}。</p>)}
-          </div>}
-          <div className="table rebalance-table">
-            <div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div>
-            <div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div>
-            <div className="rebalance-group">
-              <div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>
-              {rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}
-            </div>
-          </div>
-          <div className="dip-settings-panel">
-            <h3>逢低加碼提醒設定</h3>
-            <p className="note">關閉逢低加碼提醒時，只顯示一般再平衡建議，不顯示逢低加碼判斷。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>
-            {dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">
-              {dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}
-            </div>}
-            <p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p>
-          </div>
-        </Card>
-        <Card id="order-section" title="交易建議清單">
-          <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
+          <div className="rebalance-alert"><p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p><p><span>目前偏離目標</span><strong className={tone(rb.deviation)}>{signedPct(rb.deviation)}</strong></p><p><span>再平衡門檻</span><strong>{pct(rb.threshold)}</strong></p><p><span>狀態</span><strong>{rb.thresholdStatus}</strong></p></div>
+          <div className="rebalance-summary"><div><small>成長資產</small><b>{rb.stockAction}</b></div><div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>{rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}</div>
+          {decisionSummary.triggeredDipAlerts.length > 0 && <div className="decision-callout"><h3>逢低加碼觀察標的</h3>{decisionSummary.triggeredDipAlerts.map(row => <p key={row.symbol}><strong>{row.symbol} {row.name}</strong> 目前跌幅 {row.drawdownPct === null ? '—' : signedPct(row.drawdownPct)}，門檻 {pct(row.setting.thresholdPct)}。</p>)}</div>}
+          <div className="table rebalance-table"><div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div><div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div><div className="rebalance-group"><div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>{rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}</div></div>
+          <div className="dip-settings-panel"><h3>逢低加碼提醒設定</h3><p className="note">關閉逢低加碼提醒時，只顯示一般再平衡建議，不顯示逢低加碼判斷。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>{dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">{dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}</div>}<p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p></div>
+        </SectionCard>
+        <SectionCard title="資產分類設定" isMobile={isMobile} collapsible open={sectionOpen('assetClass')} onToggle={() => toggleSection('assetClass')} summary={`目標合計 ${pct(targetCheck.total)}｜現金承擔 ${pct(targetCheck.cashTarget)}`}>
+          <p className="note">現金固定列入防守資產；股票與 ETF 依每筆持股的資產分類設定分組，不再由代號強制判斷。</p>
+          <div className="status-grid"><p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p><p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p><p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p><p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p><p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p><p><span>防守資產</span><strong>現金{m.defensiveHoldings.length ? `、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : ''}</strong></p></div>
+        </SectionCard>
+        <SectionCard title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
+        <SectionCard id="loan-section" title="借款與還款安全" isMobile={isMobile} collapsible open={sectionOpen('loans')} onToggle={() => toggleSection('loans')} summary={`剩餘借款 ${money(m.debt)}｜安全存量 ${Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}`}>
+          <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /><Stat label="還款安全存量" value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} /><Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" /><Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} /></div>
+          <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>* 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。</p>
+          <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
+        </SectionCard>
+        {isMobile && <SectionCard id="sync-section-mobile" title="同步與資料設定" isMobile={isMobile} collapsible open={sectionOpen('sync')} onToggle={() => toggleSection('sync')} summary={`上傳 ${metaTime(syncMeta.lastUploadAt)}｜下載 ${metaTime(syncMeta.lastDownloadAt)}`}>
+          <p className="note">手機版快速同步只會在按鈕觸發時執行；完整 Firebase、備份與持股資產管理仍在「同步與資料」分頁。</p>
           <div className="status-grid">
-            {orderHelper.mode === 'buy-only' && <>
-              <p><span>只買不賣可用加碼預算</span><strong>{budgetWanOf(orderHelper.buyOnlyBudget).toLocaleString('zh-TW')} 萬<br /><small>約 {formatCurrency(orderHelper.buyOnlyBudget)}</small></strong></p>
-              <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
-            </>}
-            <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
-            <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
-            <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.cash <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>
-              {orderHelper.mode === 'buy-only'
-                ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.cash <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠'
-                : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}
-            </strong></p>
-            <p><span>下單單位</span><strong>1 張 = 1000 股</strong></p>
+            <p><span>目前同步代號</span><strong>{state.firebase.secretPath || FIREBASE_BASE_PATH}</strong></p>
+            <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+            <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
+            <p><span>同步狀態</span><strong>{syncMeta.status}</strong></p>
           </div>
-          {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
-          {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
-          <p className={orderHelper.mode === 'buy-only' ? (orderHelper.cashLimited || orderHelper.cash <= 0 ? 'warning-message' : 'note') : orderHelper.cashEnough ? 'note' : 'warning-message'}>
-            {orderHelper.mode === 'buy-only'
-              ? orderHelper.fullBuyGap <= 0
-                ? '目前沒有低配資產，只買不賣模式下暫無可執行加碼建議。'
-                : orderHelper.cash <= 0
-                  ? '目前沒有可用現金，只買不賣模式下暫無可執行加碼建議。'
-                  : orderHelper.hasInvalidBuyOnlyBudget
-                    ? '目前可用加碼預算為 0，請先輸入有效的可用加碼預算。'
-                  : orderHelper.cashLimited
-                    ? `只買不賣模式已依本次實際可加碼上限分配，尚未補足低配差額約 ${formatCurrency(orderHelper.shortage)}。`
-                    : '目前現金足夠完成本次加碼建議。'
-              : orderHelper.cashEnough ? '目前現金足夠完成本次加碼建議。' : `目前現金不足，差額約 ${formatCurrency(orderHelper.shortage)}。可先依加碼順序分批投入。`}
-          </p>
-          <TradeStepList steps={tradeSteps} />
-          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
-          <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
-        </Card>
-        <Card title="持股配置">
-          {targetWarning && <p className="warning-message">{targetWarning}</p>}
-          <div className="holdings">
-            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; return <article className="holding" key={r.symbol}>
-              <h3>{r.symbol}</h3><p>{r.quote.name}</p><p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>{r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
-              <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
-              <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
-              <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
-              <label>目標比例 %{DEFENSIVE_SYMBOLS.has(r.symbol) ? <input inputMode="decimal" value={pct(r.targetWeight ?? defensiveTargetOf(state))} readOnly disabled /> : <DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} />}<small>{DEFENSIVE_SYMBOLS.has(r.symbol) ? '自動計算，由成長資產比例反推。' : `成長資產配置目標，限制 ${MIN_GROWTH_TARGET}%～${MAX_GROWTH_TARGET}%。`}</small></label>
-              <strong>市值：{money(r.marketValue)}</strong>
-              <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
-            </article>; })}
+          <div className="actions">
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button className="small" onClick={() => setTab('sync')}>完整設定</button>
           </div>
-        </Card>
-        <Card title="資產分類設定">
-          <p className="note">防守資產固定只包含現金與 00865B；其他目前持股都列為成長資產。00865B 目標比例由成長資產目標合計自動反推。</p>
-          <div className="status-grid">
-            <p><span>成長資產目標合計</span><strong className={targetCheck.growthTotal > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p>
-            <p><span>00865B 自動目標</span><strong>{targetCheck.hasBond ? pct(targetCheck.bondTarget || 0) : '未持有 00865B'}</strong></p>
-            <p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p>
-            <p><span>防守資產</span><strong>現金{m.defensiveHoldings.length ? `、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : ''}</strong></p>
-          </div>
-        </Card>
-
-        <div className="two" style={isMobile ? { maxWidth: '390px', width: '100%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' } : undefined}>
-          <Card title="現金管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
-            {cashWarning && (
-              <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-                {cashWarning}
-              </p>
-            )}
-            <p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-              {removedSymbolMessage()}
-            </p>
-            <CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} />
-          </Card>
-          <Card id="loan-section" title="借款管理" style={isMobile ? { maxWidth: '390px', width: '100%', boxSizing: 'border-box' } : undefined}>
-            <div className="loan-summary">
-              <Stat label="總借款" value={money(m.debt)} />
-              <Stat label="每月還款" value={money(m.monthlyPayment)} />
-              <Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} />
-              <Stat 
-                label="還款安全存量" 
-                value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} 
-                tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} 
-              />
-              <Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" />
-              <Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} />
-            </div>
-            <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-              * 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。反映真實的槓桿超額回報。
-            </p>
-            <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
-          </Card>
-        </div>
+        </SectionCard>}
       </>}
       {tab === 'sync' && <>
         <Card id="sync-section" title="同步與資料設定">
@@ -1501,11 +1505,12 @@ function App() {
           </div>
           {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
           <div className="list asset-list">
-            <div className="list-row list-head"><span>資產代號</span><span>總股數</span><span>成交均價</span><span>股價來源</span><span>操作</span></div>
+            <div className="list-row list-head"><span>資產代號</span><span>分類</span><span>總股數</span><span>成交均價</span><span>股價來源</span><span>操作</span></div>
             {derivedHoldings(state).map(item => {
               const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
               return <div className="list-row" key={item.symbol}>
                 <span>{item.symbol}</span>
+                <label><span>分類</span><select value={item.assetClass} onChange={e => updateHolding(item.symbol, 'assetClass', normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select></label>
                 <span>{item.shares.toLocaleString('zh-TW')}</span>
                 <span>{item.avgCost.toFixed(2)}</span>
                 <span>{quote.source}</span>
@@ -1516,12 +1521,13 @@ function App() {
         </Card>
         <Card title="目標比例檢查">
           <div className="status-grid">
-            <p><span>成長資產目標合計</span><strong className={targetCheck.growthTotal > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p>
-            <p><span>00865B 自動目標</span><strong>{targetCheck.hasBond ? pct(targetCheck.bondTarget || 0) : '未持有 00865B'}</strong></p>
-            <p><span>總目標比例</span><strong>100.00%</strong></p>
-            <p><span>狀態</span><strong className={targetCheck.growthTotal > 100 ? 'bad' : 'good'}>{targetCheck.status}</strong></p>
+            <p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p>
+            <p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p>
+            <p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p>
+            <p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p>
+            <p><span>狀態</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{targetCheck.status}</strong></p>
           </div>
-          {targetCheck.growthTotal > 100 && <p className="warning-message">成長資產目標比例已超過 100%，請調整配置。</p>}
+          {targetCheck.total > 100 && <p className="warning-message">持股目標比例合計已超過 100%，請調整配置。</p>}
         </Card>
         <Card title="雲端同步狀態診斷與比對">
           <div className={`health-status ${syncDiagnostics.tone}`}>
@@ -1592,6 +1598,15 @@ function App() {
           <details className="release-notes">
             <summary>查看更新紀錄</summary>
             <div className="release-group">
+              <h3>UI 2.1</h3>
+              <ul>
+                <li>手機版改用乾淨 DOM 順序，讓 AI 分析後方直接接持股配置。</li>
+                <li>新增今日決策卡片、手機簡潔 / 完整模式與可收合區塊。</li>
+                <li>持股新增成長 / 防守資產分類，分類改由使用者設定，不再由代號強制判斷。</li>
+                <li>舊資料首次載入會補上 assetClass；已設定分類的資料不會被覆蓋。</li>
+              </ul>
+            </div>
+            <div className="release-group">
               <h3>v1.3.1</h3>
               <ul>
                 <li>新增逢低加碼提醒，可為每檔持股設定波段最高價與跌幅門檻。</li>
@@ -1630,7 +1645,7 @@ function App() {
               <h3>v1.0.x</h3>
               <ul>
                 <li>修正成長 / 防守資產分類。</li>
-                <li>00865B 目標比例改為自動計算。</li>
+                <li>防守資產目標比例曾改為自動計算。</li>
                 <li>預設資產可刪除。</li>
                 <li>修正 00670L 名稱為富邦NASDAQ正2。</li>
                 <li>優化手機版防守資產表格。</li>
