@@ -855,6 +855,46 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
+function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onRemove }: {
+  row: ReturnType<typeof calculateMetrics>['rows'][number];
+  totalAssets: number;
+  dipSetting: DipAlertSetting;
+  isEditing: boolean;
+  onToggleEdit: () => void;
+  onUpdate: (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => void;
+  onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
+  onRemove: (symbol: SymbolCode) => void;
+}) {
+  const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
+  const holdingWeight = totalAssets ? row.marketValue / totalAssets * 100 : 0;
+  const quoteBadge = quoteShortBadge(row.quote);
+  return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
+    <div className="holding-card-header">
+      <div className="holding-card-title"><h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name">{row.quote.name}</span></h3><p className="quote-meta">更新：{tw(row.quote.updatedAt)}{quoteBadge && <span className={row.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p></div>
+      <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button>
+    </div>
+    {row.quote.error && <p className="note holding-quote-error">報價異常，請稍後再更新股價。</p>}
+    <div className="holding-snapshot">
+      <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
+      <div><span>最新價格</span><strong>{row.quote.price.toFixed(2)} 元</strong></div>
+      <div><span>今日漲跌</span><strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong></div>
+      <div><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></div>
+      <div><span>市值</span><strong>{money(row.marketValue)}</strong></div>
+      <div><span>損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></div>
+    </div>
+    {isEditing && <div className="holding-editor">
+      <div className="holding-editor-grid">
+        <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
+        <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
+        <label>目標比例 %<DraftInput inputMode="decimal" value={row.targetWeight ?? ''} onCommit={value => onUpdate(row.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(row.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
+        <label>資產分類<select value={row.assetClass} onChange={event => onUpdate(row.symbol, 'assetClass', normalizeAssetClass(event.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
+        <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
+        <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => onUpdateDipAlert(row.symbol, { enabled: event.currentTarget.checked })} /> 啟用逢低加碼觀察</label>
+      </div>
+      <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />刪除持股</button>
+    </div>}
+  </article>;
+}
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
   return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
 }
@@ -1064,6 +1104,7 @@ function App() {
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
+  const [editingHoldingSymbol, setEditingHoldingSymbol] = useState<SymbolCode | null>(null);
   const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
@@ -1394,7 +1435,11 @@ function App() {
     const normalizedSymbol = normalizeSymbol(symbol);
     setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol), dipAlerts }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
+    setEditingHoldingSymbol(current => current === normalizedSymbol ? null : current);
     setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
+  };
+  const confirmRemoveHoldingAsset = (symbol: SymbolCode) => {
+    if (window.confirm(`確定要刪除 ${normalizeSymbol(symbol)} 嗎？此動作不會影響雲端資料，除非之後手動上傳。`)) removeHoldingAsset(symbol);
   };
   const metaTime = (iso?: string) => iso ? tw(iso) : '尚未執行';
   const exportBackup = () => {
@@ -1520,43 +1565,19 @@ function App() {
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
-        <Card className="page-card for-assets" title="持股資產管理">
+        <Card className="page-card for-assets" title="新增持股">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
             <input placeholder="輸入台股代號，例如 00981A、00670L、00662" value={newSymbolDraft} onChange={e => setNewSymbolDraft(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }} />
             <button onClick={addHoldingAsset}>新增資產</button>
           </div>
           {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
-          <div className="asset-management-grid">
-            {derivedHoldings(state).map(item => {
-              const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
-              return <article className="asset-management-item" key={item.symbol}>
-                <div className="asset-management-header">
-                  <div className="asset-management-title"><strong>{item.symbol}</strong><span>{resolveSymbolName(item.symbol, item.name, quote.name)}</span></div>
-                  <button className="asset-delete-button" type="button" aria-label={`刪除 ${item.symbol}`} title={`刪除 ${item.symbol}`} onClick={() => removeHoldingAsset(item.symbol)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>
-                </div>
-                <span className="asset-management-meta">{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股</span>
-              </article>;
-            })}
-          </div>
         </Card>
         <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
-        <SectionCard className="page-card for-assets" title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
+        <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
-            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); return <article className="holding" key={r.symbol}>
-              <h3 className="holding-title"><span className="holding-symbol">{r.symbol}</span><span className="holding-name">{r.quote.name}</span></h3><p className="quote-meta">更新：{tw(r.quote.updatedAt)}{quoteBadge && <span className={r.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p>{r.quote.error && <p className="note">報價異常，請稍後再更新股價。</p>}
-              <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
-              <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
-              <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
-              <label>目標比例 %<DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(r.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
-              <label>資產分類<select value={r.assetClass} onChange={e => updateHolding(r.symbol, 'assetClass', normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
-              <div className="holding-metrics">
-                <div className="holding-metric"><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
-                <div className="holding-metric"><span>市值</span><strong>{money(r.marketValue)}</strong></div>
-                <div className="holding-metric"><span>損益</span><strong className={tone(r.pnl)}>{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong></div>
-              </div>
-            </article>; })}
+            {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
         </SectionCard>
         <SectionCard className="page-card for-analytics" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
