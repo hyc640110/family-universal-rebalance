@@ -156,7 +156,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .list{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
 .list-row{display:grid;gap:8px;background:#09182a;border-radius:10px;padding:10px;align-items:end;min-width:720px}
 .cash-list .list-row{grid-template-columns:1.1fr 1fr 1.4fr auto}
-.asset-list .list-row{grid-template-columns:1fr 1fr .8fr .8fr minmax(220px,1.5fr) auto}
+.asset-list .list-row{grid-template-columns:.8fr 1.2fr .9fr .8fr .8fr minmax(200px,1.4fr) auto}
 .loan-list .list-row{grid-template-columns:1fr 1fr .8fr 1fr 1fr .8fr .8fr .8fr auto;min-width:1060px}
 .list-head{background:#0f2f4f;color:#93c5fd;font-weight:800;align-items:center}
 .list-row label{margin:0;font-size:12px}
