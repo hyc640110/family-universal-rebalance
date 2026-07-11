@@ -875,12 +875,12 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
     </div>
     {row.quote.error && <p className="note holding-quote-error">報價異常，請稍後再更新股價。</p>}
     <div className="holding-snapshot">
-      <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
-      <div><span>最新價格</span><strong>{row.quote.price.toFixed(2)} 元</strong></div>
-      <div><span>今日漲跌</span><strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong></div>
       <div><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></div>
+      <div><span>最新價格</span><strong>{row.quote.price.toFixed(2)} 元</strong></div>
       <div><span>市值</span><strong>{money(row.marketValue)}</strong></div>
       <div><span>損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></div>
+      <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
+      <div><span>今日漲跌</span><strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong></div>
     </div>
     {isEditing && <div className="holding-editor">
       <div className="holding-editor-grid">
@@ -1617,6 +1617,12 @@ function App() {
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
+        <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
+          {targetWarning && <p className="warning-message">{targetWarning}</p>}
+          <div className="holdings">
+            {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
+          </div>
+        </SectionCard>
         <Card className="page-card for-assets" title="新增持股">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
@@ -1626,12 +1632,6 @@ function App() {
           {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
         </Card>
         <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
-        <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
-          {targetWarning && <p className="warning-message">{targetWarning}</p>}
-          <div className="holdings">
-            {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
-          </div>
-        </SectionCard>
         <Card className="page-card for-analytics" title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
