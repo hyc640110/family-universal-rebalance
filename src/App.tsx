@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
+import { Download, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_BUILD_TIME, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
@@ -807,6 +808,9 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const total = Math.max(0, num(m.totalAssets));
+  const growthWeight = total > 0 ? num(m.growth) / total * 100 : 0;
+  const defensiveWeight = total > 0 ? num(m.defensive) / total * 100 : 0;
+  const allocationPct = (value: number) => `${num(value).toFixed(1)}%`;
   const items = [
     ...m.rows.map(row => ({ symbol: row.symbol, name: row.name, value: Math.max(0, num(row.marketValue)) })),
     { symbol: 'CASH', name: '台幣現金', value: Math.max(0, num(m.cash)) }
@@ -824,23 +828,30 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const selected = items.find(item => item.symbol === activeSymbol);
   const activate = (symbol: string) => setSelectedSymbol(current => current === symbol ? null : symbol);
   if (items.length === 0) return <div className="allocation-empty">尚無可計入資產配置的市值資料。</div>;
-  return <div className="allocation-donut-layout">
-    <div className="allocation-donut-wrap">
-      <svg className="allocation-donut" viewBox="0 0 120 120" role="img" aria-label="目前資產配置甜甜圈圖">
-        <circle className="allocation-track" cx="60" cy="60" r={radius} />
-        <g transform="rotate(-90 60 60)">
-          {segments.map(segment => <circle key={segment.symbol} className={`allocation-segment ${activeSymbol === segment.symbol ? 'active' : ''}`} cx="60" cy="60" r={radius} stroke={segment.color} strokeDasharray={`${segment.dash} ${circumference - segment.dash}`} strokeDashoffset={-segment.offset} onMouseEnter={() => setHoveredSymbol(segment.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onClick={() => activate(segment.symbol)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(segment.symbol); } }} role="button" tabIndex={0}><title>{`${segment.name} ${pct(segment.percent)}`}</title></circle>)}
-        </g>
-      </svg>
-      <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : money(total)}</strong></div>
+  return <div className="allocation-chart">
+    <div className="allocation-summary" aria-label="資產配置摘要">
+      <div><small>總資產</small><strong>{money(total)}</strong></div>
+      <div><small>成長</small><strong>{allocationPct(growthWeight)}</strong></div>
+      <div><small>防守</small><strong>{allocationPct(defensiveWeight)}</strong></div>
     </div>
-    <div className={`allocation-legend ${showAll ? 'is-expanded' : ''}`}>
-      {items.map(item => <button type="button" className={`allocation-legend-item ${activeSymbol === item.symbol ? 'active' : ''}`} key={item.symbol} onMouseEnter={() => setHoveredSymbol(item.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onFocus={() => setHoveredSymbol(item.symbol)} onBlur={() => setHoveredSymbol(null)} onClick={() => activate(item.symbol)}>
-        <i style={{ backgroundColor: item.color }} aria-hidden="true" />
-        <span><b>{item.symbol === 'CASH' ? '台幣現金' : item.symbol}</b>{item.symbol !== 'CASH' && <small>{item.name}</small>}</span>
-        <strong>{pct(item.percent)}</strong>
-      </button>)}
-      {items.length > 5 && <button type="button" className="allocation-expand" onClick={() => setShowAll(current => !current)}>{showAll ? '收合明細' : `展開明細（其餘 ${items.length - 5} 項）`}</button>}
+    <div className="allocation-donut-layout">
+      <div className="allocation-donut-wrap">
+        <svg className="allocation-donut" viewBox="0 0 120 120" role="img" aria-label="目前資產配置甜甜圈圖">
+          <circle className="allocation-track" cx="60" cy="60" r={radius} />
+          <g transform="rotate(-90 60 60)">
+            {segments.map(segment => <circle key={segment.symbol} className={`allocation-segment ${activeSymbol === segment.symbol ? 'active' : ''}`} cx="60" cy="60" r={radius} stroke={segment.color} strokeDasharray={`${segment.dash} ${circumference - segment.dash}`} strokeDashoffset={-segment.offset} onMouseEnter={() => setHoveredSymbol(segment.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onClick={() => activate(segment.symbol)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(segment.symbol); } }} role="button" tabIndex={0}><title>{`${segment.name} ${pct(segment.percent)}`}</title></circle>)}
+          </g>
+        </svg>
+        <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : money(total)}</strong></div>
+      </div>
+      <div className={`allocation-legend ${showAll ? 'is-expanded' : ''}`}>
+        {items.map(item => <button type="button" className={`allocation-legend-item ${activeSymbol === item.symbol ? 'active' : ''}`} key={item.symbol} onMouseEnter={() => setHoveredSymbol(item.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onFocus={() => setHoveredSymbol(item.symbol)} onBlur={() => setHoveredSymbol(null)} onClick={() => activate(item.symbol)}>
+          <i style={{ backgroundColor: item.color }} aria-hidden="true" />
+          <span><b>{item.symbol === 'CASH' ? '台幣現金' : item.symbol}</b>{item.symbol !== 'CASH' && <small>{item.name}</small>}</span>
+          <strong>{pct(item.percent)}</strong>
+        </button>)}
+        {items.length > 5 && <button type="button" className="allocation-expand" onClick={() => setShowAll(current => !current)}>{showAll ? '收合明細' : `展開明細（其餘 ${items.length - 5} 項）`}</button>}
+      </div>
     </div>
   </div>;
 }
@@ -1034,6 +1045,7 @@ function App() {
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
   const [remoteMeta, setRemoteMeta] = useState<RemoteMeta | null>(() => state.remoteMeta);
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
+  const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
   const persistStatePatch = (patch: Partial<AppState>) => {
     const normalized = normalizeState({ ...stateRef.current, ...patch });
     stateRef.current = normalized;
@@ -1432,6 +1444,16 @@ function App() {
     setStartupWarning(null);
     location.reload();
   };
+  const runHomeUpload = async () => {
+    if (isHomeSyncing) return;
+    setIsHomeSyncing('upload');
+    try { await uploadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
+  };
+  const runHomeDownload = async () => {
+    if (isHomeSyncing) return;
+    setIsHomeSyncing('download');
+    try { await downloadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
+  };
   const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
   if (!validPages.includes(currentPage)) return <Navigate to="/home" replace />;
@@ -1441,7 +1463,11 @@ function App() {
     <AppLayout>
       {currentPage === 'home' && <header id="overview-section" className="hero">
         <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build：{APP_BUILD_TIME}</p></div>
-        <button onClick={refreshQuotes} disabled={isRefreshingQuotes}>{isRefreshingQuotes ? '更新中…' : '更新股價'}</button>
+        <div className="hero-actions" aria-label="首頁快速操作">
+          <button className="hero-refresh" onClick={refreshQuotes} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
+          <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
+          <button className="hero-transfer" onClick={runHomeUpload} disabled={Boolean(isHomeSyncing)}><Upload size={15} aria-hidden="true" /><span>{isHomeSyncing === 'upload' ? '上傳中…' : '上傳'}</span></button>
+        </div>
       </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
@@ -1493,14 +1519,6 @@ function App() {
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
-        <Card className="page-card for-home" title="快速操作">
-          <div className="actions quick-actions">
-            <button onClick={refreshQuotes} disabled={isRefreshingQuotes}>{isRefreshingQuotes ? '更新中…' : '更新股價'}</button>
-            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
-          </div>
-          <p className="note">雲端同步仍只會在按鈕觸發時執行。</p>
-        </Card>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <Card className="page-card for-assets" title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
@@ -1513,9 +1531,11 @@ function App() {
             {derivedHoldings(state).map(item => {
               const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
               return <article className="asset-management-item" key={item.symbol}>
-                <div><strong>{item.symbol}</strong><span>{resolveSymbolName(item.symbol, item.name, quote.name)}</span></div>
-                <span>{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股</span>
-                <button className="danger small" onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
+                <div className="asset-management-header">
+                  <div className="asset-management-title"><strong>{item.symbol}</strong><span>{resolveSymbolName(item.symbol, item.name, quote.name)}</span></div>
+                  <button className="asset-delete-button" type="button" aria-label={`刪除 ${item.symbol}`} title={`刪除 ${item.symbol}`} onClick={() => removeHoldingAsset(item.symbol)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>
+                </div>
+                <span className="asset-management-meta">{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股</span>
               </article>;
             })}
           </div>
