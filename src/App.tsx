@@ -235,6 +235,22 @@ function formatShares(shares: number | null) {
   const { lots, oddLots } = getLotAndOddLot(shares);
   return `${shares.toLocaleString('zh-TW')} 股（${lots} 張 + ${oddLots} 股）`;
 }
+function isBackupQuoteSource(source: unknown) {
+  const text = String(source ?? '');
+  return text.includes('備援') || text.includes('成交均價') || text.includes('離線');
+}
+function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
+  const hasError = rows.some(row => Boolean(row.quote.error));
+  const hasBackup = rows.some(row => isBackupQuoteSource(row.quote.source));
+  if (hasError) return '部分標的報價異常';
+  if (hasBackup) return '部分標的目前使用備援價格';
+  return '報價正常';
+}
+function quoteShortBadge(quote: Quote) {
+  if (quote.error) return '報價異常';
+  if (isBackupQuoteSource(quote.source)) return '備援價格';
+  return '';
+}
 
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
@@ -1121,6 +1137,7 @@ function App() {
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const rebalanceDeviationText = rb.deviationText;
+  const quoteSummaryText = quoteDisplayStatus(m.rows);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
@@ -1160,6 +1177,7 @@ function App() {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
     return times.length ? new Date(Math.max(...times)).toISOString() : '';
   }, [quotes]);
+  const publicQuoteStatus = isRefreshingQuotes ? '股價更新中…' : hasUpdatedQuotes && latestQuoteTime ? `股價更新：${twShortTime(latestQuoteTime)}｜${quoteSummaryText}` : '尚未更新股價';
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1188,7 +1206,9 @@ function App() {
     `GrowthTargetPercent: ${pct(rb.growthTargetPercent)}`,
     `RebalanceDeviation: ${rebalanceDeviationText}`,
     `DefensiveCurrentRatio: ${pct(rb.defensiveRow.currentWeight)}`,
-    `HoldingNames: ${m.rows.map(row => `${row.symbol}:${row.quote.name}`).join(' / ')}`
+    `QuoteStatus: ${quoteStatus}`,
+    `HoldingNames: ${m.rows.map(row => `${row.symbol}:${row.quote.name}`).join(' / ')}`,
+    `QuoteSources: ${m.rows.map(row => `${row.symbol}=${row.quote.source}${row.quote.error ? ` (${row.quote.error})` : ''}`).join(' / ')}`
   ].join('\n');
   const copyDebugInfo = async () => {
     const text = generateDebugInfo();
@@ -1458,22 +1478,24 @@ function App() {
           <h3>{mode}</h3><p>{hint}</p>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
-          <small>資料來源：{m.rows.map(r => `${r.symbol}=${r.quote.source}`).join(' / ')}</small>
-          <p className="note">{quoteStatus}</p>
+          <p className="quote-summary"><span>股價更新：{hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
+          <p className="note">{publicQuoteStatus}</p>
         </SectionCard>
         <SectionCard title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
-            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; return <article className="holding" key={r.symbol}>
-              <h3>{r.symbol}</h3><p>{r.quote.name}</p><p>來源：{r.quote.source}｜更新：{tw(r.quote.updatedAt)}</p>{r.quote.error && <p className="note">錯誤：{r.quote.error}</p>}
+            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); return <article className="holding" key={r.symbol}>
+              <h3>{r.symbol}</h3><p>{r.quote.name}</p><p className="quote-meta">更新：{tw(r.quote.updatedAt)}{quoteBadge && <span className={r.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p>{r.quote.error && <p className="note">報價異常，請稍後再更新股價。</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
               <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
               <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
               <label>目標比例 %<DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(r.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
               <label>資產分類<select value={r.assetClass} onChange={e => updateHolding(r.symbol, 'assetClass', normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
-              <strong>目前比例：{pct(holdingWeight)}</strong>
-              <strong>市值：{money(r.marketValue)}</strong>
-              <strong className={tone(r.pnl)}>損益：{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong>
+              <div className="holding-metrics">
+                <div className="holding-metric"><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
+                <div className="holding-metric"><span>市值</span><strong>{money(r.marketValue)}</strong></div>
+                <div className="holding-metric"><span>損益</span><strong className={tone(r.pnl)}>{signedMoney(r.pnl)} / {signedPct(pnlPct)}</strong></div>
+              </div>
             </article>; })}
           </div>
         </SectionCard>
@@ -1487,7 +1509,6 @@ function App() {
             <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
             <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
             <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.cash <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.mode === 'buy-only' ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.cash <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠' : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
-            <p><span>下單單位</span><strong>1 張 = 1000 股</strong></p>
           </div>
           {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
           {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
