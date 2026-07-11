@@ -1501,6 +1501,7 @@ function App() {
           </div>
           <p className="note">雲端同步仍只會在按鈕觸發時執行。</p>
         </Card>
+        <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <Card className="page-card for-assets" title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
@@ -1519,6 +1520,7 @@ function App() {
             })}
           </div>
         </Card>
+        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
         <SectionCard className="page-card for-assets" title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
@@ -1555,7 +1557,6 @@ function App() {
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
-        <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <SectionCard className="page-card for-analytics" id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="decision-grid">
@@ -1585,7 +1586,6 @@ function App() {
           <p className="note">現金固定列入防守資產；股票與 ETF 依每筆持股的資產分類設定分組，不再由代號強制判斷。</p>
           <div className="status-grid"><p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p><p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p><p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p><p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p><p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p><p><span>防守資產</span><strong>現金{m.defensiveHoldings.length ? `、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : ''}</strong></p></div>
         </SectionCard>
-        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
         <SectionCard className="page-card for-assets" id="loan-section" title="借款與還款安全" isMobile={isMobile} collapsible open={sectionOpen('loans')} onToggle={() => toggleSection('loans')} summary={`剩餘借款 ${money(m.debt)}｜安全存量 ${Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}`}>
           <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /><Stat label="還款安全存量" value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} /><Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" /><Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} /></div>
           <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>* 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。</p>
