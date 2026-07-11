@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_BUILD_TIME, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import AppLayout from './components/layout/AppLayout';
+import HomePage from './pages/HomePage';
+import AssetsPage from './pages/AssetsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ToolsPage from './pages/ToolsPage';
+import SettingsPage from './pages/SettingsPage';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -787,40 +794,61 @@ function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的成長資產部位，避免一次打滿；目前目標為成長資產 ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
-function pieLabelStyle(startDeg: number, endDeg: number): CSSProperties {
-  const centerDeg = (startDeg + endDeg) / 2;
-  const rad = centerDeg * Math.PI / 180;
-  const x = 50 + Math.sin(rad) * 27;
-  const y = 50 - Math.cos(rad) * 15;
-  return { '--x': `${x.toFixed(1)}%`, '--y': `${y.toFixed(1)}%` } as CSSProperties;
+const ALLOCATION_COLORS = ['#5b8def', '#58c7a5', '#f3b75f', '#d783c7', '#7ec8e3', '#a9c46c', '#e77c75', '#a98ee8', '#e6a36d', '#67b6a8'];
+const FIXED_ALLOCATION_COLORS: Record<string, string> = { CASH: '#78a6f7', '00631L': '#f07d7d', '00865B': '#64c9a5' };
+function allocationColor(symbol: string) {
+  if (FIXED_ALLOCATION_COLORS[symbol]) return FIXED_ALLOCATION_COLORS[symbol];
+  const hash = Array.from(symbol).reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 7);
+  return ALLOCATION_COLORS[hash % ALLOCATION_COLORS.length];
 }
 
-function Pie3D({ m }: { m: ReturnType<typeof calculateMetrics> }) {
-  const growthPct = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
-  const defensivePct = m.totalAssets ? m.defensive / m.totalAssets * 100 : 0;
-  const cashPct = m.totalAssets ? m.cash / m.totalAssets * 100 : 0;
-  const rowPct = (marketValue: number) => pct(m.totalAssets ? marketValue / m.totalAssets * 100 : 0);
-  const pieStart = -35;
-  const growthEnd = pieStart + growthPct / 100 * 360;
-  const growthLabelStyle = pieLabelStyle(pieStart, growthEnd);
-  const defensiveLabelStyle = pieLabelStyle(growthEnd, pieStart + 360);
-  return <div className="pie-layout">
-    <div className="pie-figure">
-      <div className="pie-3d" style={{ '--growth': `${growthPct}%` } as CSSProperties} />
-      {growthPct >= 8 && <span className="pie-slice-label growth-slice-label" style={growthLabelStyle}>{pct(growthPct)}</span>}
-      {defensivePct >= 8 && <span className="pie-slice-label defensive-slice-label" style={defensiveLabelStyle}>{pct(defensivePct)}</span>}
+function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const total = Math.max(0, num(m.totalAssets));
+  const items = [
+    ...m.rows.map(row => ({ symbol: row.symbol, name: row.name, value: Math.max(0, num(row.marketValue)) })),
+    { symbol: 'CASH', name: '台幣現金', value: Math.max(0, num(m.cash)) }
+  ].filter(item => item.value > 0).map(item => ({ ...item, percent: total > 0 ? item.value / total * 100 : 0, color: allocationColor(item.symbol) })).sort((a, b) => b.percent - a.percent);
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const segments = items.map(item => {
+    const fullLength = item.percent / 100 * circumference;
+    const segment = { ...item, dash: Math.max(0, fullLength - 1.6), offset };
+    offset += fullLength;
+    return segment;
+  });
+  const activeSymbol = hoveredSymbol ?? selectedSymbol;
+  const selected = items.find(item => item.symbol === activeSymbol);
+  const activate = (symbol: string) => setSelectedSymbol(current => current === symbol ? null : symbol);
+  if (items.length === 0) return <div className="allocation-empty">尚無可計入資產配置的市值資料。</div>;
+  return <div className="allocation-donut-layout">
+    <div className="allocation-donut-wrap">
+      <svg className="allocation-donut" viewBox="0 0 120 120" role="img" aria-label="目前資產配置甜甜圈圖">
+        <circle className="allocation-track" cx="60" cy="60" r={radius} />
+        <g transform="rotate(-90 60 60)">
+          {segments.map(segment => <circle key={segment.symbol} className={`allocation-segment ${activeSymbol === segment.symbol ? 'active' : ''}`} cx="60" cy="60" r={radius} stroke={segment.color} strokeDasharray={`${segment.dash} ${circumference - segment.dash}`} strokeDashoffset={-segment.offset} onMouseEnter={() => setHoveredSymbol(segment.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onClick={() => activate(segment.symbol)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(segment.symbol); } }} role="button" tabIndex={0}><title>{`${segment.name} ${pct(segment.percent)}`}</title></circle>)}
+        </g>
+      </svg>
+      <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : money(total)}</strong></div>
     </div>
-    <div className="allocation-detail">
-      <div><h3>成長資產</h3>{m.growthHoldings.map(r => <p key={r.symbol}><span><i className="legend growth-dot" />{r.symbol}</span><strong>{rowPct(r.marketValue)}</strong></p>)}<p><span><i className="legend growth-dot" />合計</span><strong>{pct(growthPct)}</strong></p><p><span>目標</span><strong>{pct(m.growthTargetPct)}</strong></p></div>
-      <div><h3>防守資產</h3><p><span><i className="legend cash-dot" />現金</span><strong>{pct(cashPct)}</strong></p>{m.defensiveHoldings.map(r => <p key={r.symbol}><span><i className="legend bond-dot" />{r.symbol}</span><strong>{rowPct(r.marketValue)}</strong></p>)}<p><span><i className="legend defensive-dot" />合計</span><strong>{pct(defensivePct)}</strong></p><p><span>目標</span><strong>{pct(m.defensiveTargetPct)}</strong></p></div>
+    <div className={`allocation-legend ${showAll ? 'is-expanded' : ''}`}>
+      {items.map(item => <button type="button" className={`allocation-legend-item ${activeSymbol === item.symbol ? 'active' : ''}`} key={item.symbol} onMouseEnter={() => setHoveredSymbol(item.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onFocus={() => setHoveredSymbol(item.symbol)} onBlur={() => setHoveredSymbol(null)} onClick={() => activate(item.symbol)}>
+        <i style={{ backgroundColor: item.color }} aria-hidden="true" />
+        <span><b>{item.symbol === 'CASH' ? '台幣現金' : item.symbol}</b>{item.symbol !== 'CASH' && <small>{item.name}</small>}</span>
+        <strong>{pct(item.percent)}</strong>
+      </button>)}
+      {items.length > 5 && <button type="button" className="allocation-expand" onClick={() => setShowAll(current => !current)}>{showAll ? '收合明細' : `展開明細（其餘 ${items.length - 5} 項）`}</button>}
     </div>
   </div>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
   return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
 }
-function Card({ id, title, children, action, style }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties }) {
-  return <section id={id} className="card" style={style}>
+function Card({ id, title, children, action, style, className = '' }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string }) {
+  return <section id={id} className={`card ${className}`.trim()} style={style}>
     {action ? (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ margin: 0 }}>{title}</h2>
@@ -832,10 +860,10 @@ function Card({ id, title, children, action, style }: { id?: string; title: stri
     {children}
   </section>;
 }
-function SectionCard({ id, title, children, action, style, isMobile, collapsible = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; isMobile?: boolean; collapsible?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
-  if (!isMobile || !collapsible) return <Card id={id} title={title} action={action} style={style}>{children}</Card>;
+function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
+  if (!isMobile || !collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
   const contentId = id ? `${id}-content` : `section-${title}-content`;
-  return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'}`} style={style}>
+  return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'} ${className}`.trim()} style={style}>
     <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
       <span>{title}</span>
       <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
@@ -979,6 +1007,9 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
 }
 
 function App() {
+  const routeLocation = useLocation();
+  const navigate = useNavigate();
+  const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -989,7 +1020,6 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [tab, setTab] = useState<'dashboard' | 'sync'>('dashboard');
   const [uiState, setUiState] = useState<UiState>(() => readUiState());
   const [state, setStateValue] = useState<AppState>(() => readState());
   const stateRef = useRef(state);
@@ -1325,20 +1355,6 @@ function App() {
       }, s.holdings)
     }));
   };
-  const scrollToSection = (id: string, nextTab: 'dashboard' | 'sync' = 'dashboard') => {
-    setTab(nextTab);
-    let attempts = 0;
-    const run = () => {
-      const target = document.getElementById(id);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      attempts += 1;
-      if (attempts < 8) window.setTimeout(run, 50);
-    };
-    window.setTimeout(run, 50);
-  };
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
     const holdings = safeHoldings(s.holdings);
     const normalizedSymbol = normalizeSymbol(symbol);
@@ -1416,19 +1432,17 @@ function App() {
     setStartupWarning(null);
     location.reload();
   };
+  const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
+  if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage)) return <Navigate to="/home" replace />;
+  const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
+  const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
-    <main>
-      <header id="overview-section" className="hero">
+    <AppLayout>
+      {currentPage === 'home' && <header id="overview-section" className="hero">
         <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build：{APP_BUILD_TIME}</p></div>
         <button onClick={refreshQuotes} disabled={isRefreshingQuotes}>{isRefreshingQuotes ? '更新中…' : '更新股價'}</button>
-      </header>
-      <nav className="tabs">
-        <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>儀表板</button>
-        <button className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>
-          同步與資料{syncMeta.dirty && <span style={{ color: '#ffd166', marginLeft: '4px' }} title="有本機修改尚未上傳">⚠️</span>}
-        </button>
-        <span className="sync-bar"><b>股價更新：</b>{hasUpdatedQuotes && latestQuoteTime ? `${twShortTime(latestQuoteTime)} 更新` : '尚未更新'}<br /><b>本機儲存：</b>{tw(lastSavedAt)}<br /><b>雲端上傳：</b>{syncMeta.lastUploadAt ? tw(syncMeta.lastUploadAt) : '—'}{syncMeta.dirty && <span style={{ color: '#ffd166', fontSize: '11px', fontWeight: 'bold', marginLeft: '6px' }}>(有本機修改尚未上傳)</span>}<br /><b>雲端下載：</b>{syncMeta.lastDownloadAt ? tw(syncMeta.lastDownloadAt) : '—'}<br /><b>狀態：</b>{syncMeta.status}</span>
-      </nav>
+      </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
         <p className="note">{startupWarning.message}</p>
@@ -1438,12 +1452,12 @@ function App() {
           <button className="small" onClick={() => setStartupWarning(null)}>隱藏提示</button>
         </div>
       </Card>}
-      {tab === 'dashboard' && <>
-        {isMobile && <div className="mobile-mode-switch" aria-label="手機顯示模式">
+      {showOn('home', 'assets', 'analytics') && <DashboardPage>
+        {isMobile && currentPage === 'assets' && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
           <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
         </div>}
-        <SectionCard id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
+        <SectionCard className="page-card for-home for-analytics" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
             <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
@@ -1455,7 +1469,7 @@ function App() {
             <Stat label="策略模式" value={mode} tone={modeTone} />
           </section>
         </SectionCard>
-        <SectionCard title="今日決策" isMobile={isMobile} collapsible open={sectionOpen('today')} onToggle={() => toggleSection('today')} summary={todayDecision.conclusion}>
+        <SectionCard className="page-card for-home" title="今日決策" isMobile={isMobile} collapsible open={sectionOpen('today')} onToggle={() => toggleSection('today')} summary={todayDecision.conclusion}>
           <div className={`health-status ${todayDecision.lowCashSafety ? 'bad' : rb.thresholdReached || todayDecision.dipTriggered ? 'warn' : 'good'}`}>
             <div className="health-light" />
             <div>
@@ -1473,13 +1487,39 @@ function App() {
             <p><span>防守資產比例</span><strong>{pct(m.defensiveRatio)}</strong></p>
           </div>
         </SectionCard>
-        <SectionCard title="AI 分析與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('ai')} onToggle={() => toggleSection('ai')} summary={`目前建議：${mode}`}>
+        <SectionCard className="page-card for-home" title="AI 分析與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('ai')} onToggle={() => toggleSection('ai')} summary={`目前建議：${mode}`}>
           <h3>{mode}</h3><p>{hint}</p>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
-        <SectionCard title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
+        <Card className="page-card for-home" title="快速操作">
+          <div className="actions quick-actions">
+            <button onClick={refreshQuotes} disabled={isRefreshingQuotes}>{isRefreshingQuotes ? '更新中…' : '更新股價'}</button>
+            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+          </div>
+          <p className="note">雲端同步仍只會在按鈕觸發時執行。</p>
+        </Card>
+        <Card className="page-card for-assets" title="持股資產管理">
+          <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
+          <div className="asset-add-row">
+            <input placeholder="輸入台股代號，例如 00981A、00670L、00662" value={newSymbolDraft} onChange={e => setNewSymbolDraft(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }} />
+            <button onClick={addHoldingAsset}>新增資產</button>
+          </div>
+          {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
+          <div className="asset-management-grid">
+            {derivedHoldings(state).map(item => {
+              const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
+              return <article className="asset-management-item" key={item.symbol}>
+                <div><strong>{item.symbol}</strong><span>{resolveSymbolName(item.symbol, item.name, quote.name)}</span></div>
+                <span>{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股</span>
+                <button className="danger small" onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
+              </article>;
+            })}
+          </div>
+        </Card>
+        <SectionCard className="page-card for-assets" title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
             {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); return <article className="holding" key={r.symbol}>
@@ -1497,7 +1537,8 @@ function App() {
             </article>; })}
           </div>
         </SectionCard>
-        <SectionCard id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
+        <SectionCard className="page-card for-analytics" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
+        <SectionCard className="page-card for-home for-analytics" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
             {orderHelper.mode === 'buy-only' && <>
@@ -1514,8 +1555,8 @@ function App() {
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
-        <SectionCard title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><Pie3D m={m} /></SectionCard>
-        <SectionCard id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
+        <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
+        <SectionCard className="page-card for-analytics" id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="decision-grid">
             <p><span>目前需不需要調整？</span><strong className={decisionSummary.adjustmentStatus === '需要關注' ? 'warn' : 'good'}>{decisionSummary.adjustmentStatus}</strong></p>
@@ -1536,17 +1577,21 @@ function App() {
           <div className="table rebalance-table"><div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div><div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div><div className="rebalance-group"><div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>{rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}</div></div>
           <div className="dip-settings-panel"><h3>逢低加碼提醒設定</h3><p className="note">關閉逢低加碼提醒時，只顯示一般再平衡建議，不顯示逢低加碼判斷。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>{dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">{dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}</div>}<p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p></div>
         </SectionCard>
-        <SectionCard title="資產分類設定" isMobile={isMobile} collapsible open={sectionOpen('assetClass')} onToggle={() => toggleSection('assetClass')} summary={`目標合計 ${pct(targetCheck.total)}｜現金承擔 ${pct(targetCheck.cashTarget)}`}>
+        <Card className="page-card for-home for-analytics" title="借款安全摘要">
+          <div className="status-grid"><p><span>借款總額</span><strong>{money(m.debt)}</strong></p><p><span>槓桿比例</span><strong>{m.leverage.toFixed(2)}x</strong></p><p><span>每月還款</span><strong>{money(m.monthlyPayment)}</strong></p><p><span>還款安全存量</span><strong>{Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}</strong></p></div>
+          <p className="note">完整借款資料與編輯功能位於資產頁。</p>
+        </Card>
+        <SectionCard className="page-card for-assets" title="資產分類設定" isMobile={isMobile} collapsible open={sectionOpen('assetClass')} onToggle={() => toggleSection('assetClass')} summary={`目標合計 ${pct(targetCheck.total)}｜現金承擔 ${pct(targetCheck.cashTarget)}`}>
           <p className="note">現金固定列入防守資產；股票與 ETF 依每筆持股的資產分類設定分組，不再由代號強制判斷。</p>
           <div className="status-grid"><p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p><p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p><p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p><p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p><p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p><p><span>防守資產</span><strong>現金{m.defensiveHoldings.length ? `、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : ''}</strong></p></div>
         </SectionCard>
-        <SectionCard title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
-        <SectionCard id="loan-section" title="借款與還款安全" isMobile={isMobile} collapsible open={sectionOpen('loans')} onToggle={() => toggleSection('loans')} summary={`剩餘借款 ${money(m.debt)}｜安全存量 ${Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}`}>
+        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
+        <SectionCard className="page-card for-assets" id="loan-section" title="借款與還款安全" isMobile={isMobile} collapsible open={sectionOpen('loans')} onToggle={() => toggleSection('loans')} summary={`剩餘借款 ${money(m.debt)}｜安全存量 ${Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}`}>
           <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /><Stat label="還款安全存量" value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} /><Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" /><Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} /></div>
           <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>* 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。</p>
           <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
         </SectionCard>
-        {isMobile && <SectionCard id="sync-section-mobile" title="同步與資料設定" isMobile={isMobile} collapsible open={sectionOpen('sync')} onToggle={() => toggleSection('sync')} summary={`上傳 ${metaTime(syncMeta.lastUploadAt)}｜下載 ${metaTime(syncMeta.lastDownloadAt)}`}>
+        {isMobile && <SectionCard className="page-card" id="sync-section-mobile" title="同步與資料設定" isMobile={isMobile} collapsible open={sectionOpen('sync')} onToggle={() => toggleSection('sync')} summary={`上傳 ${metaTime(syncMeta.lastUploadAt)}｜下載 ${metaTime(syncMeta.lastDownloadAt)}`}>
           <p className="note">手機版快速同步只會在按鈕觸發時執行；完整 Firebase、備份與持股資產管理仍在「同步與資料」分頁。</p>
           <div className="status-grid">
             <p><span>目前同步代號</span><strong>{state.firebase.secretPath || FIREBASE_BASE_PATH}</strong></p>
@@ -1557,11 +1602,19 @@ function App() {
           <div className="actions">
             <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
             <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
-            <button className="small" onClick={() => setTab('sync')}>完整設定</button>
+            <button className="small" onClick={() => navigate('/settings')}>完整設定</button>
           </div>
         </SectionCard>}
-      </>}
-      {tab === 'sync' && <>
+      </DashboardPage>}
+      {currentPage === 'tools' && <ToolsPage />}
+      {currentPage === 'settings' && <SettingsPage>
+        <Card title="顯示設定">
+          <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
+          <div className="mobile-mode-switch settings-mode-switch" aria-label="顯示模式">
+            <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
+            <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
+          </div>
+        </Card>
         <Card id="sync-section" title="同步與資料設定">
           <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
           <div className="params">
@@ -1607,7 +1660,7 @@ function App() {
             <button className="danger" onClick={resetState}>重設</button>
           </div>
         </Card>
-        <Card title="持股資產管理">
+        <Card className="legacy-settings-asset-manager" title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
             <input
@@ -1633,6 +1686,16 @@ function App() {
                 <button className="danger small" onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
               </div>;
             })}
+          </div>
+        </Card>
+        <Card title="報價來源明細">
+          <p className="note">完整技術來源集中在此處，主要投資卡片只顯示簡短報價狀態。</p>
+          <div className="asset-management-grid">
+            {m.rows.map(row => <article className="asset-management-item" key={`source-${row.symbol}`}>
+              <div><strong>{row.symbol}</strong><span>{row.quote.name}</span></div>
+              <span>{row.quote.source}{row.quote.error ? `｜${row.quote.error}` : ''}</span>
+              <small>{tw(row.quote.updatedAt)}</small>
+            </article>)}
           </div>
         </Card>
         <Card title="目標比例檢查">
@@ -1688,7 +1751,6 @@ function App() {
             </div>
           </div>
         </Card>
-      </>}
       <footer className="app-footer">
         <section className="card footer-debug-card">
           <details className="debug-details footer-debug-details">
@@ -1713,6 +1775,15 @@ function App() {
         <Card title="更新紀錄">
           <details className="release-notes">
             <summary>查看更新紀錄</summary>
+            <div className="release-group">
+              <h3>V3.1 Navigation Foundation</h3>
+              <ul>
+                <li>新增首頁、資產、分析、工具與設定五個主要頁面。</li>
+                <li>手機使用固定底部導航，桌機使用固定左側 Sidebar。</li>
+                <li>採用 Hash 路由，確保 GitHub Pages 重新整理不會出現 404。</li>
+                <li>既有持股、同步與投資計算仍共用同一份狀態。</li>
+              </ul>
+            </div>
             <div className="release-group">
               <h3>UI 2.1</h3>
               <ul>
@@ -1770,23 +1841,8 @@ function App() {
           </details>
         </Card>
       </footer>
-      <nav className="mobile-bottom-nav" aria-label="手機快捷導覽">
-        <button type="button" onClick={() => scrollToSection('overview-section')}>總覽</button>
-        <button type="button" onClick={() => scrollToSection('rebalance-section')}>再平衡</button>
-        <button type="button" onClick={() => scrollToSection('order-section')}>下單</button>
-        <button type="button" onClick={() => scrollToSection('loan-section')}>借款</button>
-        <button type="button" onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳</button>
-        <button type="button" onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載</button>
-      </nav>
-      <nav className="desktop-side-nav" aria-label="桌機快捷導覽">
-        <button type="button" onClick={() => scrollToSection('overview-section')}>總覽</button>
-        <button type="button" onClick={() => scrollToSection('rebalance-section')}>再平衡</button>
-        <button type="button" onClick={() => scrollToSection('order-section')}>下單</button>
-        <button type="button" onClick={() => scrollToSection('loan-section')}>借款</button>
-        <button type="button" onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳</button>
-        <button type="button" onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載</button>
-      </nav>
-    </main>
+      </SettingsPage>}
+    </AppLayout>
   );
 }
 export default App;
