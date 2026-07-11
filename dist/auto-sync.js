@@ -3,10 +3,10 @@
   const STORAGE_KEYS = [isPreview ? 'family-universal-rebalance-preview-v100-state' : 'family-universal-rebalance-v100-state'];
   const REMOVED_SYMBOLS = new Set();
   const DEFAULT_HOLDINGS = [
-    { symbol: '00662', shares: 0, avgCost: 0, targetWeight: 40, assetClass: 'growth' },
-    { symbol: '00670L', shares: 0, avgCost: 0, targetWeight: 38, assetClass: 'growth' },
-    { symbol: '00865B', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
-    { symbol: '00631L', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
+    { symbol: '00662', name: '富邦NASDAQ', shares: 0, avgCost: 0, targetWeight: 40, assetClass: 'growth' },
+    { symbol: '00670L', name: '富邦NASDAQ正2', shares: 0, avgCost: 0, targetWeight: 38, assetClass: 'growth' },
+    { symbol: '00865B', name: '國泰US短期公債', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
+    { symbol: '00631L', name: '元大台灣50正2', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
   ];
   const REMOVED_RECORD_KEY = ['tra', 'des'].join('');
   const STALE_KEYS = ['strategy', 'strategies', 'targetAllocation', 'assetAllocation', 'portfolioSummary', 'strategyTotal', 'defaultHoldings', ['default', 'Tr', 'ades'].join(''), 'monthlyContribution', 'simCagr', 'simDividend', 'simYears', REMOVED_RECORD_KEY];
