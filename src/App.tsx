@@ -31,6 +31,8 @@ type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: D
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
+type AssetFilter = 'all' | AssetClass;
+type AssetSort = 'marketValue' | 'pnl' | 'weight' | 'symbol';
 type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 
@@ -808,9 +810,6 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const total = Math.max(0, num(m.totalAssets));
-  const growthWeight = total > 0 ? num(m.growth) / total * 100 : 0;
-  const defensiveWeight = total > 0 ? num(m.defensive) / total * 100 : 0;
-  const allocationPct = (value: number) => `${num(value).toFixed(1)}%`;
   const items = [
     ...m.rows.map(row => ({ symbol: row.symbol, name: row.name, value: Math.max(0, num(row.marketValue)) })),
     { symbol: 'CASH', name: '台幣現金', value: Math.max(0, num(m.cash)) }
@@ -828,13 +827,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const selected = items.find(item => item.symbol === activeSymbol);
   const activate = (symbol: string) => setSelectedSymbol(current => current === symbol ? null : symbol);
   if (items.length === 0) return <div className="allocation-empty">尚無可計入資產配置的市值資料。</div>;
-  return <div className="allocation-chart">
-    <div className="allocation-summary" aria-label="資產配置摘要">
-      <div><small>總資產</small><strong>{money(total)}</strong></div>
-      <div><small>成長</small><strong>{allocationPct(growthWeight)}</strong></div>
-      <div><small>防守</small><strong>{allocationPct(defensiveWeight)}</strong></div>
-    </div>
-    <div className="allocation-donut-layout">
+  return <div className="allocation-chart"><div className="allocation-donut-layout">
       <div className="allocation-donut-wrap">
         <svg className="allocation-donut" viewBox="0 0 120 120" role="img" aria-label="目前資產配置甜甜圈圖">
           <circle className="allocation-track" cx="60" cy="60" r={radius} />
@@ -852,7 +845,13 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
         </button>)}
         {items.length > 5 && <button type="button" className="allocation-expand" onClick={() => setShowAll(current => !current)}>{showAll ? '收合明細' : `展開明細（其餘 ${items.length - 5} 項）`}</button>}
       </div>
-    </div>
+    </div></div>;
+}
+function AssetSummary({ m }: { m: ReturnType<typeof calculateMetrics> }) {
+  const total = Math.max(0, num(m.totalAssets));
+  const share = (value: number) => `${(total > 0 ? num(value) / total * 100 : 0).toFixed(1)}%`;
+  return <div className="asset-summary-grid" aria-label="資產摘要">
+    <div><small>總資產</small><strong>{money(total)}</strong></div><div><small>成長</small><strong>{share(m.growth)}</strong></div><div><small>防守</small><strong>{share(m.defensive)}</strong></div><div><small>現金</small><strong>{share(m.cash)}</strong></div><div><small>持股</small><strong>{m.rows.length} 檔</strong></div>
   </div>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
@@ -1063,7 +1062,14 @@ function App() {
   const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
+  const [newHoldingShares, setNewHoldingShares] = useState('0');
+  const [newHoldingCost, setNewHoldingCost] = useState('0');
+  const [newHoldingTarget, setNewHoldingTarget] = useState('0');
+  const [newHoldingClass, setNewHoldingClass] = useState<AssetClass>('growth');
   const [assetMessage, setAssetMessage] = useState('');
+  const [assetSearch, setAssetSearch] = useState('');
+  const [assetFilter, setAssetFilter] = useState<AssetFilter>('all');
+  const [assetSort, setAssetSort] = useState<AssetSort>('marketValue');
   const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
@@ -1215,6 +1221,19 @@ function App() {
     const total = getHoldingTargetTotal(state.holdings);
     return { growthTotal, defensiveStockTotal, cashTarget, total, status: total > 100 ? '持股目標比例超過 100%，請調低比例' : total < 100 ? '未分配比例由現金承擔' : '正常' };
   }, [state]);
+  const filteredAssetRows = useMemo(() => {
+    const query = assetSearch.trim().toUpperCase();
+    return [...m.rows].filter(row => {
+      const matchesFilter = assetFilter === 'all' || row.assetClass === assetFilter;
+      const matchesQuery = !query || row.symbol.includes(query) || row.name.toUpperCase().includes(query);
+      return matchesFilter && matchesQuery;
+    }).sort((a, b) => {
+      if (assetSort === 'pnl') return b.pnl - a.pnl;
+      if (assetSort === 'weight') return (m.totalAssets ? b.marketValue / m.totalAssets : 0) - (m.totalAssets ? a.marketValue / m.totalAssets : 0);
+      if (assetSort === 'symbol') return a.symbol.localeCompare(b.symbol, 'en');
+      return b.marketValue - a.marketValue;
+    });
+  }, [assetFilter, assetSearch, assetSort, m.rows, m.totalAssets]);
   const latestQuoteTime = useMemo(() => {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
     return times.length ? new Date(Math.max(...times)).toISOString() : '';
@@ -1386,8 +1405,12 @@ function App() {
       setAssetMessage(`${symbol} 已在持股清單中。`);
       return;
     }
-    setState(s => ({ ...s, holdings: [...safeHoldings(s.holdings), { symbol, name: resolveSymbolName(symbol), shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' }] }));
+    setState(s => ({ ...s, holdings: [...safeHoldings(s.holdings), { symbol, name: resolveSymbolName(symbol), shares: parsePositive(newHoldingShares), avgCost: parsePositive(newHoldingCost), targetWeight: clampTarget(parsePositive(newHoldingTarget)), assetClass: newHoldingClass }] }));
     setNewSymbolDraft('');
+    setNewHoldingShares('0');
+    setNewHoldingCost('0');
+    setNewHoldingTarget('0');
+    setNewHoldingClass('growth');
     setAssetMessage(`${symbol} 已新增；按「更新股價」會自動查詢 Worker。`);
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
@@ -1519,38 +1542,48 @@ function App() {
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
+        <Card className="page-card for-assets asset-summary-card" title="資產摘要"><AssetSummary m={m} /></Card>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <Card className="page-card for-assets" title="持股資產管理">
-          <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
-          <div className="asset-add-row">
-            <input placeholder="輸入台股代號，例如 00981A、00670L、00662" value={newSymbolDraft} onChange={e => setNewSymbolDraft(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }} />
-            <button onClick={addHoldingAsset}>新增資產</button>
+          <p className="note">新增持股後會儲存在本機清單；按「更新股價」時會逐一呼叫目前 Worker 查價。完整技術來源僅保留於設定與除錯資訊。</p>
+          <div className="asset-add-form">
+            <label>股票代號<input placeholder="例如 00981A" value={newSymbolDraft} onChange={e => setNewSymbolDraft(normalizeSymbol(e.currentTarget.value))} onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }} /></label>
+            <label>股數<input type="number" min="0" value={newHoldingShares} onChange={e => setNewHoldingShares(e.currentTarget.value)} /></label>
+            <label>平均成本<input type="number" min="0" step="0.01" value={newHoldingCost} onChange={e => setNewHoldingCost(e.currentTarget.value)} /></label>
+            <label>目標比例 %<input type="number" min="0" max="100" step="0.01" value={newHoldingTarget} onChange={e => setNewHoldingTarget(e.currentTarget.value)} /></label>
+            <label>資產分類<select value={newHoldingClass} onChange={e => setNewHoldingClass(normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select></label>
+            <button onClick={addHoldingAsset}>新增持股</button>
           </div>
           {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
+          <div className="asset-management-controls">
+            <input aria-label="搜尋持股" placeholder="搜尋代號或名稱" value={assetSearch} onChange={e => setAssetSearch(e.currentTarget.value)} />
+            <div className="asset-control-row"><select aria-label="篩選資產分類" value={assetFilter} onChange={e => setAssetFilter(e.currentTarget.value as AssetFilter)}><option value="all">全部</option><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><select aria-label="排序持股" value={assetSort} onChange={e => setAssetSort(e.currentTarget.value as AssetSort)}><option value="marketValue">市值由高到低</option><option value="pnl">損益由高到低</option><option value="weight">目前比例由高到低</option><option value="symbol">股票代號</option></select></div>
+          </div>
           <div className="asset-management-grid">
-            {derivedHoldings(state).map(item => {
-              const quote = quotes[item.symbol] || backupQuote(item.symbol, item);
+            {filteredAssetRows.map(item => {
+              const quote = item.quote;
               return <article className="asset-management-item" key={item.symbol}>
                 <div className="asset-management-header">
                   <div className="asset-management-title"><strong>{item.symbol}</strong><span>{resolveSymbolName(item.symbol, item.name, quote.name)}</span></div>
                   <button className="asset-delete-button" type="button" aria-label={`刪除 ${item.symbol}`} title={`刪除 ${item.symbol}`} onClick={() => removeHoldingAsset(item.symbol)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>
                 </div>
-                <span className="asset-management-meta">{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股</span>
+                <span className="asset-management-meta">{assetClassLabel(item.assetClass)}｜{item.shares.toLocaleString('zh-TW')} 股｜{money(item.marketValue)}</span>
               </article>;
             })}
+            {!filteredAssetRows.length && <p className="note">沒有符合搜尋或篩選條件的持股。</p>}
           </div>
         </Card>
-        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
         <SectionCard className="page-card for-assets" title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
-            {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); return <article className="holding" key={r.symbol}>
+            {filteredAssetRows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); const dipSetting = normalizeDipAlertSetting(state.dipAlerts?.[r.symbol] ?? defaultDipAlertSetting()); return <article className="holding" key={r.symbol}>
               <h3 className="holding-title"><span className="holding-symbol">{r.symbol}</span><span className="holding-name">{r.quote.name}</span></h3><p className="quote-meta">更新：{tw(r.quote.updatedAt)}{quoteBadge && <span className={r.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p>{r.quote.error && <p className="note">報價異常，請稍後再更新股價。</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
               <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
               <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>
               <label>目標比例 %<DraftInput inputMode="decimal" value={r.targetWeight ?? ''} onCommit={value => updateHolding(r.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(r.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
               <label>資產分類<select value={r.assetClass} onChange={e => updateHolding(r.symbol, 'assetClass', normalizeAssetClass(e.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
+              {dipSetting.enabled && <p className="note holding-dip-reference">波段最高價：{dipSetting.referencePrice > 0 ? dipSetting.referencePrice.toFixed(2) : '尚未設定'}</p>}
               <div className="holding-metrics">
                 <div className="holding-metric"><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
                 <div className="holding-metric"><span>市值</span><strong>{money(r.marketValue)}</strong></div>
@@ -1559,6 +1592,8 @@ function App() {
             </article>; })}
           </div>
         </SectionCard>
+        <Card className="page-card for-assets cash-overview-card" title="現金與其他資產"><div className="cash-overview"><p><span>台幣現金</span><strong>{money(m.cash)}</strong></p><p><span>占總資產比例</span><strong>{pct(m.cashRatio)}</strong></p><p><span>資產分類</span><strong>防守資產</strong></p><p><span>防守資產目標差額</span><strong className={tone(rb.defensiveCurrent - rb.defensiveTarget)}>{signedMoney(rb.defensiveCurrent - rb.defensiveTarget)}</strong></p></div><p className="note">現金固定計入防守資產。目前不新增房產、黃金或加密資產資料模型。</p></Card>
+        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
         <SectionCard className="page-card for-analytics" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <SectionCard className="page-card for-home for-analytics" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
@@ -1604,8 +1639,12 @@ function App() {
         </Card>
         <SectionCard className="page-card for-assets" title="資產分類設定" isMobile={isMobile} collapsible open={sectionOpen('assetClass')} onToggle={() => toggleSection('assetClass')} summary={`目標合計 ${pct(targetCheck.total)}｜現金承擔 ${pct(targetCheck.cashTarget)}`}>
           <p className="note">現金固定列入防守資產；股票與 ETF 依每筆持股的資產分類設定分組，不再由代號強制判斷。</p>
-          <div className="status-grid"><p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p><p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p><p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p><p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p><p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p><p><span>防守資產</span><strong>現金{m.defensiveHoldings.length ? `、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : ''}</strong></p></div>
+          <div className="status-grid"><p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p><p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p><p><span>現金承擔目標</span><strong>{pct(targetCheck.cashTarget)}</strong></p><p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p><p><span>成長資產</span><strong>{m.growthHoldings.map(row => row.symbol).join('、') || '無'}</strong></p><p><span>防守資產</span><strong>{m.defensiveHoldings.length ? `現金、${m.defensiveHoldings.map(row => row.symbol).join('、')}` : '目前防守資產由現金承擔'}</strong></p></div>
         </SectionCard>
+        <Card className="page-card for-assets asset-rebalance-entry" title="再平衡摘要">
+          <div className="asset-rebalance-grid"><p><span>目前成長比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p><p><span>目標成長比例</span><strong>{pct(rb.growthTargetPercent)}</strong></p><p><span>偏離幅度</span><strong className={tone(rb.deviation)}>{rb.deviationText}</strong></p><p><span>是否達門檻</span><strong className={rb.thresholdReached ? 'warn' : 'good'}>{rb.thresholdReached ? '已達門檻' : '尚未達門檻'}</strong></p></div>
+          <button className="small" onClick={() => navigate('/analytics')}>前往分析頁查看完整建議</button>
+        </Card>
         <SectionCard className="page-card for-assets" id="loan-section" title="借款與還款安全" isMobile={isMobile} collapsible open={sectionOpen('loans')} onToggle={() => toggleSection('loans')} summary={`剩餘借款 ${money(m.debt)}｜安全存量 ${Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}`}>
           <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /><Stat label="還款安全存量" value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} /><Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" /><Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} /></div>
           <p className="note" style={{ marginTop: '4px', marginBottom: '12px', fontSize: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>* 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。</p>

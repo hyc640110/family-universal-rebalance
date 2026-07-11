@@ -77,6 +77,9 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .allocation-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .allocation-summary>div{min-width:0;padding:11px 12px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
 .allocation-summary small{display:block;color:#8da3bd;font-size:12px;font-weight:800}.allocation-summary strong{display:block;margin-top:5px;color:#eaf3ff;font-size:19px;line-height:1.25;overflow-wrap:anywhere}
+.asset-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.asset-summary-grid>div{min-width:0;padding:11px 12px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
+.asset-summary-grid small{display:block;color:#8da3bd;font-size:12px;font-weight:800}.asset-summary-grid strong{display:block;margin-top:5px;color:#eaf3ff;font-size:19px;line-height:1.25;overflow-wrap:anywhere}
 .allocation-donut-layout{display:grid;grid-template-columns:minmax(250px,360px) minmax(0,1fr);align-items:center;gap:26px}
 .allocation-donut-wrap{position:relative;display:grid;place-items:center;width:min(330px,100%);aspect-ratio:1;margin:auto}
 .allocation-donut{width:100%;height:100%;overflow:visible}
@@ -179,6 +182,14 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .params{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .asset-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-bottom:12px}
+.asset-add-form{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-bottom:12px}
+.asset-add-form label{margin:0}.asset-add-form button{min-height:42px;white-space:nowrap}
+.asset-management-controls{display:grid;gap:8px;margin:14px 0}.asset-control-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cash-overview,.asset-rebalance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cash-overview p,.asset-rebalance-grid p{min-width:0;padding:11px 12px;margin:0;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
+.cash-overview span,.asset-rebalance-grid span{display:block;color:#8da3bd;font-size:12px;font-weight:800}.cash-overview strong,.asset-rebalance-grid strong{display:block;margin-top:5px;color:#eaf3ff;font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.cash-overview strong.up,.asset-rebalance-grid strong.up{color:#ff5b5b}.cash-overview strong.down,.asset-rebalance-grid strong.down{color:#43d17a}.cash-overview strong.warn,.asset-rebalance-grid strong.warn{color:#ffd166}.cash-overview strong.good,.asset-rebalance-grid strong.good{color:#43d17a}
+.asset-rebalance-entry .small{margin-top:12px}.holding-dip-reference{margin:10px 0 0}
 .file input{display:none}
 .list{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
 .list-row{display:grid;gap:8px;background:#09182a;border-radius:10px;padding:10px;align-items:end;min-width:720px}
@@ -245,6 +256,15 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .tabs span { width:100%; margin-left:0; text-align:left; }
   .tabs .sync-bar { font-size:12px; line-height:1.55; max-width:none; }
   .card { padding:12px; margin:10px auto; border-radius:12px; }
+  .asset-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .asset-summary-grid>div{padding:10px}.asset-summary-grid>div:last-child{grid-column:span 2}
+  .asset-summary-grid strong{font-size:16px}
+  .asset-add-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .asset-add-form label:first-child,.asset-add-form button{grid-column:1/-1}
+  .asset-add-form button{width:100%}
+  .asset-control-row{grid-template-columns:1fr}
+  .cash-overview,.asset-rebalance-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .cash-overview p,.asset-rebalance-grid p{padding:10px}
   h1{font-size:1.65rem!important;line-height:1.2}
   h2{font-size:1rem;margin-bottom:10px}
   h3{font-size:1rem}
@@ -300,7 +320,8 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 }
 
 @media (max-width: 420px) {
-  .holding-metrics{grid-template-columns:1fr}
+  .holding-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .holding-metrics .holding-metric:last-child{grid-column:1/-1}
 }
 
 /* V3.1 application navigation */
