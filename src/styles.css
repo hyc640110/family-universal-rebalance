@@ -74,7 +74,7 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-edit-button{flex:0 0 auto;min-height:36px;padding:7px 10px;border:1px solid #315b8d;background:#173b66;color:#dbeafe;font-size:13px;box-shadow:none}
 .holding-edit-button:hover{background:#214f85;filter:none}
 .holding-quote-error{margin:8px 0 0}
-.holding-snapshot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.holding-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .holding-snapshot>div{min-width:0;padding:10px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
 .holding-snapshot span{display:block;color:#8da3bd;font-size:12px;margin-bottom:5px}
 .holding-snapshot strong{display:block;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
