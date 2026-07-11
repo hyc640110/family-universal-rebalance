@@ -1177,7 +1177,6 @@ function App() {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
     return times.length ? new Date(Math.max(...times)).toISOString() : '';
   }, [quotes]);
-  const publicQuoteStatus = isRefreshingQuotes ? '股價更新中…' : hasUpdatedQuotes && latestQuoteTime ? `股價更新：${twShortTime(latestQuoteTime)}｜${quoteSummaryText}` : '尚未更新股價';
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1478,14 +1477,13 @@ function App() {
           <h3>{mode}</h3><p>{hint}</p>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
-          <p className="quote-summary"><span>股價更新：{hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
-          <p className="note">{publicQuoteStatus}</p>
+          <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
         <SectionCard title="持股配置" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜成長 ${m.growthHoldings.length}｜防守 ${m.defensiveHoldings.length}`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="holdings">
             {m.rows.map(r => { const pnlPct = r.cost ? r.pnl / r.cost * 100 : 0; const holdingWeight = m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0; const quoteBadge = quoteShortBadge(r.quote); return <article className="holding" key={r.symbol}>
-              <h3>{r.symbol}</h3><p>{r.quote.name}</p><p className="quote-meta">更新：{tw(r.quote.updatedAt)}{quoteBadge && <span className={r.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p>{r.quote.error && <p className="note">報價異常，請稍後再更新股價。</p>}
+              <h3 className="holding-title"><span className="holding-symbol">{r.symbol}</span><span className="holding-name">{r.quote.name}</span></h3><p className="quote-meta">更新：{tw(r.quote.updatedAt)}{quoteBadge && <span className={r.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p>{r.quote.error && <p className="note">報價異常，請稍後再更新股價。</p>}
               <div className="quote"><b>{r.quote.price.toFixed(2)}</b><span className={tone(r.quote.change)}>今日漲跌：{r.quote.change > 0 ? '+' : ''}{r.quote.change.toFixed(2)} / {signedPct(r.quote.changePct)}</span></div>
               <label>總股數<DraftInput type="number" min="0" value={r.shares} onCommit={value => updateHolding(r.symbol, 'shares', parsePositive(value))} /></label>
               <label>成交均價<DraftInput type="number" min="0" step="0.01" value={r.avgCost} onCommit={value => updateHolding(r.symbol, 'avgCost', parsePositive(value))} /></label>

@@ -46,6 +46,9 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .hold{color:#9fb3c8}
 .card{margin:16px 0}
 .holdings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.holding-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0;line-height:1.25;min-width:0}
+.holding-symbol{color:#fff;font-size:22px;font-weight:950;letter-spacing:.01em}
+.holding-name{color:#9fb3c8;font-size:15px;font-weight:800;overflow-wrap:anywhere}
 .quote-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:10px 12px;margin:10px 0 0;min-width:0}
 .quote-summary span{color:#8da3bd;font-size:12px}
 .quote-summary strong{font-size:14px;line-height:1.35;text-align:right}
@@ -59,6 +62,9 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-metric{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:10px;min-width:0}
 .holding-metric span{display:block;color:#8da3bd;font-size:12px;margin-bottom:6px}
 .holding-metric strong{display:block;color:#eaf3ff;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.holding-metric strong.up{color:#ff5b5b}
+.holding-metric strong.down{color:#43d17a}
+.holding-metric strong.hold{color:#9fb3c8}
 label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9fb3c8;margin:7px 0}
 label small{color:#93c5fd}
 input,select{width:100%;background:#09182a;border:1px solid #214466;border-radius:10px;color:#eaf3ff;padding:10px}
