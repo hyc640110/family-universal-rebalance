@@ -31,7 +31,7 @@ type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: D
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
-type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug';
+type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug' | 'dipAnalysis' | 'analyticsDetails';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
@@ -60,8 +60,8 @@ const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
-const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false } };
-const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, loans: true, sync: true, debug: false };
+const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false } };
+const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true };
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
@@ -911,8 +911,8 @@ function Card({ id, title, children, action, style, className = '' }: { id?: str
     {children}
   </section>;
 }
-function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
-  if (!isMobile || !collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
+function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, collapsibleOnDesktop = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; collapsibleOnDesktop?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
+  if ((!isMobile && !collapsibleOnDesktop) || !collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
   const contentId = id ? `${id}-content` : `section-${title}-content`;
   return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'} ${className}`.trim()} style={style}>
     <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
@@ -980,7 +980,7 @@ function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
     </article>)}
   </div>;
 }
-function TradeStepList({ steps }: { steps: TradeStep[] }) {
+function TradeStepList({ steps, currentWeights }: { steps: TradeStep[]; currentWeights: Record<string, number> }) {
   return <div className="trade-step-list">
     {steps.map(step => <article className={`trade-step ${step.action === '買入' ? 'buy' : step.action === '賣出' ? 'sell' : 'hold'}`} key={`${step.order}-${step.symbol}-${step.action}`}>
       <div className="order-rank">{step.order}</div>
@@ -990,11 +990,52 @@ function TradeStepList({ steps }: { steps: TradeStep[] }) {
           <p><span>操作類型</span><strong>{step.action}</strong></p>
           <p><span>建議金額</span><strong>{step.amount > 0 ? formatCurrency(step.amount) : '0.0 萬元'}</strong></p>
           <p><span>預估股數</span><strong>{step.shares === null ? step.conversionText : step.conversionText}</strong></p>
+          <p><span>操作前比例</span><strong>{step.symbol === '整體配置' ? '—' : pct(currentWeights[step.symbol] ?? 0)}</strong></p>
           <p><span>執行後預估配置比例</span><strong>{step.projectedWeight > 0 ? pct(step.projectedWeight) : '維持現況'}</strong></p>
         </div>
         <p className="note">{step.note}</p>
       </div>
     </article>)}
+  </div>;
+}
+function AnalyticsSummary({ rb, orderHelper, dipStatus }: { rb: ReturnType<typeof rebalance>; orderHelper: OrderHelper; dipStatus: string }) {
+  return <div className="analytics-summary-grid">
+    <div><small>再平衡狀態</small><strong className={rb.thresholdReached ? 'warn' : 'good'}>{rb.thresholdStatus}</strong></div>
+    <div><small>目前偏離目標</small><strong className={tone(rb.deviation)}>{rb.deviationText}</strong></div>
+    <div><small>成長資產</small><strong>{pct(rb.stockRow.currentWeight)} <em>/ {rb.stockRow.targetText}</em></strong></div>
+    <div><small>防守資產</small><strong>{pct(rb.defensiveRow.currentWeight)} <em>/ {rb.defensiveRow.targetText}</em></strong></div>
+    <div><small>本次建議操作金額</small><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></div>
+    <div><small>逢低加碼訊號</small><strong className={dipStatus.includes('已觸發') ? 'warn' : 'hold'}>{dipStatus}</strong></div>
+  </div>;
+}
+function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance> }) {
+  const [view, setView] = useState<'assets' | 'classes'>('assets');
+  return <>
+    <div className="analytics-view-toggle" role="group" aria-label="資產配置分析視角">
+      <button type="button" className={view === 'assets' ? 'active' : ''} onClick={() => setView('assets')}>個別資產配置</button>
+      <button type="button" className={view === 'classes' ? 'active' : ''} onClick={() => setView('classes')}>成長／防守配置</button>
+    </div>
+    {view === 'assets' ? <AllocationDonut m={m} /> : <div className="allocation-class-grid">
+      <article><h3>成長資產</h3><p><span>目前比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.stockRow.targetText}</strong></p><p><span>差異</span><strong className={rb.stockRow.tone}>{rb.stockRow.deviationText}</strong></p><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></article>
+      <article><h3>防守資產</h3><p><span>目前比例</span><strong>{pct(rb.defensiveRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.defensiveRow.targetText}</strong></p><p><span>差異</span><strong className={rb.defensiveRow.tone}>{rb.defensiveRow.deviationText}</strong></p><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></article>
+    </div>}
+  </>;
+}
+function DipOpportunityAnalysis({ rows, onOpenAssets }: { rows: DipAlertRow[]; onOpenAssets: () => void }) {
+  const enabledRows = rows.filter(row => row.setting.enabled).sort((a, b) => Number(b.triggered) - Number(a.triggered) || num(a.drawdownPct ?? 0) - num(b.drawdownPct ?? 0));
+  if (!enabledRows.length) return <div className="analytics-empty"><p>目前沒有啟用逢低加碼提醒的資產。</p><button type="button" onClick={onOpenAssets}>前往資產頁設定</button></div>;
+  return <div className="dip-opportunity-list">
+    {enabledRows.map((row, index) => <article className={`dip-opportunity-card ${row.triggered ? 'triggered' : ''}`} key={row.symbol}>
+      <div><h3>{index + 1}. {row.symbol} <span>{row.name}</span></h3><b className={row.triggered ? 'warn' : 'hold'}>{row.triggered ? '已達逢低加碼觀察條件' : '持續觀察'}</b></div>
+      <div className="dip-opportunity-metrics"><p><span>最新價格</span><strong>{row.price > 0 ? `${row.price.toFixed(2)} 元` : '價格不足'}</strong></p><p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? `${row.setting.referencePrice.toFixed(2)} 元` : '尚未設定'}</strong></p><p><span>距高點跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p><p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p></div>
+    </article>)}
+  </div>;
+}
+function AnalyticsDetails({ m, rb, health, quoteSummaryText, latestQuoteTime, onCopy, copyStatus }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance>; health: ReturnType<typeof investmentHealth>; quoteSummaryText: string; latestQuoteTime: string; onCopy: () => void; copyStatus: string }) {
+  return <div className="analytics-details-list">
+    <details><summary>計算方式</summary><p>目前比例、目標比例與偏離幅度皆直接使用共用再平衡資料。成長資產目前 {pct(rb.stockRow.currentWeight)}，目標 {rb.stockRow.targetText}；防守資產目前 {pct(rb.defensiveRow.currentWeight)}，目標 {rb.defensiveRow.targetText}。</p></details>
+    <details><summary>風險提醒</summary><p><strong className={health.tone}>{health.status}</strong>：{health.reason}</p><p>{health.suggestion}</p></details>
+    <details><summary>詳細分析資料／除錯資訊</summary><p>股價狀態：{quoteSummaryText}。最近更新：{latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}。總資產：{money(m.totalAssets)}。</p><button type="button" className="small" onClick={onCopy}>{copyStatus}</button></details>
   </div>;
 }
 function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void }) {
@@ -1119,6 +1160,7 @@ function App() {
   useEffect(() => { writeUiState(uiState); }, [uiState]);
   const defaultSectionsForMode = uiState.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
   const sectionOpen = (key: SectionKey) => !isMobile ? key !== 'debug' : uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
+  const analyticsSectionOpen = (key: 'dipAnalysis' | 'analyticsDetails') => uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
   const toggleSection = (key: SectionKey) => setUiState(current => {
     const defaults = current.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
     return { ...current, sections: { ...current.sections, [key]: !(current.sections[key] ?? defaults[key]) } };
@@ -1243,6 +1285,7 @@ function App() {
   }), [m.rows, quotes, state.dipAlerts]);
   const decisionSummary = useMemo(() => getDecisionSummary(rb, orderHelper, dipAlertRows), [rb, orderHelper, dipAlertRows]);
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
+  const currentWeights = useMemo(() => Object.fromEntries(m.rows.map(row => [row.symbol, m.totalAssets > 0 ? num(row.marketValue) / num(m.totalAssets) * 100 : 0])), [m.rows, m.totalAssets]);
   const todayDecision = useMemo(() => {
     const dipTriggered = decisionSummary.triggeredDipAlerts.length > 0;
     const lowCashSafety = m.monthlyPayment > 0 && m.repaymentSafetyMonths < 3;
@@ -1351,8 +1394,8 @@ function App() {
     return text;
   };
 
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleCopy = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
     try {
       const text = generateRebalanceSummaryText();
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1532,11 +1575,12 @@ function App() {
         </div>
       </Card>}
       {showOn('home', 'assets', 'analytics') && <DashboardPage>
-        {isMobile && currentPage === 'assets' && <div className="mobile-mode-switch" aria-label="手機顯示模式">
+        {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
           <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
         </div>}
-        <SectionCard className="page-card for-home for-analytics" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
+        {currentPage === 'analytics' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
+        <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
             <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
@@ -1588,8 +1632,8 @@ function App() {
             {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
         </SectionCard>
-        <SectionCard className="page-card for-analytics" title="資產配置" isMobile={isMobile} collapsible open={sectionOpen('allocation')} onToggle={() => toggleSection('allocation')} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
-        <SectionCard className="page-card for-home for-analytics" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
+        <Card className="page-card for-analytics" title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
+        <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
             {orderHelper.mode === 'buy-only' && <>
@@ -1602,7 +1646,7 @@ function App() {
           </div>
           {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
           {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
-          <TradeStepList steps={tradeSteps} />
+          <TradeStepList steps={tradeSteps} currentWeights={currentWeights} />
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
@@ -1625,9 +1669,22 @@ function App() {
           <div className="rebalance-summary"><div><small>成長資產</small><b>{rb.stockAction}</b></div><div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>{rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}</div>
           {decisionSummary.triggeredDipAlerts.length > 0 && <div className="decision-callout"><h3>逢低加碼觀察標的</h3>{decisionSummary.triggeredDipAlerts.map(row => <p key={row.symbol}><strong>{row.symbol} {row.name}</strong> 目前跌幅 {row.drawdownPct === null ? '—' : signedPct(row.drawdownPct)}，門檻 {pct(row.setting.thresholdPct)}。</p>)}</div>}
           <div className="table rebalance-table"><div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div><div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div><div className="rebalance-group"><div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>{rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}</div></div>
-          <div className="dip-settings-panel"><h3>逢低加碼提醒設定</h3><p className="note">關閉逢低加碼提醒時，只顯示一般再平衡建議，不顯示逢低加碼判斷。此區只做提醒，不會自動買賣、扣現金、改目標比例或同步雲端。</p>{dipAlertRows.length === 0 ? <p className="note">目前沒有可設定逢低提醒的持股資產。</p> : <div className="dip-alert-list">{dipAlertRows.map(row => <DipAlertCard key={row.symbol} row={row} onChange={updateDipAlert} />)}</div>}<p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p></div>
         </SectionCard>
-        <Card className="page-card for-home for-analytics" title="借款安全摘要">
+        <SectionCard className="page-card for-analytics" id="analytics-trade-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
+          <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
+          {tradeSteps.some(step => step.action !== '不需處理') ? <TradeStepList steps={tradeSteps} currentWeights={currentWeights} /> : <div className="analytics-empty"><p>目前沒有需要執行的交易建議。</p><span>配置已在門檻內，或目前模式下暫無可執行操作。</span></div>}
+          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
+          <p className="note">建議金額以萬元呈現；股價與預估股數維持原本單位。只買不賣模式不會產生賣出交易。</p>
+        </SectionCard>
+        <SectionCard className="page-card for-analytics" id="dip-analysis-section" title="逢低加碼分析" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('dipAnalysis')} onToggle={() => toggleSection('dipAnalysis')} summary={decisionSummary.dipStatus}>
+          <p className="note">此區只讀取目前持股的提醒設定與最新報價；波段最高價與門檻請在資產頁調整。</p>
+          <DipOpportunityAnalysis rows={dipAlertRows} onOpenAssets={() => navigate('/assets')} />
+          <p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p>
+        </SectionCard>
+        <SectionCard className="page-card for-analytics" id="analytics-details-section" title="分析說明" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('analyticsDetails')} onToggle={() => toggleSection('analyticsDetails')} summary="計算方式、風險提醒與詳細分析資料">
+          <AnalyticsDetails m={m} rb={rb} health={health} quoteSummaryText={quoteSummaryText} latestQuoteTime={latestQuoteTime} onCopy={() => { void handleCopy(); }} copyStatus={copyStatus} />
+        </SectionCard>
+        <Card className="page-card for-home" title="借款安全摘要">
           <div className="status-grid"><p><span>借款總額</span><strong>{money(m.debt)}</strong></p><p><span>槓桿比例</span><strong>{m.leverage.toFixed(2)}x</strong></p><p><span>每月還款</span><strong>{money(m.monthlyPayment)}</strong></p><p><span>還款安全存量</span><strong>{Number.isFinite(m.repaymentSafetyMonths) ? `${m.repaymentSafetyMonths.toFixed(1)} 個月` : '無貸款壓力'}</strong></p></div>
           <p className="note">完整借款資料與編輯功能位於資產頁。</p>
         </Card>
