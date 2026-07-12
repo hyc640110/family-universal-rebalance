@@ -14,10 +14,12 @@ import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
 import DashboardDecisionPage from './pages/DashboardDecisionPage';
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
+import CashFlowPage from './pages/CashFlowPage';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
+import { normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -31,8 +33,8 @@ type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
@@ -381,7 +383,8 @@ function normalizeState(raw: unknown): AppState {
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
-  return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
+  const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
+  return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
 }
 function readState(): AppState {
   try {
@@ -412,7 +415,7 @@ function readUiState(): UiState {
 function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify(normalizeUiState(state))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -432,7 +435,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, firebase });
+  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -1123,6 +1126,7 @@ function App() {
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
+  const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -1586,7 +1590,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal) return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1752,6 +1756,7 @@ function App() {
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} />}
       {isRiskCenter && <RiskCenterPage input={riskInput} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
+      {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>

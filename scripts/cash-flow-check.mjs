@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+
+const source = readFileSync(new URL('../src/lib/cashFlow.ts', import.meta.url), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const cashFlow = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
+const item = (patch = {}) => ({ id: 'one', name: '房貸', amount: 10000, category: 'housing', enabled: true, ...patch });
+const profile = (patch = {}) => cashFlow.normalizeCashFlowProfile({ monthlyIncome: 50000, fixedExpenses: [item()], variableExpenseBudget: 10000, monthlyInvestmentBudget: 10000, emergencyFundTargetMonths: 6, ...patch });
+
+assert.equal(cashFlow.normalizeCashFlowProfile(undefined).monthlyIncome, null, 'old data can omit cashFlowProfile');
+assert.equal(cashFlow.calculatePostInvestmentCashFlow(profile({ monthlyIncome: null })), null, 'blank income is safe');
+assert.equal(cashFlow.calculateSavingsRate(profile({ monthlyIncome: 0 })), null, 'zero income has no savings rate');
+assert.equal(cashFlow.calculateFixedExpenses(profile({ fixedExpenses: [] })), 0, 'empty fixed expenses');
+assert.equal(cashFlow.calculateFixedExpenses(profile({ fixedExpenses: [item(), item({ id: 'off', amount: 9999, enabled: false })] })), 10000, 'disabled item excluded');
+assert.equal(cashFlow.calculateTotalLivingExpenses(profile()), 20000, 'fixed and variable expenses aggregate');
+assert.equal(cashFlow.calculatePostInvestmentCashFlow(profile()), 20000, 'positive cash flow');
+assert.equal(cashFlow.calculatePostInvestmentCashFlow(profile({ monthlyIncome: 20000 })), -10000, 'negative cash flow');
+assert.equal(cashFlow.classifyCashFlowStatus(profile({ monthlyIncome: 30000 })), '偏緊', 'tight cash flow');
+assert.equal(cashFlow.classifyCashFlowStatus(profile({ monthlyIncome: 20000 })), '赤字', 'deficit cash flow');
+assert.equal(cashFlow.calculateEmergencyFundTarget(profile({ emergencyFundTargetMonths: 3 })), 60000, 'three-month reserve');
+assert.equal(cashFlow.calculateEmergencyFundTarget(profile({ emergencyFundTargetMonths: 6 })), 120000, 'six-month reserve');
+assert.equal(cashFlow.deriveCashFlow(profile(), 150000).emergencyProgress, 1.25, 'cash above target');
+assert.equal(cashFlow.deriveCashFlow(profile(), null).currentCash, null, 'missing cash remains unavailable');
+assert.equal(cashFlow.parseWanInput('3.5'), 35000, 'decimal wan input');
+assert.equal(cashFlow.parseWanInput(''), null, 'empty wan input');
+assert.equal(cashFlow.parseWanInput('-2'), null, 'negative wan input rejected');
+assert.equal(cashFlow.parseWanInput('Infinity'), null, 'infinite wan input rejected');
+assert.equal(cashFlow.normalizeCashFlowProfile({ monthlyIncome: Number.NaN, fixedExpenses: [item({ amount: Infinity })] }).monthlyIncome, 0, 'invalid numbers cannot break calculations');
+console.log('PASS Cash flow calculations: old data, blank and zero income, fixed expenses, disabled items, positive/zero/negative flow, reserve, cash availability, decimal and invalid input');
