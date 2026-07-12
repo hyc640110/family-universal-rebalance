@@ -11,6 +11,8 @@ const performanceMetrics = readFileSync(new URL('../src/lib/performanceMetrics.t
 const performancePage = readFileSync(new URL('../src/pages/PerformanceAnalyticsPage.tsx', import.meta.url), 'utf8');
 const cashFlow = readFileSync(new URL('../src/lib/cashFlow.ts', import.meta.url), 'utf8');
 const cashFlowPage = readFileSync(new URL('../src/pages/CashFlowPage.tsx', import.meta.url), 'utf8');
+const netWorthHistory = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
+const netWorthHistoryPage = readFileSync(new URL('../src/pages/NetWorthHistoryPage.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -46,6 +48,9 @@ const checks = [
   ,['Cash flow uses centralized safe formulas', /export function calculateFixedExpenses/.test(cashFlow) && /export function calculateEmergencyFundTarget/.test(cashFlow) && /export function classifyCashFlowStatus/.test(cashFlow) && /safeRatio/.test(cashFlow) === false]
   ,['Cash flow input events capture primitive values synchronously', /const rawValue=event\.currentTarget\.value/.test(cashFlowPage) && /const checked=event\.currentTarget\.checked/.test(cashFlowPage)]
   ,['Cash flow page includes overview, expenses, reserve and pressure indicators', /每月現金流總覽/.test(cashFlowPage) && /固定支出清單/.test(cashFlowPage) && /緊急預備金/.test(cashFlowPage) && /支出壓力指標/.test(cashFlowPage)]
+  ,['Net worth history remains an optional backward-compatible field', /netWorthHistory\?: NetWorthSnapshot/.test(app) && /r\.netWorthHistory === undefined \? undefined : normalizeNetWorthHistory/.test(app)]
+  ,['Net worth history snapshot upsert and compatibility helpers are centralized', /export function upsertNetWorthSnapshot/.test(netWorthHistory) && /export function deriveHistoryStats/.test(netWorthHistory) && /normalizeNetWorthHistory/.test(netWorthHistory)]
+  ,['Net worth history page includes ranges, chart and statistics', /7 天/.test(netWorthHistoryPage) && /最大回撤/.test(netWorthHistoryPage) && /history-chart/.test(netWorthHistoryPage)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
