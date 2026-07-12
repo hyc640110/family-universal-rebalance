@@ -54,6 +54,7 @@ const checks = [
   ,['Net worth history page includes ranges, chart and statistics', /7 天/.test(netWorthHistoryPage) && /最大回撤/.test(netWorthHistoryPage) && /history-chart/.test(netWorthHistoryPage)]
   ,['Tool pages share one quick navigation component', /ToolQuickNavigation/.test(simulator) && /ToolQuickNavigation/.test(riskCenter) && /ToolQuickNavigation/.test(wealthPage) && /ToolQuickNavigation/.test(cashFlowPage) && /ToolQuickNavigation/.test(netWorthHistoryPage)]
   ,['Tool quick navigation excludes the current page and uses SPA links', /links\.filter\(link => link\.route !== current\)/.test(toolQuickNavigation) && /<Link to="\/tools">/.test(toolQuickNavigation) && !/location\.href/.test(toolQuickNavigation)]
+  ,['Tool quick navigation follows the fixed tool-home order', /wealth-goal[\s\S]*cash-flow[\s\S]*net-worth-history[\s\S]*allocation-simulator[\s\S]*risk-center/.test(toolQuickNavigation)]
   ,['Allocation contribution uses wan display with yuan calculation', /模擬投入金額（萬元）/.test(simulator) && /Math\.max\(0, safeNumber\(contribution\)\) \* 10000/.test(simulator) && /min="0"/.test(simulator)]
   ,['Display mode uses one persisted UI state and resets compact sections', /writeUiState\(uiState\)/.test(app) && /displayMode === 'full' \? FULL_UI_SECTIONS : DEFAULT_UI_STATE\.sections/.test(app) && /document\.documentElement\.dataset\.displayMode/.test(app)]
   ,['Compact and full modes have distinct user-facing descriptions', /只顯示核心資訊，適合日常快速查看。/.test(app) && /顯示完整分析、進階欄位與說明。/.test(app)]
