@@ -15,6 +15,7 @@ const netWorthHistory = readFileSync(new URL('../src/lib/netWorthHistory.ts', im
 const netWorthHistoryPage = readFileSync(new URL('../src/pages/NetWorthHistoryPage.tsx', import.meta.url), 'utf8');
 const toolQuickNavigation = readFileSync(new URL('../src/components/ToolQuickNavigation.tsx', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const dashboard = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -61,6 +62,8 @@ const checks = [
   ,['Compact and full modes have distinct user-facing descriptions', /只顯示核心資訊，適合日常快速查看。/.test(app) && /顯示完整分析、進階欄位與說明。/.test(app)]
   ,['Display mode only controls collapsible defaults without hiding functionality', /JSON\.stringify\(\{ displayMode: state\.displayMode \}\)/.test(app) && !/data-display-mode="compact"/.test(styles) && /quoteSources: false[\s\S]*syncStatus: false[\s\S]*syncDiagnostics: false[\s\S]*targetCheck: false/.test(app) && /quoteSources: true[\s\S]*syncStatus: true[\s\S]*syncDiagnostics: true[\s\S]*targetCheck: true/.test(app)]
   ,['Settings details reuse SectionCard and surface target errors', /id="quote-sources-section"[\s\S]*SectionCard/.test(app) && /id="sync-status-section"[\s\S]*SectionCard/.test(app) && /id="sync-diagnostics-section"[\s\S]*SectionCard/.test(app) && /id="target-check-section"[\s\S]*targetCheckHasError/.test(app) && /setUiState\(current => current\.sections\.targetCheck/.test(app)]
+  ,['Dashboard uses existing wealth, risk, cash flow and history sources', /deriveCashFlow/.test(app) && /deriveHistoryStats/.test(app) && /核心財富摘要/.test(dashboard) && /風險與現金摘要/.test(dashboard) && /財富進度/.test(dashboard)]
+  ,['Dashboard decisions use the required priority labels and SPA links', /需要優先處理風險[\s\S]*建議再平衡[\s\S]*建議加碼/.test(homeDecision) && /<Link/.test(dashboard) && !/location\.href|window\.location/.test(dashboard)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

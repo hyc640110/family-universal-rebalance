@@ -20,8 +20,8 @@ import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettin
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
-import { normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
-import { localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
+import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
+import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -1322,6 +1322,8 @@ function App() {
   }), [m, rb, state.loans]);
   const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
+  const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
+  const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
   const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
     const symbol = normalizeSymbol(row.symbol);
     const setting = normalizeDipAlertSetting(state.dipAlerts?.[symbol] ?? defaultDipAlertSetting());
@@ -1630,7 +1632,20 @@ function App() {
           <button className="small" onClick={() => setStartupWarning(null)}>隱藏提示</button>
         </div>
       </Card>}
-      {currentPage === 'home' && <DashboardDecisionPage data={{decision:homeDecision,total:m.totalAssets,debt:m.debt,net:m.netWorth,day:m.dayPnl,growth:rb.stockRow.currentWeight,defensive:m.defensiveRatio,cashRatio:m.cashRatio,rebalance:rb.thresholdReached,deviation:rb.deviation,mode:rb.modeLabel,orderAmount:orderHelper.totalBuyAmount,dip:decisionSummary.triggeredDipAlerts.length>0,riskLabel:riskMetrics.overallLabel,cashMonths:riskMetrics.cashSafetyMonths,cash6:m.cash>=riskMetrics.minimumCashTarget,cash12:m.cash>=riskMetrics.stableCashTarget,leveraged:riskMetrics.leveragedRatio,largest:riskMetrics.largestHoldingRatio,target:state.wealthGoal.targetAmount,progress:wealthProjection.progress,remaining:wealthProjection.remaining,wealthText:wealthProjection.achievedMonth===0?'財富目標已達成。':wealthProjection.achievedMonth===null?'依目前假設，100 年內尚未達成。':`預估約 ${Math.ceil(wealthProjection.achievedMonth/12)} 年後達成。`}} />}
+      {currentPage === 'home' && <DashboardDecisionPage data={{
+        decision: homeDecision, total: m.totalAssets, net: m.netWorth, day: m.dayPnl, cash: m.cash, debt: m.debt,
+        cashRatio: m.cashRatio, deviation: rb.deviation, rebalance: rb.thresholdReached, dip: decisionSummary.triggeredDipAlerts.length > 0,
+        riskLabel: riskMetrics.overallLabel,
+        cashSafety: riskMetrics.cashSafetyMonths === null ? '資料不足' : `${riskMetrics.cashSafetyMonths.toFixed(1)} 個月安全存量`,
+        cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
+        debtStatus: m.debt <= 0 ? '無負債壓力' : Number.isFinite(m.repaymentSafetyMonths) && m.repaymentSafetyMonths >= 12 ? '正常' : '留意',
+        growth: rb.stockRow.currentWeight, defensive: m.defensiveRatio,
+        target: state.wealthGoal.targetAmount, progress: wealthProjection.progress, remaining: wealthProjection.remaining,
+        wealthConfigured: state.wealthGoal.targetAmount > 0,
+        wealthText: wealthProjection.achievedMonth === 0 ? '財富目標已達成。' : wealthProjection.achievedMonth === null ? '依目前假設，100 年內尚未達成。' : `預估約 ${Math.ceil(wealthProjection.achievedMonth / 12)} 年後達成。`,
+        cashFlowStatus: cashFlowSummary?.status ?? '尚未建立每月收支資料',
+        historyTrend: historySummary.todayChange === null ? '尚無足夠歷史資料' : historySummary.todayChange > 0 ? '上升' : historySummary.todayChange < 0 ? '下降' : '持平'
+      }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
