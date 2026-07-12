@@ -1,5 +1,5 @@
-export const APP_VERSION = 'Universal Rebalance V3.4';
-export const APP_BUILD_TIME = '2026-07-12';
+export const APP_VERSION = 'Universal Rebalance V3.5';
+export const APP_BUILD_TIME = '2026-07-12 V3.5';
 export const APP_NAME = '萬用資產再平衡儀表板';
 export const APP_SUBTITLE = '家庭多資產配置管理';
 export const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'family-universal-rebalance-v100-state';
