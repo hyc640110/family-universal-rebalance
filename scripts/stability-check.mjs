@@ -7,6 +7,8 @@ const riskCenter = readFileSync(new URL('../src/pages/RiskCenterPage.tsx', impor
 const wealth = readFileSync(new URL('../src/lib/wealthGoal.ts', import.meta.url), 'utf8');
 const wealthPage = readFileSync(new URL('../src/pages/WealthGoalPage.tsx', import.meta.url), 'utf8');
 const homeDecision = readFileSync(new URL('../src/lib/homeDecision.ts', import.meta.url), 'utf8');
+const performanceMetrics = readFileSync(new URL('../src/lib/performanceMetrics.ts', import.meta.url), 'utf8');
+const performancePage = readFileSync(new URL('../src/pages/PerformanceAnalyticsPage.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -29,6 +31,14 @@ const checks = [
   ,['Dashboard decision uses a centralized priority helper', /deriveHomeDecision/.test(homeDecision)]
   ,['Event values are captured before React state updater callbacks', /const rawValue=e\.currentTarget\.value;const value=rawValue/.test(wealthPage) && !/setDraft\(d=>\(\{\.\.\.d,\[key\]:e\.currentTarget/.test(wealthPage) && !/setState\(s => \(\{ \.\.\.s, rebalanceMode: normalizeRebalanceMode\(e\.target/.test(app)]
   ,['Build metadata derives from the displayed app version', /APP_BUILD_TIME = `\$\{APP_VERSION\}/.test(readFileSync(new URL('../src/constants/appInfo.ts', import.meta.url), 'utf8'))]
+  ,['Performance analytics uses centralized typed calculations', /export function calculateAssetCost/.test(performanceMetrics) && /export function calculatePortfolioPerformance/.test(performanceMetrics) && /export function calculatePortfolioConcentration/.test(performanceMetrics)]
+  ,['Performance calculations exclude zero-share assets and guard invalid values', /filter\(asset => finite\(asset\.shares\) > 0\)/.test(performanceMetrics) && /Number\.isFinite/.test(performanceMetrics) && /safeRatio/.test(performanceMetrics)]
+  ,['Performance return rates safely handle zero cost', /returnRate: safeRatio\(unrealizedPnl, cost\)/.test(performanceMetrics) && /denominator > 0/.test(performanceMetrics)]
+  ,['Performance page includes overview, rankings, contributions and concentration', /績效總覽/.test(performancePage) && /資產報酬排名/.test(performancePage) && /報酬貢獻/.test(performancePage) && /報酬集中度/.test(performancePage)]
+  ,['Performance rankings support required sort modes', /contribution/.test(performancePage) && /return-rate/.test(performancePage) && /loss/.test(performancePage) && /market-value/.test(performancePage)]
+  ,['Performance page clearly handles unavailable prior-day data', /今日報酬率暫以「—」呈現/.test(performancePage)]
+  ,['Performance UI state remains session-only', !/localStorage\.setItem|writeState\(|uploadFirebase\(|downloadFirebase\(/.test(performancePage)]
+  ,['Analytics defaults to performance and retains a risk tab', /useState<'performance' \| 'risk'>\('performance'\)/.test(app) && /analyticsView === 'risk'/.test(app)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
