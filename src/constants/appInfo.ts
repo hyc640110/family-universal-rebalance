@@ -1,4 +1,4 @@
-export const APP_VERSION = 'Universal Rebalance V3.5';
+export const APP_VERSION = 'Universal Rebalance V3.6';
 export const APP_BUILD_TIME = '2026-07-12 V3.5';
 export const APP_NAME = '萬用資產再平衡儀表板';
 export const APP_SUBTITLE = '家庭多資產配置管理';
