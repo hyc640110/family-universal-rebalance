@@ -10,6 +10,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
 import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
+import RiskCenterPage from './pages/RiskCenterPage';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -1112,6 +1113,7 @@ function App() {
   const navigate = useNavigate();
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
+  const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -1275,6 +1277,12 @@ function App() {
   const quoteSummaryText = quoteDisplayStatus(m.rows);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+  const riskInput = useMemo(() => ({
+    assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
+    loans: state.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
+    cash: m.cash, totalAssets: m.totalAssets, growthRatio: m.totalAssets ? m.growth / m.totalAssets * 100 : 0, defensiveRatio: m.defensiveRatio,
+    growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached
+  }), [m, rb, state.loans]);
   const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
     const symbol = normalizeSymbol(row.symbol);
     const setting = normalizeDipAlertSetting(state.dipAlerts?.[symbol] ?? defaultDipAlertSetting());
@@ -1554,7 +1562,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-  if (!validPages.includes(currentPage) && !isAllocationSimulator) return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1716,6 +1724,7 @@ function App() {
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} />}
+      {isRiskCenter && <RiskCenterPage input={riskInput} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
