@@ -1,4 +1,4 @@
-export const APP_VERSION = 'Universal Rebalance V3.6';
+export const APP_VERSION = 'Universal Rebalance V3.7';
 // Keep the displayed build metadata derived from the same release identifier as APP_VERSION.
 export const APP_BUILD_TIME = `${APP_VERSION} · 2026-07-12`;
 export const APP_NAME = '萬用資產再平衡儀表板';
