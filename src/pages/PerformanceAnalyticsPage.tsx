@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { PerformanceAssetInput } from '../lib/performanceMetrics';
 import { calculatePnlContribution, calculatePortfolioConcentration, calculatePortfolioPerformance, performanceSummary } from '../lib/performanceMetrics';
+import { historyForRange, type NetWorthSnapshot } from '../lib/netWorthHistory';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
-type Props = { assets: PerformanceAssetInput[]; view: View; onViewChange: (view: View) => void };
+type Props = { assets: PerformanceAssetInput[]; history: NetWorthSnapshot[]; view: View; onViewChange: (view: View) => void };
 
 const money = (value: number) => {
   if (!Number.isFinite(value)) return '—';
@@ -16,7 +17,7 @@ const percent = (value: number | null) => value === null || !Number.isFinite(val
 const tone = (value: number) => value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const ratio = (value: number | null) => value === null ? '—' : `${(value * 100).toFixed(1)}%`;
 
-export default function PerformanceAnalyticsPage({ assets, view, onViewChange }: Props) {
+export default function PerformanceAnalyticsPage({ assets, history, view, onViewChange }: Props) {
   const [sort, setSort] = useState<Sort>('contribution');
   const [showAllContributions, setShowAllContributions] = useState(false);
   const performance = useMemo(() => calculatePortfolioPerformance(assets), [assets]);
@@ -30,6 +31,11 @@ export default function PerformanceAnalyticsPage({ assets, view, onViewChange }:
   }, [performance.assets, sort]);
   const contributionRows = showAllContributions ? calculatePnlContribution(performance.assets) : calculatePnlContribution(performance.assets).slice(0, 5);
   const maxContribution = Math.max(...contributionRows.map(row => Math.abs(row.contributionAmount)), 1);
+  const [historyRange, setHistoryRange] = useState<'30d'|'90d'|'1y'|'all'>('30d');
+  const historyRows = useMemo(() => historyRange === '1y' ? historyForRange(history, '1y') : historyRange === 'all' ? history : historyForRange(history, historyRange), [history, historyRange]);
+  const highestValue = historyRows.length ? Math.max(...historyRows.map(row => row.investmentValue)) : null;
+  const peak = historyRows.reduce((result, row) => Math.max(result, row.investmentValue), 0);
+  const maxDrawdown = peak > 0 ? Math.min(...historyRows.map(row => (row.investmentValue - Math.max(...historyRows.filter(x => x.date <= row.date).map(x => x.investmentValue))) / Math.max(...historyRows.filter(x => x.date <= row.date).map(x => x.investmentValue)))) : null;
 
   return <section className="performance-analytics for-analytics" aria-label="報酬分析中心">
     <div className="analytics-tabs" role="tablist" aria-label="分析分類">
@@ -46,9 +52,13 @@ export default function PerformanceAnalyticsPage({ assets, view, onViewChange }:
           <Metric label="總報酬率" value={percent(performance.returnRate)} className={performance.returnRate === null ? 'hold' : tone(performance.returnRate)} />
           <Metric label="今日損益" value={performance.todayReturnRate === null ? '—' : money(performance.todayPnl)} className={performance.todayReturnRate === null ? 'hold' : tone(performance.todayPnl)} />
           <Metric label="今日報酬率" value={percent(performance.todayReturnRate)} className={performance.todayReturnRate === null ? 'hold' : tone(performance.todayReturnRate)} />
+          <Metric label="歷史最高投資市值" value={money(highestValue ?? NaN)} />
+          <Metric label="最大回撤" value={maxDrawdown === null ? '資料不足' : percent(maxDrawdown)} className={maxDrawdown === null ? 'hold' : tone(maxDrawdown)} />
         </div>
         {performance.todayReturnRate === null && <p className="note">缺少可可靠取得的前一交易日市值，今日報酬率暫以「—」呈現。</p>}
       </article>
+
+      <article className="performance-card"><div className="performance-heading"><div><h2>績效趨勢</h2><span>快照直接取得的投資市值；未記錄投入／提領，期間市場損益不提供精確值。</span></div></div><div className="performance-sort">{([['30d','30 天'],['90d','90 天'],['1y','1 年'],['all','全部']] as const).map(([value,label])=><button type="button" key={value} className={historyRange===value?'active':''} onClick={()=>setHistoryRange(value)}>{label}</button>)}</div>{historyRows.length<2?<div className="analytics-empty"><p>歷史資料不足</p><span>至少需要兩筆每日快照才能呈現趨勢。</span></div>:<><div className="contribution-list">{historyRows.map(row=><div className="contribution-row" key={row.date}><div><strong>{row.date}</strong><span>{money(row.investmentValue)}</span></div><div className="contribution-track"><i style={{width:`${Math.max(3,(row.investmentValue/(highestValue||1))*100)}%`}} /></div></div>)}</div><p className="note">月度／年度排除新增投入後的市場損益：資料不足（尚無完整投入與提領流水）。</p></>}</article>
 
       <article className="performance-card"><h2>資產報酬排名</h2><div className="performance-sort" aria-label="排名排序">{([['contribution', '貢獻最高'], ['return-rate', '報酬率最高'], ['loss', '虧損最多'], ['market-value', '市值最高']] as const).map(([value, label]) => <button key={value} type="button" className={sort === value ? 'active' : ''} onClick={() => setSort(value)}>{label}</button>)}</div>
         {!sortedAssets.length ? <Empty /> : <div className="performance-ranking">{sortedAssets.map(asset => <details className="performance-row" key={asset.symbol}><summary><span className="performance-asset-name"><b>{asset.symbol}</b><small>{asset.name}</small></span><strong className={tone(asset.unrealizedPnl)}>{money(asset.unrealizedPnl)}</strong><em className={asset.returnRate === null ? 'hold' : tone(asset.returnRate)}>{percent(asset.returnRate)}</em></summary><div className="performance-details"><Metric label="目前市值" value={money(asset.marketValue)} /><Metric label="投入成本" value={money(asset.cost)} /><Metric label="對總損益貢獻" value={money(asset.contributionAmount)} className={tone(asset.contributionAmount)} /><Metric label="貢獻比例" value={ratio(asset.contributionRatio)} /></div></details>)}</div>}
