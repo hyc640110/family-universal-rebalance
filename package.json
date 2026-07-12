@@ -1,6 +1,6 @@
 {
   "name": "family-universal-rebalance",
-  "version": "3.9.0",
+  "version": "4.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "build:preview": "tsc -b && vite build --mode preview-deploy --outDir dist-preview",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
-    "test:stability": "npm run test:performance && npm run test:cash-flow && node scripts/stability-check.mjs",
+    "test:family": "node scripts/family-check.mjs",
+    "test:stability": "npm run test:performance && npm run test:cash-flow && npm run test:family && node scripts/stability-check.mjs",
     "preview": "vite preview --host",
     "deploy": "npm run build && gh-pages -d dist",
     "deploy:preview": "npm run build:preview && gh-pages -d dist-preview -e preview -a -m \"Deploy preview\""

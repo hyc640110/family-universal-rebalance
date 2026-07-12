@@ -11,6 +11,8 @@ const performanceMetrics = readFileSync(new URL('../src/lib/performanceMetrics.t
 const performancePage = readFileSync(new URL('../src/pages/PerformanceAnalyticsPage.tsx', import.meta.url), 'utf8');
 const cashFlow = readFileSync(new URL('../src/lib/cashFlow.ts', import.meta.url), 'utf8');
 const cashFlowPage = readFileSync(new URL('../src/pages/CashFlowPage.tsx', import.meta.url), 'utf8');
+const family = readFileSync(new URL('../src/lib/family.ts', import.meta.url), 'utf8');
+const familyPage = readFileSync(new URL('../src/pages/FamilyCenterPage.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -46,6 +48,10 @@ const checks = [
   ,['Cash flow uses centralized safe formulas', /export function calculateFixedExpenses/.test(cashFlow) && /export function calculateEmergencyFundTarget/.test(cashFlow) && /export function classifyCashFlowStatus/.test(cashFlow) && /safeRatio/.test(cashFlow) === false]
   ,['Cash flow input events capture primitive values synchronously', /const rawValue=event\.currentTarget\.value/.test(cashFlowPage) && /const checked=event\.currentTarget\.checked/.test(cashFlowPage)]
   ,['Cash flow page includes overview, expenses, reserve and pressure indicators', /每月現金流總覽/.test(cashFlowPage) && /固定支出清單/.test(cashFlowPage) && /緊急預備金/.test(cashFlowPage) && /支出壓力指標/.test(cashFlowPage)]
+  ,['Family fields are optional and old state remains safe', /familyMembers\?: FamilyMember/.test(app) && /assetOwnership\?: Record<string, AssetOwnership>/.test(app) && /dashboardScope\?: DashboardScope/.test(app)]
+  ,['Family backup and Firebase path reuse existing state serializer', /familyMembers: normalized\.familyMembers/.test(app) && /assetOwnership: normalized\.assetOwnership/.test(app) && /dashboardScope: normalized\.dashboardScope/.test(app)]
+  ,['Family ownership safely falls back after deleted members', /normalizeAssetOwnership/.test(family) && /ownerType: 'personal'/.test(family) && /assetInScope/.test(family)]
+  ,['Family Center has members, ownership and scope controls', /家庭成員/.test(familyPage) && /資產歸屬/.test(familyPage) && /家庭總資產/.test(familyPage) && /onScopeChange/.test(familyPage)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

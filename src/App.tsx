@@ -15,11 +15,13 @@ import WealthGoalPage from './pages/WealthGoalPage';
 import DashboardDecisionPage from './pages/DashboardDecisionPage';
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import CashFlowPage from './pages/CashFlowPage';
+import FamilyCenterPage from './pages/FamilyCenterPage';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
 import { normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
+import { assetInScope, normalizeAssetOwnership, normalizeFamilyMembers, type AssetOwnership, type DashboardScope, type FamilyMember } from './lib/family';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -33,8 +35,8 @@ type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; familyMembers?: FamilyMember[]; assetOwnership?: Record<string, AssetOwnership>; dashboardScope?: DashboardScope; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; familyMembers?: FamilyMember[]; assetOwnership?: Record<string, AssetOwnership>; dashboardScope?: DashboardScope; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
@@ -384,7 +386,10 @@ function normalizeState(raw: unknown): AppState {
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
-  return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
+  const familyMembers = r.familyMembers === undefined ? undefined : normalizeFamilyMembers(r.familyMembers);
+  const assetOwnership = r.assetOwnership === undefined ? undefined : normalizeAssetOwnership(r.assetOwnership, familyMembers ?? []);
+  const dashboardScope: DashboardScope | undefined = r.dashboardScope === 'family' || r.dashboardScope === 'all' || r.dashboardScope === 'personal' ? r.dashboardScope : undefined;
+  return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(familyMembers ? { familyMembers } : {}), ...(assetOwnership ? { assetOwnership } : {}), ...(dashboardScope ? { dashboardScope } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
 }
 function readState(): AppState {
   try {
@@ -415,7 +420,7 @@ function readUiState(): UiState {
 function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify(normalizeUiState(state))); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.familyMembers ? { familyMembers: normalized.familyMembers } : {}), ...(normalized.assetOwnership ? { assetOwnership: normalized.assetOwnership } : {}), ...(normalized.dashboardScope ? { dashboardScope: normalized.dashboardScope } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -435,7 +440,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), firebase });
+  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.familyMembers === undefined ? {} : { familyMembers: r.familyMembers }), ...(r.assetOwnership === undefined ? {} : { assetOwnership: r.assetOwnership }), ...(r.dashboardScope === undefined ? {} : { dashboardScope: r.dashboardScope }), firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -1127,6 +1132,7 @@ function App() {
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
   const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
+  const isFamilyCenter = routeLocation.pathname === '/tools/family-center';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -1285,7 +1291,16 @@ function App() {
     });
   };
   useEffect(() => { refreshQuotes(); }, []);
-  const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
+  const familyMembers = useMemo(() => normalizeFamilyMembers(state.familyMembers), [state.familyMembers]);
+  const assetOwnership = useMemo(() => normalizeAssetOwnership(state.assetOwnership, familyMembers), [state.assetOwnership, familyMembers]);
+  const dashboardScope: DashboardScope = state.dashboardScope ?? 'personal';
+  const scopedState = useMemo(() => ({ ...state,
+    holdings: state.holdings.filter(item => assetInScope(`holding:${item.symbol}`, assetOwnership, familyMembers, dashboardScope)),
+    cash: state.cash.filter(item => assetInScope(`cash:${item.id}`, assetOwnership, familyMembers, dashboardScope)),
+    loans: state.loans.filter(item => assetInScope(`loan:${item.id}`, assetOwnership, familyMembers, dashboardScope))
+  }), [state, assetOwnership, familyMembers, dashboardScope]);
+  const fullMetrics = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
+  const m = useMemo(() => calculateMetrics(scopedState, quotes), [scopedState, quotes]);
   const performanceAssets = useMemo(() => m.rows.map(row => ({
     symbol: row.symbol,
     name: row.name,
@@ -1297,17 +1312,17 @@ function App() {
     dayPnl: row.dayPnl,
     previousClose: row.quote.previousClose
   })), [m.rows]);
-  const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
+  const rb = useMemo(() => rebalance(scopedState, quotes), [scopedState, quotes]);
   const rebalanceDeviationText = rb.deviationText;
   const quoteSummaryText = quoteDisplayStatus(m.rows);
-  const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
+  const orderHelper = useMemo(() => getOrderSuggestions(scopedState, quotes, m), [scopedState, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const riskInput = useMemo(() => ({
     assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
-    loans: state.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
+    loans: scopedState.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
     cash: m.cash, totalAssets: m.totalAssets, growthRatio: m.totalAssets ? m.growth / m.totalAssets * 100 : 0, defensiveRatio: m.defensiveRatio,
     growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached
-  }), [m, rb, state.loans]);
+  }), [m, rb, scopedState.loans]);
   const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
@@ -1590,7 +1605,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter) return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isFamilyCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1602,6 +1617,7 @@ function App() {
           <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
           <button className="hero-transfer" onClick={runHomeUpload} disabled={Boolean(isHomeSyncing)}><Upload size={15} aria-hidden="true" /><span>{isHomeSyncing === 'upload' ? '上傳中…' : '上傳'}</span></button>
         </div>
+        <div className="home-scope-switch" aria-label="首頁資產範圍"><button type="button" className={dashboardScope === 'personal' ? 'active' : ''} onClick={() => setState(s => ({ ...s, dashboardScope: 'personal' }))}>個人</button><button type="button" className={dashboardScope === 'family' ? 'active' : ''} onClick={() => setState(s => ({ ...s, dashboardScope: 'family' }))}>家庭</button><button type="button" className={dashboardScope === 'all' ? 'active' : ''} onClick={() => setState(s => ({ ...s, dashboardScope: 'all' }))}>全部</button></div>
       </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
@@ -1757,6 +1773,7 @@ function App() {
       {isRiskCenter && <RiskCenterPage input={riskInput} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
+      {isFamilyCenter && <FamilyCenterPage members={familyMembers} ownership={assetOwnership} scope={dashboardScope} assets={[...fullMetrics.rows.map(row => ({ key: `holding:${row.symbol}`, name: row.symbol, detail: row.name, value: row.marketValue, kind: 'asset' as const })), ...state.cash.map(item => ({ key: `cash:${item.id}`, name: item.name, detail: '現金', value: item.amount, kind: 'asset' as const })), ...state.loans.map(item => ({ key: `loan:${item.id}`, name: item.name, detail: '借款', value: item.principal, kind: 'debt' as const }))]} onSave={(familyMembers, assetOwnership) => setState(s => ({ ...s, familyMembers, assetOwnership }))} onScopeChange={dashboardScope => setState(s => ({ ...s, dashboardScope }))} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
