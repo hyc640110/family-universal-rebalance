@@ -9,6 +9,7 @@ import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
+import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -1110,6 +1111,7 @@ function App() {
   const routeLocation = useLocation();
   const navigate = useNavigate();
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
+  const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -1552,7 +1554,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-  if (!validPages.includes(currentPage)) return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage) && !isAllocationSimulator) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1713,6 +1715,7 @@ function App() {
         </SectionCard>}
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
+      {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
