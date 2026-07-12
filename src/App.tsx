@@ -892,9 +892,9 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
         <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
         <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
         <label>目標比例 %<DraftInput inputMode="decimal" value={row.targetWeight ?? ''} onCommit={value => onUpdate(row.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(row.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
-        <label>資產分類<select value={row.assetClass} onChange={event => onUpdate(row.symbol, 'assetClass', normalizeAssetClass(event.currentTarget.value))}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
+        <label>資產分類<select value={row.assetClass} onChange={event => { const value = event.currentTarget.value; onUpdate(row.symbol, 'assetClass', normalizeAssetClass(value)); }}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
         <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
-        <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => onUpdateDipAlert(row.symbol, { enabled: event.currentTarget.checked })} /> 啟用逢低加碼觀察</label>
+        <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
       </div>
       <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />刪除持股</button>
     </div>}
@@ -1050,7 +1050,7 @@ function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: 
         <h3>{row.symbol} <span>{row.name}</span></h3>
         <p>目前價格：{row.price > 0 ? row.price.toFixed(2) : '價格不足'}</p>
       </div>
-      <label className="dip-toggle"><input type="checkbox" checked={row.setting.enabled} onChange={e => onChange(row.symbol, { enabled: e.currentTarget.checked })} /> 啟用</label>
+      <label className="dip-toggle"><input type="checkbox" checked={row.setting.enabled} onChange={e => { const checked = e.currentTarget.checked; onChange(row.symbol, { enabled: checked }); }} /> 啟用</label>
     </div>
     <div className="dip-alert-fields">
       <label>波段最高價
@@ -1675,7 +1675,7 @@ function App() {
             <p><span>目前模式</span><strong>{rb.modeLabel}</strong></p>
           </div>
           <div className="rebalance-settings">
-            <label>再平衡模式<select value={state.rebalanceMode} onChange={e => setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(e.target.value) }))}><option value="buy-only">只買不賣</option><option value="standard">標準再平衡</option></select><small>{rebalanceModeDescription(state.rebalanceMode)}</small></label>
+            <label>再平衡模式<select value={state.rebalanceMode} onChange={e => { const value = e.currentTarget.value; setState(s => ({ ...s, rebalanceMode: normalizeRebalanceMode(value) })); }}><option value="buy-only">只買不賣</option><option value="standard">標準再平衡</option></select><small>{rebalanceModeDescription(state.rebalanceMode)}</small></label>
             <label>再平衡提醒門檻 %<DraftInput inputMode="decimal" value={state.rebalanceThreshold} onCommit={value => setState(s => ({ ...s, rebalanceThreshold: clampRebalanceThreshold(Number(value)) }))} /><small>限制 0%～{MAX_REBALANCE_THRESHOLD}%，可輸入小數。</small></label>
             <label>只買不賣可用加碼預算（萬）<DraftInput type="number" min="0" step="0.1" inputMode="decimal" value={budgetWanOf(state.buyOnlyBudget)} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: budgetFromWan(value) }))} /><small>預設 10 萬；輸入 10 代表約 10.0 萬元。</small></label>
           </div>
@@ -1745,7 +1745,7 @@ function App() {
             <label>同步代號<DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /></label>
             <label>Cloudflare Worker URL<input value={DEFAULT_WORKER_URL} readOnly /></label>
             <label>股價更新間隔秒數<DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /></label>
-            <label><input type="checkbox" checked={state.autoSync} onChange={e => setState(s => ({ ...s, autoSync: e.target.checked }))} /> 啟用 Firebase 手動同步設定</label>
+            <label><input type="checkbox" checked={state.autoSync} onChange={e => { const checked = e.currentTarget.checked; setState(s => ({ ...s, autoSync: checked })); }} /> 啟用 Firebase 手動同步設定</label>
             <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
           </div>
           <div className="actions">

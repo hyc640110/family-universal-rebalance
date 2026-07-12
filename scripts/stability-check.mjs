@@ -25,6 +25,8 @@ const checks = [
   ['Risk metrics avoid unsafe no-loan values', /monthlyPayment > 0 \? cash \/ monthlyPayment : null/.test(riskMetrics) && /目前無借款月付壓力/.test(riskCenter)]
   ,['Wealth goal has normalized defaults and monthly compound projection', /normalizeWealthGoalSettings/.test(wealth) && /Math\.pow\(1 \+ s\.annualReturnRate \/ 100, 1 \/ 12\) - 1/.test(wealth) && /month <= 1200/.test(wealth)]
   ,['Wealth goal target input uses ten-thousand-yuan display while state stays in yuan', /目標資產（萬元）/.test(wealthPage) && /draft\.targetAmount \/ 10000/.test(wealthPage) && /Number\(value\)\*10000/.test(wealthPage)]
+  ,['Event values are captured before React state updater callbacks', /const rawValue=e\.currentTarget\.value;const value=rawValue/.test(wealthPage) && !/setDraft\(d=>\(\{\.\.\.d,\[key\]:e\.currentTarget/.test(wealthPage) && !/setState\(s => \(\{ \.\.\.s, rebalanceMode: normalizeRebalanceMode\(e\.target/.test(app)]
+  ,['Build metadata derives from the displayed app version', /APP_BUILD_TIME = `\$\{APP_VERSION\}/.test(readFileSync(new URL('../src/constants/appInfo.ts', import.meta.url), 'utf8'))]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
