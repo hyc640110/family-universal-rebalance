@@ -13,6 +13,7 @@ import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
 import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
 import DashboardDecisionPage from './pages/DashboardDecisionPage';
+import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -1126,6 +1127,7 @@ function App() {
     throw new Error('Error Boundary 測試錯誤');
   }
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [analyticsView, setAnalyticsView] = useState<'performance' | 'risk'>('performance');
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -1280,6 +1282,17 @@ function App() {
   };
   useEffect(() => { refreshQuotes(); }, []);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
+  const performanceAssets = useMemo(() => m.rows.map(row => ({
+    symbol: row.symbol,
+    name: row.name,
+    shares: row.shares,
+    avgCost: row.avgCost,
+    marketValue: row.marketValue,
+    cost: row.cost,
+    pnl: row.pnl,
+    dayPnl: row.dayPnl,
+    previousClose: row.quote.previousClose
+  })), [m.rows]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const rebalanceDeviationText = rb.deviationText;
   const quoteSummaryText = quoteDisplayStatus(m.rows);
@@ -1601,7 +1614,8 @@ function App() {
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
           <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
         </div>}
-        {currentPage === 'analytics' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
+        {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} view={analyticsView} onViewChange={setAnalyticsView} />}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
@@ -1654,7 +1668,7 @@ function App() {
           </div>
         </SectionCard>
         <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
-        <Card className="page-card for-analytics" title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
+        <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
@@ -1672,7 +1686,7 @@ function App() {
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
-        <SectionCard className="page-card for-analytics" id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
+        <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small" style={{ padding: '4px 8px', fontSize: '12px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           <div className="decision-grid">
             <p><span>目前需不需要調整？</span><strong className={decisionSummary.adjustmentStatus === '需要關注' ? 'warn' : 'good'}>{decisionSummary.adjustmentStatus}</strong></p>
@@ -1692,18 +1706,18 @@ function App() {
           {decisionSummary.triggeredDipAlerts.length > 0 && <div className="decision-callout"><h3>逢低加碼觀察標的</h3>{decisionSummary.triggeredDipAlerts.map(row => <p key={row.symbol}><strong>{row.symbol} {row.name}</strong> 目前跌幅 {row.drawdownPct === null ? '—' : signedPct(row.drawdownPct)}，門檻 {pct(row.setting.thresholdPct)}。</p>)}</div>}
           <div className="table rebalance-table"><div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div><div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div><div className="rebalance-group"><div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>{rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}</div></div>
         </SectionCard>
-        <SectionCard className="page-card for-analytics" id="analytics-trade-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
+        <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="analytics-trade-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           {tradeSteps.some(step => step.action !== '不需處理') ? <TradeStepList steps={tradeSteps} currentWeights={currentWeights} /> : <div className="analytics-empty"><p>目前沒有需要執行的交易建議。</p><span>配置已在門檻內，或目前模式下暫無可執行操作。</span></div>}
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">建議金額以萬元呈現；股價與預估股數維持原本單位。只買不賣模式不會產生賣出交易。</p>
         </SectionCard>
-        <SectionCard className="page-card for-analytics" id="dip-analysis-section" title="逢低加碼分析" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('dipAnalysis')} onToggle={() => toggleSection('dipAnalysis')} summary={decisionSummary.dipStatus}>
+        <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="dip-analysis-section" title="逢低加碼分析" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('dipAnalysis')} onToggle={() => toggleSection('dipAnalysis')} summary={decisionSummary.dipStatus}>
           <p className="note">此區只讀取目前持股的提醒設定與最新報價；波段最高價與門檻請在資產頁調整。</p>
           <DipOpportunityAnalysis rows={dipAlertRows} onOpenAssets={() => navigate('/assets')} />
           <p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p>
         </SectionCard>
-        <SectionCard className="page-card for-analytics" id="analytics-details-section" title="分析說明" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('analyticsDetails')} onToggle={() => toggleSection('analyticsDetails')} summary="計算方式、風險提醒與詳細分析資料">
+        <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="analytics-details-section" title="分析說明" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('analyticsDetails')} onToggle={() => toggleSection('analyticsDetails')} summary="計算方式、風險提醒與詳細分析資料">
           <AnalyticsDetails m={m} rb={rb} health={health} quoteSummaryText={quoteSummaryText} latestQuoteTime={latestQuoteTime} onCopy={() => { void handleCopy(); }} copyStatus={copyStatus} />
         </SectionCard>
         <Card className="page-card for-home" title="借款安全摘要">
