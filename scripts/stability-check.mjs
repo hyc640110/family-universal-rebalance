@@ -4,6 +4,8 @@ const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const simulator = readFileSync(new URL('../src/pages/AllocationSimulatorPage.tsx', import.meta.url), 'utf8');
 const riskMetrics = readFileSync(new URL('../src/lib/riskMetrics.ts', import.meta.url), 'utf8');
 const riskCenter = readFileSync(new URL('../src/pages/RiskCenterPage.tsx', import.meta.url), 'utf8');
+const wealth = readFileSync(new URL('../src/lib/wealthGoal.ts', import.meta.url), 'utf8');
+const wealthPage = readFileSync(new URL('../src/pages/WealthGoalPage.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -21,6 +23,8 @@ const checks = [
   ['Risk center uses a centralized pure calculation helper', /export function deriveRiskMetrics/.test(riskMetrics) && /isLeveragedAsset/.test(riskMetrics)],
   ['Risk center uses an independent route and read-only analysis', /isRiskCenter = routeLocation\.pathname === '\/tools\/risk-center'/.test(app) && !/localStorage\.setItem|writeState\(|uploadFirebase\(|downloadFirebase\(/.test(riskCenter)],
   ['Risk metrics avoid unsafe no-loan values', /monthlyPayment > 0 \? cash \/ monthlyPayment : null/.test(riskMetrics) && /目前無借款月付壓力/.test(riskCenter)]
+  ,['Wealth goal has normalized defaults and monthly compound projection', /normalizeWealthGoalSettings/.test(wealth) && /Math\.pow\(1 \+ s\.annualReturnRate \/ 100, 1 \/ 12\) - 1/.test(wealth) && /month <= 1200/.test(wealth)]
+  ,['Wealth goal target input uses ten-thousand-yuan display while state stays in yuan', /目標資產（萬元）/.test(wealthPage) && /draft\.targetAmount \/ 10000/.test(wealthPage) && /Number\(value\)\*10000/.test(wealthPage)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
