@@ -12,7 +12,11 @@ import SettingsPage from './pages/SettingsPage';
 import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
 import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
+import DashboardDecisionPage from './pages/DashboardDecisionPage';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
+import { deriveWealthGoalProjection } from './lib/wealthGoal';
+import { deriveRiskMetrics } from './lib/riskMetrics';
+import { deriveHomeDecision } from './lib/homeDecision';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -1287,6 +1291,8 @@ function App() {
     cash: m.cash, totalAssets: m.totalAssets, growthRatio: m.totalAssets ? m.growth / m.totalAssets * 100 : 0, defensiveRatio: m.defensiveRatio,
     growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached
   }), [m, rb, state.loans]);
+  const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);
+  const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
     const symbol = normalizeSymbol(row.symbol);
     const setting = normalizeDipAlertSetting(state.dipAlerts?.[symbol] ?? defaultDipAlertSetting());
@@ -1314,6 +1320,7 @@ function App() {
     return { conclusion, dipTriggered, lowCashSafety };
   }, [decisionSummary.triggeredDipAlerts.length, m.totalAssets, m.monthlyPayment, m.repaymentSafetyMonths, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
   const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
+  const homeDecision = useMemo(() => deriveHomeDecision({ riskLevel:riskMetrics.overallLevel, cashUnsafe:riskMetrics.cashSafetyMonths !== null && riskMetrics.cashSafetyMonths < 6, rebalance:rb.thresholdReached, dip:decisionSummary.triggeredDipAlerts.length>0, wealthBehind:state.wealthGoal.targetYear !== undefined && wealthProjection.targetYearValue !== null && wealthProjection.targetYearValue < state.wealthGoal.targetAmount, quotesMissing:quoteSummaryText !== '報價正常', targetInvalid:Boolean(targetWarning) }), [riskMetrics,rb.thresholdReached,decisionSummary.triggeredDipAlerts.length,state.wealthGoal,wealthProjection,quoteSummaryText,targetWarning]);
   const targetCheck = useMemo(() => {
     const growthTotal = growthTargetTotalOf(state);
     const defensiveStockTotal = getDefensiveStockTargetTotal(state.holdings);
@@ -1588,7 +1595,8 @@ function App() {
           <button className="small" onClick={() => setStartupWarning(null)}>隱藏提示</button>
         </div>
       </Card>}
-      {showOn('home', 'assets', 'analytics') && <DashboardPage>
+      {currentPage === 'home' && <DashboardDecisionPage data={{decision:homeDecision,total:m.totalAssets,debt:m.debt,net:m.netWorth,day:m.dayPnl,growth:rb.stockRow.currentWeight,defensive:m.defensiveRatio,cashRatio:m.cashRatio,rebalance:rb.thresholdReached,deviation:rb.deviation,mode:rb.modeLabel,orderAmount:orderHelper.totalBuyAmount,dip:decisionSummary.triggeredDipAlerts.length>0,riskLabel:riskMetrics.overallLabel,cashMonths:riskMetrics.cashSafetyMonths,cash6:m.cash>=riskMetrics.minimumCashTarget,cash12:m.cash>=riskMetrics.stableCashTarget,leveraged:riskMetrics.leveragedRatio,largest:riskMetrics.largestHoldingRatio,target:state.wealthGoal.targetAmount,progress:wealthProjection.progress,remaining:wealthProjection.remaining,wealthText:wealthProjection.achievedMonth===0?'財富目標已達成。':wealthProjection.achievedMonth===null?'依目前假設，100 年內尚未達成。':`預估約 ${Math.ceil(wealthProjection.achievedMonth/12)} 年後達成。`}} />}
+      {showOn('assets', 'analytics') && <DashboardPage>
         {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
           <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
