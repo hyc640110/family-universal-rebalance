@@ -44,7 +44,7 @@ type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: D
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
-type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug' | 'dipAnalysis' | 'analyticsDetails';
+type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'loans' | 'sync' | 'debug' | 'dipAnalysis' | 'analyticsDetails' | 'quoteSources' | 'syncStatus' | 'syncDiagnostics' | 'targetCheck';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
@@ -73,8 +73,8 @@ const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
-const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false } };
-const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true };
+const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, syncStatus: false, syncDiagnostics: false, targetCheck: false } };
+const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true, quoteSources: true, syncStatus: true, syncDiagnostics: true, targetCheck: true };
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
@@ -415,7 +415,7 @@ function readUiState(): UiState {
     return DEFAULT_UI_STATE;
   }
 }
-function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify(normalizeUiState(state))); }
+function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify({ displayMode: state.displayMode })); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
   return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
@@ -927,12 +927,12 @@ function Card({ id, title, children, action, style, className = '' }: { id?: str
     {children}
   </section>;
 }
-function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, collapsibleOnDesktop = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; collapsibleOnDesktop?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
+function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, collapsibleOnDesktop = false, open = true, summary, status, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; collapsibleOnDesktop?: boolean; open?: boolean; summary?: ReactNode; status?: ReactNode; onToggle?: () => void }) {
   if (!collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
   const contentId = id ? `${id}-content` : `section-${title}-content`;
   return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'} ${className}`.trim()} style={style}>
     <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
-      <span>{title}</span>
+      <span className="section-toggle-title">{title}{status && <span className="section-toggle-status">{status}</span>}</span>
       <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
     </button>
     {!open && summary && <p className="section-summary">{summary}</p>}
@@ -1357,6 +1357,12 @@ function App() {
     const total = getHoldingTargetTotal(state.holdings);
     return { growthTotal, defensiveStockTotal, cashTarget, total, status: total > 100 ? '持股目標比例超過 100%，請調低比例' : total < 100 ? '未分配比例由現金承擔' : '正常' };
   }, [state]);
+  const targetCheckHasError = targetCheck.total > 100;
+  const targetCheckSummary = targetCheckHasError ? '目標比例設定錯誤' : `比例合計 ${pct(targetCheck.total)}，檢查正常`;
+  useEffect(() => {
+    if (!targetCheckHasError) return;
+    setUiState(current => current.sections.targetCheck ? current : { ...current, sections: { ...current.sections, targetCheck: true } });
+  }, [targetCheckHasError, uiState.displayMode]);
   const latestQuoteTime = useMemo(() => {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
     return times.length ? new Date(Math.max(...times)).toISOString() : '';
@@ -1802,7 +1808,7 @@ function App() {
           </p>
           <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料。</p>
         </Card>
-        <Card title="同步狀態">
+        <SectionCard id="sync-status-section" title="雲端同步狀態" isMobile={isMobile} collapsible open={sectionOpen('syncStatus')} onToggle={() => toggleSection('syncStatus')} summary="查看本機、上傳、下載與備份時間">
           <div className="status-grid">
             <p><span>目前資料來源</span><strong>{syncMeta.source}</strong></p>
             <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
@@ -1814,7 +1820,7 @@ function App() {
             <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
           </div>
           <p className="note">匯出、匯入與同步狀態只會更新本機資料，不會自動上傳或下載 Firebase。</p>
-        </Card>
+        </SectionCard>
         <Card title="備份 / 還原">
           <p className="note">匯出備份與匯入還原只處理本機資料，不會自動觸發 Firebase 上傳或下載。</p>
           <div className="actions">
@@ -1851,7 +1857,7 @@ function App() {
             })}
           </div>
         </Card>
-        <Card title="報價來源明細">
+        <SectionCard id="quote-sources-section" title="報價來源" isMobile={isMobile} collapsible open={sectionOpen('quoteSources')} onToggle={() => toggleSection('quoteSources')} summary="查看各持股的報價來源與更新時間">
           <p className="note">完整技術來源集中在此處，主要投資卡片只顯示簡短報價狀態。</p>
           <div className="asset-management-grid">
             {m.rows.map(row => <article className="asset-management-item" key={`source-${row.symbol}`}>
@@ -1860,8 +1866,8 @@ function App() {
               <small>{tw(row.quote.updatedAt)}</small>
             </article>)}
           </div>
-        </Card>
-        <Card title="目標比例檢查">
+        </SectionCard>
+        <SectionCard id="target-check-section" title="目標比例檢查" isMobile={isMobile} collapsible open={sectionOpen('targetCheck')} onToggle={() => toggleSection('targetCheck')} summary={targetCheckSummary} status={<span className={`section-status ${targetCheckHasError ? 'bad' : 'good'}`}>{targetCheckHasError ? '錯誤' : '正常'}</span>}>
           <div className="status-grid">
             <p><span>成長資產目標合計</span><strong className={targetCheck.total > 100 ? 'bad' : ''}>{pct(targetCheck.growthTotal)}</strong></p>
             <p><span>防守股票目標合計</span><strong>{pct(targetCheck.defensiveStockTotal)}</strong></p>
@@ -1869,9 +1875,9 @@ function App() {
             <p><span>總目標比例</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{pct(targetCheck.total)}</strong></p>
             <p><span>狀態</span><strong className={targetCheck.total > 100 ? 'bad' : 'good'}>{targetCheck.status}</strong></p>
           </div>
-          {targetCheck.total > 100 && <p className="warning-message">持股目標比例合計已超過 100%，請調整配置。</p>}
-        </Card>
-        <Card title="雲端同步狀態診斷與比對">
+          {targetCheckHasError && <p className="warning-message">持股目標比例合計已超過 100%，請調整配置。</p>}
+        </SectionCard>
+        <SectionCard id="sync-diagnostics-section" title="雲端同步診斷與比對" isMobile={isMobile} collapsible open={sectionOpen('syncDiagnostics')} onToggle={() => toggleSection('syncDiagnostics')} summary="查看本機與雲端資料的診斷及比對結果">
           <div className={`health-status ${syncDiagnostics.tone}`}>
             <div className="health-light" />
             <div>
@@ -1913,7 +1919,7 @@ function App() {
               <span>時戳對照</span>
             </div>
           </div>
-        </Card>
+        </SectionCard>
       <footer className="app-footer">
         <section className="card footer-debug-card">
           <details className="debug-details footer-debug-details">
