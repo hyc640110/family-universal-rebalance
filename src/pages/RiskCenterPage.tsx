@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageFrame from './PageFrame';
 import { deriveRiskMetrics, type RiskInput } from '../lib/riskMetrics';
+import ToolQuickNavigation from '../components/ToolQuickNavigation';
 
 const money = (value: number) => `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
 const pct = (value: number) => `${Number.isFinite(value) ? value.toFixed(1) : '0.0'}%`;
@@ -18,5 +19,6 @@ export default function RiskCenterPage({ input }: { input: RiskInput }) {
     <section className="card"><h2>成長／防守配置風險</h2><div className="risk-data risk-data-wide"><p><span>成長資產目前／目標</span><b>{pct(risk.growthRatio)}／{pct(input.growthTargetPct)}</b></p><p><span>防守資產目前比例</span><b>{pct(risk.defensiveRatio)}</b></p><p><span>現金比例</span><b>{pct(risk.cashRatio)}</b></p><p><span>偏離與門檻</span><b className={risk.thresholdReached ? 'warn' : 'good'}>{pct(risk.allocationDeviation)}｜{risk.thresholdReached ? '已超過門檻' : '在門檻內'}</b></p></div><p className="note">沿用 Analytics Center 的成長資產偏離公式與既有再平衡門檻。</p></section>
     <section className="card"><h2>風險優先處理清單</h2><ol className="risk-priority-list">{risk.priorityActions.map((item, index) => <li key={item.key}><b>{index + 1}</b><div><strong>{item.title}｜{item.status}</strong><span>{item.reason}</span><em>{item.suggestion}</em>{item.key === 'allocation' && <Link to="/analytics">前往分析頁查看再平衡建議</Link>}{(item.key === 'concentration' || item.key === 'leveraged') && <Link to="/tools/allocation-simulator">前往資產配置模擬器</Link>}</div></li>)}</ol></section>
     <section className="card risk-notes"><button type="button" className="section-toggle" aria-expanded={showNotes} onClick={() => setShowNotes(current => !current)}><span>風險說明與資料限制</span><b>{showNotes ? '收合' : '展開'}</b></button>{showNotes && <div className="section-content"><p>整體風險採核心項目中的最高等級：現金安全、借款壓力、槓桿資產、單一資產集中度及配置偏離。</p><p>現金安全月數 = 現金 ÷ 每月借款還款總額。若沒有月付，不適用且不顯示 Infinity。</p><p>最大單一資產低於 30% 為低、30%～50% 為中、50%～70% 為偏高、超過 70% 為高。本頁為一般化風險提示，不是保證或個人化投資建議。</p></div>}</section>
+    <ToolQuickNavigation current="risk-center" />
   </PageFrame>;
 }

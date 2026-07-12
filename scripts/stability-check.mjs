@@ -13,6 +13,7 @@ const cashFlow = readFileSync(new URL('../src/lib/cashFlow.ts', import.meta.url)
 const cashFlowPage = readFileSync(new URL('../src/pages/CashFlowPage.tsx', import.meta.url), 'utf8');
 const netWorthHistory = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
 const netWorthHistoryPage = readFileSync(new URL('../src/pages/NetWorthHistoryPage.tsx', import.meta.url), 'utf8');
+const toolQuickNavigation = readFileSync(new URL('../src/components/ToolQuickNavigation.tsx', import.meta.url), 'utf8');
 
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
@@ -51,6 +52,9 @@ const checks = [
   ,['Net worth history remains an optional backward-compatible field', /netWorthHistory\?: NetWorthSnapshot/.test(app) && /r\.netWorthHistory === undefined \? undefined : normalizeNetWorthHistory/.test(app)]
   ,['Net worth history snapshot upsert and compatibility helpers are centralized', /export function upsertNetWorthSnapshot/.test(netWorthHistory) && /export function deriveHistoryStats/.test(netWorthHistory) && /normalizeNetWorthHistory/.test(netWorthHistory)]
   ,['Net worth history page includes ranges, chart and statistics', /7 天/.test(netWorthHistoryPage) && /最大回撤/.test(netWorthHistoryPage) && /history-chart/.test(netWorthHistoryPage)]
+  ,['Tool pages share one quick navigation component', /ToolQuickNavigation/.test(simulator) && /ToolQuickNavigation/.test(riskCenter) && /ToolQuickNavigation/.test(wealthPage) && /ToolQuickNavigation/.test(cashFlowPage) && /ToolQuickNavigation/.test(netWorthHistoryPage)]
+  ,['Tool quick navigation excludes the current page and uses SPA links', /links\.filter\(link => link\.route !== current\)/.test(toolQuickNavigation) && /<Link to="\/tools">/.test(toolQuickNavigation) && !/location\.href/.test(toolQuickNavigation)]
+  ,['Allocation contribution uses wan display with yuan calculation', /模擬投入金額（萬元）/.test(simulator) && /Math\.max\(0, safeNumber\(contribution\)\) \* 10000/.test(simulator) && /min="0"/.test(simulator)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
