@@ -73,7 +73,7 @@ const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
-const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false } };
+const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false } };
 const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true };
 const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -928,7 +928,7 @@ function Card({ id, title, children, action, style, className = '' }: { id?: str
   </section>;
 }
 function SectionCard({ id, title, children, action, style, className = '', isMobile, collapsible = false, collapsibleOnDesktop = false, open = true, summary, onToggle }: { id?: string; title: string; children: ReactNode; action?: ReactNode; style?: CSSProperties; className?: string; isMobile?: boolean; collapsible?: boolean; collapsibleOnDesktop?: boolean; open?: boolean; summary?: ReactNode; onToggle?: () => void }) {
-  if ((!isMobile && !collapsibleOnDesktop) || !collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
+  if (!collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
   const contentId = id ? `${id}-content` : `section-${title}-content`;
   return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'} ${className}`.trim()} style={style}>
     <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
@@ -1180,8 +1180,9 @@ function App() {
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
   useEffect(() => { writeUiState(uiState); }, [uiState]);
+  useEffect(() => { document.documentElement.dataset.displayMode = uiState.displayMode; }, [uiState.displayMode]);
   const defaultSectionsForMode = uiState.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
-  const sectionOpen = (key: SectionKey) => !isMobile ? key !== 'debug' : uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
+  const sectionOpen = (key: SectionKey) => uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
   const analyticsSectionOpen = (key: 'dipAnalysis' | 'analyticsDetails') => uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
   const toggleSection = (key: SectionKey) => setUiState(current => {
     const defaults = current.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
@@ -1773,8 +1774,8 @@ function App() {
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
           <div className="mobile-mode-switch settings-mode-switch" aria-label="顯示模式">
-            <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
-            <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
+            <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} aria-pressed={uiState.displayMode === 'compact'} onClick={() => applyDisplayMode('compact')}><b>簡潔模式</b><small>只顯示核心資訊，適合日常快速查看。</small></button>
+            <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} aria-pressed={uiState.displayMode === 'full'} onClick={() => applyDisplayMode('full')}><b>完整模式</b><small>顯示完整分析、進階欄位與說明。</small></button>
           </div>
         </Card>
         <Card id="sync-section" title="同步與資料設定">
