@@ -11,6 +11,8 @@
     "test:change-presentation": "tsx --test tests/changePresentation.test.ts",
     "test:v4-1": "npm run test:financial-accounts && npm run test:change-presentation",
     "test:transactions": "tsx --test tests/transactions.test.ts",
+    "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
+    "test:import-center": "tsx --test tests/importCenter.test.ts",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
     "test:net-worth-history": "node scripts/net-worth-history-check.mjs",
@@ -25,6 +27,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^7.18.1",
+    "read-excel-file": "^9.3.1",
     "typescript": "latest",
     "vite": "latest"
   },
