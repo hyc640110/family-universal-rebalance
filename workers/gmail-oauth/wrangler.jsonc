@@ -1,0 +1,42 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "universal-rebalance-gmail-oauth-local",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "durable_objects": {
+    "bindings": [{ "name": "OAUTH_SESSIONS", "class_name": "OAuthSessionDurableObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["OAuthSessionDurableObject"] }],
+  "vars": {
+    "ENVIRONMENT": "preview",
+    "ALLOWED_ORIGINS": "http://localhost:5173",
+    "ALLOWED_REDIRECTS": "http://localhost:5173/"
+  },
+  "env": {
+    "preview": {
+      "name": "universal-rebalance-gmail-oauth-preview",
+      "vars": {
+        "ENVIRONMENT": "preview",
+        "ALLOWED_ORIGINS": "https://hyc640110.github.io",
+        "ALLOWED_REDIRECTS": "https://hyc640110.github.io/family-universal-rebalance/preview/"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "OAUTH_SESSIONS", "class_name": "OAuthSessionDurableObject" }]
+      }
+    },
+    "production": {
+      "name": "universal-rebalance-gmail-oauth-production",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "ALLOWED_ORIGINS": "https://hyc640110.github.io",
+        "ALLOWED_REDIRECTS": "https://hyc640110.github.io/family-universal-rebalance/"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "OAUTH_SESSIONS", "class_name": "OAuthSessionDurableObject" }]
+      }
+    }
+  }
+}
