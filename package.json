@@ -17,6 +17,7 @@
     "test:v5-dashboard": "tsx --test tests/investmentDashboard.test.ts",
     "test:v5-1-performance": "tsx --test tests/investmentPerformanceHistory.test.ts",
     "test:v5-2-compact-assets": "tsx --test tests/compactAssetCards.test.ts",
+    "test:v5-3-calendar": "tsx --test tests/dailyAssetChangeCalendar.test.ts",
     "test:quotes": "tsx --test tests/quoteMath.test.ts",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
