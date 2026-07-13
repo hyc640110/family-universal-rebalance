@@ -1,6 +1,8 @@
 const VERSION = '00631L-Pro-Web-App Worker v6.4 Taiwan symbol normalization';
 const DEFAULT_SYMBOL = '00631L.TW';
 const TAIWAN_SYMBOL_RE = /^[0-9A-Z]{4,8}\.(TW|TWO)$/;
+const taipeiParts = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
+const taipeiQuoteStamp = (value) => { const parts = taipeiParts(value); return { quoteDate: `${parts.year}-${parts.month}-${parts.day}`, quoteTime: `${parts.hour}:${parts.minute}:${parts.second}` }; };
 
 function corsHeaders(request) {
   const origin = request.headers.get('origin') || '*';
@@ -30,19 +32,28 @@ function parseYahoo(symbol, data) {
   const meta = result?.meta || {};
   const q = result?.indicators?.quote?.[0] || {};
   const closes = Array.isArray(q.close) ? q.close.filter(v => typeof v === 'number') : [];
-  const price = Number(meta.regularMarketPrice ?? closes.at(-1));
-  const previousClose = Number(meta.previousClose || meta.chartPreviousClose || price);
-  if (!Number.isFinite(price)) throw new Error(`empty price: ${symbol}`);
+  const latestPrice = Number(meta.regularMarketPrice ?? closes.at(-1));
+  const previousClose = Number(meta.previousClose || meta.chartPreviousClose || latestPrice);
+  if (!Number.isFinite(latestPrice) || !Number.isFinite(previousClose) || previousClose <= 0) throw new Error(`empty quote fields: ${symbol}`);
+  const change = typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : latestPrice - previousClose;
+  const changePercent = typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : change / previousClose * 100;
+  if (!meta.regularMarketTime) throw new Error(`missing market time: ${symbol}`);
+  const marketTime = new Date(meta.regularMarketTime * 1000);
+  const { quoteDate, quoteTime } = taipeiQuoteStamp(marketTime);
   return {
     ok: true,
     symbol,
     code: symbol.replace('.TW', ''),
-    price,
+    price: latestPrice,
+    latestPrice,
     previousClose,
-    change: price - previousClose,
-    changePct: previousClose ? (price - previousClose) / previousClose * 100 : 0,
+    change,
+    changePct: changePercent,
+    changePercent,
+    quoteDate,
+    quoteTime,
     volume: Number(meta.regularMarketVolume || 0),
-    marketTime: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
+    marketTime: marketTime.toISOString(),
     source: 'Yahoo Finance via Cloudflare Worker',
     workerVersion: VERSION,
     updatedAt: new Date().toISOString()

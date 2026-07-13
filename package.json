@@ -13,6 +13,7 @@
     "test:transactions": "tsx --test tests/transactions.test.ts",
     "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
     "test:import-center": "tsx --test tests/importCenter.test.ts",
+    "test:quotes": "tsx --test tests/quoteMath.test.ts",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
     "test:net-worth-history": "node scripts/net-worth-history-check.mjs",

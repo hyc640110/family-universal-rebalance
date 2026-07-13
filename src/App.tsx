@@ -27,9 +27,10 @@ import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
+import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote } from './lib/quoteMath';
 
 type SymbolCode = string;
-type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
+type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
 type AssetClass = 'growth' | 'defensive';
 type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass };
 type CashItem = { id: string; name: string; amount: number; note: string };
@@ -474,99 +475,12 @@ function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim();
 async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
-  const d = data as { ok?: boolean; symbol?: string; code?: string; price?: number; previousClose?: number; prev?: number; change?: number; changePct?: number; volume?: number; source?: string; raw?: any };
-  if (typeof d?.price !== 'number') return null;
+  const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
+  if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
   const resolvedSymbol = normalizeSymbol(d.code || d.symbol || symbol).replace(/\.(TW|TWO)$/, '');
-  const resolvedName = resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name);
-  
-  let prev = Number(d.previousClose ?? d.prev ?? d.price);
-  let change = d.change ?? (d.price - prev);
-  let changePct = d.changePct ?? (prev ? (d.price - prev) / prev * 100 : 0);
-  let resolvedSource = d.source || 'Taiwan Stock Exchange (TWSE) Official API';
-
-  // 💥 攔截對特定價格的硬編碼防呆 (2026/07/06 收盤價特定防呆)
-  if (symbol === '00631L' && Math.abs(d.price - 38.75) < 0.01) {
-    prev = 38.80;
-    change = -0.05;
-    changePct = -0.128866; // -0.13%
-    resolvedSource = '證交所官方防呆攔截 (2026/07/06)';
-  } else if (symbol === '00865B' && Math.abs(d.price - 48.89) < 0.01) {
-    prev = 48.71;
-    change = 0.18;
-    changePct = 0.369534; // +0.37%
-    resolvedSource = '證交所官方防呆攔截 (2026/07/06)';
-  } else {
-    // 💥 否則進行動態解析
-    try {
-      // 1. 支援 TWSE API 的 Raw JSON 解析
-      if (d.raw?.stat === 'OK' && Array.isArray(d.raw?.data)) {
-        const rows = d.raw.data.filter((row: any) => Array.isArray(row) && row[0] !== '月平均收盤價');
-        if (rows.length >= 2) {
-          const latestPrice = Number(rows[rows.length - 1][1]);
-          const prevPrice = Number(rows[rows.length - 2][1]);
-          if (!isNaN(latestPrice) && !isNaN(prevPrice)) {
-            const isLatestCloseCurrentPrice = Math.abs(latestPrice - d.price) < 0.001;
-            if (isLatestCloseCurrentPrice) {
-              prev = prevPrice;
-            } else {
-              prev = latestPrice;
-            }
-            change = d.price - prev;
-            changePct = prev ? (change / prev) * 100 : 0;
-          }
-        }
-      }
-      // 2. 備份 Yahoo Finance raw chart 數據解析 (優化：優先取 regularMarketChange/regularMarketChangePercent)
-      else {
-        const result = d.raw?.chart?.result?.[0];
-        const meta = result?.meta;
-        
-        // 優先讀取 Yahoo 的 regularMarketChange 和 regularMarketChangePercent
-        if (typeof meta?.regularMarketChange === 'number' && typeof meta?.regularMarketChangePercent === 'number') {
-          change = meta.regularMarketChange;
-          changePct = meta.regularMarketChangePercent;
-          prev = d.price - change;
-          resolvedSource = 'Yahoo Finance (MarketChange 解析)';
-        } else {
-          const quotes = result?.indicators?.quote?.[0];
-          const closeList = quotes?.close;
-          if (Array.isArray(closeList)) {
-            const validCloses = closeList.filter((p): p is number => typeof p === 'number' && p > 0);
-            if (validCloses.length > 0) {
-              const lastClose = validCloses[validCloses.length - 1];
-              if (validCloses.length >= 2) {
-                const isLastCloseCurrentPrice = Math.abs(lastClose - d.price) < 0.001;
-                if (isLastCloseCurrentPrice) {
-                  prev = validCloses[validCloses.length - 2];
-                } else {
-                  prev = lastClose;
-                }
-              } else {
-                prev = lastClose;
-              }
-              change = d.price - prev;
-              changePct = prev ? (change / prev) * 100 : 0;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      // 發生異常則使用默認昨收
-    }
-  }
-
-  return {
-    ...backupQuote(resolvedSymbol, holding),
-    symbol: resolvedSymbol,
-    name: resolvedName,
-    price: d.price,
-    previousClose: prev,
-    change: d.price - prev,
-    changePct: prev ? (d.price - prev) / prev * 100 : 0,
-    volume: Number(d.volume ?? 0),
-    source: resolvedSource,
-    updatedAt: now()
-  };
+  const price = Number(d.latestPrice ?? d.price), previousClose = Number(d.previousClose), change = calculateQuoteChange(price, previousClose);
+  if (change === null) return null;
+  return { ...backupQuote(resolvedSymbol, holding), symbol: resolvedSymbol, name: resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name), price, previousClose, change, changePct: change / previousClose * 100, quoteDate: typeof d.quoteDate === 'string' ? d.quoteDate : undefined, quoteTime: typeof d.quoteTime === 'string' ? d.quoteTime : undefined, volume: Number(d.volume ?? 0), source: d.source || '報價 Worker', updatedAt: now() };
 }
 async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(querySymbol)}`; try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
@@ -577,7 +491,7 @@ function derivedHoldings(state: AppState): Holding[] {
   return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
-  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
+  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
   const derivedBalances = deriveTransactionAccountBalances(state.transactions);
@@ -586,7 +500,8 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const debt = state.loans.reduce((a, l) => a + num(l.principal), 0);
   const totalAssets = stocks + Math.max(0, accountNetWorth);
   const netWorth = stocks + accountNetWorth - debt;
-  const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0);
+  const todayPnlAvailable = rows.length > 0 && rows.every(row => row.dayPnl !== null);
+  const dayPnl = todayPnlAvailable ? rows.reduce((a, r) => a + (r.dayPnl ?? 0), 0) : 0;
   const defensiveHoldings = rows.filter(r => isDefensiveHolding(r));
   const growthHoldings = rows.filter(r => isGrowthHolding(r));
   const growth = growthHoldings.reduce((a, r) => a + r.marketValue, 0);
@@ -620,7 +535,7 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   // 扣利息後真實淨利
   const trueNetPnlAfterInterest = portfolioTotalPnl - totalLoanInterestPaid;
 
-  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, growth, defensive, growthHoldings, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
+  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, todayPnlAvailable, growth, defensive, growthHoldings, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
 }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const m = calculateMetrics(state, quotes);
@@ -916,7 +831,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       <div><span>市值</span><strong>{money(row.marketValue)}</strong></div>
       <div><span>損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></div>
       <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
-      <div><span>今日漲跌</span><strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong></div>
+      <div><span>今日漲跌</span>{isTodayQuote(row.quote.quoteDate) ? <strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong> : <strong className="hold">— <small>報價非今日</small></strong>}</div>
     </div>
     {isEditing && <div className="holding-editor">
       <div className="holding-editor-grid">
@@ -1374,7 +1289,7 @@ function App() {
     marketValue: row.marketValue,
     cost: row.cost,
     pnl: row.pnl,
-    dayPnl: row.dayPnl,
+    dayPnl: row.dayPnl ?? 0,
     previousClose: row.quote.previousClose
   })), [m.rows]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
@@ -1743,7 +1658,7 @@ function App() {
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
-            <Stat label="今日損益" value={signedMoney(m.dayPnl)} tone={tone(m.dayPnl)} />
+            <Stat label="今日損益" value={m.todayPnlAvailable ? signedMoney(m.dayPnl) : '—'} tone={m.todayPnlAvailable ? tone(m.dayPnl) : 'hold'} />
             <Stat label="淨資產" value={money(m.netWorth)} />
             <Stat label="借款" value={money(m.debt)} tone="warn" />
             <Stat label="Beta" value={m.beta.toFixed(2)} />

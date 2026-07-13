@@ -24,11 +24,13 @@ export default {
       }
       const latestRow = rows[rows.length - 1];
       const prevRow = rows[rows.length - 2];
-      const price = Number(latestRow[1]);
+      const latestPrice = Number(latestRow[1]);
       const previousClose = Number(prevRow[1]);
-      const change = price - previousClose;
+      const change = latestPrice - previousClose;
       const changePct = previousClose ? (change / previousClose) * 100 : 0;
-      return new Response(JSON.stringify({ symbol: rawSymbol, price, previousClose, change, changePct, volume: 0, source: 'Taiwan Stock Exchange (TWSE) Official API', raw: data }), { headers });
+      const match = String(latestRow[0]).match(/^(\d{2,3})\/(\d{1,2})\/(\d{1,2})$/); if (!match) throw new Error('TWSE quote date format invalid');
+      const quoteDate = `${Number(match[1]) + 1911}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+      return new Response(JSON.stringify({ symbol: rawSymbol, price: latestPrice, latestPrice, previousClose, change, changePct, changePercent: changePct, quoteDate, quoteTime: '13:30:00', volume: 0, source: 'Taiwan Stock Exchange (TWSE) Official API' }), { headers });
     } catch (error) {
       return new Response(JSON.stringify({ symbol: rawSymbol, error: String(error), source: 'Worker error' }), { status: 502, headers });
     }

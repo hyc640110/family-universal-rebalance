@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict'; import test from 'node:test'; import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote } from '../src/lib/quoteMath';
+const today = new Date('2026-07-13T04:00:00.000Z');
+test('quote change uses latest price minus previous close with correct sign', () => { assert.equal(calculateQuoteChange(106, 105.8), 0.2); assert.equal(calculateQuoteChange(36.86, 36.78), 0.08); assert.equal(calculateQuoteChange(48.89, 48.9), -0.01); });
+test('daily profit and loss is shares multiplied by same-day price change', () => { const change0050 = calculateQuoteChange(106, 105.8); const change00631L = calculateQuoteChange(36.86, 36.78); assert.equal(calculateDailyProfitLoss(1000, change0050, '2026-07-13', today), 200); assert.equal(calculateDailyProfitLoss(2000, change00631L, '2026-07-13', today), 160); assert.equal(200 + 160, 360); });
+test('stale quote dates never count as today profit and loss', () => { assert.equal(isTodayQuote('2026-07-12', today), false); assert.equal(calculateDailyProfitLoss(1000, 0.2, '2026-07-12', today), null); assert.equal(calculateDailyProfitLoss(1000, 0.2, undefined, today), null); });
