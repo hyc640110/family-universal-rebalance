@@ -65,6 +65,8 @@ const checks = [
   ,['Dashboard uses existing wealth, risk, cash flow and history sources', /deriveCashFlow/.test(app) && /deriveHistoryStats/.test(app) && /核心財富摘要/.test(dashboard) && /風險與現金摘要/.test(dashboard) && /財富進度/.test(dashboard)]
   ,['Dashboard decisions use the required priority labels and SPA links', /需要優先處理風險[\s\S]*建議再平衡[\s\S]*建議加碼/.test(homeDecision) && /<Link/.test(dashboard) && !/location\.href|window\.location/.test(dashboard)]
   ,['Performance center separates current exact values from incomplete historical returns', /history: NetWorthSnapshot\[\]/.test(performancePage) && /期間市場損益不提供精確值/.test(performancePage) && /投入與提領流水/.test(performancePage)]
+  ,['Account and transaction sections use independent persisted toggle keys', /id="accounts-section"[\s\S]*sectionOpen\('cash'\)[\s\S]*toggleSection\('cash'\)/.test(app) && /id="transactions-section"[\s\S]*sectionOpen\('transactions'\)[\s\S]*toggleSection\('transactions'\)/.test(app) && /transactions: false/.test(app) && /transactions: true/.test(app)]
+  ,['Transaction exclusion checkbox uses a clickable label and normal checkbox styling', /className="exclude-statistics"[\s\S]*type="checkbox"[\s\S]*排除統計[\s\S]*不列入收支統計與衍生餘額/.test(app) && /\.financial-account-fields \.exclude-statistics input\[type="checkbox"\]/.test(styles)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
