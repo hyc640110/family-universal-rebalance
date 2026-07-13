@@ -8,7 +8,16 @@ export type TransactionSource = typeof TRANSACTION_SOURCES[number];
 export type AccountReference = { id: string; currency: string; isActive: boolean };
 export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string };
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
-export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [{ id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'expense-other', name: '其他支出', kind: 'expense', isActive: true, sortOrder: 1 }, { id: 'transfer', name: '帳戶轉帳', kind: 'transfer', isActive: true, sortOrder: 2 }];
+export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
+  { id: 'income-salary', name: '薪資', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'income-interest', name: '利息', kind: 'income', isActive: true, sortOrder: 1 }, { id: 'income-dividend', name: '股息', kind: 'income', isActive: true, sortOrder: 2 }, { id: 'income-refund', name: '退款', kind: 'income', isActive: true, sortOrder: 3 }, { id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 4 },
+  { id: 'expense-food', name: '餐飲', kind: 'expense', isActive: true, sortOrder: 10 }, { id: 'expense-transport', name: '交通', kind: 'expense', isActive: true, sortOrder: 11 }, { id: 'expense-shopping', name: '購物', kind: 'expense', isActive: true, sortOrder: 12 }, { id: 'expense-housing', name: '居住', kind: 'expense', isActive: true, sortOrder: 13 }, { id: 'expense-utilities', name: '水電', kind: 'expense', isActive: true, sortOrder: 14 }, { id: 'expense-communication', name: '通訊', kind: 'expense', isActive: true, sortOrder: 15 }, { id: 'expense-medical', name: '醫療', kind: 'expense', isActive: true, sortOrder: 16 }, { id: 'expense-insurance', name: '保險', kind: 'expense', isActive: true, sortOrder: 17 }, { id: 'expense-tax', name: '稅費', kind: 'expense', isActive: true, sortOrder: 18 }, { id: 'expense-investment', name: '投資', kind: 'expense', isActive: true, sortOrder: 19 }, { id: 'expense-other', name: '其他支出', kind: 'expense', isActive: true, sortOrder: 20 },
+  { id: 'transfer-account', name: '帳戶轉帳', kind: 'transfer', isActive: true, sortOrder: 30 }, { id: 'adjustment-other', name: '其他調整', kind: 'other', isActive: true, sortOrder: 40 }
+];
+export const transactionTypeLabel = (value: TransactionType) => ({ income: '收入', expense: '支出', transfer: '帳戶轉帳', adjustment: '調整' })[value];
+export const transactionStatusLabel = (value: TransactionStatus) => ({ posted: '已入帳', pending: '待入帳', void: '已作廢' })[value];
+export const transactionSourceLabel = (value: TransactionSource) => ({ manual: '手動建立', import: '匯入', gmail: 'Gmail' })[value];
+export const transactionCategoryLabel = (id: string) => DEFAULT_TRANSACTION_CATEGORIES.find(category => category.id === id)?.name || '未分類';
+export const categoriesForTransactionType = (transactionType: TransactionType) => DEFAULT_TRANSACTION_CATEGORIES.filter(category => category.kind === (transactionType === 'adjustment' ? 'other' : transactionType));
 const text = (value: unknown, fallback = '') => typeof value === 'string' && value.trim() ? value.trim() : fallback;
 const positive = (value: unknown) => Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0);
 const iso = (value: unknown, fallback: string) => typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : fallback;
@@ -18,7 +27,11 @@ const status = (value: unknown): TransactionStatus => TRANSACTION_STATUSES.inclu
 const source = (value: unknown): TransactionSource => TRANSACTION_SOURCES.includes(value as TransactionSource) ? value as TransactionSource : 'manual';
 const references = (accounts: AccountReference[] | Set<string>): AccountReference[] => accounts instanceof Set ? [...accounts].map(id => ({ id, currency: 'TWD', isActive: true })) : accounts;
 const account = (id: string, accounts: AccountReference[]) => accounts.find(candidate => candidate.id === id);
-const standardCategory = (transactionType: TransactionType, categoryId: string) => transactionType === 'transfer' ? 'transfer' : categoryId || (transactionType === 'income' ? 'income-other' : transactionType === 'expense' ? 'expense-other' : 'adjustment');
+/** Safely repairs legacy or mismatched categories before state is persisted. */
+export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {
+  const available = categoriesForTransactionType(transactionType);
+  return available.some(category => category.id === categoryId) ? categoryId : (transactionType === 'income' ? 'income-other' : transactionType === 'expense' ? 'expense-other' : transactionType === 'transfer' ? 'transfer-account' : 'adjustment-other');
+};
 
 export const createTransactionId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `transaction-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 /** Deliberately excludes note: notes are private annotations, not duplicate-detection identity. */
@@ -52,7 +65,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     source: source(candidate.source ?? current?.source),
     amount,
     currency: (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8),
-    categoryId: standardCategory(resolvedType, text(candidate.categoryId ?? current?.categoryId)),
+    categoryId: normalizeTransactionCategory(resolvedType, text(candidate.categoryId ?? current?.categoryId)),
     description: text(candidate.description ?? current?.description),
     merchant: text(candidate.merchant ?? current?.merchant),
     note: text(candidate.note ?? current?.note),
@@ -67,7 +80,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
 }
 
 export function createTransferTransaction(input: Omit<FinancialTransaction, 'id' | 'fingerprint' | 'createdAt' | 'updatedAt' | 'type' | 'categoryId'>, accounts: AccountReference[], timestamp = new Date().toISOString()) {
-  return normalizeCandidate({ ...input, type: 'transfer', categoryId: 'transfer' }, accounts, timestamp);
+  return normalizeCandidate({ ...input, type: 'transfer', categoryId: 'transfer-account' }, accounts, timestamp);
 }
 
 export function updateTransferTransaction(current: FinancialTransaction, patch: Partial<FinancialTransaction>, accounts: AccountReference[], timestamp = new Date().toISOString()) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { accountHasTransactions, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactions, transactionCashFlowSummary, updateTransaction } from '../src/lib/transactions';
+import { accountHasTransactions, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCashFlowSummary, transactionCategoryLabel, transactionSourceLabel, transactionStatusLabel, updateTransaction } from '../src/lib/transactions';
 
 const accounts = [
   { id: 'a', currency: 'TWD', isActive: true },
@@ -38,6 +38,22 @@ test('transfer creation centrally rejects missing, invalid, inactive, same-accou
   ]) assert.throws(() => createTransferTransaction({ ...transfer(), ...patch }, accounts));
 });
 
+test('categories are stable English values, constrained by transaction type, and have Chinese presentation labels', () => {
+  assert.equal(normalizeTransactionCategory('income', 'income-other'), 'income-other');
+  assert.equal(normalizeTransactionCategory('income', 'expense-other'), 'income-other');
+  assert.equal(normalizeTransactionCategory('expense', 'expense-other'), 'expense-other');
+  assert.equal(normalizeTransactionCategory('expense', 'income-other'), 'expense-other');
+  assert.equal(normalizeTransactionCategory('transfer', 'expense-other'), 'transfer-account');
+  assert.equal(normalizeTransactionCategory('adjustment', 'expense-other'), 'adjustment-other');
+  assert.equal(transactionCategoryLabel('expense-other'), '其他支出');
+  assert.equal(transactionCategoryLabel('income-other'), '其他收入');
+  assert.equal(transactionCategoryLabel('transfer-account'), '帳戶轉帳');
+  assert.equal(transactionStatusLabel('posted'), '已入帳');
+  assert.equal(transactionStatusLabel('pending'), '待入帳');
+  assert.equal(transactionStatusLabel('void'), '已作廢');
+  assert.equal(transactionSourceLabel('manual'), '手動建立');
+});
+
 test('transfer edits preserve ID, update fingerprint only for identifying fields, and clear destination on type conversions', () => {
   const base = transfer();
   const amount = updateTransaction(base, { amount: 60 }, accounts);
@@ -50,6 +66,9 @@ test('transfer edits preserve ID, update fingerprint only for identifying fields
   assert.notEqual(updateTransaction(amount, { description: 'different description' }, accounts).fingerprint, amount.fingerprint);
   assert.equal(updateTransaction(base, { type: 'expense' }, accounts).transferAccountId, undefined);
   assert.equal(updateTransaction(base, { type: 'income' }, accounts).transferAccountId, undefined);
+  assert.equal(updateTransaction(base, { type: 'expense', categoryId: 'income-other' }, accounts).categoryId, 'expense-other');
+  assert.equal(updateTransaction(base, { type: 'income', categoryId: 'expense-other' }, accounts).categoryId, 'income-other');
+  assert.equal(updateTransaction(base, { categoryId: 'expense-other' }, accounts).categoryId, 'transfer-account');
   assert.throws(() => updateTransaction(base, { transferAccountId: 'a' }, accounts));
   assert.throws(() => updateTransaction(base, { transferAccountId: 'usd' }, accounts));
   const income = updateTransaction(base, { type: 'income' }, accounts);
