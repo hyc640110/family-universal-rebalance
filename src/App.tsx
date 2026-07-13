@@ -277,12 +277,6 @@ function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   if (hasBackup) return '部分標的目前使用備援價格';
   return '報價正常';
 }
-function quoteShortBadge(quote: Quote) {
-  if (quote.error) return '報價異常';
-  if (isBackupQuoteSource(quote.source)) return '備援價格';
-  return '';
-}
-
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
   '00670L': { symbol: '00670L', name: SYMBOL_NAMES['00670L'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
@@ -827,10 +821,8 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
   onRemove: (symbol: SymbolCode) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
-  const holdingWeight = totalAssets ? row.marketValue / totalAssets * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
   const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, isTodayQuote(row.quote.quoteDate));
-  const quoteBadge = quoteShortBadge(row.quote);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-mobile-summary">
       <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
@@ -839,21 +831,9 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
         <p className="holding-mobile-quote"><span>{row.quote.error ? '參考價' : '現價'} {row.quote.price.toFixed(2)} 元</span><strong className={compactQuoteMovement.tone}>{compactQuoteMovement.text}</strong></p>
         <p className="holding-mobile-shares">持有 {row.shares.toLocaleString('zh-TW')} 股</p>
       </div>
-      <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button></div>
-    </div>
-    <div className="holding-card-header holding-desktop-header">
-      <div className="holding-card-title"><h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name">{row.quote.name}</span></h3><p className="quote-meta">更新：{tw(row.quote.updatedAt)}{quoteBadge && <span className={row.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p></div>
-      <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button>
+      <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>
     </div>
     {row.quote.error && <p className="note holding-quote-error">報價異常，請稍後再更新股價。</p>}
-    <div className="holding-snapshot">
-      <div><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></div>
-      <div><span>最新價格</span><strong>{row.quote.price.toFixed(2)} 元</strong></div>
-      <div><span>市值</span><strong>{money(row.marketValue)}</strong></div>
-      <div><span>損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></div>
-      <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
-      <div><span>今日漲跌</span>{isTodayQuote(row.quote.quoteDate) ? <strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong> : <strong className="hold">— <small>報價非今日</small></strong>}</div>
-    </div>
     {isEditing && <div className="holding-editor">
       <div className="holding-editor-summary" aria-label="持股詳細資料">
         <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
