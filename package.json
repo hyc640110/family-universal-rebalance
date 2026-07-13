@@ -9,6 +9,7 @@
     "build:preview": "tsc -b && vite build --mode preview-deploy --outDir dist-preview",
     "test:financial-accounts": "tsx --test tests/financialAccounts.test.ts",
     "test:change-presentation": "tsx --test tests/changePresentation.test.ts",
+    "test:v4-1": "npm run test:financial-accounts && npm run test:change-presentation",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
     "test:net-worth-history": "node scripts/net-worth-history-check.mjs",
