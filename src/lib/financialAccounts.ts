@@ -160,16 +160,16 @@ export function financialAccountAssetTotal(accounts: FinancialAccount[]) {
 
 export const isFinancialAccountLiability = (account: FinancialAccount) => ['creditCard', 'loan', 'mortgage'].includes(account.type);
 
-export function financialAccountNetWorthContribution(accounts: FinancialAccount[]) {
+export function financialAccountNetWorthContribution(accounts: FinancialAccount[], context?: { derivedBalances?: Record<string, number> }) {
   return accounts.reduce((total, account) => {
-    const balance = getFinancialAccountBalance(account).value ?? 0;
+    const balance = getFinancialAccountBalance(account, context).value ?? 0;
     return total + (isFinancialAccountLiability(account) ? -balance : balance);
   }, 0);
 }
 
-export function financialAccountLiquidTotal(accounts: FinancialAccount[]) {
+export function financialAccountLiquidTotal(accounts: FinancialAccount[], context?: { derivedBalances?: Record<string, number> }) {
   return accounts.reduce((total, account) => {
     if (!['cash', 'bank', 'eWallet'].includes(account.type)) return total;
-    return total + (getFinancialAccountBalance(account).value ?? 0);
+    return total + (getFinancialAccountBalance(account, context).value ?? 0);
   }, 0);
 }
