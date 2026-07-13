@@ -1,0 +1,4 @@
+GOOGLE_CLIENT_ID=replace-with-google-client-id
+GOOGLE_CLIENT_SECRET=replace-with-google-client-secret
+OAUTH_SESSION_SECRET=replace-with-random-secret
+TOKEN_ENCRYPTION_KEY=replace-with-32-byte-key
