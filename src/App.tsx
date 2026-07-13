@@ -273,7 +273,9 @@ function isBackupQuoteSource(source: unknown) {
 function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   const hasError = rows.some(row => Boolean(row.quote.error));
   const hasBackup = rows.some(row => isBackupQuoteSource(row.quote.source));
+  const hasStaleQuote = rows.some(row => !isTodayQuote(row.quote.quoteDate));
   if (hasError) return '部分標的報價異常';
+  if (hasStaleQuote) return '部分標的非今日報價';
   if (hasBackup) return '部分標的目前使用備援價格';
   return '報價正常';
 }
@@ -822,14 +824,15 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
-  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, isTodayQuote(row.quote.quoteDate));
+  const hasTodayQuote = isTodayQuote(row.quote.quoteDate);
+  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, hasTodayQuote);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-mobile-summary">
       <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
       <div className="holding-mobile-core">
         <h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name" title={row.quote.name}>{row.quote.name}</span></h3>
-        <p className="holding-mobile-quote"><span>{row.quote.error ? '參考價' : '現價'} {row.quote.price.toFixed(2)} 元</span><strong className={compactQuoteMovement.tone}>{compactQuoteMovement.text}</strong></p>
-        <p className="holding-mobile-shares">持有 {row.shares.toLocaleString('zh-TW')} 股</p>
+        <p className="holding-mobile-quote"><span><span className="holding-mobile-price-label">{row.quote.error ? '參考價' : '現價'} </span>{row.quote.price.toFixed(2)} 元</span><strong className={`${compactQuoteMovement.tone}${hasTodayQuote ? '' : ' holding-stale-movement'}`}>{compactQuoteMovement.text}</strong></p>
+        <p className="holding-mobile-shares"><span className="holding-mobile-shares-label">持有 </span>{row.shares.toLocaleString('zh-TW')} 股</p>
       </div>
       <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>
     </div>
@@ -1711,6 +1714,7 @@ function App() {
         </Card>
         <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
+          {quoteSummaryText === '部分標的非今日報價' && <p className="note holding-stale-notice">部分標的非今日報價；今日漲跌僅供參考。</p>}
           <div className="holdings">
             {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
