@@ -4,7 +4,20 @@ export type GmailOAuthState = { status: GmailOAuthStatus; connectedAt?: string; 
 export const GMAIL_OAUTH_SCHEMA_VERSION = 1;
 export const disconnectedGmailOAuth = (): GmailOAuthState => ({ status: 'disconnected', grantedScopes: [] });
 export const redactOAuthError = (value: unknown) => String(value ?? '連線失敗').replace(/(access_token|refresh_token|code|client_secret|email)=?[^\s&]+/gi, '$1=[已遮蔽]').slice(0, 160);
-export const normalizeGmailOAuth = (value: unknown): GmailOAuthState => { const raw = value && typeof value === 'object' ? value as Partial<GmailOAuthState> : {}; const status: GmailOAuthStatus = ['disconnected', 'connecting', 'connected', 'expired', 'error'].includes(raw.status || '') ? raw.status as GmailOAuthStatus : 'disconnected'; return status === 'connected' ? { status: 'disconnected', grantedScopes: [], lastCheckedAt: raw.lastCheckedAt } : { status, grantedScopes: Array.isArray(raw.grantedScopes) ? raw.grantedScopes.filter(scope => scope === GMAIL_READONLY_SCOPE) : [], lastErrorCode: raw.lastErrorCode ? redactOAuthError(raw.lastErrorCode) : undefined, lastCheckedAt: raw.lastCheckedAt }; };
+export const normalizeGmailOAuth = (value: unknown): GmailOAuthState => {
+  const raw = value && typeof value === 'object' ? value as Partial<GmailOAuthState> : {};
+  const status: GmailOAuthStatus = ['disconnected', 'connecting', 'connected', 'expired', 'error'].includes(raw.status || '')
+    ? raw.status as GmailOAuthStatus
+    : 'disconnected';
+  return {
+    status,
+    grantedScopes: Array.isArray(raw.grantedScopes) ? raw.grantedScopes.filter(scope => scope === GMAIL_READONLY_SCOPE) : [],
+    connectedAt: raw.connectedAt,
+    expiresAt: raw.expiresAt,
+    lastErrorCode: raw.lastErrorCode ? redactOAuthError(raw.lastErrorCode) : undefined,
+    lastCheckedAt: raw.lastCheckedAt
+  };
+};
 const SENSITIVE_PERSISTENCE_KEYS = new Set([
   'accesstoken', 'refreshtoken', 'authorizationcode', 'oauthcode', 'clientsecret', 'googlepassword', 'password',
   'codeverifier', 'pkceverifier', 'oauthstate', 'oauthtransactionstate',

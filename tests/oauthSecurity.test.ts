@@ -148,6 +148,14 @@ test('exact denylist allows legitimate token and state metadata names', () => {
   assert.doesNotThrow(() => assertNoOAuthSecrets(safe));
 });
 
-test('backup metadata always disconnects instead of restoring a session', () => {
-  assert.deepEqual(normalizeGmailOAuth({ status: 'connected', access_token: 'not-allowed' }), { status: 'disconnected', grantedScopes: [], lastCheckedAt: undefined });
+test('status normalization preserves connected status and safe status metadata', () => {
+  const normalized = normalizeGmailOAuth({ status: 'connected', grantedScopes: ['https://www.googleapis.com/auth/gmail.readonly', 'other-scope'], expiresAt: '2026-07-13T19:25:21.000Z', lastCheckedAt: '2026-07-13T18:25:21.000Z', access_token: 'not-allowed' });
+  assert.deepEqual(normalized, { status: 'connected', grantedScopes: ['https://www.googleapis.com/auth/gmail.readonly'], connectedAt: undefined, expiresAt: '2026-07-13T19:25:21.000Z', lastErrorCode: undefined, lastCheckedAt: '2026-07-13T18:25:21.000Z' });
+  assert.equal(JSON.stringify(normalized).includes('not-allowed'), false);
+});
+
+test('status normalization preserves disconnected and safely defaults unknown statuses', () => {
+  assert.equal(normalizeGmailOAuth({ status: 'disconnected' }).status, 'disconnected');
+  assert.equal(normalizeGmailOAuth({ status: 'unexpected' }).status, 'disconnected');
+  assert.equal(normalizeGmailOAuth({}).status, 'disconnected');
 });
