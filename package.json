@@ -34,6 +34,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260713.1",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
