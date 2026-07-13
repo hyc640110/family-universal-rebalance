@@ -22,6 +22,7 @@ import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
+import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -35,8 +36,8 @@ type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
 type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-type AppState = { holdings: Holding[]; cash: CashItem[]; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
@@ -284,6 +285,9 @@ const defaultQuotes: Record<SymbolCode, Quote> = {
 const defaultState: AppState = {
   holdings: DEFAULT_HOLDINGS,
   cash: [{ id: uid(), name: '現金', amount: 0, note: '防守資產' }],
+  accounts: [createFinancialAccount({ name: '現金', type: 'cash', manualBalance: 0, note: '防守資產' })],
+  accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION,
+  cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION,
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
   firebase: { databaseURL: '', secretPath: FIREBASE_BASE_PATH },
@@ -383,8 +387,9 @@ function normalizeState(raw: unknown): AppState {
   const normalizedHoldings = normalizeHoldingTargets(hasHoldingsData ? holdings : []);
   const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
+  const accountState = normalizeAccountState(r.accounts, cash);
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
-  const normalizedCore = { holdings: normalizedHoldings, cash, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
@@ -418,7 +423,7 @@ function readUiState(): UiState {
 function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify({ displayMode: state.displayMode })); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   const normalized = normalizeState(state);
-  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
+  return { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } };
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -438,7 +443,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase });
+  return normalizeState({ ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], accounts: Array.isArray(r.accounts) ? r.accounts : undefined as unknown as FinancialAccount[], loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase });
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -562,10 +567,12 @@ function derivedHoldings(state: AppState): Holding[] {
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = h.shares * quote.change; return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
-  const cash = state.cash.reduce((a, c) => a + num(c.amount), 0);
+  // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
+  const cash = financialAccountLiquidTotal(state.accounts);
+  const accountNetWorth = financialAccountNetWorthContribution(state.accounts);
   const debt = state.loans.reduce((a, l) => a + num(l.principal), 0);
-  const totalAssets = stocks + cash;
-  const netWorth = totalAssets - debt;
+  const totalAssets = stocks + Math.max(0, accountNetWorth);
+  const netWorth = stocks + accountNetWorth - debt;
   const dayPnl = rows.reduce((a, r) => a + r.dayPnl, 0);
   const defensiveHoldings = rows.filter(r => isDefensiveHolding(r));
   const growthHoldings = rows.filter(r => isGrowthHolding(r));
@@ -1095,21 +1102,31 @@ function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { 
 }
 const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fallback : Math.max(0, num(Number(value)));
 
-function CashList({ items, setItems, onInvalid, isMobile }: { items: CashItem[]; setItems: (items: SetStateAction<CashItem[]>) => void; onInvalid: (message: string) => void; isMobile: boolean }) {
-  const update = (id: string, patch: Partial<CashItem>) => setItems(items => items.map(item => item.id === id ? { ...item, ...patch } : item));
-  const commitText = (id: string, key: 'name' | 'note', value: string) => {
-    if (hasRemovedSymbol(value)) { onInvalid(removedSymbolMessage()); return; }
-    update(id, { [key]: value });
-  };
-  const remove = (item: CashItem) => {
-    if (window.confirm(`確定要刪除現金項目「${item.name || '未命名'}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
-  };
-  const deleteButton = (item: CashItem) => <button className="danger small compact-row-delete" type="button" aria-label={`刪除現金項目 ${item.name || '未命名'}`} onClick={() => remove(item)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>;
-  const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
-  const labelStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', marginBottom: '0.75rem', boxSizing: 'border-box' } : {};
-  const labelSpanStyle: CSSProperties = isMobile ? { fontSize: '0.9rem', color: '#888', marginBottom: '0.35rem', textAlign: 'left', display: 'block' } : {};
-  return <div className="list cash-list">{!isMobile && <div className="list-row list-head"><span>名稱</span><span>金額（萬元）</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '現金'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => commitText(item.id, 'name', value)} /></label><label style={labelStyle}><span style={labelSpanStyle}>金額（萬元）</span><DraftInput type="number" value={item.amount / 10000} onCommit={value => update(item.id, { amount: parsePositive(value) * 10000 })} /></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note} onCommit={value => commitText(item.id, 'note', value)} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '現金', amount: 0, note: '' }])}>新增</button></div>;
+const accountTypeLabel: Record<FinancialAccountType, string> = { cash: '現金', bank: '銀行', securities: '證券', creditCard: '信用卡', loan: '貸款', mortgage: '房貸', eWallet: '電子錢包', other: '其他' };
+function FinancialAccountList({ accounts, isMobile, onCreate, onUpdate, onDeactivate, onRestore, onDelete }: { accounts: FinancialAccount[]; isMobile: boolean; onCreate: () => void; onUpdate: (id: string, patch: Partial<FinancialAccount>) => void; onDeactivate: (id: string) => void; onRestore: (id: string) => void; onDelete: (id: string) => void }) {
+  return <div className="financial-account-list">
+    <p className="note">帳戶是現金與淨資產的唯一計算來源。舊版現金項目已安全保留作相容資料，不再重複計算；derived 餘額會等待後續交易／持股來源接入。</p>
+    {!accounts.length && <p className="note">尚無帳戶，可先新增一個手動餘額帳戶。</p>}
+    {accounts.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)).map(account => {
+      const balance = getFinancialAccountBalance(account);
+      return <article className={`financial-account-card${account.isActive ? '' : ' is-inactive'}`} key={account.id}>
+        <header><div><strong>{account.name}</strong><span>{accountTypeLabel[account.type]}｜{account.balanceMode === 'manual' ? '手動餘額' : '衍生餘額'}｜{account.isActive ? '啟用中' : '已停用'}</span></div><b>{balance.status === 'available' ? money(balance.value ?? 0) : '尚未可用'}</b></header>
+        <div className="financial-account-fields">
+          <label>名稱<DraftInput value={account.name} onCommit={value => onUpdate(account.id, { name: value || '未命名帳戶' })} /></label>
+          <label>類型<select value={account.type} onChange={event => onUpdate(account.id, { type: event.currentTarget.value as FinancialAccountType })}>{FINANCIAL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{accountTypeLabel[type]}</option>)}</select></label>
+          <label>餘額模式<select value={account.balanceMode} onChange={event => onUpdate(account.id, { balanceMode: event.currentTarget.value as AccountBalanceMode })}><option value="manual">手動</option><option value="derived">衍生（尚未接來源）</option></select></label>
+          {account.balanceMode === 'manual' ? <label>餘額（萬元）<DraftInput type="number" value={account.manualBalance / 10000} onCommit={value => onUpdate(account.id, { manualBalance: parsePositive(value) * 10000 })} /></label> : <p className="account-derived-note">目前沒有交易或持股衍生來源，因此不計入餘額。</p>}
+          <label>幣別<DraftInput value={account.currency} onCommit={value => onUpdate(account.id, { currency: value.toUpperCase() || 'TWD' })} /></label>
+          <label>金融機構<DraftInput value={account.institutionName} onCommit={value => onUpdate(account.id, { institutionName: value })} /></label>
+          <label className="account-note">備註<DraftInput value={account.note} onCommit={value => onUpdate(account.id, { note: value })} /></label>
+        </div>
+        <footer>{account.isActive ? <button className="small" type="button" onClick={() => onDeactivate(account.id)}>停用</button> : <button className="small" type="button" onClick={() => onRestore(account.id)}>恢復</button>}<button className="danger small" type="button" onClick={() => onDelete(account.id)}>刪除</button><small>帳戶 ID：{account.id}</small></footer>
+      </article>;
+    })}
+    <button className="small" type="button" onClick={onCreate}>新增帳戶</button>
+  </div>;
 }
+
 function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void; isMobile: boolean }) {
   const update = (id: string, patch: Partial<LoanItem>) => setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
   const remove = (item: LoanItem) => {
@@ -1167,7 +1184,7 @@ function App() {
     setRemoteMeta(value);
     persistStatePatch({ remoteMeta: value });
   };
-  const [cashWarning, setCashWarning] = useState('');
+  const [accountWarning, setAccountWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(state.syncMeta.lastLocalSaveAt || now());
   const isApplyingRemoteRef = useRef(false);
@@ -1507,6 +1524,18 @@ function App() {
     };
   }, [state.firebase.databaseURL, safeHoldings(state.holdings).length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
   const [mode, hint, modeTone] = advice(m);
+  // All account mutations live here so future Transaction references can be protected at one boundary.
+  const createAccount = () => setState(current => ({ ...current, accounts: [...current.accounts, createFinancialAccount({ sortOrder: current.accounts.length ? Math.max(...current.accounts.map(account => account.sortOrder)) + 1 : 0 })] }));
+  const updateAccount = (id: string, patch: Partial<FinancialAccount>) => setState(current => ({ ...current, accounts: current.accounts.map(account => account.id === id ? updateFinancialAccount(account, patch) : account) }));
+  const deactivateAccount = (id: string) => setState(current => ({ ...current, accounts: current.accounts.map(account => account.id === id ? deactivateFinancialAccount(account) : account) }));
+  const restoreAccount = (id: string) => setState(current => ({ ...current, accounts: current.accounts.map(account => account.id === id ? restoreFinancialAccount(account) : account) }));
+  const deleteAccount = (id: string) => {
+    // TODO(V4.2): replace this boundary with a Transaction/accountId reference query before physical deletion.
+    const hasFutureReferences = false;
+    if (hasFutureReferences) { setAccountWarning('此帳戶已被交易資料引用，無法刪除，請改為停用。'); return; }
+    const account = stateRef.current.accounts.find(entry => entry.id === id);
+    if (account && window.confirm(`確定要刪除帳戶「${account.name}」嗎？目前尚無交易資料引用，刪除不會影響舊版現金相容資料。`)) setState(current => ({ ...current, accounts: removeFinancialAccount(current.accounts, id) }));
+  };
   const updateDipAlert = (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => {
     const normalizedSymbol = normalizeSymbol(symbol);
     setState(s => ({
@@ -1704,7 +1733,10 @@ function App() {
             {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
         </SectionCard>
-        <SectionCard className="page-card for-assets" title="現金管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`現金 ${money(m.cash)}`}>{cashWarning && <p className="warning-message" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{cashWarning}</p>}<p className="note cash-policy-note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{removedSymbolMessage()}</p><CashList items={state.cash} setItems={items => { setCashWarning(''); setState(s => ({ ...s, cash: typeof items === 'function' ? items(s.cash) : items })); }} onInvalid={message => setCashWarning(message)} isMobile={isMobile} /></SectionCard>
+        <SectionCard className="page-card for-assets" title="帳戶管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`可用現金 ${money(m.cash)}｜${state.accounts.filter(account => account.isActive).length} 個啟用帳戶`}>
+          {accountWarning && <p className="warning-message">{accountWarning}</p>}
+          <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
+        </SectionCard>
         <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
