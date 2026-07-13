@@ -22,6 +22,7 @@ import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettin
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
+import { deriveInvestmentDashboard } from './lib/investmentDashboard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { formatTransactionAmount } from './lib/transactionPresentation';
@@ -1360,6 +1361,14 @@ function App() {
     const times = Object.values(quotes).map(q => new Date(q.updatedAt).getTime()).filter(Number.isFinite);
     return times.length ? new Date(Math.max(...times)).toISOString() : '';
   }, [quotes]);
+  const investmentDashboard = useMemo(() => deriveInvestmentDashboard({
+    totalAssets: m.totalAssets, investmentValue: m.stocks, dayPnl: m.dayPnl, todayPnlAvailable: m.todayPnlAvailable,
+    monthChange: historySummary.monthChange, yearChange: historySummary.yearChange,
+    growthRatio: rb.stockRow.currentWeight, defensiveRatio: m.defensiveRatio, cashRatio: m.cashRatio,
+    allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
+    decision: homeDecision.primary, quoteStatus: quoteSummaryText, lastQuoteAt: latestQuoteTime, hasUpdatedQuotes,
+    syncDirty: state.syncMeta.dirty, syncStatus: state.syncMeta.status, targetInvalid: Boolean(targetWarning), holdingsCount: m.rows.filter(row => row.shares > 0).length
+  }), [m, historySummary, rb, homeDecision.primary, quoteSummaryText, latestQuoteTime, hasUpdatedQuotes, state.syncMeta, targetWarning]);
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1643,18 +1652,13 @@ function App() {
         </div>
       </Card>}
       {currentPage === 'home' && <DashboardDecisionPage data={{
-        decision: homeDecision, total: m.totalAssets, net: m.netWorth, day: m.dayPnl, cash: m.cash, debt: m.debt,
-        cashRatio: m.cashRatio, deviation: rb.deviation, rebalance: rb.thresholdReached, dip: decisionSummary.triggeredDipAlerts.length > 0,
-        riskLabel: riskMetrics.overallLabel,
+        total: m.totalAssets, net: m.netWorth, cash: m.cash, debt: m.debt,
+        dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, monthChange: investmentDashboard.monthChange, yearChange: investmentDashboard.yearChange, lastQuoteAt: investmentDashboard.lastQuoteAt,
+        decision: investmentDashboard.decision, growthRatio: investmentDashboard.growthRatio, defensiveRatio: investmentDashboard.defensiveRatio, cashRatio: investmentDashboard.cashRatio,
+        allocationDeviation: investmentDashboard.allocationDeviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
+        riskLabel: riskMetrics.overallLabel, reminders: investmentDashboard.reminders,
         cashSafety: riskMetrics.cashSafetyMonths === null ? '資料不足' : `${riskMetrics.cashSafetyMonths.toFixed(1)} 個月安全存量`,
         cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
-        debtStatus: m.debt <= 0 ? '無負債壓力' : Number.isFinite(m.repaymentSafetyMonths) && m.repaymentSafetyMonths >= 12 ? '正常' : '留意',
-        growth: rb.stockRow.currentWeight, defensive: m.defensiveRatio,
-        target: state.wealthGoal.targetAmount, progress: wealthProjection.progress, remaining: wealthProjection.remaining,
-        wealthConfigured: state.wealthGoal.targetAmount > 0,
-        wealthText: wealthProjection.achievedMonth === 0 ? '財富目標已達成。' : wealthProjection.achievedMonth === null ? '依目前假設，100 年內尚未達成。' : `預估約 ${Math.ceil(wealthProjection.achievedMonth / 12)} 年後達成。`,
-        cashFlowStatus: cashFlowSummary?.status ?? '尚未建立每月收支資料',
-        historyTrend: historySummary.todayChange === null ? '尚無足夠歷史資料' : historySummary.todayChange > 0 ? '上升' : historySummary.todayChange < 0 ? '下降' : '持平'
       }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
