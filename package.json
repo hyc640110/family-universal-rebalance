@@ -13,6 +13,7 @@
     "test:transactions": "tsx --test tests/transactions.test.ts",
     "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
     "test:import-center": "tsx --test tests/importCenter.test.ts",
+    "test:oauth-security": "tsx --test tests/oauthSecurity.test.ts",
     "test:quotes": "tsx --test tests/quoteMath.test.ts",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
@@ -37,6 +38,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "gh-pages": "^6.3.0",
-    "tsx": "^4.23.0"
+    "tsx": "^4.23.0",
+    "wrangler": "^4.110.0"
   }
 }
