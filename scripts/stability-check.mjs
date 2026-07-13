@@ -64,6 +64,7 @@ const checks = [
   ,['Settings details reuse SectionCard and surface target errors', /id="quote-sources-section"[\s\S]*SectionCard/.test(app) && /id="sync-status-section"[\s\S]*SectionCard/.test(app) && /id="sync-diagnostics-section"[\s\S]*SectionCard/.test(app) && /id="target-check-section"[\s\S]*targetCheckHasError/.test(app) && /setUiState\(current => current\.sections\.targetCheck/.test(app)]
   ,['Dashboard uses existing wealth, risk, cash flow and history sources', /deriveCashFlow/.test(app) && /deriveHistoryStats/.test(app) && /核心財富摘要/.test(dashboard) && /風險與現金摘要/.test(dashboard) && /財富進度/.test(dashboard)]
   ,['Dashboard decisions use the required priority labels and SPA links', /需要優先處理風險[\s\S]*建議再平衡[\s\S]*建議加碼/.test(homeDecision) && /<Link/.test(dashboard) && !/location\.href|window\.location/.test(dashboard)]
+  ,['Performance center separates current exact values from incomplete historical returns', /history: NetWorthSnapshot\[\]/.test(performancePage) && /期間市場損益不提供精確值/.test(performancePage) && /投入與提領流水/.test(performancePage)]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
