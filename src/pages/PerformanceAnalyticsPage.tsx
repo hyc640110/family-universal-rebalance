@@ -3,6 +3,7 @@ import type { PerformanceAssetInput } from '../lib/performanceMetrics';
 import { calculatePnlContribution, calculatePortfolioConcentration, calculatePortfolioPerformance, performanceSummary } from '../lib/performanceMetrics';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats, filterInvestmentPerformanceRange, type InvestmentPerformanceRange, type PeriodChange, type SeriesStats } from '../lib/investmentPerformanceHistory';
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
+import DailyAssetChangeCalendar from '../components/DailyAssetChangeCalendar';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
@@ -65,6 +66,8 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
           <HistorySeries title="淨資產趨勢" description="投資、現金與負債共同影響的淨資產變化。" rows={historyRows} stats={netWorthStats} field="netWorth" />
         </div>}
       </article>
+
+      <DailyAssetChangeCalendar history={history} />
 
       <article className="performance-card">
         <div className="performance-heading"><div><h2>月度／年度資產變化</h2><span>期末有效快照減期初有效快照；不足兩筆時不計算。</span></div></div>

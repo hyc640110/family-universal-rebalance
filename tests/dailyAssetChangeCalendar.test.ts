@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildCalendarMonth, buildDailyAssetChanges, latestSnapshotMonth, shiftMonth, summarizeCalendarMonth } from '../src/lib/dailyAssetChangeCalendar';
 import type { NetWorthSnapshot } from '../src/lib/netWorthHistory';
+import { readFileSync } from 'node:fs';
 
 const snapshot = (date: string, netWorth: number, investmentValue = netWorth): NetWorthSnapshot => ({ date, totalAssets: netWorth, netWorth, investmentValue, cash: 0, debt: 0 });
 
@@ -68,4 +69,22 @@ test('summarizes first-to-last monthly change and omits it with fewer than two s
   assert.equal(summary.positiveDayCount, 1);
   assert.equal(summary.negativeDayCount, 1);
   assert.equal(summarizeCalendarMonth(buildCalendarMonth([snapshot('2026-07-01', 100)], 'netWorth', '2026-07')).monthChange, null);
+});
+
+test('calendar UI exposes month, mode and selectable date detail controls', () => {
+  const source = readFileSync(new URL('../src/components/DailyAssetChangeCalendar.tsx', import.meta.url), 'utf8');
+  assert.match(source, /aria-label="上一個月"/);
+  assert.match(source, /aria-label="下一個月"/);
+  assert.match(source, /淨資產變動/);
+  assert.match(source, /投資資產變動/);
+  assert.match(source, /setSelectedDate\(day\.date\)/);
+  assert.match(source, /前一筆快照日期/);
+  assert.match(source, /不等同純投資損益/);
+});
+
+test('calendar CSS keeps seven columns inside a 390px viewport and mobile cells prioritize percentage', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /daily-calendar-weekdays[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+  assert.match(styles, /daily-calendar-grid[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+  assert.match(styles, /@media \(max-width:640px\)[\s\S]*daily-calendar-day small\{display:none\}/);
 });
