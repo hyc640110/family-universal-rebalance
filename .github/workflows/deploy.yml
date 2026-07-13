@@ -30,16 +30,39 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm install --no-package-lock --no-audit --no-fund
 
-      - name: Build Vite app
+      - name: Build production Vite app
+        if: github.event_name == 'push'
         run: npm run build
 
-      - name: Add nojekyll marker
+      - name: Build Preview Vite app
+        run: npm run build:preview
+
+      - name: Add Preview to the production Pages bundle
+        if: github.event_name == 'push'
+        run: |
+          rm -rf ./dist/preview
+          mkdir -p ./dist/preview
+          cp -R ./dist-preview/. ./dist/preview/
+
+      - name: Add nojekyll marker to the production Pages bundle
+        if: github.event_name == 'push'
         run: touch ./dist/.nojekyll
 
-      - name: Deploy to gh-pages branch
+      - name: Deploy production and Preview to gh-pages branch
+        if: github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           publish_branch: gh-pages
           force_orphan: true
+
+      - name: Deploy only Preview to gh-pages branch
+        if: github.event_name == 'workflow_dispatch'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist-preview
+          publish_branch: gh-pages
+          destination_dir: preview
+          keep_files: true
