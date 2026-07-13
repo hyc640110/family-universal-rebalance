@@ -1130,7 +1130,7 @@ function App() {
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
   const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
-  const isNetWorthHistory = routeLocation.pathname === '/tools/net-worth-history';
+  const isNetWorthHistory = routeLocation.pathname === '/tools/net-worth-history' || routeLocation.pathname === '/net-worth-history';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }

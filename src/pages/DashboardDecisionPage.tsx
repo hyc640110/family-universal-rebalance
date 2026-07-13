@@ -30,7 +30,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
     <section className="dashboard-wealth-card">
       <div className="dashboard-section-heading"><div><p className="eyebrow">核心財富摘要</p><h2>目前淨資產</h2></div><strong>{money(data.net)}</strong></div>
       <div className="dashboard-wealth-grid">
-        <article className="dashboard-primary-metric"><small>淨資產</small><strong>{money(data.net)}</strong></article>
+        <article className="dashboard-primary-metric"><small>淨資產</small><strong>{money(data.net)}</strong><Link className="home-action-link" to="/net-worth-history">查看淨資產歷史<span aria-hidden="true">→</span></Link></article>
         <article><small>總資產</small><strong>{money(data.total)}</strong></article>
         <article><small>今日損益</small><strong className={tone(data.day)}>{money(data.day, true)}</strong></article>
         <article><small>現金</small><strong>{money(data.cash)}</strong></article>
