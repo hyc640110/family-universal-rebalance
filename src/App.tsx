@@ -22,7 +22,7 @@ import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
-import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
+import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; volume: number; source: string; updatedAt: string; error?: string };
@@ -1597,6 +1597,7 @@ function App() {
     if (!window.confirm('匯入備份會覆蓋目前本機資料，但不會自動上傳雲端。是否繼續？')) return;
     try {
       const raw = JSON.parse(await f.text());
+      const accountImport = raw && typeof raw === 'object' ? normalizeFinancialAccounts((raw as Partial<BackupPayload>).accounts) : { skipped: [] };
       const next = stateFromBackup(raw, stateRef.current);
       isApplyingRemoteRef.current = true;
       setState(next);
@@ -1605,7 +1606,8 @@ function App() {
       setLastSavedAt(importedAt);
       const importedQuotes = raw && typeof raw === 'object' && (raw as Partial<BackupPayload>).quotes && typeof (raw as Partial<BackupPayload>).quotes === 'object' ? (raw as Partial<BackupPayload>).quotes as Record<SymbolCode, Quote> : null;
       if (importedQuotes) setQuotes(current => ({ ...current, ...importedQuotes }));
-      updateSyncMeta(current => ({ ...current, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: '已匯入備份，本機有新資料，尚未上傳雲端' }));
+      const skippedAccountMessage = accountImport.skipped.length ? `｜略過 ${accountImport.skipped.length} 筆無法恢復的帳戶資料` : '';
+      updateSyncMeta(current => ({ ...current, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: `已匯入備份，本機有新資料，尚未上傳雲端${skippedAccountMessage}` }));
     } catch (error) {
       updateSyncMeta(current => ({ ...current, status: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' }));
     }
