@@ -23,6 +23,7 @@ import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
 import { deriveInvestmentDashboard } from './lib/investmentDashboard';
+import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { formatTransactionAmount } from './lib/transactionPresentation';
@@ -827,9 +828,20 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const holdingWeight = totalAssets ? row.marketValue / totalAssets * 100 : 0;
+  const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
+  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, isTodayQuote(row.quote.quoteDate));
   const quoteBadge = quoteShortBadge(row.quote);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
-    <div className="holding-card-header">
+    <div className="holding-mobile-summary">
+      <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
+      <div className="holding-mobile-core">
+        <h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name" title={row.quote.name}>{row.quote.name}</span></h3>
+        <p className="holding-mobile-quote"><span>{row.quote.error ? '參考價' : '現價'} {row.quote.price.toFixed(2)} 元</span><strong className={compactQuoteMovement.tone}>{compactQuoteMovement.text}</strong></p>
+        <p className="holding-mobile-shares">持有 {row.shares.toLocaleString('zh-TW')} 股</p>
+      </div>
+      <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button></div>
+    </div>
+    <div className="holding-card-header holding-desktop-header">
       <div className="holding-card-title"><h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name">{row.quote.name}</span></h3><p className="quote-meta">更新：{tw(row.quote.updatedAt)}{quoteBadge && <span className={row.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p></div>
       <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button>
     </div>
@@ -843,6 +855,11 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       <div><span>今日漲跌</span>{isTodayQuote(row.quote.quoteDate) ? <strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong> : <strong className="hold">— <small>報價非今日</small></strong>}</div>
     </div>
     {isEditing && <div className="holding-editor">
+      <div className="holding-editor-summary" aria-label="持股詳細資料">
+        <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
+        <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
+        <p><span>目前比例</span><strong>{compactWeight}</strong></p>
+      </div>
       <div className="holding-editor-grid">
         <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
         <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
