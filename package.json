@@ -11,6 +11,7 @@
     "test:change-presentation": "tsx --test tests/changePresentation.test.ts",
     "test:v4-1": "npm run test:financial-accounts && npm run test:change-presentation",
     "test:transactions": "tsx --test tests/transactions.test.ts",
+    "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
     "test:import-center": "tsx --test tests/importCenter.test.ts",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
