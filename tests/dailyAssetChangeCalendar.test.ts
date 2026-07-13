@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildCalendarMonth, buildDailyAssetChanges, latestSnapshotMonth, shiftMonth, summarizeCalendarMonth } from '../src/lib/dailyAssetChangeCalendar';
+import { buildCalendarMonth, buildDailyAssetChanges, calendarDateState, latestSnapshotMonth, localCalendarDateKey, shiftMonth, summarizeCalendarMonth } from '../src/lib/dailyAssetChangeCalendar';
 import type { NetWorthSnapshot } from '../src/lib/netWorthHistory';
 import { readFileSync } from 'node:fs';
 
@@ -55,6 +55,22 @@ test('builds empty months, correct month lengths and weekday starting positions'
   assert.equal(buildCalendarMonth([], 'netWorth', '2026-07').days.every(day => day.change === null), true);
 });
 
+test('assigns past, today and future display states using local calendar dates', () => {
+  assert.equal(calendarDateState('2026-07-13', '2026-07-14'), 'past');
+  assert.equal(calendarDateState('2026-07-14', '2026-07-14'), 'today');
+  assert.equal(calendarDateState('2026-07-15', '2026-07-14'), 'future');
+  assert.equal(calendarDateState('2026-06-30', '2026-07-01'), 'past');
+  assert.equal(calendarDateState('2026-08-01', '2026-07-31'), 'future');
+  assert.equal(localCalendarDateKey(new Date(2026, 6, 14, 0, 30)), '2026-07-14');
+});
+
+test('keeps future snapshots visible while preserving their future display state', () => {
+  const month = buildCalendarMonth([snapshot('2026-07-14', 100), snapshot('2026-07-16', 130)], 'netWorth', '2026-07', '2026-07-14');
+  assert.equal(month.days[15].dateState, 'future');
+  assert.equal(month.days[15].change?.value, 130);
+  assert.equal(month.days[15].change?.change, 30);
+});
+
 test('switches months and selects latest snapshot month with current-month fallback', () => {
   assert.equal(shiftMonth('2026-01', -1), '2025-12');
   assert.equal(shiftMonth('2026-12', 1), '2027-01');
@@ -80,6 +96,8 @@ test('calendar UI exposes month, mode and selectable date detail controls', () =
   assert.match(source, /setSelectedDate\(day\.date\)/);
   assert.match(source, /前一筆快照日期/);
   assert.match(source, /不等同純投資損益/);
+  assert.match(source, /未來日期快照/);
+  assert.match(source, /outside-month/);
 });
 
 test('calendar CSS keeps seven columns inside a 390px viewport and mobile cells prioritize percentage', () => {
@@ -87,4 +105,10 @@ test('calendar CSS keeps seven columns inside a 390px viewport and mobile cells 
   assert.match(styles, /daily-calendar-weekdays[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
   assert.match(styles, /daily-calendar-grid[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media \(max-width:640px\)[\s\S]*daily-calendar-day small\{display:none\}/);
+  assert.match(styles, /daily-change-calendar-card\{width:100%\}/);
+  assert.doesNotMatch(styles, /daily-change-calendar-card\{max-width:900px/);
+  assert.match(styles, /daily-calendar-day\.past/);
+  assert.match(styles, /daily-calendar-day\.today/);
+  assert.match(styles, /daily-calendar-day\.future/);
+  assert.match(styles, /prefers-color-scheme: light[\s\S]*daily-calendar-day\.future/);
 });

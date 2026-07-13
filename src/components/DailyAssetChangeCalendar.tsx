@@ -45,13 +45,13 @@ export default function DailyAssetChangeCalendar({ history }: { history: NetWort
     <div className="daily-calendar" aria-label={`${calendar.year} 年 ${calendar.monthIndex + 1} 月${modeLabel(mode)}變動日曆`}>
       <div className="daily-calendar-weekdays">{weekdays.map(day => <span key={day}>{day}</span>)}</div>
       <div className="daily-calendar-grid">
-        {Array.from({ length: calendar.leadingBlankCount }, (_, index) => <span className="daily-calendar-blank" aria-hidden="true" key={`blank-${index}`} />)}
+        {Array.from({ length: calendar.leadingBlankCount }, (_, index) => <span className="daily-calendar-blank outside-month" aria-hidden="true" key={`blank-${index}`} />)}
         {calendar.days.map(day => <button
           type="button"
           key={day.date}
-          className={`daily-calendar-day ${tone(day.change)}${selectedDate === day.date ? ' selected' : ''}`}
+          className={`daily-calendar-day ${day.dateState} ${tone(day.change)}${selectedDate === day.date ? ' selected' : ''}`}
           disabled={!day.change}
-          aria-label={day.change ? `${day.date}，${percent(day.change.changeRate)}，${compactMoney(day.change.change)}` : `${day.date}，當日無快照`}
+          aria-label={day.change ? `${day.date}，${day.dateState === 'future' ? '未來日期快照，' : ''}${percent(day.change.changeRate)}，${compactMoney(day.change.change)}` : `${day.date}，當日無快照`}
           onClick={() => day.change && setSelectedDate(day.date)}
         >
           <span className="daily-calendar-date">{day.day}</span>
@@ -59,12 +59,12 @@ export default function DailyAssetChangeCalendar({ history }: { history: NetWort
         </button>)}
       </div>
     </div>
-    {selected && <CalendarDetail change={selected} mode={mode} />}
+    {selected && <CalendarDetail change={selected} mode={mode} isFuture={calendar.days.find(day => day.date === selected.date)?.dateState === 'future'} />}
     <p className="daily-calendar-disclaimer">此為每日資產快照變動，可能包含入金、提領、現金或負債變化，不等同純投資損益。</p>
   </article>;
 }
 
-function CalendarDetail({ change, mode }: { change: DailyAssetChange; mode: DailyAssetChangeMode }) {
+function CalendarDetail({ change, mode, isFuture }: { change: DailyAssetChange; mode: DailyAssetChangeMode; isFuture: boolean }) {
   return <section className="daily-calendar-detail" aria-label={`${change.date} 資產變動明細`}>
     <div className="daily-calendar-detail-heading"><div><small>選取日期</small><h3>{change.date}</h3></div><span>{modeLabel(mode)}</span></div>
     <div className="daily-calendar-detail-grid">
@@ -76,5 +76,6 @@ function CalendarDetail({ change, mode }: { change: DailyAssetChange; mode: Dail
       <p><span>變動百分比</span><strong className={tone(change)}>{percent(change.changeRate)}</strong></p>
       <p><span>比較基準</span><strong>{change.hasComparison ? '有前一筆有效快照' : '無比較基準'}</strong></p>
     </div>
+    {isFuture && <p className="daily-calendar-future-note">未來日期快照：此筆資料仍會顯示，請確認日期是否為預期的手動紀錄。</p>}
   </section>;
 }

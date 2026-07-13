@@ -1,6 +1,7 @@
 import { normalizeInvestmentPerformanceHistory, type AssetSeries } from './investmentPerformanceHistory';
 
 export type DailyAssetChangeMode = AssetSeries;
+export type CalendarDateState = 'past' | 'today' | 'future';
 
 export type DailyAssetChange = {
   date: string;
@@ -15,6 +16,7 @@ export type DailyAssetChange = {
 export type CalendarDay = {
   date: string;
   day: number;
+  dateState: CalendarDateState;
   change: DailyAssetChange | null;
 };
 
@@ -47,6 +49,14 @@ export function currentMonthKey(date = new Date()): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 7);
 }
 
+export function localCalendarDateKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function calendarDateState(date: string, today = localCalendarDateKey()): CalendarDateState {
+  return date < today ? 'past' : date > today ? 'future' : 'today';
+}
+
 export function latestSnapshotMonth(raw: unknown, fallback = currentMonthKey()): string {
   return normalizeInvestmentPerformanceHistory(raw).at(-1)?.date.slice(0, 7) || fallback;
 }
@@ -76,7 +86,7 @@ export function buildDailyAssetChanges(raw: unknown, mode: DailyAssetChangeMode)
   });
 }
 
-export function buildCalendarMonth(raw: unknown, mode: DailyAssetChangeMode, month: string): CalendarMonth {
+export function buildCalendarMonth(raw: unknown, mode: DailyAssetChangeMode, month: string, today = localCalendarDateKey()): CalendarMonth {
   const match = month.match(monthPattern);
   const fallback = currentMonthKey().match(monthPattern)!;
   const year = Number(match?.[1] ?? fallback[1]);
@@ -87,7 +97,7 @@ export function buildCalendarMonth(raw: unknown, mode: DailyAssetChangeMode, mon
   const days = Array.from({ length: dayCount }, (_, index) => {
     const day = index + 1;
     const date = `${normalizedMonth}-${String(day).padStart(2, '0')}`;
-    return { date, day, change: changes.get(date) || null };
+    return { date, day, dateState: calendarDateState(date, today), change: changes.get(date) || null };
   });
   return {
     month: normalizedMonth,
