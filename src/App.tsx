@@ -410,7 +410,8 @@ function readState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
-    const normalized = normalizeState(JSON.parse(raw));
+    const parsed = JSON.parse(raw); assertNoOAuthSecrets(parsed);
+    const normalized = normalizeState(parsed);
     const json = JSON.stringify(normalized);
     if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
     return normalized;
@@ -419,7 +420,7 @@ function readState(): AppState {
     return defaultState;
   }
 }
-function writeState(s: AppState) { const normalized = normalizeState(s); assertNoOAuthSecrets(normalized); localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); }
+function writeState(s: AppState) { assertNoOAuthSecrets(s); const normalized = normalizeState(s); assertNoOAuthSecrets(normalized); localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); }
 function normalizeUiState(raw: unknown): UiState {
   const r = raw && typeof raw === 'object' ? raw as Partial<UiState> : {};
   return { displayMode: r.displayMode === 'full' ? 'full' : 'compact', sections: { ...DEFAULT_UI_STATE.sections, ...(r.sections || {}) } };
@@ -434,6 +435,7 @@ function readUiState(): UiState {
 }
 function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.stringify({ displayMode: state.displayMode })); }
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
+  assertNoOAuthSecrets(state);
   const normalized = normalizeState(state);
   const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
@@ -444,6 +446,8 @@ function backupHasRemovedStrategy(raw: unknown) {
 }
 function stateFromBackup(raw: unknown, current: AppState): AppState {
   if (!raw || typeof raw !== 'object') throw new Error('備份檔格式不正確。');
+  // Scheme A: reject the entire backup rather than silently removing an OAuth secret.
+  assertNoOAuthSecrets(raw);
   if (backupHasRemovedStrategy(raw)) throw new Error(`${removedSymbol()} 已從正式策略移除，備份檔含有已移除的 ${removedSymbol()} 策略資料，請確認後再匯入。`);
   const r = raw as Partial<BackupPayload> & { assets?: Holding[]; cash?: CashItem[]; firebase?: FirebaseConfig };
   const syncSettings = (r.syncSettings || {}) as Partial<BackupPayload['syncSettings']>;
@@ -476,8 +480,8 @@ function waitForDraftCommit() {
 }
 function syncPath(config: FirebaseConfig) { return `${FIREBASE_BASE_PATH}/${encodeURIComponent(config.secretPath || FIREBASE_BASE_PATH)}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
-async function uploadFirebase(config: FirebaseConfig, state: AppState) { const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(normalizeState(state)) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
-async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
+async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const payload = normalizeState(state); assertNoOAuthSecrets(payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
+async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
