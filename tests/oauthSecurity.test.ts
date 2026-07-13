@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assertNoOAuthSecrets, canonicalPersistenceKey, normalizeGmailOAuth, scanSensitivePersistenceKeys } from '../src/lib/gmailOAuth';
-import { cookieName, createOAuthWorker, safeRedirect, type Env } from '../workers/gmail-oauth/src/index';
-import { DurableObjectOAuthStore, type OAuthSessionStub } from '../workers/gmail-oauth/src/durableStore';
+import { cookieName, createOAuthWorker, safeRedirect, type Env } from '../workers/gmail-oauth/src/oauthWorker';
+import { DurableObjectOAuthStore, type OAuthSessionStub } from '../workers/gmail-oauth/src/oauthStore';
 import { encryptToken, MemorySessionStore, pkce, ProductionSessionStoreAdapter, signSessionId, verifySessionId, type OAuthSession, type Transaction } from '../workers/gmail-oauth/src/security';
 
 class PersistentStub implements OAuthSessionStub {
