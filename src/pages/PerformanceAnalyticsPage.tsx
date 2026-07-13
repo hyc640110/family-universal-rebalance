@@ -57,7 +57,7 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
         {performance.todayReturnRate === null && <p className="note">缺少可可靠取得的前一交易日市值，今日報酬率以「—」呈現。</p>}
       </article>
 
-      <article className="performance-card">
+      <article className="performance-card performance-history-card">
         <div className="performance-heading"><div><p className="eyebrow">歷史快照</p><h2>資產變化與回撤</h2></div><span>依每日快照，不補日期、不插值；這是資產變化，不是已排除現金流的投資報酬。</span></div>
         <div className="performance-sort" aria-label="歷史期間">{([['30d', '30 天'], ['90d', '90 天'], ['1y', '1 年'], ['all', '全部']] as const).map(([value, label]) => <button type="button" key={value} className={historyRange === value ? 'active' : ''} onClick={() => setHistoryRange(value)}>{label}</button>)}</div>
         {historyRows.length < 2 ? <div className="analytics-empty"><p>歷史資料不足</p><span>至少需要兩筆有效快照才能呈現趨勢與資產變化。</span></div> : <div className="performance-history-grid">
