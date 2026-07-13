@@ -9,9 +9,9 @@ export default function DesktopSidebar() {
       <div><strong>{APP_NAME}</strong><small>{APP_VERSION}</small></div>
     </div>
     <nav>
-      {NAV_ITEMS.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''}>
+      {NAV_ITEMS.map(({ to, label, icon: Icon }) => <div key={to}>{<NavLink to={to} className={({ isActive }) => isActive ? 'active' : ''}>
         <Icon aria-hidden="true" size={20} strokeWidth={2} /><span>{label}</span>
-      </NavLink>)}
+      </NavLink>}{to === '/assets' && <div className="sidebar-subnav"><NavLink to="/assets">持股資產</NavLink><NavLink to="/assets#overview-card">資產配置</NavLink><NavLink to="/net-worth-history">淨資產歷史</NavLink></div>}</div>)}
     </nav>
   </aside>;
 }
