@@ -9,6 +9,7 @@ const wealthPage = readFileSync(new URL('../src/pages/WealthGoalPage.tsx', impor
 const homeDecision = readFileSync(new URL('../src/lib/homeDecision.ts', import.meta.url), 'utf8');
 const performanceMetrics = readFileSync(new URL('../src/lib/performanceMetrics.ts', import.meta.url), 'utf8');
 const performancePage = readFileSync(new URL('../src/pages/PerformanceAnalyticsPage.tsx', import.meta.url), 'utf8');
+const investmentPerformanceHistory = readFileSync(new URL('../src/lib/investmentPerformanceHistory.ts', import.meta.url), 'utf8');
 const cashFlow = readFileSync(new URL('../src/lib/cashFlow.ts', import.meta.url), 'utf8');
 const cashFlowPage = readFileSync(new URL('../src/pages/CashFlowPage.tsx', import.meta.url), 'utf8');
 const netWorthHistory = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
@@ -41,9 +42,9 @@ const checks = [
   ,['Performance analytics uses centralized typed calculations', /export function calculateAssetCost/.test(performanceMetrics) && /export function calculatePortfolioPerformance/.test(performanceMetrics) && /export function calculatePortfolioConcentration/.test(performanceMetrics)]
   ,['Performance calculations exclude zero-share assets and guard invalid values', /filter\(asset => finite\(asset\.shares\) > 0\)/.test(performanceMetrics) && /Number\.isFinite/.test(performanceMetrics) && /safeRatio/.test(performanceMetrics)]
   ,['Performance return rates safely handle zero cost', /returnRate: safeRatio\(unrealizedPnl, cost\)/.test(performanceMetrics) && /denominator > 0/.test(performanceMetrics)]
-  ,['Performance page includes overview, rankings, contributions and concentration', /績效總覽/.test(performancePage) && /資產報酬排名/.test(performancePage) && /報酬貢獻/.test(performancePage) && /報酬集中度/.test(performancePage)]
+  ,['Performance page includes current holdings, history, rankings, contributions and concentration', /目前持股績效/.test(performancePage) && /資產變化與回撤/.test(performancePage) && /資產報酬排名/.test(performancePage) && /報酬貢獻/.test(performancePage) && /報酬集中度/.test(performancePage)]
   ,['Performance rankings support required sort modes', /contribution/.test(performancePage) && /return-rate/.test(performancePage) && /loss/.test(performancePage) && /market-value/.test(performancePage)]
-  ,['Performance page clearly handles unavailable prior-day data', /今日報酬率暫以「—」呈現/.test(performancePage)]
+  ,['Performance page clearly handles unavailable prior-day data', /今日報酬率以「—」呈現/.test(performancePage)]
   ,['Performance UI state remains session-only', !/localStorage\.setItem|writeState\(|uploadFirebase\(|downloadFirebase\(/.test(performancePage)]
   ,['Analytics defaults to performance and retains a risk tab', /useState<'performance' \| 'risk'>\('performance'\)/.test(app) && /analyticsView === 'risk'/.test(app)]
   ,['Cash flow profile is optional and normalized safely', /cashFlowProfile\?: CashFlowProfile/.test(app) && /r\.cashFlowProfile === undefined \? undefined : normalizeCashFlowProfile/.test(app)]
@@ -64,7 +65,7 @@ const checks = [
   ,['Settings details reuse SectionCard and surface target errors', /id="quote-sources-section"[\s\S]*SectionCard/.test(app) && /id="sync-status-section"[\s\S]*SectionCard/.test(app) && /id="sync-diagnostics-section"[\s\S]*SectionCard/.test(app) && /id="target-check-section"[\s\S]*targetCheckHasError/.test(app) && /setUiState\(current => current\.sections\.targetCheck/.test(app)]
   ,['Dashboard uses existing quote, risk and history sources without inventing finance data', /deriveHistoryStats/.test(app) && /deriveInvestmentDashboard/.test(app) && /今日投資摘要/.test(dashboard) && /投資健康度/.test(dashboard) && /重要提醒/.test(dashboard) && /net-worth-history/.test(dashboard) && /tools\/risk-center/.test(dashboard)]
   ,['Dashboard decisions use the required priority labels and SPA links', /需要優先處理風險[\s\S]*建議再平衡[\s\S]*建議加碼/.test(homeDecision) && /<Link/.test(dashboard) && !/location\.href|window\.location/.test(dashboard)]
-  ,['Performance center separates current exact values from incomplete historical returns', /history: NetWorthSnapshot\[\]/.test(performancePage) && /期間市場損益不提供精確值/.test(performancePage) && /投入與提領流水/.test(performancePage)]
+  ,['Performance center separates current holdings from historical asset changes', /目前持股未實現損益/.test(performancePage) && /不是已排除現金流的投資報酬/.test(performancePage) && /deriveInvestmentPerformanceStats/.test(performancePage) && /deriveInvestmentPerformanceQuality/.test(investmentPerformanceHistory)]
   ,['Account and transaction sections use independent persisted toggle keys', /id="accounts-section"[\s\S]*sectionOpen\('cash'\)[\s\S]*toggleSection\('cash'\)/.test(app) && /id="transactions-section"[\s\S]*sectionOpen\('transactions'\)[\s\S]*toggleSection\('transactions'\)/.test(app) && /transactions: false/.test(app) && /transactions: true/.test(app)]
   ,['Transaction exclusion checkbox uses a clickable label and normal checkbox styling', /className="exclude-statistics"[\s\S]*type="checkbox"[\s\S]*排除統計[\s\S]*不列入收支統計與衍生餘額/.test(app) && /\.financial-account-fields \.exclude-statistics input\[type="checkbox"\]/.test(styles)]
 ];
