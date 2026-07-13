@@ -23,6 +23,7 @@ import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
 import { deriveHomeDecision } from './lib/homeDecision';
 import { deriveInvestmentDashboard } from './lib/investmentDashboard';
+import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { formatTransactionAmount } from './lib/transactionPresentation';
@@ -272,16 +273,12 @@ function isBackupQuoteSource(source: unknown) {
 function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   const hasError = rows.some(row => Boolean(row.quote.error));
   const hasBackup = rows.some(row => isBackupQuoteSource(row.quote.source));
+  const hasStaleQuote = rows.some(row => !isTodayQuote(row.quote.quoteDate));
   if (hasError) return '部分標的報價異常';
+  if (hasStaleQuote) return '部分標的非今日報價';
   if (hasBackup) return '部分標的目前使用備援價格';
   return '報價正常';
 }
-function quoteShortBadge(quote: Quote) {
-  if (quote.error) return '報價異常';
-  if (isBackupQuoteSource(quote.source)) return '備援價格';
-  return '';
-}
-
 const defaultQuotes: Record<SymbolCode, Quote> = {
   '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
   '00670L': { symbol: '00670L', name: SYMBOL_NAMES['00670L'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
@@ -826,23 +823,26 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
   onRemove: (symbol: SymbolCode) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
-  const holdingWeight = totalAssets ? row.marketValue / totalAssets * 100 : 0;
-  const quoteBadge = quoteShortBadge(row.quote);
+  const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
+  const hasTodayQuote = isTodayQuote(row.quote.quoteDate);
+  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, hasTodayQuote);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
-    <div className="holding-card-header">
-      <div className="holding-card-title"><h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name">{row.quote.name}</span></h3><p className="quote-meta">更新：{tw(row.quote.updatedAt)}{quoteBadge && <span className={row.quote.error ? 'quote-badge bad' : 'quote-badge warn'}>{quoteBadge}</span>}</p></div>
-      <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '完成' : '編輯'}</button>
+    <div className="holding-mobile-summary">
+      <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
+      <div className="holding-mobile-core">
+        <h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name" title={row.quote.name}>{row.quote.name}</span></h3>
+        <p className="holding-mobile-quote"><span><span className="holding-mobile-price-label">{row.quote.error ? '參考價' : '現價'} </span>{row.quote.price.toFixed(2)} 元</span><strong className={`${compactQuoteMovement.tone}${hasTodayQuote ? '' : ' holding-stale-movement'}`}>{compactQuoteMovement.text}</strong></p>
+        <p className="holding-mobile-shares"><span className="holding-mobile-shares-label">持有 </span>{row.shares.toLocaleString('zh-TW')} 股</p>
+      </div>
+      <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>
     </div>
     {row.quote.error && <p className="note holding-quote-error">報價異常，請稍後再更新股價。</p>}
-    <div className="holding-snapshot">
-      <div><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></div>
-      <div><span>最新價格</span><strong>{row.quote.price.toFixed(2)} 元</strong></div>
-      <div><span>市值</span><strong>{money(row.marketValue)}</strong></div>
-      <div><span>損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></div>
-      <div><span>目前比例</span><strong>{pct(holdingWeight)}</strong></div>
-      <div><span>今日漲跌</span>{isTodayQuote(row.quote.quoteDate) ? <strong className={tone(row.quote.change)}>{row.quote.change > 0 ? '+' : ''}{row.quote.change.toFixed(2)} / {signedPct(row.quote.changePct)}</strong> : <strong className="hold">— <small>報價非今日</small></strong>}</div>
-    </div>
     {isEditing && <div className="holding-editor">
+      <div className="holding-editor-summary" aria-label="持股詳細資料">
+        <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
+        <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
+        <p><span>目前比例</span><strong>{compactWeight}</strong></p>
+      </div>
       <div className="holding-editor-grid">
         <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
         <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
@@ -1714,6 +1714,7 @@ function App() {
         </Card>
         <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
+          {quoteSummaryText === '部分標的非今日報價' && <p className="note holding-stale-notice">部分標的非今日報價；今日漲跌僅供參考。</p>}
           <div className="holdings">
             {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
