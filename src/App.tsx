@@ -21,6 +21,7 @@ import NetWorthHistoryPage from './pages/NetWorthHistoryPage';
 import DividendCenterPage from './pages/DividendCenterPage';
 import MarketIntelligencePage from './pages/MarketIntelligencePage';
 import AiDecisionCenterPage from './pages/AiDecisionCenterPage';
+import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -30,6 +31,7 @@ import { deriveInvestmentDashboard } from './lib/investmentDashboard';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats } from './lib/investmentPerformanceHistory';
 import { dividendSources, dividendSummary } from './lib/dividends';
 import { deriveAiDecisions } from './lib/aiDecision';
+import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1133,6 +1135,7 @@ function App() {
   const isNetWorthHistory = routeLocation.pathname === '/tools/net-worth-history' || routeLocation.pathname === '/net-worth-history';
     const isDividendCenter = routeLocation.pathname === '/tools/dividend-center';
     const isAiDecisionCenter = routeLocation.pathname === '/tools/ai-decision';
+    const isPortfolioRiskCenter = routeLocation.pathname === '/tools/portfolio-risk';
   const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
@@ -1337,6 +1340,15 @@ function App() {
     growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached
   }), [m, rb, state.loans]);
   const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);
+  const investmentStats = useMemo(() => deriveInvestmentPerformanceStats(netWorthHistory, 'investmentValue'), [netWorthHistory]);
+  const performanceQuality = useMemo(() => deriveInvestmentPerformanceQuality(netWorthHistory), [netWorthHistory]);
+  const portfolioRiskView = useMemo(() => derivePortfolioRisk({
+    totalAssets: m.totalAssets, investmentValue: m.stocks, growthValue: m.growth, defensiveValue: m.defensiveHoldingsValue, cash: m.cash,
+    growthTargetPct: getGrowthTargetTotal(state.holdings), defensiveTargetPct: getDefensiveStockTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings), targetTotalPct: getHoldingTargetTotal(state.holdings),
+    allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
+    risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
+    quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
+  }), [m, state.holdings, rb, riskMetrics, investmentStats, performanceQuality]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
@@ -1394,8 +1406,6 @@ function App() {
     syncDirty: syncMeta.dirty, syncStatus: syncStatusText, targetInvalid: Boolean(targetWarning), holdingsCount: m.rows.filter(row => row.shares > 0).length
     }), [m, historySummary, rb, homeDecision.primary, quoteSummaryText, latestQuoteTime, hasUpdatedQuotes, syncMeta, syncStatusText, targetWarning]);
     const aiDecisionItems = useMemo(() => {
-      const investmentStats = deriveInvestmentPerformanceStats(netWorthHistory, 'investmentValue');
-      const performanceQuality = deriveInvestmentPerformanceQuality(netWorthHistory);
       const quoteRows = m.rows.map(row => row.quote);
       return deriveAiDecisions({
         today: localSnapshotDate(), dashboard: { investmentValue: m.stocks, dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, cashRatio: investmentDashboard.cashRatio, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
@@ -1404,7 +1414,7 @@ function App() {
         quoteStatuses: quoteRows.map(quote => quoteDateStatus(quote.quoteDate)), quoteErrors: quoteRows.filter(quote => Boolean(quote.error)).length, backupQuoteCount: quoteRows.filter(quote => isBackupQuoteSource(quote.source)).length,
         targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0)
       });
-    }, [netWorthHistory, m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning]);
+    }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1665,7 +1675,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter) return <Navigate to="/home" replace />;
+    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1850,6 +1860,7 @@ function App() {
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
+        {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>

@@ -8,6 +8,7 @@ const tools = [
   ['蒙地卡羅模擬', '評估多種市場路徑下的資產結果。', Crosshair],
   ['配息中心', '集中整理配息與現金流。', BadgeDollarSign],
   ['AI 決策中心', '以可追溯的本地規則整理投資資料，不使用生成式 AI。', BrainCircuit],
+  ['投資組合風險與配置中心', '整合目前配置、集中度、槓桿、現金安全、投資資產回撤與報價品質；不提供買賣建議。', ShieldAlert],
   ['FIRE／財富目標', '設定財富目標、每月投入與預期報酬率，查看目前進度及預估達成時間。', Flame],
   ['收支與現金流', '設定每月收入、必要支出與投資預算，掌握現金流壓力和緊急預備金。', WalletCards],
   ['淨資產歷史中心', '以每日快照追蹤資產、現金、負債與淨資產的長期變化。', LineChart],
@@ -18,8 +19,8 @@ const tools = [
 
 export default function ToolsPage() {
   return <PageFrame page="tools" title="工具" description="進階投資工具將在後續版本逐步提供。">
-  <section className="tool-grid">{tools.map(([name, description, Icon]) => name === '資產配置模擬器' || name === '風險與現金安全中心' || name === 'FIRE／財富目標' || name === '收支與現金流' || name === '淨資產歷史中心' || name === '配息中心' || name === 'AI 決策中心' ? <article className="tool-card tool-card-active" key={name}>
-      <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><Link to={name === 'AI 決策中心' ? '/tools/ai-decision' : name === '資產配置模擬器' ? '/tools/allocation-simulator' : name === '風險與現金安全中心' ? '/tools/risk-center' : name === '收支與現金流' ? '/tools/cash-flow' : name === '淨資產歷史中心' ? '/tools/net-worth-history' : name === '配息中心' ? '/tools/dividend-center' : '/tools/wealth-goal'}>{name === 'AI 決策中心' ? '查看摘要' : name === '資產配置模擬器' ? '開始模擬' : name === '風險與現金安全中心' ? '查看風險' : name === '收支與現金流' ? '查看現金流' : name === '淨資產歷史中心' ? '查看歷史' : name === '配息中心' ? '查看股息' : '查看目標'} <ArrowRight size={15} /></Link>
+  <section className="tool-grid">{tools.map(([name, description, Icon]) => name === '資產配置模擬器' || name === '風險與現金安全中心' || name === '投資組合風險與配置中心' || name === 'FIRE／財富目標' || name === '收支與現金流' || name === '淨資產歷史中心' || name === '配息中心' || name === 'AI 決策中心' ? <article className="tool-card tool-card-active" key={name}>
+      <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><Link to={name === 'AI 決策中心' ? '/tools/ai-decision' : name === '投資組合風險與配置中心' ? '/tools/portfolio-risk' : name === '資產配置模擬器' ? '/tools/allocation-simulator' : name === '風險與現金安全中心' ? '/tools/risk-center' : name === '收支與現金流' ? '/tools/cash-flow' : name === '淨資產歷史中心' ? '/tools/net-worth-history' : name === '配息中心' ? '/tools/dividend-center' : '/tools/wealth-goal'}>{name === 'AI 決策中心' ? '查看摘要' : name === '投資組合風險與配置中心' ? '查看中心' : name === '資產配置模擬器' ? '開始模擬' : name === '風險與現金安全中心' ? '查看風險' : name === '收支與現金流' ? '查看現金流' : name === '淨資產歷史中心' ? '查看歷史' : name === '配息中心' ? '查看股息' : '查看目標'} <ArrowRight size={15} /></Link>
     </article> : <article className="tool-card" key={name} aria-disabled="true">
       <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><span>規劃中</span>
     </article>)}</section>
