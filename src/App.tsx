@@ -35,6 +35,7 @@ import { deriveAiDecisions, deriveMarketFreshness } from './lib/aiDecision';
 import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
+import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -54,9 +55,10 @@ type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
+type AllocationRoleBySymbol = Record<string, AllocationRole>;
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
 type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
@@ -313,6 +315,8 @@ const defaultState: AppState = {
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
   autoSyncSec: 60,
+  allocationPreset: 'custom',
+  allocationRoleBySymbol: {},
   rebalanceMode: DEFAULT_REBALANCE_MODE,
   rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
   buyOnlyBudget: DEFAULT_BUY_ONLY_BUDGET,
@@ -411,7 +415,7 @@ function normalizeState(raw: unknown): AppState {
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const importSessions = Array.isArray(r.importSessions) ? r.importSessions.filter(value => value && typeof value === 'object').slice(-50) as ImportSession[] : [];
   const importPresets = normalizeMappingPresets(r.importPresets);
-  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: normalizeAllocationPreset(s.allocationPreset), allocationRoleBySymbol: normalizeAllocationRoleBySymbol(s.allocationRoleBySymbol, normalizedHoldings), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
@@ -447,7 +451,7 @@ function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   assertNoOAuthSecrets(state);
   const normalized = normalizeState(state);
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, allocationRoleBySymbol: normalized.allocationRoleBySymbol, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -469,7 +473,7 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase };
+  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), allocationRoleBySymbol: r.allocationRoleBySymbol ?? current.allocationRoleBySymbol, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase };
   if (Array.isArray(r.accounts)) return normalizeState({ ...backupState, accounts: r.accounts });
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
   const { accounts: _accounts, accountSchemaVersion: _schema, cashAccountMigrationVersion: _migration, ...legacyBackupState } = backupState;
@@ -867,6 +871,37 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />刪除持股</button>
     </div>}
   </article>;
+}
+function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeepCustom }: {
+  holdings: Array<Pick<Holding, 'symbol' | 'name' | 'targetWeight'>>;
+  preset: AllocationPreset;
+  roleBySymbol: AllocationRoleBySymbol;
+  onApply: (preview: ReturnType<typeof deriveAllocationPresetPreview>, roles: AllocationRoleBySymbol) => void;
+  onKeepCustom: () => void;
+}) {
+  const [draftPreset, setDraftPreset] = useState<AllocationPreset>(preset);
+  const [draftRoles, setDraftRoles] = useState<AllocationRoleBySymbol>(roleBySymbol);
+  const preview = deriveAllocationPresetPreview({ preset: draftPreset, holdings, roleBySymbol: draftRoles });
+  const resetDraft = () => { setDraftPreset(preset); setDraftRoles(roleBySymbol); };
+  return <Card title="配置方案" className="allocation-preset-panel">
+    <p className="note">CLEC 433／442 是配置方案，不是再平衡方法。預覽不會修改資料；確認套用後只更新持股目標比例與配置方案資訊。</p>
+    <div className="allocation-preset-controls">
+      <label>配置方案<select value={draftPreset} onChange={event => setDraftPreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="custom">自訂配置</option><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
+      <p><small>目前正式方案</small><strong>{allocationPresetLabel(preset)}</strong></p>
+    </div>
+    {draftPreset !== 'custom' && <div className="allocation-preset-roles">{holdings.map(holding => {
+      const symbol = normalizeSymbol(holding.symbol);
+      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={draftRoles[symbol] || 'none'} onChange={event => setDraftRoles(current => ({ ...current, [symbol]: event.currentTarget.value as AllocationRole }))}><option value="none">未指派</option><option value="prototype">原型資產</option><option value="leveraged">槓桿資產</option><option value="cash-like">類現金持股</option></select></label>;
+    })}</div>}
+    <div className={`allocation-preset-preview ${preview.canApply ? 'good' : 'bad'}`}>
+      <h3>套用後預覽</h3>
+      <p><b>{allocationPresetLabel(draftPreset)}</b>｜持股目標合計 {pct(preview.targetTotal)}｜銀行現金目標 {pct(preview.cashTargetPct)}</p>
+      {preview.rows.map(row => <p key={row.symbol}><span>{row.symbol}｜{roleLabel(row.role)}</span><strong>{pct(row.currentWeight)} → {pct(row.nextWeight)}</strong></p>)}
+      {preview.warnings.map(item => <p className="warning-message" key={item}>{item}</p>)}
+      {preview.blockingReasons.map(item => <p className="warning-message" key={item}>{item}</p>)}
+    </div>
+    <div className="actions"><button type="button" className="small" onClick={resetDraft}>取消預覽</button>{draftPreset === 'custom' ? <button type="button" className="small" onClick={onKeepCustom}>保留目前配置</button> : <button type="button" disabled={!preview.canApply} onClick={() => onApply(preview, draftRoles)}>確認套用 {allocationPresetLabel(draftPreset)}</button>}</div>
+  </Card>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
   return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
@@ -1601,6 +1636,13 @@ function App() {
       }, s.holdings)
     }));
   };
+  const applyAllocationPreset = (preview: ReturnType<typeof deriveAllocationPresetPreview>, roles: AllocationRoleBySymbol) => setState(current => {
+    if (!preview.canApply || preview.preset === 'custom') return current;
+    const targetBySymbol = Object.fromEntries(preview.rows.map(row => [row.symbol, row.nextWeight]));
+    const holdings = safeHoldings(current.holdings).map(holding => ({ ...holding, targetWeight: targetBySymbol[normalizeSymbol(holding.symbol)] ?? 0 }));
+    return { ...current, holdings, allocationPreset: preview.preset, allocationRoleBySymbol: normalizeAllocationRoleBySymbol(roles, holdings) };
+  });
+  const keepCustomAllocation = () => setState(current => current.allocationPreset === 'custom' ? current : { ...current, allocationPreset: 'custom' });
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
     const holdings = safeHoldings(s.holdings);
     const normalizedSymbol = normalizeSymbol(symbol);
@@ -1608,7 +1650,8 @@ function App() {
     const nextValue = key === 'assetClass' ? normalizeAssetClass(value, normalizedSymbol) : key === 'targetWeight' ? clampTarget(safeNumber(value)) : Math.max(0, safeNumber(value));
     const defaultHolding = DEFAULT_HOLDINGS.find(h => h.symbol === normalizedSymbol);
     const nextHolding: Holding = { symbol: normalizedSymbol, name: resolveSymbolName(normalizedSymbol, defaultHolding?.name), shares: 0, avgCost: 0, targetWeight: defaultHolding?.targetWeight ?? 0, assetClass: normalizeAssetClass(defaultHolding?.assetClass, normalizedSymbol), [key]: nextValue } as Holding;
-    return { ...s, holdings: exists ? holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue } as Holding) || h : h) : [...holdings, nextHolding] };
+    const nextHoldings = exists ? holdings.map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? sanitizeHolding({ ...h, symbol: normalizedSymbol, [key]: nextValue } as Holding) || h : h) : [...holdings, nextHolding];
+    return { ...s, holdings: nextHoldings, ...(key === 'targetWeight' ? { allocationPreset: 'custom' as const } : {}) };
   });
   const addHoldingAsset = () => {
     const symbol = normalizeSymbol(newSymbolDraft);
@@ -1626,7 +1669,7 @@ function App() {
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
-    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol), dipAlerts }; });
+    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; const allocationRoleBySymbol = { ...(s.allocationRoleBySymbol || {}) }; delete dipAlerts[normalizedSymbol]; delete allocationRoleBySymbol[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol), dipAlerts, allocationRoleBySymbol }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setEditingHoldingSymbol(current => current === normalizedSymbol ? null : current);
     setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
@@ -1774,6 +1817,7 @@ function App() {
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
+        <div className="for-assets"><AllocationPresetPanel holdings={m.rows.map(row => ({ symbol: row.symbol, name: row.name, targetWeight: row.targetWeight }))} preset={state.allocationPreset} roleBySymbol={state.allocationRoleBySymbol} onApply={applyAllocationPreset} onKeepCustom={keepCustomAllocation} /></div>
         <Card className="page-card for-assets" title="新增持股">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
           <div className="asset-add-row">
