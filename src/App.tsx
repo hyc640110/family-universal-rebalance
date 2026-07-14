@@ -31,9 +31,10 @@ import { deriveHomeDecision } from './lib/homeDecision';
 import { deriveInvestmentDashboard } from './lib/investmentDashboard';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats } from './lib/investmentPerformanceHistory';
 import { dividendSources, dividendSummary } from './lib/dividends';
-import { deriveAiDecisions } from './lib/aiDecision';
+import { deriveAiDecisions, deriveMarketFreshness } from './lib/aiDecision';
 import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
+import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1415,7 +1416,7 @@ function App() {
     decision: homeDecision.primary, quoteStatus: quoteSummaryText, lastQuoteAt: latestQuoteTime, hasUpdatedQuotes,
     syncDirty: syncMeta.dirty, syncStatus: syncStatusText, targetInvalid: Boolean(targetWarning), holdingsCount: m.rows.filter(row => row.shares > 0).length
     }), [m, historySummary, rb, homeDecision.primary, quoteSummaryText, latestQuoteTime, hasUpdatedQuotes, syncMeta, syncStatusText, targetWarning]);
-    const aiDecisionItems = useMemo(() => {
+  const aiDecisionItems = useMemo(() => {
       const quoteRows = m.rows.map(row => row.quote);
       return deriveAiDecisions({
         today: localSnapshotDate(), dashboard: { investmentValue: m.stocks, dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, cashRatio: investmentDashboard.cashRatio, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
@@ -1424,7 +1425,17 @@ function App() {
         quoteStatuses: quoteRows.map(quote => quoteDateStatus(quote.quoteDate)), quoteErrors: quoteRows.filter(quote => Boolean(quote.error)).length, backupQuoteCount: quoteRows.filter(quote => isBackupQuoteSource(quote.source)).length,
         targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0)
       });
-    }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
+  }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
+  const investmentIntelligence = useMemo(() => deriveInvestmentIntelligence({
+    dashboard: { dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
+    sync: { dirty: syncMeta.dirty, status: syncStatusText },
+    risk: riskMetrics,
+    portfolioRisk: portfolioRiskView,
+    rebalance: rebalanceRecommendationView,
+    market: { freshness: deriveMarketFreshness(marketSnapshot, localSnapshotDate()), availableCount: marketSnapshot.items.filter(item => item.status !== 'unavailable' && item.status !== 'failed').length },
+    performance: { canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount, maxDrawdown: investmentStats.maxDrawdown },
+    dividend: dividendSummary(state.transactions)
+  }), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions]);
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1716,6 +1727,7 @@ function App() {
         cashSafety: riskMetrics.cashSafetyMonths === null ? '資料不足' : `${riskMetrics.cashSafetyMonths.toFixed(1)} 個月安全存量`,
         cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
         market: marketSnapshot,
+        intelligence: investmentIntelligence,
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} onRefresh={() => { void refreshMarketData(); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
