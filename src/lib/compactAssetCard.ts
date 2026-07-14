@@ -14,8 +14,8 @@ export function formatCompactHoldingWeight(marketValue: number, totalAssets: num
   return `${value.toFixed(1)}%`;
 }
 
-export function formatCompactQuoteMovement(changePct: number, isCurrentQuote: boolean): CompactQuoteMovement {
-  if (!isCurrentQuote || !Number.isFinite(changePct)) return { text: '— 非今日報價', tone: 'hold' };
+export function formatCompactQuoteMovement(changePct: number, isCurrentQuote: boolean, unavailableLabel = '非今日報價'): CompactQuoteMovement {
+  if (!isCurrentQuote || !Number.isFinite(changePct)) return { text: `— ${unavailableLabel}`, tone: 'hold' };
   if (changePct > 0) return { text: `↑ +${changePct.toFixed(2)}%`, tone: 'up' };
   if (changePct < 0) return { text: `↓ ${changePct.toFixed(2)}%`, tone: 'down' };
   return { text: '— 0.00%', tone: 'hold' };

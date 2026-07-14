@@ -19,6 +19,7 @@
     "test:v5-2-compact-assets": "tsx --test tests/compactAssetCards.test.ts",
     "test:v5-3-calendar": "tsx --test tests/dailyAssetChangeCalendar.test.ts",
     "test:quotes": "tsx --test tests/quoteMath.test.ts",
+    "test:price-worker": "tsx --test tests/priceWorkerQuoteContract.test.ts",
     "test:v5-4-market": "tsx --test tests/marketData.test.ts tests/marketUiFoundation.test.ts && node --test tests/marketDataWorker.test.mjs",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
