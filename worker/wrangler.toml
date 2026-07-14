@@ -1,3 +1,8 @@
 name = "00631l-pro-price-proxy"
 main = "index.js"
 compatibility_date = "2026-06-30"
+workers_dev = true
+
+[env.preview]
+name = "00631l-pro-price-proxy-preview"
+workers_dev = true

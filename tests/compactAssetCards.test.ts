@@ -15,4 +15,6 @@ test('presents current quote movement with Taiwan-market colors, signs and a neu
   assert.deepEqual(formatCompactQuoteMovement(-0.75, true), { text: '↓ -0.75%', tone: 'down' });
   assert.deepEqual(formatCompactQuoteMovement(0, true), { text: '— 0.00%', tone: 'hold' });
   assert.deepEqual(formatCompactQuoteMovement(1.25, false), { text: '— 非今日報價', tone: 'hold' });
+  assert.deepEqual(formatCompactQuoteMovement(1.25, false, '最近交易日'), { text: '— 最近交易日', tone: 'hold' });
+  assert.deepEqual(formatCompactQuoteMovement(1.25, false, '日期不明'), { text: '— 日期不明', tone: 'hold' });
 });

@@ -1,6 +1,20 @@
 const taipeiParts = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date).reduce<Record<string, string>>((parts, part) => ({ ...parts, [part.type]: part.value }), {});
 export const taipeiDate = (value = new Date()) => { const parts = taipeiParts(value); return `${parts.year}-${parts.month}-${parts.day}`; };
-export const isTodayQuote = (quoteDate: string | undefined, now = new Date()) => Boolean(quoteDate && quoteDate === taipeiDate(now));
+export type QuoteDateStatus = 'today' | 'recent-trading-day' | 'stale' | 'unknown';
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const weekdayInTaipei = (value: Date) => new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', weekday: 'short' }).format(value);
+const validDate = (date: string) => { if (!datePattern.test(date)) return false; const [year, month, day] = date.split('-').map(Number); const value = new Date(Date.UTC(year, month - 1, day)); return value.getUTCFullYear() === year && value.getUTCMonth() === month - 1 && value.getUTCDate() === day; };
+const addCalendarDays = (date: string, amount: number) => { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + amount); return value.toISOString().slice(0, 10); };
+export const quoteDateStatus = (quoteDate: string | undefined, now = new Date()): QuoteDateStatus => {
+  if (!quoteDate || !validDate(quoteDate)) return 'unknown';
+  const today = taipeiDate(now);
+  if (quoteDate === today) return 'today';
+  const weekday = weekdayInTaipei(now);
+  const recentTradingDate = weekday === 'Sat' ? addCalendarDays(today, -1) : weekday === 'Sun' ? addCalendarDays(today, -2) : null;
+  return quoteDate === recentTradingDate ? 'recent-trading-day' : 'stale';
+};
+export const quoteDateStatusLabel = (status: QuoteDateStatus) => ({ today: '今日報價', 'recent-trading-day': '最近交易日', stale: '非今日報價', unknown: '日期不明' })[status];
+export const isTodayQuote = (quoteDate: string | undefined, now = new Date()) => quoteDateStatus(quoteDate, now) === 'today';
 const stableNumber = (value: number, decimals = 8) => Number(value.toFixed(decimals));
 export const calculateQuoteChange = (latestPrice: number, previousClose: number) => Number.isFinite(latestPrice) && Number.isFinite(previousClose) && previousClose > 0 ? stableNumber(latestPrice - previousClose) : null;
 export const calculateDailyProfitLoss = (shares: number, change: number | null, quoteDate: string | undefined, now = new Date()) => isTodayQuote(quoteDate, now) && Number.isFinite(shares) && change !== null ? stableNumber(shares * change, 4) : null;

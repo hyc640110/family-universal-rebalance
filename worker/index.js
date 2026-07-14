@@ -1,8 +1,12 @@
-const VERSION = '00631L-Pro-Web-App Worker v6.4 Taiwan symbol normalization';
+const VERSION = '00631L-Pro-Web-App Worker v6.5 quote-date-contract';
 const DEFAULT_SYMBOL = '00631L.TW';
 const TAIWAN_SYMBOL_RE = /^[0-9A-Z]{4,8}\.(TW|TWO)$/;
 const taipeiParts = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
-const taipeiQuoteStamp = (value) => { const parts = taipeiParts(value); return { quoteDate: `${parts.year}-${parts.month}-${parts.day}`, quoteTime: `${parts.hour}:${parts.minute}:${parts.second}` }; };
+export const taipeiQuoteStamp = (value) => {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) throw new Error('invalid market time');
+  const parts = taipeiParts(value);
+  return { quoteDate: `${parts.year}-${parts.month}-${parts.day}`, quoteTime: `${parts.hour}:${parts.minute}:${parts.second}` };
+};
 
 function corsHeaders(request) {
   const origin = request.headers.get('origin') || '*';
@@ -27,7 +31,7 @@ function normalizeSymbol(raw) {
   return symbol;
 }
 
-function parseYahoo(symbol, data) {
+export function parseYahoo(symbol, data) {
   const result = data?.chart?.result?.[0];
   const meta = result?.meta || {};
   const q = result?.indicators?.quote?.[0] || {};
@@ -37,8 +41,9 @@ function parseYahoo(symbol, data) {
   if (!Number.isFinite(latestPrice) || !Number.isFinite(previousClose) || previousClose <= 0) throw new Error(`empty quote fields: ${symbol}`);
   const change = typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : latestPrice - previousClose;
   const changePercent = typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : change / previousClose * 100;
-  if (!meta.regularMarketTime) throw new Error(`missing market time: ${symbol}`);
-  const marketTime = new Date(meta.regularMarketTime * 1000);
+  const marketTimeSeconds = Number(meta.regularMarketTime);
+  if (!Number.isFinite(marketTimeSeconds) || marketTimeSeconds <= 0) throw new Error(`missing market time: ${symbol}`);
+  const marketTime = new Date(marketTimeSeconds * 1000);
   const { quoteDate, quoteTime } = taipeiQuoteStamp(marketTime);
   return {
     ok: true,
