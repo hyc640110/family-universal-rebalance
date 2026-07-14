@@ -23,6 +23,7 @@ import MarketIntelligencePage from './pages/MarketIntelligencePage';
 import AiDecisionCenterPage from './pages/AiDecisionCenterPage';
 import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
+import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -36,6 +37,7 @@ import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
+import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1181,6 +1183,7 @@ function App() {
     const isAiDecisionCenter = routeLocation.pathname === '/tools/ai-decision';
     const isPortfolioRiskCenter = routeLocation.pathname === '/tools/portfolio-risk';
     const isRebalanceRecommendationCenter = routeLocation.pathname === '/tools/rebalance-recommendation';
+    const isClecStrategyCenter = routeLocation.pathname === '/tools/clec-strategy';
   const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
@@ -1401,6 +1404,12 @@ function App() {
     duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
     allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
   }), [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView]);
+  const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
+    allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: state.allocationRoleBySymbol },
+    rebalanceMode: state.rebalanceMode,
+    dataQuality: { passed: rebalanceRecommendationView.canRecommend, blockingReasons: rebalanceRecommendationView.blockingReasons, warnings: rebalanceRecommendationView.canRecommend ? ['最近有效交易日可顯示；備援、過期或日期不明報價會停止具體金額建議。'] : [] },
+    trigger: { thresholdReached: rebalanceRecommendationView.thresholdReached, allocationDeviation: rebalanceRecommendationView.allocationDeviation, rebalanceThreshold: rb.threshold }
+  }), [state.allocationPreset, state.allocationRoleBySymbol, state.holdings, state.rebalanceMode, rebalanceRecommendationView, rb.threshold]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
@@ -1746,7 +1755,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter) return <Navigate to="/home" replace />;
+    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter && !isClecStrategyCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1935,6 +1944,7 @@ function App() {
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} />}
+        {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
