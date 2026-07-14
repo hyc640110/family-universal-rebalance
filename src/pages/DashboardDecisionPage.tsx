@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { type DashboardReminder } from '../lib/investmentDashboard';
 import PageFrame from './PageFrame';
+import MarketSummaryCard from '../components/MarketSummaryCard';
+import type { MarketSnapshot } from '../lib/marketData';
 
 type DecisionItem = { title: string; reason: string; to: string };
 type DashboardData = {
@@ -9,6 +11,7 @@ type DashboardData = {
   decision: DecisionItem; growthRatio: number | null; defensiveRatio: number | null; cashRatio: number | null;
   allocationDeviation: number | null; rebalanceThreshold: number; thresholdReached: boolean;
   riskLabel: string; cashStatus: string; cashSafety: string; reminders: DashboardReminder[];
+  market: MarketSnapshot;
 };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
@@ -36,6 +39,8 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
         <article><small>最後股價更新</small><strong>{quoteTime(data.lastQuoteAt)}</strong><span>無當日有效報價時顯示 —</span></article>
       </div>
     </section>
+
+    <MarketSummaryCard snapshot={data.market} />
 
     <section className="dashboard-decision-card" aria-labelledby="today-decision-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">規則式決策摘要</p><h2 id="today-decision-title">{data.decision.title}</h2><p>{data.decision.reason}</p></div><Link className="home-action-link" to={data.decision.to}>查看既有建議<span aria-hidden="true">→</span></Link></div>
