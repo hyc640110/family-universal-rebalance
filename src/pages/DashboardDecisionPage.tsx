@@ -48,7 +48,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
     </section>
 
     <section className="dashboard-health-card" aria-labelledby="investment-health-title">
-      <div className="dashboard-section-heading"><div><p className="eyebrow">投資健康度</p><h2 id="investment-health-title">配置與現金水位</h2></div><Link className="dashboard-text-link" to="/tools/risk-center">查看風險中心</Link></div>
+      <div className="dashboard-section-heading"><div><p className="eyebrow">投資健康度</p><h2 id="investment-health-title">配置與現金水位</h2></div><div className="dashboard-heading-links"><Link className="dashboard-text-link" to="/tools/rebalance-recommendation">再平衡建議中心</Link><Link className="dashboard-text-link" to="/tools/risk-center">查看風險中心</Link></div></div>
       <div className="dashboard-allocation-bar" aria-label="成長與防守資產配置"><i style={{ width: `${growthWidth}%` }} /><b style={{ width: `${100 - growthWidth}%` }} /></div>
       <div className="investment-health-grid">
         <article><small>成長資產</small><strong>{pct(data.growthRatio)}</strong></article>

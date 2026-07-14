@@ -24,6 +24,7 @@
     "test:v5-6-ai-decision": "tsx --test tests/aiDecision.test.ts tests/aiDecisionUiFoundation.test.ts",
     "test:v5-6-1a-sync-state": "tsx --test tests/syncState.test.ts",
     "test:v5-7-portfolio-risk": "tsx --test tests/portfolioRisk.test.ts",
+    "test:v5-8-rebalance-recommendation": "tsx --test tests/rebalanceRecommendation.test.ts",
     "test:v5-4-market": "tsx --test tests/marketData.test.ts tests/marketUiFoundation.test.ts && node --test tests/marketDataWorker.test.mjs",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",
