@@ -39,6 +39,7 @@ import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransa
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
+import { hasSyncableStateChanged, withoutSyncMetadata, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -48,9 +49,6 @@ type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
-type SyncMeta = { dirty: boolean; source: SyncSource; lastLocalSaveAt?: string; lastUploadAt?: string; lastDownloadAt?: string; lastBackupExportAt?: string; lastBackupImportAt?: string; status: string };
-type RemoteMeta = { holdingsCount: number; cashCount: number; loansCount: number; updatedAt?: string };
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
 type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
@@ -487,8 +485,8 @@ function waitForDraftCommit() {
 }
 function syncPath(config: FirebaseConfig) { return `${FIREBASE_BASE_PATH}/${encodeURIComponent(config.secretPath || FIREBASE_BASE_PATH)}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
-async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const payload = normalizeState(state); assertNoOAuthSecrets(payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
-async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); return normalizeState({ ...data, firebase: { ...config, ...(data.firebase || {}) } }); }
+async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const payload = withoutSyncMetadata(normalizeState(state)); assertNoOAuthSecrets(payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
+async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = withoutSyncMetadata(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
@@ -1150,16 +1148,28 @@ function App() {
   const [uiState, setUiState] = useState<UiState>(() => readUiState());
   const [state, setStateValue] = useState<AppState>(() => readState());
   const stateRef = useRef(state);
+  const isApplyingRemoteRef = useRef(false);
+  const didMount = useRef(false);
   const setState = (updater: SetStateAction<AppState>) => {
-    const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(stateRef.current) : updater;
-    const normalized = normalizeState(next);
+    const previous = stateRef.current;
+    const next = typeof updater === 'function' ? (updater as (value: AppState) => AppState)(previous) : updater;
+    let normalized = normalizeState(next);
+    if (didMount.current && !isApplyingRemoteRef.current && hasSyncableStateChanged(previous, normalized)) {
+      const savedAt = now();
+      normalized = {
+        ...normalized,
+        syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: true, status: localDirtyStatus(normalized) }, normalized)
+      };
+      setLastSavedAt(savedAt);
+    }
     stateRef.current = normalized;
     setStateValue(normalized);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
-  const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
-  const [remoteMeta, setRemoteMeta] = useState<RemoteMeta | null>(() => state.remoteMeta);
+  const syncMeta = state.syncMeta;
+  const remoteMeta = state.remoteMeta;
+  const syncStatusText = syncMeta.dirty ? localDirtyStatus(state) : syncMeta.status;
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
@@ -1169,21 +1179,10 @@ function App() {
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
   const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
-  const persistStatePatch = (patch: Partial<AppState>) => {
-    const normalized = normalizeState({ ...stateRef.current, ...patch });
-    stateRef.current = normalized;
-    writeState(normalized);
-    return normalized;
-  };
-  const updateRemoteMeta = (value: RemoteMeta | null) => {
-    setRemoteMeta(value);
-    persistStatePatch({ remoteMeta: value });
-  };
+  const updateRemoteMeta = (value: RemoteMeta | null) => setState(current => ({ ...current, remoteMeta: value }));
   const [accountWarning, setAccountWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(state.syncMeta.lastLocalSaveAt || now());
-  const isApplyingRemoteRef = useRef(false);
-  const didMount = useRef(false);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
@@ -1204,8 +1203,11 @@ function App() {
     displayMode,
     sections: displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections
   });
-  const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setSyncMeta(current => { const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current) : updater, stateRef.current); persistStatePatch({ syncMeta: next }); return next; });
-  useEffect(() => { stateRef.current = state; writeState(state); if (didMount.current && !isApplyingRemoteRef.current) { const savedAt = now(); setLastSavedAt(savedAt); updateSyncMeta(current => ({ ...current, source: '本機資料', lastLocalSaveAt: savedAt, dirty: true, status: localDirtyStatus(state) })); } didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
+  const updateSyncMeta = (updater: SyncMeta | ((value: SyncMeta) => SyncMeta)) => setState(current => {
+    const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current.syncMeta) : updater, current);
+    return { ...current, syncMeta: next };
+  });
+  useEffect(() => { stateRef.current = state; writeState(state); didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
   const refreshQuotes = async () => {
     if (isRefreshingQuotes) return;
     setIsRefreshingQuotes(true);
@@ -1226,14 +1228,16 @@ function App() {
       const hasNameChange = currentHoldings.some(h => {
         const symbol = normalizeSymbol(h.symbol);
         const quote = bySymbol[symbol];
-        const name = quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : resolveSymbolName(symbol, h.name);
+        const canAutofillName = !h.name?.trim() || h.name === SYMBOL_NAMES[symbol];
+        const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : h.name;
         return Boolean(name && name !== h.name);
       });
       if (hasNameChange) {
         setState(s => ({ ...s, holdings: safeHoldings(s.holdings).map(h => {
           const symbol = normalizeSymbol(h.symbol);
           const quote = bySymbol[symbol];
-          const name = quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : resolveSymbolName(symbol, h.name);
+          const canAutofillName = !h.name?.trim() || h.name === SYMBOL_NAMES[symbol];
+          const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : h.name;
           return name && name !== h.name ? { ...h, name } : h;
         }) }));
       }
@@ -1387,8 +1391,8 @@ function App() {
     growthRatio: rb.stockRow.currentWeight, defensiveRatio: m.defensiveRatio, cashRatio: m.cashRatio,
     allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
     decision: homeDecision.primary, quoteStatus: quoteSummaryText, lastQuoteAt: latestQuoteTime, hasUpdatedQuotes,
-    syncDirty: state.syncMeta.dirty, syncStatus: state.syncMeta.status, targetInvalid: Boolean(targetWarning), holdingsCount: m.rows.filter(row => row.shares > 0).length
-    }), [m, historySummary, rb, homeDecision.primary, quoteSummaryText, latestQuoteTime, hasUpdatedQuotes, state.syncMeta, targetWarning]);
+    syncDirty: syncMeta.dirty, syncStatus: syncStatusText, targetInvalid: Boolean(targetWarning), holdingsCount: m.rows.filter(row => row.shares > 0).length
+    }), [m, historySummary, rb, homeDecision.primary, quoteSummaryText, latestQuoteTime, hasUpdatedQuotes, syncMeta, syncStatusText, targetWarning]);
     const aiDecisionItems = useMemo(() => {
       const investmentStats = deriveInvestmentPerformanceStats(netWorthHistory, 'investmentValue');
       const performanceQuality = deriveInvestmentPerformanceQuality(netWorthHistory);
@@ -1652,7 +1656,7 @@ function App() {
   const runHomeUpload = async () => {
     if (isHomeSyncing) return;
     setIsHomeSyncing('upload');
-    try { await uploadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
+    try { await uploadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
   };
   const runHomeDownload = async () => {
     if (isHomeSyncing) return;
@@ -1829,10 +1833,10 @@ function App() {
             <p><span>目前同步代號</span><strong>{state.firebase.secretPath || FIREBASE_BASE_PATH}</strong></p>
             <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
             <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
-            <p><span>同步狀態</span><strong>{syncMeta.status}</strong></p>
+            <p><span>同步狀態</span><strong>{syncStatusText}</strong></p>
           </div>
           <div className="actions">
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
             <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
             <button className="small" onClick={() => navigate('/settings')}>完整設定</button>
           </div>
@@ -1865,15 +1869,15 @@ function App() {
             <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
           </div>
           <div className="actions">
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
+            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
             <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
           </div>
           <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
           <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
           <p>
             <b>同步狀態：</b>
-            <span className={syncMeta.status.startsWith('❌') ? 'bad' : syncMeta.status.startsWith('🎉') ? 'good' : ''}>
-              {syncMeta.status}
+            <span className={syncStatusText.startsWith('❌') ? 'bad' : syncStatusText.startsWith('🎉') ? 'good' : ''}>
+              {syncStatusText}
             </span>
           </p>
           <p className="note">Firebase 上傳與下載都只會在手動按鈕觸發時執行，不會自動下載覆蓋本機資料。</p>
