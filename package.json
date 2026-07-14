@@ -27,6 +27,7 @@
     "test:v5-8-rebalance-recommendation": "tsx --test tests/rebalanceRecommendation.test.ts",
     "test:v5-8-1-allocation-presets": "tsx --test tests/allocationPresets.test.ts",
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
+    "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
     "test:v5-4-market": "tsx --test tests/marketData.test.ts tests/marketUiFoundation.test.ts && node --test tests/marketDataWorker.test.mjs",
     "test:performance": "node scripts/performance-metrics-check.mjs",
     "test:cash-flow": "node scripts/cash-flow-check.mjs",

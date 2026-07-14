@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export type ToolRoute = 'wealth-goal' | 'cash-flow' | 'net-worth-history' | 'allocation-simulator' | 'risk-center' | 'portfolio-risk' | 'rebalance-recommendation' | 'dividend-center' | 'ai-decision';
+export type ToolRoute = 'wealth-goal' | 'cash-flow' | 'net-worth-history' | 'allocation-simulator' | 'risk-center' | 'portfolio-risk' | 'rebalance-recommendation' | 'clec-strategy' | 'dividend-center' | 'ai-decision';
 const links: { route: ToolRoute; label: string; to: string }[] = [
   { route: 'wealth-goal', label: 'FIRE／財富目標', to: '/tools/wealth-goal' },
   { route: 'cash-flow', label: '收支與現金流', to: '/tools/cash-flow' },
@@ -10,7 +10,8 @@ const links: { route: ToolRoute; label: string; to: string }[] = [
   { route: 'allocation-simulator', label: '資產配置模擬器', to: '/tools/allocation-simulator' },
   { route: 'risk-center', label: '風險與現金安全中心', to: '/tools/risk-center' },
   { route: 'portfolio-risk', label: '投資組合風險與配置中心', to: '/tools/portfolio-risk' },
-  { route: 'rebalance-recommendation', label: '再平衡建議中心', to: '/tools/rebalance-recommendation' }
+  { route: 'rebalance-recommendation', label: '再平衡建議中心', to: '/tools/rebalance-recommendation' },
+  { route: 'clec-strategy', label: 'CLEC 再平衡策略中心', to: '/tools/clec-strategy' }
 ];
 
 export default function ToolQuickNavigation({ current }: { current: ToolRoute }) {
