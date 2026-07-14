@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { deriveInvestmentIntelligence, type InvestmentIntelligenceInput } from '../src/lib/investmentIntelligence';
 
@@ -41,4 +42,15 @@ test('market, performance, and normal fallbacks use existing routes without a se
   assert.equal(deriveInvestmentIntelligence(base({ dividend: { yearAmount: 0, yearCount: 0 }, performance: { canCalculateMaxDrawdown: false, snapshotCount: 1, maxDrawdown: null } })).nextAction.route, '/analytics');
   const result = deriveInvestmentIntelligence(base({ dividend: { yearAmount: 0, yearCount: 0 } }));
   assert.equal(result.nextAction.route, '/tools/ai-decision'); assert.equal(result.limitations.length, 2);
+});
+
+test('Dashboard integration keeps one primary CTA, existing routes, mobile single-column CSS, and safe wording', () => {
+  const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  assert.match(app, /deriveInvestmentIntelligence/);
+  assert.equal((page.match(/intelligence-action-link/g) || []).length, 1);
+  assert.match(css, /@media \(max-width:700px\)\{\.investment-intelligence-card.*?\.intelligence-grid\{grid-template-columns:1fr/s);
+  assert.doesNotMatch(page, /買入金額|賣出金額|股數|張數|零股|下單|最佳進場|報酬保證|預測/);
+  assert.doesNotMatch(app, /InvestmentIntelligencePage|\/tools\/investment-intelligence/);
 });
