@@ -18,6 +18,8 @@ import DashboardDecisionPage from './pages/DashboardDecisionPage';
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import CashFlowPage from './pages/CashFlowPage';
 import NetWorthHistoryPage from './pages/NetWorthHistoryPage';
+import MarketIntelligencePage from './pages/MarketIntelligencePage';
+import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -1123,6 +1125,7 @@ function App() {
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
   const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
   const isNetWorthHistory = routeLocation.pathname === '/tools/net-worth-history' || routeLocation.pathname === '/net-worth-history';
+  const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
   }
@@ -1148,6 +1151,13 @@ function App() {
   const [syncMeta, setSyncMeta] = useState<SyncMeta>(() => readSyncMeta(state));
   const [remoteMeta, setRemoteMeta] = useState<RemoteMeta | null>(() => state.remoteMeta);
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
+  const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
+  const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
+  const refreshMarketData = async () => {
+    setIsRefreshingMarket(true);
+    try { setMarketSnapshot(await fetchMarketSnapshot(marketWorkerUrl)); } finally { setIsRefreshingMarket(false); }
+  };
+  useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
   const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
   const persistStatePatch = (patch: Partial<AppState>) => {
     const normalized = normalizeState({ ...stateRef.current, ...patch });
@@ -1627,7 +1637,7 @@ function App() {
     setIsHomeSyncing('download');
     try { await downloadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
   };
-  const validPages = ['home', 'assets', 'analytics', 'tools', 'settings'];
+  const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
   if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
@@ -1659,7 +1669,9 @@ function App() {
         riskLabel: riskMetrics.overallLabel, reminders: investmentDashboard.reminders,
         cashSafety: riskMetrics.cashSafetyMonths === null ? '資料不足' : `${riskMetrics.cashSafetyMonths.toFixed(1)} 個月安全存量`,
         cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
+        market: marketSnapshot,
       }} />}
+      {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} onRefresh={() => { void refreshMarketData(); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>

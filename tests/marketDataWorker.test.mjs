@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { parseTreasuryLatest, parseTwseIndex } from '../workers/market-data/src/index.js';
+test('TWSE adapter returns a closed TAIEX value and ROC date in Taipei time', () => { const point = parseTwseIndex([{ 日期: '1150713', 指數: '發行量加權股價指數', 收盤指數: '45380.52', 漲跌點數: '25.91', 漲跌百分比: '0.06' }], '2026-07-14T01:00:00.000Z'); assert.equal(point.status, 'closed'); assert.equal(point.value, 45380.52); assert.match(point.asOf, /^2026-07-13/); });
+test('Treasury adapter returns 2Y, 10Y, 30Y and calculated spread with a recent-effective status', () => { const xml = '<entry><d:NEW_DATE>2026-07-13T00:00:00</d:NEW_DATE><d:BC_2YEAR>4.10</d:BC_2YEAR><d:BC_10YEAR>4.50</d:BC_10YEAR><d:BC_30YEAR>5.00</d:BC_30YEAR></entry>'; const points = parseTreasuryLatest(xml, '2026-07-14T01:00:00.000Z'); assert.equal(points.length, 4); assert.equal(points[3].value, 0.4); assert.equal(points[0].asOf, '2026-07-13T00:00:00-04:00'); assert.equal(points[0].status, 'recent-effective'); });
