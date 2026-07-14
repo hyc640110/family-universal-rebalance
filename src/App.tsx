@@ -22,6 +22,7 @@ import DividendCenterPage from './pages/DividendCenterPage';
 import MarketIntelligencePage from './pages/MarketIntelligencePage';
 import AiDecisionCenterPage from './pages/AiDecisionCenterPage';
 import PortfolioRiskPage from './pages/PortfolioRiskPage';
+import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -32,6 +33,7 @@ import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats } 
 import { dividendSources, dividendSummary } from './lib/dividends';
 import { deriveAiDecisions } from './lib/aiDecision';
 import { derivePortfolioRisk } from './lib/portfolioRisk';
+import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1136,6 +1138,7 @@ function App() {
     const isDividendCenter = routeLocation.pathname === '/tools/dividend-center';
     const isAiDecisionCenter = routeLocation.pathname === '/tools/ai-decision';
     const isPortfolioRiskCenter = routeLocation.pathname === '/tools/portfolio-risk';
+    const isRebalanceRecommendationCenter = routeLocation.pathname === '/tools/rebalance-recommendation';
   const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
@@ -1349,6 +1352,13 @@ function App() {
     risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
     quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
   }), [m, state.holdings, rb, riskMetrics, investmentStats, performanceQuality]);
+  const rebalanceRecommendationView = useMemo(() => deriveRebalanceRecommendation({
+    totalAssets: m.totalAssets, liquidCash: m.cash, buyOnlyBudget: state.buyOnlyBudget, rebalanceMode: state.rebalanceMode,
+    rebalanceThreshold: rb.threshold, allocationDeviation: rb.deviation, targetTotal: getHoldingTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings),
+    holdings: m.rows.map(row => ({ symbol: row.symbol, name: row.name, marketValue: row.marketValue, currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : 0, targetWeight: getEffectiveTargetPercent(row, state.holdings), assetClass: row.assetClass, price: row.quote.price, quoteStatus: quoteDateStatus(row.quote.quoteDate), quoteSource: row.quote.source, quoteError: row.quote.error })),
+    duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
+    allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
+  }), [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
@@ -1675,7 +1685,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter) return <Navigate to="/home" replace />;
+    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1861,6 +1871,7 @@ function App() {
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
+        {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
