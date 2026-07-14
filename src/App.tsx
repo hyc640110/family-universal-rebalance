@@ -895,12 +895,14 @@ function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeep
     </div>
     {draftPreset !== 'custom' && <div className="allocation-preset-roles">{holdings.map(holding => {
       const symbol = normalizeSymbol(holding.symbol);
-      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={draftRoles[symbol] || 'none'} onChange={event => { const role = event.currentTarget.value as AllocationRole; setDraftRoles(current => ({ ...current, [symbol]: role })); }}><option value="none">未指派</option><option value="prototype">原型資產</option><option value="leveraged">槓桿資產</option><option value="cash-like">類現金持股</option></select></label>;
+      const currentRole = draftRoles[symbol] || 'none';
+      const occupiedRoles = new Set(Object.entries(draftRoles).filter(([otherSymbol, role]) => otherSymbol !== symbol && role !== 'none').map(([, role]) => role));
+      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={currentRole} onChange={event => { const role = event.currentTarget.value as AllocationRole; setDraftRoles(current => ({ ...current, [symbol]: role })); }}><option value="none">未指派</option><option value="prototype" disabled={currentRole !== 'prototype' && occupiedRoles.has('prototype')}>原型資產</option><option value="leveraged" disabled={currentRole !== 'leveraged' && occupiedRoles.has('leveraged')}>槓桿資產</option><option value="cash-like" disabled={currentRole !== 'cash-like' && occupiedRoles.has('cash-like')}>類現金持股</option></select></label>;
     })}</div>}
     <div className={`allocation-preset-preview ${preview.canApply ? 'good' : 'bad'}`}>
       <h3>套用後預覽</h3>
-      <p><b>{allocationPresetLabel(draftPreset)}</b>｜持股目標合計 {pct(preview.targetTotal)}｜銀行現金目標 {pct(preview.cashTargetPct)}</p>
-      {preview.rows.map(row => <p key={row.symbol}><span>{row.symbol}｜{roleLabel(row.role)}</span><strong>{pct(row.currentWeight)} → {pct(row.nextWeight)}</strong></p>)}
+      <p><b>{allocationPresetLabel(draftPreset)}</b>｜持股目標合計 {preview.targetTotal === null ? '無法計算' : pct(preview.targetTotal)}｜銀行現金目標 {preview.cashTargetPct === null ? '無法計算' : pct(preview.cashTargetPct)}</p>
+      {preview.rows.map(row => <p key={row.symbol}><span>{row.symbol}｜{row.issue === 'duplicate-role' ? '角色重複，尚未分配' : roleLabel(row.role)}</span><strong>{pct(row.currentWeight)} → {row.nextWeight === null ? '無法計算' : pct(row.nextWeight)}</strong></p>)}
       {preview.warnings.map(item => <p className="warning-message" key={item}>{item}</p>)}
       {preview.blockingReasons.map(item => <p className="warning-message" key={item}>{item}</p>)}
     </div>
@@ -1642,6 +1644,7 @@ function App() {
   };
   const applyAllocationPreset = (preview: ReturnType<typeof deriveAllocationPresetPreview>, roles: AllocationRoleBySymbol) => setState(current => {
     if (!preview.canApply || preview.preset === 'custom') return current;
+    if (preview.rows.some(row => row.nextWeight === null)) return current;
     const targetBySymbol = Object.fromEntries(preview.rows.map(row => [row.symbol, row.nextWeight]));
     const holdings = safeHoldings(current.holdings).map(holding => ({ ...holding, targetWeight: targetBySymbol[normalizeSymbol(holding.symbol)] ?? 0 }));
     return { ...current, holdings, allocationPreset: preview.preset, allocationRoleBySymbol: normalizeAllocationRoleBySymbol(roles, holdings) };

@@ -18,9 +18,9 @@ export type AllocationPresetPreview = {
   canApply: boolean;
   blockingReasons: string[];
   warnings: string[];
-  rows: Array<{ symbol: string; name: string; role: AllocationRole; currentWeight: number; nextWeight: number; difference: number }>;
-  targetTotal: number;
-  cashTargetPct: number;
+  rows: Array<{ symbol: string; name: string; role: AllocationRole; currentWeight: number; nextWeight: number | null; difference: number | null; issue?: 'duplicate-role' }>;
+  targetTotal: number | null;
+  cashTargetPct: number | null;
 };
 
 const ROLE_ORDER: AllocationRole[] = ['prototype', 'leveraged', 'cash-like'];
@@ -66,14 +66,19 @@ export function deriveAllocationPresetPreview(input: AllocationPresetPreviewInpu
   });
   const warnings = holdings.filter(holding => roles[holding.symbol] === 'none').map(holding => `${holding.symbol} 未指派 CLEC 角色；套用後目標比例將為 0%。`);
   const targets = PRESET_WEIGHTS[preset];
+  const duplicateRoles = new Set(assigned.filter(item => item.symbols.length > 1).map(item => item.role));
+  const isInvalid = blockingReasons.length > 0;
   const rows = holdings.map(holding => {
     const role = roles[holding.symbol];
-    const nextWeight = role === 'none' ? 0 : targets[role];
-    return { symbol: holding.symbol, name: holding.name, role, currentWeight: holding.targetWeight, nextWeight, difference: nextWeight - holding.targetWeight };
+    const nextWeight = isInvalid ? null : role === 'none' ? 0 : targets[role];
+    return { symbol: holding.symbol, name: holding.name, role, currentWeight: holding.targetWeight, nextWeight, difference: nextWeight === null ? null : nextWeight - holding.targetWeight, issue: duplicateRoles.has(role) ? 'duplicate-role' as const : undefined };
   });
-  const targetTotal = rows.reduce((sum, row) => sum + row.nextWeight, 0);
-  if (targetTotal !== 100) blockingReasons.push('CLEC 角色目標比例未能合計為 100%，無法套用。');
-  return { preset, canApply: blockingReasons.length === 0, blockingReasons, warnings, rows, targetTotal, cashTargetPct: Math.max(0, 100 - targetTotal) };
+  if (!isInvalid) {
+    const targetTotal = rows.reduce((sum, row) => sum + (row.nextWeight ?? 0), 0);
+    if (targetTotal !== 100) return { preset, canApply: false, blockingReasons: [...blockingReasons, 'CLEC 角色目標比例未能合計為 100%，無法套用。'], warnings, rows: rows.map(row => ({ ...row, nextWeight: null, difference: null })), targetTotal: null, cashTargetPct: null };
+    return { preset, canApply: true, blockingReasons, warnings, rows, targetTotal, cashTargetPct: Math.max(0, 100 - targetTotal) };
+  }
+  return { preset, canApply: false, blockingReasons, warnings, rows, targetTotal: null, cashTargetPct: null };
 }
 
 export const allocationPresetLabel = (preset: AllocationPreset) => preset === 'clec-442' ? 'CLEC 442' : preset === 'clec-433' ? 'CLEC 433' : '自訂配置';

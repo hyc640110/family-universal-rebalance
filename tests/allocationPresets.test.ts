@@ -37,6 +37,31 @@ test('missing or duplicate role assignments block applying a preset', () => {
   assert.ok(duplicate.blockingReasons.length > 0);
 });
 
+test('duplicate roles never produce a partial or over-100% allocation preview', () => {
+  for (const role of ['prototype', 'leveraged', 'cash-like'] as const) {
+    const remaining = role === 'prototype' ? ['leveraged', 'cash-like'] as const : role === 'leveraged' ? ['prototype', 'cash-like'] as const : ['prototype', 'leveraged'] as const;
+    const roleBySymbol = { AAA: role, BBB: role, CCC: remaining[0], DDD: remaining[1] };
+    const input = { preset: 'clec-433' as const, holdings, roleBySymbol };
+    const result = deriveAllocationPresetPreview(input);
+    assert.equal(result.canApply, false, `${role} duplicate must block applying`);
+    assert.equal(result.targetTotal, null, `${role} duplicate must not show a total`);
+    assert.equal(result.cashTargetPct, null, `${role} duplicate must not show a cash target`);
+    assert.ok(result.rows.every(row => row.nextWeight === null && row.difference === null), `${role} duplicate must not allocate any row`);
+    assert.ok(result.rows.filter(row => row.issue === 'duplicate-role').length === 2, `${role} duplicate rows must be explicit`);
+    assert.match(result.blockingReasons.join('\n'), /僅能指定一檔持股/);
+    assert.deepEqual(input, { preset: 'clec-433', holdings, roleBySymbol });
+  }
+});
+
+test('correcting a duplicate mapping restores a valid 100% preview', () => {
+  const invalid = deriveAllocationPresetPreview({ preset: 'clec-442', holdings, roleBySymbol: { AAA: 'prototype', BBB: 'prototype', CCC: 'cash-like' } });
+  const restored = deriveAllocationPresetPreview({ preset: 'clec-442', holdings, roleBySymbol: roles });
+  assert.equal(invalid.canApply, false);
+  assert.equal(restored.canApply, true);
+  assert.equal(restored.targetTotal, 100);
+  assert.equal(restored.cashTargetPct, 0);
+});
+
 test('mapping normalization drops unknown symbols and none roles', () => {
   assert.deepEqual(normalizeAllocationRoleBySymbol({ aaa: 'prototype', ghost: 'leveraged', BBB: 'none' }, holdings), { AAA: 'prototype' });
 });
