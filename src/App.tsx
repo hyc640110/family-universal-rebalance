@@ -881,6 +881,10 @@ function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeep
 }) {
   const [draftPreset, setDraftPreset] = useState<AllocationPreset>(preset);
   const [draftRoles, setDraftRoles] = useState<AllocationRoleBySymbol>(roleBySymbol);
+  useEffect(() => {
+    setDraftPreset(preset);
+    setDraftRoles(roleBySymbol);
+  }, [preset, roleBySymbol]);
   const preview = deriveAllocationPresetPreview({ preset: draftPreset, holdings, roleBySymbol: draftRoles });
   const resetDraft = () => { setDraftPreset(preset); setDraftRoles(roleBySymbol); };
   return <Card title="配置方案" className="allocation-preset-panel">
