@@ -895,7 +895,7 @@ function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeep
     </div>
     {draftPreset !== 'custom' && <div className="allocation-preset-roles">{holdings.map(holding => {
       const symbol = normalizeSymbol(holding.symbol);
-      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={draftRoles[symbol] || 'none'} onChange={event => setDraftRoles(current => ({ ...current, [symbol]: event.currentTarget.value as AllocationRole }))}><option value="none">未指派</option><option value="prototype">原型資產</option><option value="leveraged">槓桿資產</option><option value="cash-like">類現金持股</option></select></label>;
+      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={draftRoles[symbol] || 'none'} onChange={event => { const role = event.currentTarget.value as AllocationRole; setDraftRoles(current => ({ ...current, [symbol]: role })); }}><option value="none">未指派</option><option value="prototype">原型資產</option><option value="leveraged">槓桿資產</option><option value="cash-like">類現金持股</option></select></label>;
     })}</div>}
     <div className={`allocation-preset-preview ${preview.canApply ? 'good' : 'bad'}`}>
       <h3>套用後預覽</h3>
