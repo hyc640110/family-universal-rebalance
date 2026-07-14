@@ -1,4 +1,4 @@
-export const TRANSACTION_SCHEMA_VERSION = 1;
+export const TRANSACTION_SCHEMA_VERSION = 2;
 export const TRANSACTION_TYPES = ['income', 'expense', 'transfer', 'adjustment'] as const;
 export const TRANSACTION_STATUSES = ['posted', 'pending', 'void'] as const;
 export const TRANSACTION_SOURCES = ['manual', 'import', 'gmail'] as const;
@@ -6,7 +6,7 @@ export type TransactionType = typeof TRANSACTION_TYPES[number];
 export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
 export type TransactionSource = typeof TRANSACTION_SOURCES[number];
 export type AccountReference = { id: string; currency: string; isActive: boolean };
-export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string };
+export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number };
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
 export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
   { id: 'income-salary', name: '薪資', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'income-interest', name: '利息', kind: 'income', isActive: true, sortOrder: 1 }, { id: 'income-dividend', name: '股息', kind: 'income', isActive: true, sortOrder: 2 }, { id: 'income-refund', name: '退款', kind: 'income', isActive: true, sortOrder: 3 }, { id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 4 },
@@ -27,6 +27,13 @@ const status = (value: unknown): TransactionStatus => TRANSACTION_STATUSES.inclu
 const source = (value: unknown): TransactionSource => TRANSACTION_SOURCES.includes(value as TransactionSource) ? value as TransactionSource : 'manual';
 const references = (accounts: AccountReference[] | Set<string>): AccountReference[] => accounts instanceof Set ? [...accounts].map(id => ({ id, currency: 'TWD', isActive: true })) : accounts;
 const account = (id: string, accounts: AccountReference[]) => accounts.find(candidate => candidate.id === id);
+const optionalText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : undefined;
+const optionalNonNegative = (value: unknown, label: string) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${label}必須是有限且不小於 0 的數字`);
+  return parsed;
+};
 /** Safely repairs legacy or mismatched categories before state is persisted. */
 export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {
   const available = categoriesForTransactionType(transactionType);
@@ -49,7 +56,11 @@ export function validateTransferAccounts(from: string, to: string, amountValue: 
 function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountList: AccountReference[], fallback: string, id = createTransactionId(), current?: FinancialTransaction): FinancialTransaction {
   const resolvedType = type(candidate.type ?? current?.type); const accountId = text(candidate.accountId ?? current?.accountId);
   const sourceAccount = account(accountId, accountList);
-  const amount = positive(candidate.amount ?? current?.amount);
+  const categoryId = normalizeTransactionCategory(resolvedType, text(candidate.categoryId ?? current?.categoryId));
+  const grossAmount = resolvedType === 'income' && categoryId === 'income-dividend' ? optionalNonNegative(candidate.grossAmount, '稅前股息') : undefined;
+  const withholdingTax = resolvedType === 'income' && categoryId === 'income-dividend' ? optionalNonNegative(candidate.withholdingTax, '扣繳稅額') : undefined;
+  if (grossAmount !== undefined && withholdingTax !== undefined && withholdingTax > grossAmount) throw new Error('扣繳稅額不得大於稅前股息');
+  const amount = grossAmount !== undefined && withholdingTax !== undefined ? grossAmount - withholdingTax : positive(candidate.amount ?? current?.amount);
   if (!sourceAccount || !sourceAccount.isActive || !(amount > 0)) throw new Error('請選擇有效啟用帳戶並輸入大於 0 的金額');
   const transferAccountId = text(candidate.transferAccountId ?? current?.transferAccountId) || undefined;
   if (resolvedType === 'transfer') {
@@ -65,7 +76,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     source: source(candidate.source ?? current?.source),
     amount,
     currency: (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8),
-    categoryId: normalizeTransactionCategory(resolvedType, text(candidate.categoryId ?? current?.categoryId)),
+    categoryId,
     description: text(candidate.description ?? current?.description),
     merchant: text(candidate.merchant ?? current?.merchant),
     note: text(candidate.note ?? current?.note),
@@ -73,7 +84,13 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     fingerprint: '',
     excluded: Boolean(candidate.excluded ?? current?.excluded),
     createdAt: current?.createdAt || iso(candidate.createdAt, fallback),
-    updatedAt: fallback
+    updatedAt: fallback,
+    ...(resolvedType === 'income' && categoryId === 'income-dividend' ? {
+      ...(optionalText(candidate.assetSymbol) ? { assetSymbol: optionalText(candidate.assetSymbol)!.toUpperCase() } : {}),
+      ...(optionalText(candidate.assetName) ? { assetName: optionalText(candidate.assetName) } : {}),
+      ...(grossAmount !== undefined ? { grossAmount } : {}),
+      ...(withholdingTax !== undefined ? { withholdingTax } : {})
+    } : {})
   };
   const fingerprintChanged = !current || ['accountId', 'transferAccountId', 'type', 'amount', 'currency', 'occurredAt', 'categoryId', 'description', 'merchant'].some(key => String(current[key as keyof FinancialTransaction] ?? '') !== String(normalized[key as keyof FinancialTransaction] ?? ''));
   return { ...normalized, fingerprint: fingerprintChanged ? transactionFingerprint(normalized) : current.fingerprint };
