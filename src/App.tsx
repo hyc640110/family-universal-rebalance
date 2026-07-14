@@ -18,6 +18,7 @@ import DashboardDecisionPage from './pages/DashboardDecisionPage';
 import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPage';
 import CashFlowPage from './pages/CashFlowPage';
 import NetWorthHistoryPage from './pages/NetWorthHistoryPage';
+import DividendCenterPage from './pages/DividendCenterPage';
 import MarketIntelligencePage from './pages/MarketIntelligencePage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
@@ -1128,6 +1129,7 @@ function App() {
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
   const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
   const isNetWorthHistory = routeLocation.pathname === '/tools/net-worth-history' || routeLocation.pathname === '/net-worth-history';
+  const isDividendCenter = routeLocation.pathname === '/tools/dividend-center';
   const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
@@ -1532,7 +1534,7 @@ function App() {
     const account = stateRef.current.accounts.find(entry => entry.id === id);
     if (account && window.confirm(`確定要刪除帳戶「${account.name}」嗎？目前尚無交易資料引用，刪除不會影響舊版現金相容資料。`)) setState(current => ({ ...current, accounts: removeFinancialAccount(current.accounts, id) }));
   };
-  const createTransaction = (input: Partial<FinancialTransaction>) => setState(current => { const timestamp = now(); const account = current.accounts.find(item => item.id === input.accountId); if (!account || !input.type || !input.status || !input.occurredAt) return current; if (input.type === 'transfer') { try { return { ...current, transactions: [...current.transactions, createTransferTransaction({ accountId: input.accountId || '', transferAccountId: input.transferAccountId, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, excluded: Boolean(input.excluded) }, current.accounts, timestamp)] }; } catch { return current; } } try { const draft: FinancialTransaction = { id: createTransactionId(), accountId: input.accountId || '', type: input.type, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, categoryId: input.categoryId || '', description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, fingerprint: '', excluded: Boolean(input.excluded), createdAt: timestamp, updatedAt: timestamp }; return { ...current, transactions: [...current.transactions, updateTransactionRecord(draft, {}, current.accounts, timestamp)] }; } catch { return current; } });
+  const createTransaction = (input: Partial<FinancialTransaction>) => setState(current => { const timestamp = now(); const account = current.accounts.find(item => item.id === input.accountId); if (!account || !input.type || !input.status || !input.occurredAt) return current; if (input.type === 'transfer') { try { return { ...current, transactions: [...current.transactions, createTransferTransaction({ accountId: input.accountId || '', transferAccountId: input.transferAccountId, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, excluded: Boolean(input.excluded) }, current.accounts, timestamp)] }; } catch { return current; } } try { const draft: FinancialTransaction = { id: createTransactionId(), accountId: input.accountId || '', type: input.type, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, categoryId: input.categoryId || '', description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, fingerprint: '', excluded: Boolean(input.excluded), createdAt: timestamp, updatedAt: timestamp, ...(input.assetSymbol ? { assetSymbol: input.assetSymbol } : {}), ...(input.assetName ? { assetName: input.assetName } : {}), ...(input.grossAmount !== undefined ? { grossAmount: input.grossAmount } : {}), ...(input.withholdingTax !== undefined ? { withholdingTax: input.withholdingTax } : {}) }; return { ...current, transactions: [...current.transactions, updateTransactionRecord(draft, {}, current.accounts, timestamp)] }; } catch { return current; } });
   const deleteTransaction = (id: string) => setState(current => ({ ...current, transactions: current.transactions.filter(transaction => transaction.id !== id) }));
   const updateTransaction = (id: string, patch: Partial<FinancialTransaction>) => setState(current => { try { return { ...current, transactions: current.transactions.map(transaction => transaction.id === id ? updateTransactionRecord(transaction, patch, current.accounts) : transaction) }; } catch { return current; } });
   const commitImport = (session: ImportSession, imported: FinancialTransaction[]) => setState(current => ({ ...current, transactions: [...current.transactions, ...imported], importSessions: [...current.importSessions, session].slice(-50) }));
@@ -1642,7 +1644,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory) return <Navigate to="/home" replace />;
+  if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -1825,6 +1827,7 @@ function App() {
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
+      {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>

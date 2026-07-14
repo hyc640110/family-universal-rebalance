@@ -17,8 +17,8 @@ const tools = [
 
 export default function ToolsPage() {
   return <PageFrame page="tools" title="工具" description="進階投資工具將在後續版本逐步提供。">
-    <section className="tool-grid">{tools.map(([name, description, Icon]) => name === '資產配置模擬器' || name === '風險與現金安全中心' || name === 'FIRE／財富目標' || name === '收支與現金流' || name === '淨資產歷史中心' ? <article className="tool-card tool-card-active" key={name}>
-      <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><Link to={name === '資產配置模擬器' ? '/tools/allocation-simulator' : name === '風險與現金安全中心' ? '/tools/risk-center' : name === '收支與現金流' ? '/tools/cash-flow' : name === '淨資產歷史中心' ? '/tools/net-worth-history' : '/tools/wealth-goal'}>{name === '資產配置模擬器' ? '開始模擬' : name === '風險與現金安全中心' ? '查看風險' : name === '收支與現金流' ? '查看現金流' : name === '淨資產歷史中心' ? '查看歷史' : '查看目標'} <ArrowRight size={15} /></Link>
+    <section className="tool-grid">{tools.map(([name, description, Icon]) => name === '資產配置模擬器' || name === '風險與現金安全中心' || name === 'FIRE／財富目標' || name === '收支與現金流' || name === '淨資產歷史中心' || name === '配息中心' ? <article className="tool-card tool-card-active" key={name}>
+      <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><Link to={name === '資產配置模擬器' ? '/tools/allocation-simulator' : name === '風險與現金安全中心' ? '/tools/risk-center' : name === '收支與現金流' ? '/tools/cash-flow' : name === '淨資產歷史中心' ? '/tools/net-worth-history' : name === '配息中心' ? '/tools/dividend-center' : '/tools/wealth-goal'}>{name === '資產配置模擬器' ? '開始模擬' : name === '風險與現金安全中心' ? '查看風險' : name === '收支與現金流' ? '查看現金流' : name === '淨資產歷史中心' ? '查看歷史' : name === '配息中心' ? '查看股息' : '查看目標'} <ArrowRight size={15} /></Link>
     </article> : <article className="tool-card" key={name} aria-disabled="true">
       <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><span>規劃中</span>
     </article>)}</section>

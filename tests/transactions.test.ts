@@ -105,3 +105,18 @@ test('storage, Firebase, and JSON backup normalization preserve legal transfers 
   assert.equal(result.transactions[0].type, 'transfer', 'illegal transfers are skipped, never converted');
   assert.equal(result.skipped.length, 4);
 });
+
+test('dividend metadata is optional, preserved across storage normalization, validates tax arithmetic, and does not change fingerprints by itself', () => {
+  const base = normalizeTransactions([{ id: 'dividend', accountId: 'a', type: 'income', status: 'posted', amount: 90, currency: 'TWD', categoryId: 'income-dividend', occurredAt: '2026-07-01T00:00:00.000Z', assetSymbol: '0050', assetName: '元大台灣50', grossAmount: 100, withholdingTax: 10 }], accounts, '2026-07-02T00:00:00.000Z').transactions[0];
+  assert.equal(base.amount, 90);
+  assert.equal(base.assetSymbol, '0050');
+  assert.equal(base.assetName, '元大台灣50');
+  assert.equal(base.grossAmount, 100);
+  assert.equal(base.withholdingTax, 10);
+  assert.deepEqual(normalizeTransactions(JSON.parse(JSON.stringify([base])), accounts, '2026-07-02T00:00:00.000Z').transactions[0], base, 'localStorage, Firebase, and JSON backup all use the same normalizer');
+  const renamed = updateTransaction(base, { assetName: '歷史名稱快照' }, accounts, '2026-07-03T00:00:00.000Z');
+  assert.equal(renamed.fingerprint, base.fingerprint, 'metadata must not change existing duplicate identity rules');
+  assert.throws(() => updateTransaction(base, { grossAmount: 10, withholdingTax: 11 }, accounts));
+  const ordinaryIncome = updateTransaction(base, { categoryId: 'income-other' }, accounts);
+  assert.equal(ordinaryIncome.assetSymbol, undefined, 'only income-dividend may retain dividend metadata');
+});
