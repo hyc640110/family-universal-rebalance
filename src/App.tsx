@@ -47,7 +47,7 @@ import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransa
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
-import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, shortSyncFingerprint, syncPayloadFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, shortSyncFingerprint, syncPayloadFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
 type SymbolCode = string;
@@ -1231,7 +1231,7 @@ function App() {
   const syncMeta = state.syncMeta;
   const remoteMeta = state.remoteMeta;
   const syncBaselineDiagnostics = useMemo(() => deriveSyncBaselineDiagnostics(state, syncMeta.baselineFingerprint), [state, syncMeta.baselineFingerprint]);
-  const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncMeta.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
+  const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
@@ -1269,7 +1269,12 @@ function App() {
     const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current.syncMeta) : updater, current);
     return { ...current, syncMeta: next };
   });
-  useEffect(() => { stateRef.current = state; writeState(state); didMount.current = true; isApplyingRemoteRef.current = false; }, [state]);
+  useEffect(() => {
+    if (stateRef.current !== state) return;
+    writeState(state);
+    didMount.current = true;
+    isApplyingRemoteRef.current = false;
+  }, [state]);
   const refreshQuotes = async () => {
     if (isRefreshingQuotes) return;
     setIsRefreshingQuotes(true);
@@ -1330,17 +1335,21 @@ function App() {
     const uploadedSnapshot = await uploadFirebase(normalized.firebase, normalized);
     const syncedAt = now(); 
     setLastSavedAt(syncedAt); 
-    updateSyncMeta(current => {
-      const outcome = deriveSyncBaselineDiagnostics(stateRef.current, uploadedSnapshot.fingerprint);
+    setState(current => {
+      const outcome = deriveSuccessfulUploadResult(current, uploadedSnapshot);
+      const changedFields = outcome.changedFields.length ? `｜差異欄位 ${outcome.changedFields.join('、')}` : '';
       return {
         ...current,
-        source: '本機資料',
-        baselineFingerprint: uploadedSnapshot.fingerprint,
-        dirty: outcome.dirty,
-        lastUploadAt: syncedAt,
-        status: outcome.dirty
-          ? `🎉 上傳成功，但上傳期間本機另有未上傳變更｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
-          : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+        syncMeta: sanitizeSyncMeta({
+          ...current.syncMeta,
+          source: '本機資料',
+          baselineFingerprint: uploadedSnapshot.fingerprint,
+          dirty: outcome.dirty,
+          lastUploadAt: syncedAt,
+          status: outcome.dirty
+            ? `🎉 上傳成功，但上傳期間本機另有未上傳變更${changedFields}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+            : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+        }, current)
       };
     });
     updateRemoteMeta({

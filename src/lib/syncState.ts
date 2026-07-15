@@ -38,10 +38,17 @@ export type SyncBaselineDiagnostics = {
   reason: 'clean' | 'payload differs' | 'baseline missing';
 };
 
+export type SuccessfulUploadResult = SyncBaselineDiagnostics & {
+  changedFields: string[];
+};
+
 /** Sync metadata describes this device, so it must not participate in payload equality or Firebase storage. */
 export function withoutSyncMetadata<T extends StateWithSyncMetadata>(state: T): Omit<T, 'syncMeta' | 'remoteMeta'> {
   const { syncMeta: _syncMeta, remoteMeta: _remoteMeta, ...syncableState } = state;
-  return syncableState;
+  const gmailOAuth = syncableState.gmailOAuth;
+  if (!gmailOAuth || typeof gmailOAuth !== 'object' || Array.isArray(gmailOAuth)) return syncableState;
+  const { lastCheckedAt: _lastCheckedAt, ...syncableGmailOAuth } = gmailOAuth as Record<string, unknown>;
+  return { ...syncableState, gmailOAuth: syncableGmailOAuth } as Omit<T, 'syncMeta' | 'remoteMeta'>;
 }
 
 function canonicalValue(value: unknown): unknown {
@@ -101,6 +108,22 @@ export function deriveSyncBaselineDiagnostics(state: StateWithSyncMetadata, base
   if (!baselineFingerprint) return { baselineAvailable: false, currentFingerprint, dirty: true, reason: 'baseline missing' };
   const dirty = currentFingerprint !== baselineFingerprint;
   return { baselineAvailable: true, currentFingerprint, baselineFingerprint, dirty, reason: dirty ? 'payload differs' : 'clean' };
+}
+
+/** Returns only safe top-level field names; values never leave the canonical payload comparison. */
+export function syncPayloadTopLevelDiff(previous: StateWithSyncMetadata, next: StateWithSyncMetadata) {
+  const left = canonicalSyncPayload(previous);
+  const right = canonicalSyncPayload(next);
+  return Array.from(new Set([...Object.keys(left), ...Object.keys(right)]))
+    .sort()
+    .filter(key => stableCanonicalJson(left[key]) !== stableCanonicalJson(right[key]));
+}
+
+export function deriveSuccessfulUploadResult(current: StateWithSyncMetadata, uploadedSnapshot: SyncPayloadSnapshot): SuccessfulUploadResult {
+  return {
+    ...deriveSyncBaselineDiagnostics(current, uploadedSnapshot.fingerprint),
+    changedFields: syncPayloadTopLevelDiff(uploadedSnapshot.payload, current)
+  };
 }
 
 export function shortSyncFingerprint(value?: string) {
