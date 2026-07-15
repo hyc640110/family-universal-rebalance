@@ -2,6 +2,7 @@ export const TRANSACTION_SCHEMA_VERSION = 2;
 export const TRANSACTION_TYPES = ['income', 'expense', 'transfer', 'adjustment'] as const;
 export const TRANSACTION_STATUSES = ['posted', 'pending', 'void'] as const;
 export const TRANSACTION_SOURCES = ['manual', 'import', 'gmail'] as const;
+const LEGACY_TRANSACTION_FALLBACK = '1970-01-01T00:00:00.000Z';
 export type TransactionType = typeof TRANSACTION_TYPES[number];
 export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
 export type TransactionSource = typeof TRANSACTION_SOURCES[number];
@@ -84,7 +85,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     fingerprint: '',
     excluded: Boolean(candidate.excluded ?? current?.excluded),
     createdAt: current?.createdAt || iso(candidate.createdAt, fallback),
-    updatedAt: fallback,
+    updatedAt: current ? fallback : iso(candidate.updatedAt, iso(candidate.createdAt, fallback)),
     ...(resolvedType === 'income' && categoryId === 'income-dividend' ? {
       ...(optionalText(candidate.assetSymbol) ? { assetSymbol: optionalText(candidate.assetSymbol)!.toUpperCase() } : {}),
       ...(optionalText(candidate.assetName) ? { assetName: optionalText(candidate.assetName) } : {}),
@@ -110,7 +111,7 @@ export function updateTransaction(current: FinancialTransaction, patch: Partial<
   return normalizeCandidate({ ...current, ...patch, type: nextType, ...(nextType === 'transfer' ? {} : { transferAccountId: undefined }) }, accounts, timestamp, current.id, current);
 }
 
-export function normalizeTransactions(raw: unknown, accountInput: AccountReference[] | Set<string>, fallback = new Date().toISOString()) {
+export function normalizeTransactions(raw: unknown, accountInput: AccountReference[] | Set<string>, fallback = LEGACY_TRANSACTION_FALLBACK) {
   const accountList = references(accountInput); const used = new Set<string>(), skipped: string[] = [];
   const transactions = (Array.isArray(raw) ? raw : []).flatMap((value, index) => {
     if (!value || typeof value !== 'object') { skipped.push(`第 ${index + 1} 筆不是交易物件`); return []; }
