@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { Download, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import readXlsxFile, { readSheet } from 'read-excel-file/browser';
-import { APP_BUILD_TIME, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
@@ -48,6 +48,7 @@ import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMap
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
 import { hasSyncableStateChanged, withoutSyncMetadata, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1486,10 +1487,13 @@ function App() {
     performance: { canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount, maxDrawdown: investmentStats.maxDrawdown },
     dividend: dividendSummary(state.transactions)
   }), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions]);
+  const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
+  const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
     `Build: ${APP_BUILD_TIME}`,
+    `GitCommit: ${APP_GIT_COMMIT}`,
     `URL: ${typeof location !== 'undefined' ? location.href : ''}`,
     `UserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
     `StorageKey: ${STORAGE_KEY}`,
@@ -1497,6 +1501,12 @@ function App() {
     `SyncCode: ${state.firebase.secretPath || FIREBASE_BASE_PATH}`,
     `FirebasePath: ${syncPath(state.firebase)}`,
     `WorkerURL: ${DEFAULT_WORKER_URL}`,
+    `MarketWorkerURL: ${marketRuntime.endpoint}`,
+    `MarketCacheControl: ${marketRuntime.cache}`,
+    `MarketSnapshot: ${marketSnapshot.status} / ${marketSnapshot.fetchedAt || '尚未取得'}`,
+    `QuoteRequestCache: no-store`,
+    `SyncDirty: ${syncMeta.dirty ? 'true' : 'false'}`,
+    `SyncSource: ${syncMeta.source}`,
     `HoldingsCount: ${safeHoldings(state.holdings).length}`,
     `CashAccountsCount: ${state.cash.length}`,
     `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
@@ -1516,7 +1526,9 @@ function App() {
     `DefensiveCurrentRatio: ${pct(rb.defensiveRow.currentWeight)}`,
     `QuoteStatus: ${quoteStatus}`,
     `HoldingNames: ${m.rows.map(row => `${row.symbol}:${row.quote.name}`).join(' / ')}`,
-    `QuoteSources: ${m.rows.map(row => `${row.symbol}=${row.quote.source}${row.quote.error ? ` (${row.quote.error})` : ''}`).join(' / ')}`
+    `QuoteSources: ${m.rows.map(row => `${row.symbol}=${row.quote.source}${row.quote.error ? ` (${row.quote.error})` : ''}`).join(' / ')}`,
+    'QuoteProvenance:',
+    ...quoteProvenance.map(value => `  ${value}`)
   ].join('\n');
   const copyDebugInfo = async () => {
     const text = generateDebugInfo();
@@ -2097,10 +2109,28 @@ function App() {
             <div className="status-grid">
               <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
               <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+              <p><span>Git commit</span><strong>{APP_GIT_COMMIT}</strong></p>
               <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
               <p><span>Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
               <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
             </div>
+            <section className="runtime-provenance" aria-label="執行環境與資料來源診斷">
+              <h3>執行環境與資料來源</h3>
+              <p className="note">僅顯示本機當下已取得的資訊；不會自動同步、清除快取、重設資料或覆寫任何裝置資料。</p>
+              <div className="status-grid">
+                <p><span>目前 URL</span><strong>{typeof location !== 'undefined' ? location.href : '—'}</strong></p>
+                <p><span>同步狀態</span><strong>{syncMeta.dirty ? '本機有未上傳變更' : '本機與最近同步狀態無待處理變更'}</strong></p>
+                <p><span>同步來源</span><strong>{syncMeta.source}</strong></p>
+                <p><span>Market Worker</span><strong>{marketRuntime.endpoint}</strong></p>
+                <p><span>Market response cache</span><strong>{marketRuntime.cache}</strong></p>
+                <p><span>Market snapshot</span><strong>{marketSnapshot.status}｜{marketSnapshot.fetchedAt ? tw(marketSnapshot.fetchedAt) : '尚未取得'}</strong></p>
+                <p><span>Quote request cache</span><strong>no-store（每次更新直接請求 Price Worker）</strong></p>
+              </div>
+              <div className="runtime-quote-list">
+                <h4>本機 Quote 來源與時間</h4>
+                {quoteProvenance.length ? quoteProvenance.map(value => <p key={value}>{value}</p>) : <p>尚無持股 Quote。</p>}
+              </div>
+            </section>
             <div className="actions">
               <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
             </div>
@@ -2108,7 +2138,7 @@ function App() {
               <summary>查看除錯資訊文字</summary>
               <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
             </details>}
-            <p className="note">除錯資訊會包含版本、Build、網址、裝置資訊、同步路徑、資產數量與目標比例摘要；不包含密碼、token 或 API key。</p>
+            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、同步路徑、Market／Quote 來源與資產摘要；不包含密碼、token 或 API key。</p>
           </details>
         </section>
         <Card title="更新紀錄">
