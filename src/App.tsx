@@ -47,7 +47,7 @@ import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransa
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
-import { hasSyncableStateChanged, withoutSyncMetadata, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, shortSyncFingerprint, syncPayloadFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
 type SymbolCode = string;
@@ -100,7 +100,7 @@ const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
 const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, transactions: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, syncStatus: false, syncDiagnostics: false, targetCheck: false } };
 const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, transactions: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true, quoteSources: true, syncStatus: true, syncDiagnostics: true, targetCheck: true };
-const defaultSyncMeta = (): SyncMeta => ({ dirty: false, source: '本機資料', status: '尚未設定 Firebase，同步僅保存在本機' });
+const defaultSyncMeta = (): SyncMeta => ({ dirty: true, source: '本機資料', status: '尚未建立同步基準，同步狀態未知' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -367,15 +367,17 @@ function sanitizeLoanItem(l: LoanItem): LoanItem {
 function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
   const source: SyncSource = r.source === '已從雲端下載' || r.source === '已從備份匯入' ? r.source : '本機資料';
+  const baselineFingerprint = typeof r.baselineFingerprint === 'string' && /^sync-v\d+-[0-9a-f]+$/.test(r.baselineFingerprint) ? r.baselineFingerprint : undefined;
   return {
-    dirty: Boolean(r.dirty),
+    dirty: baselineFingerprint ? Boolean(r.dirty) : true,
     source,
+    ...(baselineFingerprint ? { baselineFingerprint } : {}),
     lastLocalSaveAt: r.lastLocalSaveAt,
     lastUploadAt: r.lastUploadAt,
     lastDownloadAt: r.lastDownloadAt,
     lastBackupExportAt: r.lastBackupExportAt,
     lastBackupImportAt: r.lastBackupImportAt,
-    status: r.status || (state?.firebase?.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機')
+    status: r.status || (baselineFingerprint ? (state?.firebase?.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機') : '尚未建立同步基準，同步狀態未知')
   };
 }
 function sanitizeRemoteMeta(raw: unknown): RemoteMeta | null {
@@ -421,7 +423,9 @@ function normalizeState(raw: unknown): AppState {
   const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: normalizeAllocationPreset(s.allocationPreset), allocationRoleBySymbol: normalizeAllocationRoleBySymbol(s.allocationRoleBySymbol, normalizedHoldings), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
-  return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
+  const normalized = { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
+  const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint);
+  return { ...normalized, syncMeta: { ...normalized.syncMeta, dirty: baseline.dirty } };
 }
 function readState(): AppState {
   try {
@@ -454,7 +458,7 @@ function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   assertNoOAuthSecrets(state);
   const normalized = normalizeState(state);
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, allocationRoleBySymbol: normalized.allocationRoleBySymbol, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: normalized.syncMeta, syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, allocationRoleBySymbol: normalized.allocationRoleBySymbol, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -487,6 +491,10 @@ function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state
 function localDirtyStatus(state: AppState) {
   return state.firebase.databaseURL ? '本機有新資料，請按「上傳雲端」同步到其他裝置' : '本機有新資料，尚未設定 Firebase，同步僅保存在本機';
 }
+function missingBaselineStatus(state: AppState) {
+  return state.firebase.databaseURL ? '尚未建立同步基準，同步狀態未知；請成功上傳或下載一次' : '尚未建立同步基準，且尚未設定 Firebase';
+}
+function cleanSyncStatus() { return '本機與最近同步狀態無待處理變更'; }
 function validateBeforeUpload(s: AppState) {
   assertNoOAuthSecrets(s);
   if (safeHoldings(s.holdings).some(h => REMOVED_SYMBOLS.has(normalizeSymbol(h.symbol)))) throw new Error(`${removedSymbol()} 已從正式策略移除，不能出現在持股資料。`);
@@ -497,8 +505,8 @@ function waitForDraftCommit() {
 }
 function syncPath(config: FirebaseConfig) { return `${FIREBASE_BASE_PATH}/${encodeURIComponent(config.secretPath || FIREBASE_BASE_PATH)}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
-async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const payload = withoutSyncMetadata(normalizeState(state)); assertNoOAuthSecrets(payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }); if (!res.ok) throw new Error(`Firebase ${res.status}`); }
-async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = withoutSyncMetadata(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
+async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const snapshot = createSyncPayloadSnapshot(normalizeState(state)); assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
+async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
@@ -1208,9 +1216,10 @@ function App() {
     let normalized = normalizeState(next);
     if (didMount.current && !isApplyingRemoteRef.current && hasSyncableStateChanged(previous, normalized)) {
       const savedAt = now();
+      const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint);
       normalized = {
         ...normalized,
-        syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: true, status: localDirtyStatus(normalized) }, normalized)
+        syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: baseline.dirty, status: !baseline.baselineAvailable ? missingBaselineStatus(normalized) : baseline.dirty ? localDirtyStatus(normalized) : cleanSyncStatus() }, normalized)
       };
       setLastSavedAt(savedAt);
     }
@@ -1221,7 +1230,8 @@ function App() {
   const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
   const syncMeta = state.syncMeta;
   const remoteMeta = state.remoteMeta;
-  const syncStatusText = syncMeta.dirty ? localDirtyStatus(state) : syncMeta.status;
+  const syncBaselineDiagnostics = useMemo(() => deriveSyncBaselineDiagnostics(state, syncMeta.baselineFingerprint), [state, syncMeta.baselineFingerprint]);
+  const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncMeta.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
@@ -1317,16 +1327,22 @@ function App() {
   const uploadCloud = async () => { 
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' })); 
     const normalized = await flushDrafts(); 
-    await uploadFirebase(normalized.firebase, normalized); 
+    const uploadedSnapshot = await uploadFirebase(normalized.firebase, normalized);
     const syncedAt = now(); 
     setLastSavedAt(syncedAt); 
-    updateSyncMeta(current => ({ 
-      ...current, 
-      source: '本機資料',
-      dirty: false, 
-      lastUploadAt: syncedAt, 
-      status: `🎉 上傳成功！已同步本地持股至雲端｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆` 
-    })); 
+    updateSyncMeta(current => {
+      const outcome = deriveSyncBaselineDiagnostics(stateRef.current, uploadedSnapshot.fingerprint);
+      return {
+        ...current,
+        source: '本機資料',
+        baselineFingerprint: uploadedSnapshot.fingerprint,
+        dirty: outcome.dirty,
+        lastUploadAt: syncedAt,
+        status: outcome.dirty
+          ? `🎉 上傳成功，但上傳期間本機另有未上傳變更｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+          : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+      };
+    });
     updateRemoteMeta({
       holdingsCount: normalized.holdings.length,
       cashCount: normalized.cash.length,
@@ -1339,17 +1355,22 @@ function App() {
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
     const remote = await downloadFirebase(state.firebase); 
     const downloadedAt = now(); 
+    const baselineFingerprint = syncPayloadFingerprint(remote);
+    const appliedRemote = normalizeState({
+      ...remote,
+      syncMeta: {
+        ...stateRef.current.syncMeta,
+        source: '已從雲端下載',
+        baselineFingerprint,
+        dirty: false,
+        lastDownloadAt: downloadedAt,
+        status: `🎉 下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆`
+      }
+    });
     isApplyingRemoteRef.current = true; 
-    setState(remote); 
-    writeState(remote); 
+    setState(appliedRemote);
+    writeState(appliedRemote);
     setLastSavedAt(downloadedAt); 
-    updateSyncMeta(current => ({ 
-      ...current, 
-      source: '已從雲端下載',
-      dirty: false, 
-      lastDownloadAt: downloadedAt, 
-      status: `🎉 下載成功！已套用雲端資料至本機｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆` 
-    })); 
     updateRemoteMeta({
       holdingsCount: remote.holdings.length,
       cashCount: remote.cash.length,
@@ -1497,9 +1518,7 @@ function App() {
     `URL: ${typeof location !== 'undefined' ? location.href : ''}`,
     `UserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
     `StorageKey: ${STORAGE_KEY}`,
-    `FirebaseBasePath: ${FIREBASE_BASE_PATH}`,
-    `SyncCode: ${state.firebase.secretPath || FIREBASE_BASE_PATH}`,
-    `FirebasePath: ${syncPath(state.firebase)}`,
+    `FirebaseConfigured: ${state.firebase.databaseURL.trim() ? 'true' : 'false'}`,
     `WorkerURL: ${DEFAULT_WORKER_URL}`,
     `MarketWorkerURL: ${marketRuntime.endpoint}`,
     `MarketCacheControl: ${marketRuntime.cache}`,
@@ -1507,6 +1526,10 @@ function App() {
     `QuoteRequestCache: no-store`,
     `SyncDirty: ${syncMeta.dirty ? 'true' : 'false'}`,
     `SyncSource: ${syncMeta.source}`,
+    `SyncBaseline: ${syncBaselineDiagnostics.baselineAvailable ? 'available' : 'unavailable'}`,
+    `CurrentFingerprint: ${shortSyncFingerprint(syncBaselineDiagnostics.currentFingerprint)}`,
+    `BaselineFingerprint: ${shortSyncFingerprint(syncBaselineDiagnostics.baselineFingerprint)}`,
+    `DirtyReason: ${syncBaselineDiagnostics.reason}`,
     `HoldingsCount: ${safeHoldings(state.holdings).length}`,
     `CashAccountsCount: ${state.cash.length}`,
     `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
@@ -1602,6 +1625,9 @@ function App() {
     if (!state.firebase.databaseURL.trim()) {
       return { status: '未啟用雲端同步', tone: 'hold', reason: '尚未設定 Firebase Database URL。', suggestion: '請至上方輸入 Firebase URL 與金鑰以啟用同步功能。' };
     }
+    if (!syncBaselineDiagnostics.baselineAvailable) {
+      return { status: '尚未建立同步基準', tone: 'hold', reason: '無法證明目前本機資料已與雲端一致。', suggestion: '請成功上傳或下載一次以建立本機同步基準。' };
+    }
     if (!remoteMeta) {
       return { status: '未進行資料比對', tone: 'hold', reason: '本機尚未與雲端資料進行上傳或下載。', suggestion: '請點選「下載雲端」或「上傳雲端」進行第一次比對。' };
     }
@@ -1634,7 +1660,7 @@ function App() {
       reason: '本機資料與最近一次同步的雲端數據相符。', 
       suggestion: '目前已是最新狀態，無需任何操作。' 
     };
-  }, [state.firebase.databaseURL, safeHoldings(state.holdings).length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty]);
+  }, [state.firebase.databaseURL, safeHoldings(state.holdings).length, state.cash.length, state.loans.length, remoteMeta, syncMeta.dirty, syncBaselineDiagnostics.baselineAvailable]);
   const [mode, hint, modeTone] = advice(m);
   // All account mutations live here so future Transaction references can be protected at one boundary.
   const createAccount = () => setState(current => ({ ...current, accounts: [...current.accounts, createFinancialAccount({ sortOrder: current.accounts.length ? Math.max(...current.accounts.map(account => account.sortOrder)) + 1 : 0 })] }));
@@ -1724,16 +1750,28 @@ function App() {
     try {
       const raw = JSON.parse(await f.text());
       const accountImport = raw && typeof raw === 'object' ? normalizeFinancialAccounts((raw as Partial<BackupPayload>).accounts) : { skipped: [] };
-      const next = stateFromBackup(raw, stateRef.current);
+      const importedAt = now();
+      const restored = stateFromBackup(raw, stateRef.current);
+      const next = normalizeState({
+        ...restored,
+        syncMeta: {
+          ...restored.syncMeta,
+          baselineFingerprint: undefined,
+          source: '已從備份匯入',
+          lastLocalSaveAt: importedAt,
+          lastBackupImportAt: importedAt,
+          dirty: true,
+          status: '已匯入備份；尚未建立此資料的同步基準'
+        }
+      });
       isApplyingRemoteRef.current = true;
       setState(next);
       writeState(next);
-      const importedAt = now();
       setLastSavedAt(importedAt);
       const importedQuotes = raw && typeof raw === 'object' && (raw as Partial<BackupPayload>).quotes && typeof (raw as Partial<BackupPayload>).quotes === 'object' ? (raw as Partial<BackupPayload>).quotes as Record<SymbolCode, Quote> : null;
       if (importedQuotes) setQuotes(current => ({ ...current, ...importedQuotes }));
       const skippedAccountMessage = accountImport.skipped.length ? `｜略過 ${accountImport.skipped.length} 筆無法恢復的帳戶資料` : '';
-      updateSyncMeta(current => ({ ...current, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: `已匯入備份，本機有新資料，尚未上傳雲端${skippedAccountMessage}` }));
+      updateSyncMeta(current => ({ ...current, baselineFingerprint: undefined, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: `已匯入備份；尚未建立同步基準${skippedAccountMessage}` }));
     } catch (error) {
       updateSyncMeta(current => ({ ...current, status: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' }));
     }
@@ -1741,9 +1779,9 @@ function App() {
   const resetState = () => {
     if (!window.confirm('重設會清除目前本機資料並恢復預設資產。此動作不可復原。請確認是否繼續。')) return;
     const resetAt = now();
-    setState({ ...defaultState, syncMeta: { ...defaultSyncMeta(), source: '本機資料', dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產，本機有新資料，尚未上傳雲端' } });
+    setState({ ...defaultState, syncMeta: { ...defaultSyncMeta(), source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產；尚未建立同步基準' } });
     setLastSavedAt(resetAt);
-    updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產，本機有新資料，尚未上傳雲端' }));
+    updateSyncMeta(current => ({ ...current, source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產；尚未建立同步基準' }));
   };
   const exportDamagedLocalData = () => {
     if (!startupWarning?.raw) return;
@@ -1935,7 +1973,7 @@ function App() {
           <p className="note">手機版快速同步只會在按鈕觸發時執行；完整 Firebase、備份與持股資產管理仍在「同步與資料」分頁。</p>
           <div className="status-grid">
             <p><span>目前同步代號</span><strong>{state.firebase.secretPath || FIREBASE_BASE_PATH}</strong></p>
-            <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+            <p><span>Firebase 設定</span><strong>{state.firebase.databaseURL.trim() ? '已設定' : '未設定'}</strong></p>
             <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
             <p><span>同步狀態</span><strong>{syncStatusText}</strong></p>
           </div>
@@ -1979,7 +2017,7 @@ function App() {
             <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
             <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
           </div>
-          <p><b>目前同步路徑：</b>{state.firebase.databaseURL ? syncPath(state.firebase) : '尚未設定 Firebase URL'}</p>
+          <p><b>雲端同步設定：</b>{state.firebase.databaseURL ? '已設定' : '尚未設定 Firebase URL'}</p>
           <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
           <p>
             <b>同步狀態：</b>
@@ -1999,7 +2037,7 @@ function App() {
             <p><span>最後備份匯出</span><strong>{metaTime(syncMeta.lastBackupExportAt)}</strong></p>
             <p><span>最後備份匯入</span><strong>{metaTime(syncMeta.lastBackupImportAt)}</strong></p>
             <p><span>目前同步代號</span><strong>{state.firebase.secretPath || 'family-universal-rebalance'}</strong></p>
-            <p><span>實際 Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+            <p><span>Firebase 設定</span><strong>{state.firebase.databaseURL.trim() ? '已設定' : '未設定'}</strong></p>
           </div>
           <p className="note">匯出、匯入與同步狀態只會更新本機資料，不會自動上傳或下載 Firebase。</p>
         </SectionCard>
@@ -2111,7 +2149,7 @@ function App() {
               <p><span>Build time</span><strong>{APP_BUILD_TIME}</strong></p>
               <p><span>Git commit</span><strong>{APP_GIT_COMMIT}</strong></p>
               <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
-              <p><span>Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
+              <p><span>Firebase 設定</span><strong>{state.firebase.databaseURL.trim() ? '已設定' : '未設定'}</strong></p>
               <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
             </div>
             <section className="runtime-provenance" aria-label="執行環境與資料來源診斷">
@@ -2119,8 +2157,12 @@ function App() {
               <p className="note">僅顯示本機當下已取得的資訊；不會自動同步、清除快取、重設資料或覆寫任何裝置資料。</p>
               <div className="status-grid">
                 <p><span>目前 URL</span><strong>{typeof location !== 'undefined' ? location.href : '—'}</strong></p>
-                <p><span>同步狀態</span><strong>{syncMeta.dirty ? '本機有未上傳變更' : '本機與最近同步狀態無待處理變更'}</strong></p>
+                <p><span>同步狀態</span><strong>{syncStatusText}</strong></p>
                 <p><span>同步來源</span><strong>{syncMeta.source}</strong></p>
+                <p><span>Sync baseline</span><strong>{syncBaselineDiagnostics.baselineAvailable ? 'available' : 'unavailable'}</strong></p>
+                <p><span>Current fingerprint</span><strong>{shortSyncFingerprint(syncBaselineDiagnostics.currentFingerprint)}</strong></p>
+                <p><span>Baseline fingerprint</span><strong>{shortSyncFingerprint(syncBaselineDiagnostics.baselineFingerprint)}</strong></p>
+                <p><span>Dirty reason</span><strong>{syncBaselineDiagnostics.reason}</strong></p>
                 <p><span>Market Worker</span><strong>{marketRuntime.endpoint}</strong></p>
                 <p><span>Market response cache</span><strong>{marketRuntime.cache}</strong></p>
                 <p><span>Market snapshot</span><strong>{marketSnapshot.status}｜{marketSnapshot.fetchedAt ? tw(marketSnapshot.fetchedAt) : '尚未取得'}</strong></p>
@@ -2138,7 +2180,7 @@ function App() {
               <summary>查看除錯資訊文字</summary>
               <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
             </details>}
-            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、同步路徑、Market／Quote 來源與資產摘要；不包含密碼、token 或 API key。</p>
+            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、同步 fingerprint、Market／Quote 來源與資產摘要；不包含 Firebase 完整路徑、完整同步 payload、密碼、token 或 API key。</p>
           </details>
         </section>
         <Card title="更新紀錄">
