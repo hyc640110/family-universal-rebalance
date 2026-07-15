@@ -57,7 +57,7 @@ export default class ErrorBoundary extends React.Component<{ children: React.Rea
     return [
       'family-universal-rebalance error info',
       `Version: ${APP_VERSION}`,
-      `Build: ${APP_BUILD_TIME}`,
+      `BuildTime: ${APP_BUILD_TIME}`,
       `URL: ${location.href}`,
       `UserAgent: ${navigator.userAgent}`,
       `StorageKey: ${STORAGE_KEY}`,
@@ -100,7 +100,7 @@ export default class ErrorBoundary extends React.Component<{ children: React.Rea
           <h2>系統發生錯誤</h2>
           <p className="warning-message">請先不要重設資料。可嘗試重新整理頁面，或複製錯誤資訊回報。</p>
           <div className="status-grid">
-            <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+            <p><span>Build time</span><strong>{APP_BUILD_TIME}</strong></p>
             <p><span>錯誤訊息</span><strong>{this.state.error.message}</strong></p>
           </div>
           <details className="debug-details">

@@ -1492,7 +1492,7 @@ function App() {
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
-    `Build: ${APP_BUILD_TIME}`,
+    `BuildTime: ${APP_BUILD_TIME}`,
     `GitCommit: ${APP_GIT_COMMIT}`,
     `URL: ${typeof location !== 'undefined' ? location.href : ''}`,
     `UserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
@@ -1773,7 +1773,7 @@ function App() {
   return (
     <AppLayout>
       {currentPage === 'home' && <header id="overview-section" className="hero">
-        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build：{APP_BUILD_TIME}</p></div>
+        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>
         <div className="hero-actions" aria-label="首頁快速操作">
           <button className="hero-refresh" onClick={refreshQuotes} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
           <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
@@ -2105,10 +2105,10 @@ function App() {
       <footer className="app-footer">
         <section className="card footer-debug-card">
           <details className="debug-details footer-debug-details">
-            <summary><span>版本與除錯</span><small>點開查看版本、Build、除錯資訊</small></summary>
+            <summary><span>版本與除錯</span><small>點開查看產品版本、commit、Build time 與除錯資訊</small></summary>
             <div className="status-grid">
-              <p><span>目前版本</span><strong>{APP_VERSION}</strong></p>
-              <p><span>Build</span><strong>{APP_BUILD_TIME}</strong></p>
+              <p><span>產品版本</span><strong>{APP_VERSION}</strong></p>
+              <p><span>Build time</span><strong>{APP_BUILD_TIME}</strong></p>
               <p><span>Git commit</span><strong>{APP_GIT_COMMIT}</strong></p>
               <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
               <p><span>Firebase path</span><strong>{syncPath(state.firebase)}</strong></p>
