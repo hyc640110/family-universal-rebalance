@@ -15,6 +15,7 @@ const cashFlowPage = readFileSync(new URL('../src/pages/CashFlowPage.tsx', impor
 const netWorthHistory = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
 const netWorthHistoryPage = readFileSync(new URL('../src/pages/NetWorthHistoryPage.tsx', import.meta.url), 'utf8');
 const toolQuickNavigation = readFileSync(new URL('../src/components/ToolQuickNavigation.tsx', import.meta.url), 'utf8');
+const toolNavigation = readFileSync(new URL('../src/lib/toolNavigation.ts', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const dashboard = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
 
@@ -56,8 +57,8 @@ const checks = [
   ,['Net worth history snapshot upsert and compatibility helpers are centralized', /export function upsertNetWorthSnapshot/.test(netWorthHistory) && /export function deriveHistoryStats/.test(netWorthHistory) && /normalizeNetWorthHistory/.test(netWorthHistory)]
   ,['Net worth history page includes ranges, chart and statistics', /7 天/.test(netWorthHistoryPage) && /最大回撤/.test(netWorthHistoryPage) && /history-chart/.test(netWorthHistoryPage)]
   ,['Tool pages share one quick navigation component', /ToolQuickNavigation/.test(simulator) && /ToolQuickNavigation/.test(riskCenter) && /ToolQuickNavigation/.test(wealthPage) && /ToolQuickNavigation/.test(cashFlowPage) && /ToolQuickNavigation/.test(netWorthHistoryPage)]
-  ,['Tool quick navigation excludes the current page and uses SPA links', /links\.filter\(link => link\.route !== current\)/.test(toolQuickNavigation) && /<Link to="\/tools">/.test(toolQuickNavigation) && !/location\.href/.test(toolQuickNavigation)]
-  ,['Tool quick navigation follows the fixed tool-home order', /wealth-goal[\s\S]*cash-flow[\s\S]*net-worth-history[\s\S]*allocation-simulator[\s\S]*risk-center/.test(toolQuickNavigation)]
+  ,['Tool quick navigation excludes the current page and uses SPA links', /getToolQuickLinks\(current\)/.test(toolQuickNavigation) && /<Link to="\/tools"/.test(toolQuickNavigation) && !/location\.href/.test(toolQuickNavigation)]
+  ,['Tool quick navigation follows the shared Tool Center order', /TOOL_DEFINITIONS[\s\S]*dividend-center[\s\S]*ai-decision[\s\S]*portfolio-risk[\s\S]*rebalance-recommendation[\s\S]*clec-strategy[\s\S]*wealth-goal[\s\S]*cash-flow[\s\S]*net-worth-history[\s\S]*allocation-simulator[\s\S]*risk-center/.test(toolNavigation)]
   ,['Allocation contribution uses wan display with yuan calculation', /模擬投入金額（萬元）/.test(simulator) && /Math\.max\(0, safeNumber\(contribution\)\) \* 10000/.test(simulator) && /min="0"/.test(simulator)]
   ,['Display mode uses one persisted UI state and resets compact sections', /writeUiState\(uiState\)/.test(app) && /displayMode === 'full' \? FULL_UI_SECTIONS : DEFAULT_UI_STATE\.sections/.test(app) && /document\.documentElement\.dataset\.displayMode/.test(app)]
   ,['Compact and full modes have distinct user-facing descriptions', /只顯示核心資訊，適合日常快速查看。/.test(app) && /顯示完整分析、進階欄位與說明。/.test(app)]
