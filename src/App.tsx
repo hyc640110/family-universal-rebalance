@@ -44,6 +44,7 @@ import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, norm
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
+import { EMPTY_TRANSACTION_SYNC_DIAGNOSTICS, deriveTransactionSyncDiagnostics, type TransactionSyncDiagnostics } from './lib/transactionSyncDiagnostics';
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
@@ -1243,6 +1244,20 @@ function App() {
   const syncMeta = state.syncMeta;
   const remoteMeta = state.remoteMeta;
   const syncBaselineDiagnostics = useMemo(() => deriveSyncBaselineDiagnostics(state, syncMeta.baselineFingerprint, syncMeta.baselineFieldFingerprints), [state, syncMeta.baselineFingerprint, syncMeta.baselineFieldFingerprints]);
+  const transactionBaselineRef = useRef<unknown[] | undefined>(undefined);
+  const [transactionSyncDiagnostics, setTransactionSyncDiagnostics] = useState<TransactionSyncDiagnostics>(EMPTY_TRANSACTION_SYNC_DIAGNOSTICS);
+  useEffect(() => {
+    let cancelled = false;
+    const current = state.transactions;
+    if (syncBaselineDiagnostics.baselineAvailable && !syncBaselineDiagnostics.dirty) {
+      transactionBaselineRef.current = JSON.parse(JSON.stringify(current)) as unknown[];
+    }
+    const baseline = transactionBaselineRef.current;
+    void deriveTransactionSyncDiagnostics(baseline, current, normalizeTransactions(current, state.accounts).transactions).then(diagnostics => {
+      if (!cancelled) setTransactionSyncDiagnostics(diagnostics);
+    });
+    return () => { cancelled = true; };
+  }, [state.accounts, state.transactions, syncBaselineDiagnostics.baselineAvailable, syncBaselineDiagnostics.dirty]);
   const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
@@ -1351,6 +1366,7 @@ function App() {
     const normalized = await flushDrafts(); 
     const requestSnapshot = createSyncPayloadSnapshot(normalized);
     const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot);
+    transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
     const syncedAt = now(); 
     setLastSavedAt(syncedAt); 
     setState(current => {
@@ -1385,6 +1401,7 @@ function App() {
     const remote = await downloadFirebase(state.firebase); 
     const downloadedAt = now(); 
     const downloadedSnapshot = createSyncPayloadSnapshot(remote);
+    transactionBaselineRef.current = Array.isArray(downloadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(downloadedSnapshot.payload.transactions)) as unknown[] : [];
     const appliedRemote = normalizeState({
       ...remote,
       syncMeta: {
@@ -1546,6 +1563,10 @@ function App() {
   const currentSyncFieldFingerprints = syncFieldFingerprintText(syncBaselineDiagnostics.currentFieldFingerprints);
   const baselineSyncFieldFingerprints = syncFieldFingerprintText(syncBaselineDiagnostics.baselineFieldFingerprints);
   const changedSyncFields = syncBaselineDiagnostics.changedFields.length ? syncBaselineDiagnostics.changedFields.join('、') : syncBaselineDiagnostics.dirty ? 'unavailable (legacy baseline)' : 'none';
+  const transactionIdentityText = transactionSyncDiagnostics.identityHashes.length ? transactionSyncDiagnostics.identityHashes.join(' / ') : 'none';
+  const transactionStructureText = transactionSyncDiagnostics.structuralFingerprints.length ? transactionSyncDiagnostics.structuralFingerprints.join(' / ') : 'none';
+  const changedTransactionIndexes = transactionSyncDiagnostics.baselineAvailable ? (transactionSyncDiagnostics.changedIndexes.length ? transactionSyncDiagnostics.changedIndexes.join('、') : 'none') : 'unavailable';
+  const changedTransactionFields = transactionSyncDiagnostics.baselineAvailable ? (transactionSyncDiagnostics.changedFieldNames.length ? transactionSyncDiagnostics.changedFieldNames.join('、') : 'none') : 'unavailable';
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1570,6 +1591,14 @@ function App() {
     `ChangedTopLevelFields: ${changedSyncFields}`,
     `CurrentTopLevelFingerprints: ${currentSyncFieldFingerprints}`,
     `BaselineTopLevelFingerprints: ${baselineSyncFieldFingerprints}`,
+    `TransactionCount: ${transactionSyncDiagnostics.transactionCount}`,
+    `NormalizedTransactionCount: ${transactionSyncDiagnostics.normalizedTransactionCount}`,
+    `TransactionOrderFingerprint: ${transactionSyncDiagnostics.orderFingerprint}`,
+    `TransactionIdentityHashes: ${transactionIdentityText}`,
+    `TransactionStructuralFingerprints: ${transactionStructureText}`,
+    `ChangedTransactionIndexes: ${changedTransactionIndexes}`,
+    `ChangedTransactionFields: ${changedTransactionFields}`,
+    `TransactionAddedRemovedReordered: ${transactionSyncDiagnostics.addedCount}/${transactionSyncDiagnostics.removedCount}/${transactionSyncDiagnostics.reorderedCount}`,
     `HoldingsCount: ${safeHoldings(state.holdings).length}`,
     `CashAccountsCount: ${state.cash.length}`,
     `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
@@ -2207,6 +2236,14 @@ function App() {
                 <p><span>Changed top-level fields</span><strong>{changedSyncFields}</strong></p>
                 <p><span>Current top-level fingerprints</span><strong>{currentSyncFieldFingerprints}</strong></p>
                 <p><span>Baseline top-level fingerprints</span><strong>{baselineSyncFieldFingerprints}</strong></p>
+                <p><span>Transaction count</span><strong>{transactionSyncDiagnostics.transactionCount}</strong></p>
+                <p><span>Normalized transaction count</span><strong>{transactionSyncDiagnostics.normalizedTransactionCount}</strong></p>
+                <p><span>Transactions order fingerprint</span><strong>{transactionSyncDiagnostics.orderFingerprint}</strong></p>
+                <p><span>Transaction identity hashes</span><strong>{transactionIdentityText}</strong></p>
+                <p><span>Transaction structural fingerprints</span><strong>{transactionStructureText}</strong></p>
+                <p><span>Changed transaction indexes</span><strong>{changedTransactionIndexes}</strong></p>
+                <p><span>Changed transaction fields</span><strong>{changedTransactionFields}</strong></p>
+                <p><span>Transactions added / removed / reordered</span><strong>{transactionSyncDiagnostics.addedCount} / {transactionSyncDiagnostics.removedCount} / {transactionSyncDiagnostics.reorderedCount}</strong></p>
                 <p><span>Market Worker</span><strong>{marketRuntime.endpoint}</strong></p>
                 <p><span>Market response cache</span><strong>{marketRuntime.cache}</strong></p>
                 <p><span>Market snapshot</span><strong>{marketSnapshot.status}｜{marketSnapshot.fetchedAt ? tw(marketSnapshot.fetchedAt) : '尚未取得'}</strong></p>
@@ -2224,7 +2261,7 @@ function App() {
               <summary>查看除錯資訊文字</summary>
               <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
             </details>}
-            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、同步 fingerprint、Market／Quote 來源與資產摘要；不包含 Firebase 完整路徑、完整同步 payload、密碼、token 或 API key。</p>
+            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、同步 fingerprint、匿名 transaction hash、Market／Quote 來源與資產摘要；不包含 Firebase 完整路徑、完整同步 payload、交易值、密碼、token 或 API key。</p>
           </details>
         </section>
         <Card title="更新紀錄">
