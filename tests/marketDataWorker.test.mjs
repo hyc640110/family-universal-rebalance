@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseTreasuryLatest, parseTwseIndex, parseTwseSignedChange } from '../workers/market-data/src/index.js';
+import worker, { healthEnvironment, parseTreasuryLatest, parseTwseIndex, parseTwseSignedChange } from '../workers/market-data/src/index.js';
 
 const fetchedAt = '2026-07-14T01:00:00.000Z';
 const taiex = (overrides = {}) => ({ 日期: '1150713', 指數: '發行量加權股價指數', 收盤指數: '45,380.52', 漲跌: '+', 漲跌點數: '25.91', 漲跌百分比: '0.06%', ...overrides });
+
+test('/health reports only configured preview or production environments', async () => {
+  assert.equal(healthEnvironment({ ENVIRONMENT: 'preview' }), 'preview');
+  assert.equal(healthEnvironment({ ENVIRONMENT: 'production' }), 'production');
+  assert.equal(healthEnvironment({}), 'unconfigured');
+  assert.equal(healthEnvironment({ ENVIRONMENT: 'staging' }), 'unconfigured');
+
+  const health = async env => (await worker.fetch(new Request('https://example.test/health'), env)).json();
+  assert.equal((await health({ ENVIRONMENT: 'preview' })).environment, 'preview');
+  assert.equal((await health({ ENVIRONMENT: 'production' })).environment, 'production');
+  assert.equal((await health({})).environment, 'unconfigured');
+  assert.equal((await health({ ENVIRONMENT: 'staging' })).environment, 'unconfigured');
+});
 
 test('TWSE adapter returns a closed TAIEX value and ROC date in Taipei time', () => {
   const point = parseTwseIndex([taiex()], fetchedAt);
