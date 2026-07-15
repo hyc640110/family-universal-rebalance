@@ -28,6 +28,7 @@
     "test:v5-8-1-allocation-presets": "tsx --test tests/allocationPresets.test.ts",
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
     "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
+    "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
     "test:v5-10-4-sync-baseline": "tsx --test tests/syncBaseline.test.ts",
     "test:runtime-provenance": "tsx --test tests/runtimeProvenance.test.ts",
     "test:market-worker-config": "node --test tests/marketWorkerEnvironmentConfig.test.mjs",
