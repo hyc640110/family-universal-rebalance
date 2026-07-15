@@ -29,6 +29,7 @@
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
     "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
     "test:v5-10-4-sync-baseline": "tsx --test tests/syncBaseline.test.ts",
+    "test:v5-10-4-1-production-regression": "tsx --test tests/productionSyncBaselineRegression.test.ts",
     "test:runtime-provenance": "tsx --test tests/runtimeProvenance.test.ts",
     "test:market-worker-config": "node --test tests/marketWorkerEnvironmentConfig.test.mjs",
     "test:v5-4-market": "tsx --test tests/marketData.test.ts tests/marketUiFoundation.test.ts && node --test tests/marketDataWorker.test.mjs",

@@ -1,7 +1,9 @@
 export type NetWorthSnapshot = { date: string; totalAssets: number; netWorth: number; investmentValue: number; cash: number; debt: number };
+export type NetWorthSnapshotTotals = Omit<NetWorthSnapshot, 'date'>;
 export type HistoryRange = '7d' | '30d' | '90d' | '1y' | 'all';
 const n = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : Number.isFinite(Number(value)) ? Number(value) : 0;
 export function localSnapshotDate(date = new Date()): string { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 10); }
+export function netWorthSnapshotFromTotals(totals: NetWorthSnapshotTotals, date = localSnapshotDate()): NetWorthSnapshot { return { date, totalAssets:n(totals.totalAssets), netWorth:n(totals.netWorth), investmentValue:n(totals.investmentValue), cash:n(totals.cash), debt:n(totals.debt) }; }
 export function normalizeNetWorthHistory(raw: unknown): NetWorthSnapshot[] {
   if (!Array.isArray(raw)) return [];
   const byDate = new Map<string, NetWorthSnapshot>();
