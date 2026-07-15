@@ -28,6 +28,7 @@
     "test:v5-8-1-allocation-presets": "tsx --test tests/allocationPresets.test.ts",
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
     "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
+    "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
     "test:v5-10-4-sync-baseline": "tsx --test tests/syncBaseline.test.ts",
     "test:v5-10-4-1-production-regression": "tsx --test tests/productionSyncBaselineRegression.test.ts",
     "test:v5-10-4-2-transactions-regression": "tsx --test tests/productionTransactionsSyncRegression.test.ts",
