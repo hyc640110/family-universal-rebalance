@@ -1,9 +1,52 @@
 export type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 
+export const SYNC_CANONICAL_SCHEMA = 'sync-json-v2';
+export const SYNCABLE_TOP_LEVEL_FIELDS = [
+  'holdings',
+  'cash',
+  'accounts',
+  'accountSchemaVersion',
+  'cashAccountMigrationVersion',
+  'transactions',
+  'transactionSchemaVersion',
+  'importSessions',
+  'importPresets',
+  'importSchemaVersion',
+  'gmailOAuth',
+  'loans',
+  'refreshSec',
+  'autoSync',
+  'autoSyncSec',
+  'allocationPreset',
+  'allocationRoleBySymbol',
+  'rebalanceMode',
+  'rebalanceThreshold',
+  'buyOnlyBudget',
+  'dipAlerts',
+  'wealthGoal',
+  'cashFlowProfile',
+  'netWorthHistory'
+] as const;
+
+export type SyncFieldFingerprints = Record<string, string>;
+
+export function sanitizeSyncFieldFingerprints(raw: unknown): SyncFieldFingerprints | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const source = raw as Record<string, unknown>;
+  const allowed = new Set<string>(SYNCABLE_TOP_LEVEL_FIELDS);
+  const entries = Object.keys(source)
+    .filter(key => allowed.has(key) && typeof source[key] === 'string' && /^sync-field-v\d+-[0-9a-f]{16}$/.test(source[key] as string))
+    .sort()
+    .map(key => [key, source[key] as string]);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 export type SyncMeta = {
   dirty: boolean;
   source: SyncSource;
   baselineFingerprint?: string;
+  baselineFieldFingerprints?: SyncFieldFingerprints;
+  baselineCanonicalSchema?: string;
   lastLocalSaveAt?: string;
   lastUploadAt?: string;
   lastDownloadAt?: string;
@@ -28,6 +71,8 @@ export type SyncPayloadSnapshot = {
   payload: Record<string, unknown>;
   canonicalJson: string;
   fingerprint: string;
+  fieldFingerprints: SyncFieldFingerprints;
+  canonicalSchema: string;
 };
 
 export type SyncBaselineDiagnostics = {
@@ -36,15 +81,21 @@ export type SyncBaselineDiagnostics = {
   baselineFingerprint?: string;
   dirty: boolean;
   reason: 'clean' | 'payload differs' | 'baseline missing';
-};
-
-export type SuccessfulUploadResult = SyncBaselineDiagnostics & {
+  canonicalSchema: string;
+  currentFieldFingerprints: SyncFieldFingerprints;
+  baselineFieldFingerprints?: SyncFieldFingerprints;
   changedFields: string[];
 };
 
+export type SuccessfulUploadResult = SyncBaselineDiagnostics;
+
 /** Sync metadata describes this device, so it must not participate in payload equality or Firebase storage. */
 export function withoutSyncMetadata<T extends StateWithSyncMetadata>(state: T): Omit<T, 'syncMeta' | 'remoteMeta'> {
-  const { syncMeta: _syncMeta, remoteMeta: _remoteMeta, ...syncableState } = state;
+  const syncableState = Object.fromEntries(
+    SYNCABLE_TOP_LEVEL_FIELDS
+      .filter(key => Object.prototype.hasOwnProperty.call(state, key))
+      .map(key => [key, state[key]])
+  ) as Omit<T, 'syncMeta' | 'remoteMeta'>;
   const gmailOAuth = syncableState.gmailOAuth;
   if (!gmailOAuth || typeof gmailOAuth !== 'object' || Array.isArray(gmailOAuth)) return syncableState;
   const { lastCheckedAt: _lastCheckedAt, ...syncableGmailOAuth } = gmailOAuth as Record<string, unknown>;
@@ -90,8 +141,23 @@ function fnv1a64(value: string) {
   return hash.toString(16).padStart(16, '0');
 }
 
+function fingerprintJson(value: string) {
+  return `sync-v2-${fnv1a64(value)}`;
+}
+
+function fieldFingerprintJson(value: string) {
+  return `sync-field-v2-${fnv1a64(value)}`;
+}
+
+export function syncPayloadFieldFingerprints(state: StateWithSyncMetadata): SyncFieldFingerprints {
+  const payload = canonicalSyncPayload(state);
+  return Object.fromEntries(
+    Object.keys(payload).sort().map(key => [key, fieldFingerprintJson(stableCanonicalJson(payload[key]))])
+  );
+}
+
 export function syncPayloadFingerprint(state: StateWithSyncMetadata) {
-  return `sync-v1-${fnv1a64(canonicalSyncJson(state))}`;
+  return fingerprintJson(canonicalSyncJson(state));
 }
 
 export function createSyncPayloadSnapshot(state: StateWithSyncMetadata): SyncPayloadSnapshot {
@@ -99,15 +165,43 @@ export function createSyncPayloadSnapshot(state: StateWithSyncMetadata): SyncPay
   return {
     payload: JSON.parse(canonicalJson) as Record<string, unknown>,
     canonicalJson,
-    fingerprint: `sync-v1-${fnv1a64(canonicalJson)}`
+    fingerprint: fingerprintJson(canonicalJson),
+    fieldFingerprints: syncPayloadFieldFingerprints(state),
+    canonicalSchema: SYNC_CANONICAL_SCHEMA
   };
 }
 
-export function deriveSyncBaselineDiagnostics(state: StateWithSyncMetadata, baselineFingerprint?: string): SyncBaselineDiagnostics {
+function changedFingerprintFields(current: SyncFieldFingerprints, baseline?: SyncFieldFingerprints) {
+  if (!baseline) return [];
+  return Array.from(new Set([...Object.keys(current), ...Object.keys(baseline)]))
+    .sort()
+    .filter(key => current[key] !== baseline[key]);
+}
+
+export function deriveSyncBaselineDiagnostics(state: StateWithSyncMetadata, baselineFingerprint?: string, baselineFieldFingerprints?: SyncFieldFingerprints): SyncBaselineDiagnostics {
   const currentFingerprint = syncPayloadFingerprint(state);
-  if (!baselineFingerprint) return { baselineAvailable: false, currentFingerprint, dirty: true, reason: 'baseline missing' };
+  const currentFieldFingerprints = syncPayloadFieldFingerprints(state);
+  if (!baselineFingerprint) return {
+    baselineAvailable: false,
+    currentFingerprint,
+    dirty: true,
+    reason: 'baseline missing',
+    canonicalSchema: SYNC_CANONICAL_SCHEMA,
+    currentFieldFingerprints,
+    changedFields: []
+  };
   const dirty = currentFingerprint !== baselineFingerprint;
-  return { baselineAvailable: true, currentFingerprint, baselineFingerprint, dirty, reason: dirty ? 'payload differs' : 'clean' };
+  return {
+    baselineAvailable: true,
+    currentFingerprint,
+    baselineFingerprint,
+    dirty,
+    reason: dirty ? 'payload differs' : 'clean',
+    canonicalSchema: SYNC_CANONICAL_SCHEMA,
+    currentFieldFingerprints,
+    ...(baselineFieldFingerprints ? { baselineFieldFingerprints } : {}),
+    changedFields: changedFingerprintFields(currentFieldFingerprints, baselineFieldFingerprints)
+  };
 }
 
 /** Returns only safe top-level field names; values never leave the canonical payload comparison. */
@@ -120,18 +214,20 @@ export function syncPayloadTopLevelDiff(previous: StateWithSyncMetadata, next: S
 }
 
 export function deriveSuccessfulUploadResult(current: StateWithSyncMetadata, uploadedSnapshot: SyncPayloadSnapshot): SuccessfulUploadResult {
-  return {
-    ...deriveSyncBaselineDiagnostics(current, uploadedSnapshot.fingerprint),
-    changedFields: syncPayloadTopLevelDiff(uploadedSnapshot.payload, current)
-  };
+  return deriveSyncBaselineDiagnostics(current, uploadedSnapshot.fingerprint, uploadedSnapshot.fieldFingerprints);
 }
 
 export function shortSyncFingerprint(value?: string) {
-  return value ? value.replace(/^sync-v\d+-/, '').slice(0, 12) : 'unavailable';
+  return value ? value.replace(/^sync(?:-field)?-v\d+-/, '').slice(0, 12) : 'unavailable';
 }
 
 export function withoutSyncBaseline(meta: SyncMeta): SyncMeta {
-  const { baselineFingerprint: _baselineFingerprint, ...portableMeta } = meta;
+  const {
+    baselineFingerprint: _baselineFingerprint,
+    baselineFieldFingerprints: _baselineFieldFingerprints,
+    baselineCanonicalSchema: _baselineCanonicalSchema,
+    ...portableMeta
+  } = meta;
   return portableMeta;
 }
 

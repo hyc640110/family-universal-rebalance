@@ -9,6 +9,7 @@ import {
   hasSyncableStateChanged,
   shortSyncFingerprint,
   stableCanonicalJson,
+  SYNC_CANONICAL_SCHEMA,
   syncPayloadTopLevelDiff,
   syncPayloadFingerprint,
   withoutSyncBaseline
@@ -38,15 +39,19 @@ const state = (overrides: Record<string, unknown> = {}) => ({
 
 test('equal canonical sync payloads have the same fingerprint and are clean against their baseline', () => {
   const current = state();
-  const baseline = syncPayloadFingerprint(current);
+  const snapshot = createSyncPayloadSnapshot(current);
+  const baseline = snapshot.fingerprint;
   assert.equal(syncPayloadFingerprint({ ...current, syncMeta: meta({ dirty: true }) }), baseline);
-  assert.deepEqual(deriveSyncBaselineDiagnostics(current, baseline), {
-    baselineAvailable: true,
-    currentFingerprint: baseline,
-    baselineFingerprint: baseline,
-    dirty: false,
-    reason: 'clean'
-  });
+  const diagnostics = deriveSyncBaselineDiagnostics(current, baseline, snapshot.fieldFingerprints);
+  assert.equal(diagnostics.baselineAvailable, true);
+  assert.equal(diagnostics.currentFingerprint, baseline);
+  assert.equal(diagnostics.baselineFingerprint, baseline);
+  assert.equal(diagnostics.dirty, false);
+  assert.equal(diagnostics.reason, 'clean');
+  assert.equal(diagnostics.canonicalSchema, SYNC_CANONICAL_SCHEMA);
+  assert.deepEqual(diagnostics.currentFieldFingerprints, snapshot.fieldFingerprints);
+  assert.deepEqual(diagnostics.baselineFieldFingerprints, snapshot.fieldFingerprints);
+  assert.deepEqual(diagnostics.changedFields, []);
 });
 
 test('real sync payload changes produce a different fingerprint and dirty payload-diff reason', () => {
@@ -219,7 +224,7 @@ test('array order remains business-significant and is never sorted away', () => 
 
 test('fingerprint short codes do not reveal the canonical payload', () => {
   const fingerprint = syncPayloadFingerprint(state());
-  assert.match(fingerprint, /^sync-v1-[0-9a-f]{16}$/);
+  assert.match(fingerprint, /^sync-v2-[0-9a-f]{16}$/);
   assert.match(shortSyncFingerprint(fingerprint), /^[0-9a-f]{12}$/);
   assert.doesNotMatch(shortSyncFingerprint(fingerprint), /00631L|device-a/);
 });
@@ -227,10 +232,15 @@ test('fingerprint short codes do not reveal the canonical payload', () => {
 test('App upload, download, Backup, and reset flows enforce baseline lifecycle and canonical request body', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /body: snapshot\.canonicalJson/);
+  assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
+  assert.match(app, /uploadFirebase\(normalized\.firebase, requestSnapshot\)/);
   assert.match(app, /baselineFingerprint: uploadedSnapshot\.fingerprint/);
+  assert.match(app, /baselineFieldFingerprints: uploadedSnapshot\.fieldFingerprints/);
+  assert.match(app, /baselineCanonicalSchema: uploadedSnapshot\.canonicalSchema/);
   assert.match(app, /setState\(current => \{[\s\S]*?deriveSuccessfulUploadResult\(current, uploadedSnapshot\)/);
   assert.doesNotMatch(app, /deriveSyncBaselineDiagnostics\(stateRef\.current, uploadedSnapshot\.fingerprint\)/);
-  assert.match(app, /const baselineFingerprint = syncPayloadFingerprint\(remote\)/);
+  assert.match(app, /const downloadedSnapshot = createSyncPayloadSnapshot\(remote\)/);
+  assert.match(app, /baselineFingerprint: downloadedSnapshot\.fingerprint/);
   assert.match(app, /syncMeta: withoutSyncBaseline\(normalized\.syncMeta\)/);
   assert.match(app, /baselineFingerprint: undefined,[\s\S]*?source: '已從備份匯入'/);
   assert.match(app, /已重設為預設資產；尚未建立同步基準/);

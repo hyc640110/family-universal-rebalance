@@ -40,14 +40,14 @@ import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocati
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
-import { deriveHistoryStats, localSnapshotDate, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
+import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
 import { IMPORT_SCHEMA_VERSION, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, applyMappingPreset, buildImportPreview, createImportSessionId, createImportTransactions, csvParse, importedBySession, normalizeMappingPresets, rowsToRecords, type ImportMapping, type ImportPreviewRow, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
-import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, shortSyncFingerprint, syncPayloadFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
 type SymbolCode = string;
@@ -368,10 +368,14 @@ function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
   const source: SyncSource = r.source === '已從雲端下載' || r.source === '已從備份匯入' ? r.source : '本機資料';
   const baselineFingerprint = typeof r.baselineFingerprint === 'string' && /^sync-v\d+-[0-9a-f]+$/.test(r.baselineFingerprint) ? r.baselineFingerprint : undefined;
+  const baselineFieldFingerprints = sanitizeSyncFieldFingerprints(r.baselineFieldFingerprints);
+  const baselineCanonicalSchema = typeof r.baselineCanonicalSchema === 'string' && /^sync-json-v\d+$/.test(r.baselineCanonicalSchema) ? r.baselineCanonicalSchema : undefined;
   return {
     dirty: baselineFingerprint ? Boolean(r.dirty) : true,
     source,
     ...(baselineFingerprint ? { baselineFingerprint } : {}),
+    ...(baselineFingerprint && baselineFieldFingerprints ? { baselineFieldFingerprints } : {}),
+    ...(baselineFingerprint && baselineCanonicalSchema ? { baselineCanonicalSchema } : {}),
     lastLocalSaveAt: r.lastLocalSaveAt,
     lastUploadAt: r.lastUploadAt,
     lastDownloadAt: r.lastDownloadAt,
@@ -424,7 +428,7 @@ function normalizeState(raw: unknown): AppState {
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   const normalized = { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
-  const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint);
+  const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
   return { ...normalized, syncMeta: { ...normalized.syncMeta, dirty: baseline.dirty } };
 }
 function readState(): AppState {
@@ -505,7 +509,7 @@ function waitForDraftCommit() {
 }
 function syncPath(config: FirebaseConfig) { return `${FIREBASE_BASE_PATH}/${encodeURIComponent(config.secretPath || FIREBASE_BASE_PATH)}`; }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
-async function uploadFirebase(config: FirebaseConfig, state: AppState) { assertNoOAuthSecrets(state); const snapshot = createSyncPayloadSnapshot(normalizeState(state)); assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
+async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
@@ -1216,7 +1220,7 @@ function App() {
     let normalized = normalizeState(next);
     if (didMount.current && !isApplyingRemoteRef.current && hasSyncableStateChanged(previous, normalized)) {
       const savedAt = now();
-      const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint);
+      const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
       normalized = {
         ...normalized,
         syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: baseline.dirty, status: !baseline.baselineAvailable ? missingBaselineStatus(normalized) : baseline.dirty ? localDirtyStatus(normalized) : cleanSyncStatus() }, normalized)
@@ -1228,9 +1232,17 @@ function App() {
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
   const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
+  const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
+  const currentNetWorthSnapshot = useMemo(() => netWorthSnapshotFromTotals({
+    totalAssets: m.totalAssets,
+    netWorth: m.netWorth,
+    investmentValue: m.stocks,
+    cash: m.cash,
+    debt: m.debt
+  }), [m.totalAssets, m.netWorth, m.stocks, m.cash, m.debt]);
   const syncMeta = state.syncMeta;
   const remoteMeta = state.remoteMeta;
-  const syncBaselineDiagnostics = useMemo(() => deriveSyncBaselineDiagnostics(state, syncMeta.baselineFingerprint), [state, syncMeta.baselineFingerprint]);
+  const syncBaselineDiagnostics = useMemo(() => deriveSyncBaselineDiagnostics(state, syncMeta.baselineFingerprint, syncMeta.baselineFieldFingerprints), [state, syncMeta.baselineFingerprint, syncMeta.baselineFieldFingerprints]);
   const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
@@ -1284,6 +1296,7 @@ function App() {
       const currentHoldings = safeHoldings(currentState.holdings);
       const symbols = uniqueSymbols(currentState);
       if (!symbols.length) {
+        setHasUpdatedQuotes(true);
         setQuoteStatus('目前沒有可更新的持股代號。');
         return;
       }
@@ -1321,7 +1334,10 @@ function App() {
     if (active instanceof HTMLElement) active.blur();
     await waitForDraftCommit();
     validateBeforeUpload(stateRef.current);
-    const normalized = normalizeState(stateRef.current);
+    const normalized = normalizeState({
+      ...stateRef.current,
+      netWorthHistory: upsertNetWorthSnapshot(stateRef.current.netWorthHistory, currentNetWorthSnapshot)
+    });
     stateRef.current = normalized;
     writeState(normalized);
     const savedAt = now();
@@ -1330,9 +1346,11 @@ function App() {
     return normalized;
   };
   const uploadCloud = async () => { 
+    if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' })); 
     const normalized = await flushDrafts(); 
-    const uploadedSnapshot = await uploadFirebase(normalized.firebase, normalized);
+    const requestSnapshot = createSyncPayloadSnapshot(normalized);
+    const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot);
     const syncedAt = now(); 
     setLastSavedAt(syncedAt); 
     setState(current => {
@@ -1344,6 +1362,8 @@ function App() {
           ...current.syncMeta,
           source: '本機資料',
           baselineFingerprint: uploadedSnapshot.fingerprint,
+          baselineFieldFingerprints: uploadedSnapshot.fieldFingerprints,
+          baselineCanonicalSchema: uploadedSnapshot.canonicalSchema,
           dirty: outcome.dirty,
           lastUploadAt: syncedAt,
           status: outcome.dirty
@@ -1364,13 +1384,15 @@ function App() {
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
     const remote = await downloadFirebase(state.firebase); 
     const downloadedAt = now(); 
-    const baselineFingerprint = syncPayloadFingerprint(remote);
+    const downloadedSnapshot = createSyncPayloadSnapshot(remote);
     const appliedRemote = normalizeState({
       ...remote,
       syncMeta: {
         ...stateRef.current.syncMeta,
         source: '已從雲端下載',
-        baselineFingerprint,
+        baselineFingerprint: downloadedSnapshot.fingerprint,
+        baselineFieldFingerprints: downloadedSnapshot.fieldFingerprints,
+        baselineCanonicalSchema: downloadedSnapshot.canonicalSchema,
         dirty: false,
         lastDownloadAt: downloadedAt,
         status: `🎉 下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆`
@@ -1388,14 +1410,13 @@ function App() {
     });
   };
   useEffect(() => { refreshQuotes(); }, []);
-  const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const netWorthHistory = useMemo(() => normalizeNetWorthHistory(state.netWorthHistory), [state.netWorthHistory]);
   useEffect(() => {
-    const snapshot: NetWorthSnapshot = { date: localSnapshotDate(), totalAssets: m.totalAssets, netWorth: m.netWorth, investmentValue: m.stocks, cash: m.cash, debt: m.debt };
+    if (!hasUpdatedQuotes) return;
     const latest = netWorthHistory.at(-1);
-    if (latest && latest.date === snapshot.date && latest.totalAssets === snapshot.totalAssets && latest.netWorth === snapshot.netWorth && latest.investmentValue === snapshot.investmentValue && latest.cash === snapshot.cash && latest.debt === snapshot.debt) return;
-    setState(current => ({ ...current, netWorthHistory: upsertNetWorthSnapshot(current.netWorthHistory, snapshot) }));
-  }, [m.totalAssets, m.netWorth, m.stocks, m.cash, m.debt, netWorthHistory]);
+    if (latest && latest.date === currentNetWorthSnapshot.date && latest.totalAssets === currentNetWorthSnapshot.totalAssets && latest.netWorth === currentNetWorthSnapshot.netWorth && latest.investmentValue === currentNetWorthSnapshot.investmentValue && latest.cash === currentNetWorthSnapshot.cash && latest.debt === currentNetWorthSnapshot.debt) return;
+    setState(current => ({ ...current, netWorthHistory: upsertNetWorthSnapshot(current.netWorthHistory, currentNetWorthSnapshot) }));
+  }, [currentNetWorthSnapshot, hasUpdatedQuotes, netWorthHistory]);
   const performanceAssets = useMemo(() => m.rows.map(row => ({
     symbol: row.symbol,
     name: row.name,
@@ -1519,6 +1540,12 @@ function App() {
   }), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
+  const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
+    ? Object.entries(fingerprints).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key}:${shortSyncFingerprint(value)}`).join(' / ')
+    : 'unavailable (legacy baseline)';
+  const currentSyncFieldFingerprints = syncFieldFingerprintText(syncBaselineDiagnostics.currentFieldFingerprints);
+  const baselineSyncFieldFingerprints = syncFieldFingerprintText(syncBaselineDiagnostics.baselineFieldFingerprints);
+  const changedSyncFields = syncBaselineDiagnostics.changedFields.length ? syncBaselineDiagnostics.changedFields.join('、') : syncBaselineDiagnostics.dirty ? 'unavailable (legacy baseline)' : 'none';
   const generateDebugInfo = () => [
     'family-universal-rebalance debug info',
     `Version: ${APP_VERSION}`,
@@ -1539,6 +1566,10 @@ function App() {
     `CurrentFingerprint: ${shortSyncFingerprint(syncBaselineDiagnostics.currentFingerprint)}`,
     `BaselineFingerprint: ${shortSyncFingerprint(syncBaselineDiagnostics.baselineFingerprint)}`,
     `DirtyReason: ${syncBaselineDiagnostics.reason}`,
+    `CanonicalSchema: ${syncBaselineDiagnostics.canonicalSchema}`,
+    `ChangedTopLevelFields: ${changedSyncFields}`,
+    `CurrentTopLevelFingerprints: ${currentSyncFieldFingerprints}`,
+    `BaselineTopLevelFingerprints: ${baselineSyncFieldFingerprints}`,
     `HoldingsCount: ${safeHoldings(state.holdings).length}`,
     `CashAccountsCount: ${state.cash.length}`,
     `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
@@ -2172,6 +2203,10 @@ function App() {
                 <p><span>Current fingerprint</span><strong>{shortSyncFingerprint(syncBaselineDiagnostics.currentFingerprint)}</strong></p>
                 <p><span>Baseline fingerprint</span><strong>{shortSyncFingerprint(syncBaselineDiagnostics.baselineFingerprint)}</strong></p>
                 <p><span>Dirty reason</span><strong>{syncBaselineDiagnostics.reason}</strong></p>
+                <p><span>Canonical schema</span><strong>{syncBaselineDiagnostics.canonicalSchema}</strong></p>
+                <p><span>Changed top-level fields</span><strong>{changedSyncFields}</strong></p>
+                <p><span>Current top-level fingerprints</span><strong>{currentSyncFieldFingerprints}</strong></p>
+                <p><span>Baseline top-level fingerprints</span><strong>{baselineSyncFieldFingerprints}</strong></p>
                 <p><span>Market Worker</span><strong>{marketRuntime.endpoint}</strong></p>
                 <p><span>Market response cache</span><strong>{marketRuntime.cache}</strong></p>
                 <p><span>Market snapshot</span><strong>{marketSnapshot.status}｜{marketSnapshot.fetchedAt ? tw(marketSnapshot.fetchedAt) : '尚未取得'}</strong></p>
