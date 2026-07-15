@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { disconnectGoogleOAuth, getGoogleOAuthStatus, isGmailOAuthEnabled, startGoogleOAuth, type GmailOAuthState } from '../lib/gmailOAuth';
 
 const statusPresentation = (enabled: boolean, status: GmailOAuthState['status']) => {
@@ -14,7 +14,14 @@ export default function GmailOAuthSettings({ value, onChange }: { value: GmailOA
   const [message, setMessage] = useState('');
   const enabled = isGmailOAuthEnabled();
   const status = statusPresentation(enabled, value.status);
-  useEffect(() => { if (!enabled) return; getGoogleOAuthStatus().then(onChange).catch(() => onChange({ status: 'error', grantedScopes: [], lastErrorCode: 'broker_unavailable' })); }, [enabled, onChange]);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => {
+    if (!enabled) return;
+    getGoogleOAuthStatus()
+      .then(next => onChangeRef.current(next))
+      .catch(() => onChangeRef.current({ status: 'error', grantedScopes: [], lastErrorCode: 'broker_unavailable' }));
+  }, [enabled]);
   const disconnect = async () => { try { await disconnectGoogleOAuth(); onChange({ status: 'disconnected', grantedScopes: [] }); setMessage('已中斷 Gmail 安全連線。'); } catch { setMessage('無法中斷連線，請稍後再試。'); } };
   return <section className="card gmail-oauth-card" aria-labelledby="gmail-security-title">
     <h2 id="gmail-security-title">Gmail 安全連線</h2>
