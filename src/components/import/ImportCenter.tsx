@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import readXlsxFile from 'read-excel-file/browser';
-import { Link } from 'react-router-dom';
+import ToolQuickNavigation from '../ToolQuickNavigation';
 import type { FinancialAccount } from '../../lib/financialAccounts';
 import type { FinancialTransaction } from '../../lib/transactions';
 import {
@@ -121,7 +121,6 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
 
   return <div className="financial-account-list import-center">
-    <nav className="tool-quick-navigation" aria-label="交易匯入導覽"><Link to="/tools">返回工具中心</Link><Link to="/assets">返回資產</Link></nav>
     <p className="note">檔案只在本機記憶體解析，不保存原始檔或工作表資料。限制 5 MB／2,000 列。</p>
     <div className="financial-account-fields">
       <label>匯入帳戶<select value={accountId} onChange={event => setAccountId(event.currentTarget.value)}><option value="">選擇啟用帳戶</option>{targets.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
@@ -136,5 +135,6 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     {records.length > 0 && <button className="small" type="button" onClick={makePreview}>產生匯入預覽</button>}
     {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: event.currentTarget.checked } : item))} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" onClick={commit}>正式批次匯入已選列</button></>}
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => onRollback(session.id)}>撤銷</button>}</p>)}
+    <ToolQuickNavigation current="import-transactions" showAssetsReturn />
   </div>;
 }

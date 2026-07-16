@@ -46,6 +46,6 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   { id: 'risk-center', name: '風險與現金安全中心', description: '整合現金、借款、槓桿及資產集中風險，快速找出最需要優先處理的財務問題。', icon: ShieldAlert, to: '/tools/risk-center', actionLabel: '查看風險' }
 ];
 
-export function getToolQuickLinks(current: ToolId) {
+export function getToolQuickLinks(current?: ToolId) {
   return TOOL_DEFINITIONS.filter((tool): tool is ToolDefinition & { to: string; actionLabel: string } => Boolean(tool.to) && tool.id !== current);
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getToolQuickLinks, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
+import { readFileSync } from 'node:fs';
 
 const expectedQuickOrder = [
   'investment-action-center', 'import-transactions', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
@@ -26,4 +27,13 @@ test('quick links preserve Tool Center order and omit only the current tool', ()
     assert.deepEqual(links.map(link => link.id), expectedQuickOrder.filter(id => id !== current));
     assert.ok(links.every(link => link.to && link.name && link.actionLabel));
   }
+});
+
+test('quick links retain the full Tool Center order when the current page is outside Tool Center', () => {
+  assert.deepEqual(getToolQuickLinks().map(link => link.id), expectedQuickOrder);
+});
+
+test('the Performance analytics route uses the same quick navigation component', () => {
+  const analyticsPage = readFileSync(new URL('../src/pages/AnalyticsPage.tsx', import.meta.url), 'utf8');
+  assert.match(analyticsPage, /<ToolQuickNavigation \/>/);
 });

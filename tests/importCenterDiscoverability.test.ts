@@ -16,6 +16,9 @@ test('the existing Import Center opens from the anchor without persisting a UI-s
   assert.match(app, /routeLocation\.pathname === '\/assets' && routeLocation\.hash === '#transactions-section'/);
   assert.match(app, /open=\{isTransactionImportTarget \|\| sectionOpen\('transactions'\)\}/);
   assert.match(app, /getElementById\('transactions-section'\)\?\.scrollIntoView/);
-  assert.match(importCenter, /aria-label="交易匯入導覽"/);
-  assert.match(importCenter, /<Link to="\/tools">返回工具中心<\/Link><Link to="\/assets">返回資產<\/Link>/);
+  assert.match(importCenter, /<ToolQuickNavigation current="import-transactions" showAssetsReturn \/>/);
+  const navigation = readFileSync(new URL('../src/components/ToolQuickNavigation.tsx', import.meta.url), 'utf8');
+  assert.match(navigation, /<ArrowLeft size=\{16\} aria-hidden="true" \/><span>返回工具中心<\/span>/);
+  assert.match(navigation, /showAssetsReturn && <Link to="\/assets" aria-label="返回資產"/);
+  assert.match(navigation, /\{ id, name, icon: Icon, to \}/);
 });
