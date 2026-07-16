@@ -42,6 +42,7 @@ import { adaptInvestmentIntelligenceInput } from './lib/investmentIntelligenceAd
 import { deriveDailyDecisionWorkflow } from './lib/dailyDecisionWorkflow';
 import { deriveInvestmentOpportunities } from './lib/investmentOpportunities';
 import { deriveInvestmentActionCenter } from './lib/investmentActionCenter';
+import { deriveInvestmentActionExplanations } from './lib/investmentActionExplainability';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
@@ -1566,6 +1567,7 @@ function App() {
   const dailyDecisionWorkflow = useMemo(() => deriveDailyDecisionWorkflow(investmentIntelligence), [investmentIntelligence]);
   const investmentOpportunities = useMemo(() => deriveInvestmentOpportunities(dailyDecisionWorkflow), [dailyDecisionWorkflow]);
   const investmentActionCenter = useMemo(() => deriveInvestmentActionCenter(dailyDecisionWorkflow, investmentOpportunities), [dailyDecisionWorkflow, investmentOpportunities]);
+  const investmentActionExplanations = useMemo(() => deriveInvestmentActionExplanations(investmentActionCenter), [investmentActionCenter]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
@@ -2077,7 +2079,7 @@ function App() {
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} />}
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} />}
-        {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} />}
+        {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} explanations={investmentActionExplanations} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
