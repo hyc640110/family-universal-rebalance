@@ -275,12 +275,13 @@ test('sync diagnostics expose only short fingerprints and never render the Fireb
   assert.match(app, /不包含 Firebase 完整路徑、完整同步 payload/);
 });
 
-test('Preview and Production storage keys and Firebase path behavior remain isolated and unchanged', () => {
+test('Preview and Production storage keys and Firebase path behavior remain isolated', () => {
   const previewEnv = readFileSync(new URL('../.env.preview-deploy', import.meta.url), 'utf8');
   const appInfo = readFileSync(new URL('../src/constants/appInfo.ts', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(previewEnv, /VITE_STORAGE_KEY=family-universal-rebalance-preview-v100-state/);
   assert.match(appInfo, /family-universal-rebalance-v100-state/);
-  assert.match(appInfo, /FIREBASE_BASE_PATH = 'family-universal-rebalance'/);
-  assert.match(app, /function syncPath\(config: FirebaseConfig\).*FIREBASE_BASE_PATH.*encodeURIComponent\(config\.secretPath/s);
+  assert.match(previewEnv, /VITE_FIREBASE_BASE_PATH=family-universal-rebalance-preview/);
+  assert.match(appInfo, /createEnvironmentBoundary\(import\.meta\.env\.VITE_DEPLOYMENT_ENVIRONMENT, import\.meta\.env\.VITE_FIREBASE_BASE_PATH\)/);
+  assert.match(app, /function syncPath\(config: FirebaseConfig\).*buildFirebaseSyncRoot\(config\.secretPath\)/s);
 });

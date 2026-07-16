@@ -225,8 +225,9 @@ test('Preview and Production storage keys and Firebase paths remain isolated', (
   const appInfo = readFileSync(new URL('../src/constants/appInfo.ts', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(previewEnv, /VITE_STORAGE_KEY=family-universal-rebalance-preview-v100-state/);
+  assert.match(previewEnv, /VITE_FIREBASE_BASE_PATH=family-universal-rebalance-preview/);
   assert.match(appInfo, /family-universal-rebalance-v100-state/);
-  assert.match(app, /FIREBASE_BASE_PATH.*encodeURIComponent\(config\.secretPath/s);
+  assert.match(app, /buildFirebaseSyncRoot\(config\.secretPath\)/);
 });
 
 test('Production regression path waits for Quote settlement and snapshots net worth before upload', () => {
