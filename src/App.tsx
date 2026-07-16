@@ -35,6 +35,7 @@ import { dividendSources, dividendSummary } from './lib/dividends';
 import { deriveAiDecisions, deriveMarketFreshness } from './lib/aiDecision';
 import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
+import { createRecommendationModels } from './lib/recommendations';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
@@ -1473,6 +1474,7 @@ function App() {
     duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
     allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
   }), [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView]);
+  const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: state.allocationRoleBySymbol },
     rebalanceMode: state.rebalanceMode,
@@ -2062,7 +2064,7 @@ function App() {
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
-        {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} />}
+        {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} />}
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
