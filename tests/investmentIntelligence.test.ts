@@ -11,14 +11,14 @@ const base = (overrides: Partial<InvestmentIntelligenceInput> = {}): InvestmentI
   rebalance: { canRecommend: true, blockingReasons: [], thresholdReached: false, allocationDeviation: 1 },
   market: { freshness: 'today', availableCount: 3 },
   performance: { canCalculateMaxDrawdown: true, snapshotCount: 3, maxDrawdown: -0.05 },
-  dividend: { yearAmount: 100, yearCount: 1 },
+  dividend: { yearAmount: 100, yearCount: 1 }, ai: { attention: [] },
   ...overrides
 });
 
 test('is deterministic, traceable, and never mutates its derived input', () => {
   const input = base(); const before = JSON.stringify(input); const result = deriveInvestmentIntelligence(input);
   assert.deepEqual(deriveInvestmentIntelligence(input), result); assert.equal(JSON.stringify(input), before);
-  assert.equal(result.nextAction.route, '/tools/dividend-center'); assert.equal(result.supportingItems.length, 7);
+  assert.equal(result.nextAction.route, '/tools/dividend-center'); assert.equal(result.supportingItems.length, 8);
 });
 
 test('data-quality faults outrank every other status and keep unavailable values explicit', () => {
@@ -46,10 +46,11 @@ test('market, performance, and normal fallbacks use existing routes without a se
 
 test('Dashboard integration keeps one primary CTA, existing routes, mobile single-column CSS, and safe wording', () => {
   const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
+  const summary = readFileSync(new URL('../src/components/InvestmentIntelligenceSummary.tsx', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-  assert.match(app, /deriveInvestmentIntelligence/);
-  assert.equal((page.match(/intelligence-action-link/g) || []).length, 1);
+  assert.match(app, /adaptInvestmentIntelligenceInput/); assert.match(page, /InvestmentIntelligenceSummary/);
+  assert.equal((summary.match(/intelligence-action-link/g) || []).length, 1);
   assert.match(css, /@media \(max-width:700px\)\{\.investment-intelligence-card.*?\.intelligence-grid\{grid-template-columns:1fr/s);
   assert.doesNotMatch(page, /買入金額|賣出金額|股數|張數|零股|下單|最佳進場|報酬保證|預測/);
   assert.doesNotMatch(app, /InvestmentIntelligencePage|\/tools\/investment-intelligence/);

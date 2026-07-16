@@ -12,6 +12,7 @@ export type InvestmentIntelligenceInput = {
   market: { freshness: 'today' | 'recent-effective' | 'stale' | 'unavailable' | 'invalid'; availableCount: number };
   performance: { canCalculateMaxDrawdown: boolean; snapshotCount: number; maxDrawdown: number | null };
   dividend: { yearAmount: number; yearCount: number };
+  ai: { attention: Array<{ id: string; title: string; severity: 'critical' | 'warning'; reason: string; route: string }> };
 };
 
 const finite = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
@@ -48,6 +49,7 @@ export function deriveInvestmentIntelligence(input: InvestmentIntelligenceInput)
   const rebalanceBlocked = allocationReached && !input.rebalance.canRecommend;
   const marketNeedsReview = input.market.freshness === 'stale';
   const drawdownNeedsReview = input.performance.canCalculateMaxDrawdown && (input.performance.maxDrawdown ?? 0) <= -0.2;
+  const aiAttention = input.ai.attention[0] ?? null;
 
   const nextAction: IntelligenceAction = qualityProblems.length
     ? qualityAction
@@ -79,7 +81,8 @@ export function deriveInvestmentIntelligence(input: InvestmentIntelligenceInput)
     { label: '配置與再平衡', value: allocationReached ? '已達門檻' : '門檻內', detail: rebalanceBlocked ? '再平衡建議已停止計算：' + (input.rebalance.blockingReasons[0] || '資料品質不足。') : `偏離 ${pct(input.portfolioRisk.allocation.deviation, true)}｜門檻 ${pct(input.portfolioRisk.allocation.threshold)}`, tone: rebalanceBlocked ? 'bad' : allocationReached ? 'warn' : 'good' },
     { label: '市場資料', value: marketValue, detail: input.market.availableCount > 0 ? `可用 ${input.market.availableCount} 項市場資料。` : '沒有可用市場資料，不解讀市場方向。', tone: marketUnavailable ? 'bad' : marketNeedsReview ? 'warn' : 'good' },
     { label: '績效／回撤', value: performanceUnavailable ? '資料不足' : `最大回撤 ${pct((input.performance.maxDrawdown ?? 0) * 100)}`, detail: performanceUnavailable ? `有效快照 ${input.performance.snapshotCount} 筆，無法可靠計算。` : '最大回撤僅使用投資資產口徑。', tone: performanceUnavailable ? 'neutral' : drawdownNeedsReview ? 'warn' : 'good' },
-    { label: '股息摘要', value: input.dividend.yearCount ? `本年 ${input.dividend.yearCount} 筆` : '尚無有效資料', detail: input.dividend.yearCount ? `本年已入帳 ${money(input.dividend.yearAmount)}。` : '僅統計有效且已入帳的股息交易。', tone: input.dividend.yearCount ? 'good' : 'neutral' }
+    { label: '股息摘要', value: input.dividend.yearCount ? `本年 ${input.dividend.yearCount} 筆` : '尚無有效資料', detail: input.dividend.yearCount ? `本年已入帳 ${money(input.dividend.yearAmount)}。` : '僅統計有效且已入帳的股息交易。', tone: input.dividend.yearCount ? 'good' : 'neutral' },
+    { label: 'AI 決策', value: aiAttention ? aiAttention.title : '目前無優先警示', detail: aiAttention ? aiAttention.reason : '沿用既有本機規則；沒有新增主觀排序。', tone: aiAttention ? (aiAttention.severity === 'critical' ? 'bad' : 'warn') : 'good' }
   ];
 
   return {

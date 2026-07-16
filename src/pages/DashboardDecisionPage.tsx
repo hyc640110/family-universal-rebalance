@@ -4,6 +4,7 @@ import PageFrame from './PageFrame';
 import MarketSummaryCard from '../components/MarketSummaryCard';
 import type { MarketSnapshot } from '../lib/marketData';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
+import InvestmentIntelligenceSummary from '../components/InvestmentIntelligenceSummary';
 
 type DecisionItem = { title: string; reason: string; to: string };
 type DashboardData = {
@@ -43,15 +44,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
       </div>
     </section>
 
-    <section className={`investment-intelligence-card ${data.intelligence.overallTone}`} aria-labelledby="investment-intelligence-title">
-      <header className="intelligence-heading"><div><p className="eyebrow">V5.9 Investment Intelligence</p><h2 id="investment-intelligence-title">今日投資狀態</h2><p><strong>{data.intelligence.overallStatus}</strong>｜{data.intelligence.title}</p></div><span className={`intelligence-status ${data.intelligence.overallTone}`}>{data.intelligence.overallStatus}</span></header>
-      <p className="intelligence-summary">{data.intelligence.summary}</p>
-      <div className="intelligence-grid">
-        {data.intelligence.supportingItems.map(item => <article key={item.label} className={item.tone}><small>{item.label}</small><strong>{item.value}</strong><span>{item.detail}</span></article>)}
-      </div>
-      <div className="intelligence-next-action"><div><small>建議下一步</small><strong>{data.intelligence.nextAction.reason}</strong></div><Link className="intelligence-action-link" to={data.intelligence.nextAction.route}>{data.intelligence.nextAction.label}<span aria-hidden="true">→</span></Link></div>
-      <p className="intelligence-limits">{data.intelligence.limitations.join(' ')}</p>
-    </section>
+    <InvestmentIntelligenceSummary intelligence={data.intelligence} />
 
     <MarketSummaryCard snapshot={data.market} />
 

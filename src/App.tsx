@@ -37,6 +37,7 @@ import { derivePortfolioRisk } from './lib/portfolioRisk';
 import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
 import { createRecommendationModels } from './lib/recommendations';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
+import { adaptInvestmentIntelligenceInput } from './lib/investmentIntelligenceAdapter';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
@@ -1547,7 +1548,7 @@ function App() {
         targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0)
       });
   }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
-  const investmentIntelligence = useMemo(() => deriveInvestmentIntelligence({
+  const investmentIntelligence = useMemo(() => deriveInvestmentIntelligence(adaptInvestmentIntelligenceInput({
     dashboard: { dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
     sync: { dirty: syncMeta.dirty, status: syncStatusText },
     risk: riskMetrics,
@@ -1555,8 +1556,8 @@ function App() {
     rebalance: rebalanceRecommendationView,
     market: { freshness: deriveMarketFreshness(marketSnapshot, localSnapshotDate()), availableCount: marketSnapshot.items.filter(item => item.status !== 'unavailable' && item.status !== 'failed').length },
     performance: { canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount, maxDrawdown: investmentStats.maxDrawdown },
-    dividend: dividendSummary(state.transactions)
-  }), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions]);
+    dividend: dividendSummary(state.transactions), aiDecisions: aiDecisionItems
+  })), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions, aiDecisionItems]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
