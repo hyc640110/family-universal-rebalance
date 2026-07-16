@@ -124,7 +124,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     setPreview([]); setRecords([]); setMessage(`已匯入 ${imported.length} 筆交易。`);
   };
 
-  const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => setMapping(current => ({ ...current, [key]: event.currentTarget.value || undefined }))}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
+  const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
 
   return <div className="financial-account-list import-center">
     <p className="note">檔案只在本機記憶體解析，不保存原始檔或工作表資料。限制 5 MB／2,000 列。</p>
