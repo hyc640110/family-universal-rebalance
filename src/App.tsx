@@ -38,6 +38,7 @@ import { deriveRebalanceRecommendation } from './lib/rebalanceRecommendation';
 import { createRecommendationModels } from './lib/recommendations';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { adaptInvestmentIntelligenceInput } from './lib/investmentIntelligenceAdapter';
+import { deriveDailyDecisionWorkflow } from './lib/dailyDecisionWorkflow';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
@@ -1558,6 +1559,7 @@ function App() {
     performance: { canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount, maxDrawdown: investmentStats.maxDrawdown },
     dividend: dividendSummary(state.transactions), aiDecisions: aiDecisionItems
   })), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions, aiDecisionItems]);
+  const dailyDecisionWorkflow = useMemo(() => deriveDailyDecisionWorkflow(investmentIntelligence), [investmentIntelligence]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
@@ -1909,6 +1911,7 @@ function App() {
         cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
         market: marketSnapshot,
         intelligence: investmentIntelligence,
+        workflow: dailyDecisionWorkflow,
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} onRefresh={() => { void refreshMarketData(); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>

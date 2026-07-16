@@ -11,6 +11,19 @@ export type ToolDefinition = {
   actionLabel?: string;
 };
 
+// Central routes used by the investment-decision summaries.  Tool routes remain
+// owned by TOOL_DEFINITIONS; these cover the existing non-tool destinations.
+export const INVESTMENT_DECISION_ROUTES = {
+  assets: '/assets',
+  market: '/market',
+  analytics: '/analytics',
+  settings: '/settings',
+  portfolioRisk: '/tools/portfolio-risk',
+  rebalanceRecommendation: '/tools/rebalance-recommendation',
+  dividendCenter: '/tools/dividend-center',
+  aiDecision: '/tools/ai-decision'
+} as const;
+
 // This is the sole product-order source for Tool Center and tool-page quick links.
 // Rendering from this data keeps the visible name, icon, route and link metadata aligned.
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
