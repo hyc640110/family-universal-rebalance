@@ -3,6 +3,7 @@ import { type DashboardReminder } from '../lib/investmentDashboard';
 import PageFrame from './PageFrame';
 import type { MarketSnapshot } from '../lib/marketData';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
+import type { DailyDecisionWorkflow } from '../lib/dailyDecisionWorkflow';
 import InvestmentIntelligenceSummary from '../components/InvestmentIntelligenceSummary';
 
 type DecisionItem = { title: string; reason: string; to: string };
@@ -14,6 +15,7 @@ type DashboardData = {
   riskLabel: string; cashStatus: string; cashSafety: string; reminders: DashboardReminder[];
   market: MarketSnapshot;
   intelligence: ReturnType<typeof deriveInvestmentIntelligence>;
+  workflow: DailyDecisionWorkflow;
 };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
@@ -31,7 +33,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
   const growthWidth = allocationTotal > 0 ? Math.min(100, Math.max(0, (data.growthRatio ?? 0) / allocationTotal * 100)) : 0;
   const complementaryReminders = data.reminders.filter(item => !['quotes', 'sync', 'rebalance'].includes(item.key));
   return <PageFrame page="home" title="投資決策首頁" description="30 秒掌握今日投資表現、配置與下一步。">
-    <InvestmentIntelligenceSummary intelligence={data.intelligence} />
+    <InvestmentIntelligenceSummary intelligence={data.intelligence} workflow={data.workflow} />
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">今日投資摘要</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
       <div className="investment-summary-grid">

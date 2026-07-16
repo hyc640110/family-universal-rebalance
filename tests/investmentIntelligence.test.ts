@@ -47,10 +47,11 @@ test('market, performance, and normal fallbacks use existing routes without a se
 test('Dashboard integration keeps one primary CTA, existing routes, mobile single-column CSS, and safe wording', () => {
   const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
   const summary = readFileSync(new URL('../src/components/InvestmentIntelligenceSummary.tsx', import.meta.url), 'utf8');
+  const workflow = readFileSync(new URL('../src/components/DailyDecisionWorkflow.tsx', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   assert.match(app, /adaptInvestmentIntelligenceInput/); assert.match(page, /InvestmentIntelligenceSummary/);
-  assert.equal((summary.match(/intelligence-action-link/g) || []).length, 1);
+  assert.match(summary, /DailyDecisionWorkflow/); assert.equal((workflow.match(/daily-decision-primary-link/g) || []).length, 1);
   assert.match(css, /@media \(max-width:700px\)\{\.investment-intelligence-card.*?\.intelligence-grid\{grid-template-columns:1fr/s);
   assert.doesNotMatch(page, /買入金額|賣出金額|股數|張數|零股|下單|最佳進場|報酬保證|預測/);
   assert.doesNotMatch(app, /InvestmentIntelligencePage|\/tools\/investment-intelligence/);
