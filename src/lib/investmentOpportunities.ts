@@ -16,7 +16,7 @@ export type InvestmentOpportunity = {
   ariaLabel: string;
 };
 
-const categoryFor = (step: DailyDecisionStep): [OpportunityCategory, OpportunityActionType] => {
+export const investmentOpportunityMetadataForStep = (step: DailyDecisionStep): [OpportunityCategory, OpportunityActionType] => {
   switch (step.id) {
     case 'data-and-quotes': return ['data-update', 'review-data'];
     case 'risk-and-safety': return ['risk-review', 'review-risk'];
@@ -38,7 +38,7 @@ export function deriveInvestmentOpportunities(workflow: DailyDecisionWorkflow): 
     .sort((left, right) => left.priority - right.priority || left.id.localeCompare(right.id))
     .slice(0, 3)
     .map(step => {
-      const [category, actionType] = categoryFor(step);
+      const [category, actionType] = investmentOpportunityMetadataForStep(step);
       return {
         id: `daily-${step.id}`,
         category,

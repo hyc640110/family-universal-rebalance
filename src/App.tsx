@@ -24,6 +24,7 @@ import AiDecisionCenterPage from './pages/AiDecisionCenterPage';
 import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
+import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -40,6 +41,7 @@ import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { adaptInvestmentIntelligenceInput } from './lib/investmentIntelligenceAdapter';
 import { deriveDailyDecisionWorkflow } from './lib/dailyDecisionWorkflow';
 import { deriveInvestmentOpportunities } from './lib/investmentOpportunities';
+import { deriveInvestmentActionCenter } from './lib/investmentActionCenter';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
@@ -1202,6 +1204,7 @@ function App() {
     const isPortfolioRiskCenter = routeLocation.pathname === '/tools/portfolio-risk';
     const isRebalanceRecommendationCenter = routeLocation.pathname === '/tools/rebalance-recommendation';
     const isClecStrategyCenter = routeLocation.pathname === '/tools/clec-strategy';
+    const isInvestmentActionCenter = routeLocation.pathname === '/tools/investment-action-center';
   const marketWorkerUrl = import.meta.env.VITE_MARKET_DATA_WORKER_URL || '';
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('forceErrorBoundary') === '1') {
     throw new Error('Error Boundary 測試錯誤');
@@ -1562,6 +1565,7 @@ function App() {
   })), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions, aiDecisionItems]);
   const dailyDecisionWorkflow = useMemo(() => deriveDailyDecisionWorkflow(investmentIntelligence), [investmentIntelligence]);
   const investmentOpportunities = useMemo(() => deriveInvestmentOpportunities(dailyDecisionWorkflow), [dailyDecisionWorkflow]);
+  const investmentActionCenter = useMemo(() => deriveInvestmentActionCenter(dailyDecisionWorkflow, investmentOpportunities), [dailyDecisionWorkflow, investmentOpportunities]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
@@ -1881,7 +1885,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter && !isClecStrategyCenter) return <Navigate to="/home" replace />;
+    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter && !isClecStrategyCenter && !isInvestmentActionCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -2073,6 +2077,7 @@ function App() {
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} />}
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} />}
+        {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
