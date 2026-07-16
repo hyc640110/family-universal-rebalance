@@ -18,6 +18,7 @@
     "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
     "test:import-center": "tsx --test tests/importCenter.test.ts",
     "test:v6-0-2-import-center": "tsx --test tests/importCenterConsolidation.test.ts",
+    "test:v6-0-3-import-discoverability": "tsx --test tests/importCenterDiscoverability.test.ts",
     "test:oauth-security": "tsx --test tests/oauthSecurity.test.ts",
     "test:v5-dashboard": "tsx --test tests/investmentDashboard.test.ts",
     "test:v5-1-performance": "tsx --test tests/investmentPerformanceHistory.test.ts",
