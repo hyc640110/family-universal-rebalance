@@ -5,10 +5,13 @@ import MobileBottomNav from './MobileBottomNav';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [location.pathname]);
+  useEffect(() => {
+    if (!location.hash) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname, location.hash]);
   return <div className="app-shell">
+    <a className="skip-link" href="#app-content">跳至主要內容</a>
     <DesktopSidebar />
-    <main className="app-content">{children}</main>
+    <main id="app-content" className="app-content" tabIndex={-1}>{children}</main>
     <MobileBottomNav />
   </div>;
 }
