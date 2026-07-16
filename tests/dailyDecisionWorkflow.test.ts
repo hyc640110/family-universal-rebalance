@@ -45,5 +45,5 @@ test('dashboard renders the pure model without hard-coded routes or transaction 
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   assert.match(app, /deriveDailyDecisionWorkflow\(investmentIntelligence\)/); assert.match(summary, /DailyDecisionWorkflow/);
   assert.match(model, /does not accept raw portfolio data/); assert.doesNotMatch(model, /localStorage|fetch\(/);
-  assert.match(css, /@media \(max-width:700px\).*?\.daily-decision-steps\{grid-template-columns:1fr/s);
+  assert.match(css, /@media \(max-width:700px\).*?\.daily-decision-steps(?:,\.investment-opportunity-grid)?\{grid-template-columns:1fr/s);
 });

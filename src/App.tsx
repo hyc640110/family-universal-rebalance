@@ -39,6 +39,7 @@ import { createRecommendationModels } from './lib/recommendations';
 import { deriveInvestmentIntelligence } from './lib/investmentIntelligence';
 import { adaptInvestmentIntelligenceInput } from './lib/investmentIntelligenceAdapter';
 import { deriveDailyDecisionWorkflow } from './lib/dailyDecisionWorkflow';
+import { deriveInvestmentOpportunities } from './lib/investmentOpportunities';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
@@ -1560,6 +1561,7 @@ function App() {
     dividend: dividendSummary(state.transactions), aiDecisions: aiDecisionItems
   })), [investmentDashboard, quoteSummaryText, m.rows, syncMeta.dirty, syncStatusText, riskMetrics, portfolioRiskView, rebalanceRecommendationView, marketSnapshot, performanceQuality, investmentStats, state.transactions, aiDecisionItems]);
   const dailyDecisionWorkflow = useMemo(() => deriveDailyDecisionWorkflow(investmentIntelligence), [investmentIntelligence]);
+  const investmentOpportunities = useMemo(() => deriveInvestmentOpportunities(dailyDecisionWorkflow), [dailyDecisionWorkflow]);
   const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
   const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
   const syncFieldFingerprintText = (fingerprints?: Record<string, string>) => fingerprints
@@ -1912,6 +1914,7 @@ function App() {
         market: marketSnapshot,
         intelligence: investmentIntelligence,
         workflow: dailyDecisionWorkflow,
+        opportunities: investmentOpportunities,
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} onRefresh={() => { void refreshMarketData(); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>

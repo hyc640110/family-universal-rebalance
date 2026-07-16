@@ -28,6 +28,7 @@
     "test:v5-8-1-allocation-presets": "tsx --test tests/allocationPresets.test.ts",
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
     "test:v5-12-daily-decision-workflow": "tsx --test tests/dailyDecisionWorkflow.test.ts",
+    "test:v5-13-investment-opportunities": "tsx --test tests/investmentOpportunities.test.ts",
     "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
     "test:recommendations": "tsx --test tests/recommendations.test.ts",
