@@ -1,12 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, validateMappingPreset } from '../src/lib/importCenter';
+import { applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, validateMappingPreset } from '../src/lib/importCenter';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
 test('CSV parser supports BOM, quotes, commas, blank rows, and platform newlines', () => {
   const rows = csvParse('\uFEFFdate,description,amount\r\n2026/07/13,"coffee, shop",-1,234\n\n');
   assert.equal(rows.length, 2); assert.equal(rows[1][1], 'coffee, shop');
   assert.throws(() => rowsToRecords([['date', 'date'], ['a', 'b']]));
+});
+test('numeric HTML entity XLSX headers decode before auto mapping and match CSV mappings', () => {
+  const headers = ['交易日期', '單一金額', '描述', '商家/對象', '類別', '外部ID'];
+  const encodedXlsxRows = [
+    ['&#20132;&#26131;&#26085;&#26399;', '&#21934;&#19968;&#37329;&#38989;', '&#25551;&#36848;', '&#21830;&#23478;/&#23565;&#35937;', '&#39006;&#21029;', '&#22806;&#37096;ID'],
+    ['2026-07-01', 35000, '&#34218;&#36039;&#20837;&#24115;', '&#28204;&#35430;&#20844;&#21496;', '&#34218;&#36039;', 'T001']
+  ];
+  const decodedXlsxRows = decodeXlsxRows(encodedXlsxRows);
+  const xlsxHeaders = Object.keys(rowsToRecords(decodedXlsxRows)[0].raw);
+  const csvHeaders = Object.keys(rowsToRecords([headers, ['2026-07-01', '35000', '薪資入帳', '測試公司', '薪資', 'T001']])[0].raw);
+  assert.deepEqual(xlsxHeaders, headers);
+  assert.equal(xlsxHeaders.some(header => header.includes('&#')), false);
+  assert.deepEqual(guessImportMapping(xlsxHeaders), guessImportMapping(csvHeaders));
+  assert.deepEqual(guessImportMapping(xlsxHeaders), { occurredAt: '交易日期', amount: '單一金額', description: '描述', merchant: '商家/對象', categoryId: '類別', externalId: '外部ID', credit: undefined, debit: undefined, note: undefined });
 });
 test('money and dates normalize safely', () => {
   assert.equal(parseMoney('NT$1,234.56'), 1234.56); assert.equal(parseMoney('(1,234)'), -1234); assert.equal(parseMoney('0'), undefined); assert.equal(parseMoney('bad'), undefined);

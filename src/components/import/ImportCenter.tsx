@@ -11,6 +11,8 @@ import {
   createImportSessionId,
   createImportTransactions,
   csvParse,
+  decodeXlsxRows,
+  guessImportMapping,
   rowsToRecords,
   type ImportMapping,
   type ImportPreset,
@@ -31,15 +33,6 @@ type ImportCenterProps = {
 };
 
 const formatTimestamp = (iso: string) => new Date(iso).toLocaleString('zh-TW');
-const guessMapping = (names: string[]): ImportMapping => {
-  const find = (...terms: string[]) => names.find(name => terms.some(term => name.toLowerCase().includes(term)));
-  return {
-    occurredAt: find('date', '日期', '交易日'), description: find('description', '摘要', '說明'), merchant: find('merchant', '商家', '對象'),
-    amount: find('amount', '金額'), credit: find('credit', '收入'), debit: find('debit', '支出'), categoryId: find('category', '類別'),
-    note: find('note', '備註'), externalId: find('id', '序號')
-  };
-};
-
 export default function ImportCenter({ accounts, transactions, sessions, presets, onCommit, onRollback, onPresets }: ImportCenterProps) {
   const [accountId, setAccountId] = useState('');
   const [fileName, setFileName] = useState('');
@@ -62,7 +55,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       if (next.length > MAX_IMPORT_ROWS) throw new Error('工作表超過 2,000 列限制');
       const names = Object.keys(next[0]?.raw || {});
       const compatible = keep && Object.values(mapping).filter(value => typeof value === 'string').every(value => !value || names.includes(value));
-      setSheetName(sheet.sheet); setRecords(next); setHeaders(names); setMapping(compatible ? mapping : guessMapping(names)); setPreview([]);
+      setSheetName(sheet.sheet); setRecords(next); setHeaders(names); setMapping(compatible ? mapping : guessImportMapping(names)); setPreview([]);
       setMessage(`${sheet.sheet}：${next.length} 筆資料列${compatible ? '，保留相容 mapping。' : '，請確認欄位對應。'}`);
     } catch (error) {
       setSheetName(sheet.sheet); setRecords([]); setHeaders([]); setPreview([]);
@@ -76,7 +69,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       const lower = file.name.toLowerCase();
       const kind = lower.endsWith('.csv') ? 'csv' : lower.endsWith('.xlsx') ? 'xlsx' : null;
       if (!kind) throw new Error('僅支援 UTF-8 CSV 或 .xlsx；.xls 請先另存為 .xlsx');
-      const nextSheets: Sheet[] = kind === 'csv' ? [{ sheet: 'CSV', data: csvParse(await file.text()) }] : await readXlsxFile(file) as Sheet[];
+      const nextSheets: Sheet[] = kind === 'csv' ? [{ sheet: 'CSV', data: csvParse(await file.text()) }] : (await readXlsxFile(file) as Sheet[]).map(sheet => ({ ...sheet, data: decodeXlsxRows(sheet.data) }));
       const usable = nextSheets.filter(sheet => sheet.data.length > 1 && sheet.data[0].some(value => String(value ?? '').trim()));
       if (!usable.length) throw new Error('檔案沒有有效工作表');
       setFileName(file.name); setFileType(kind); setSheets(nextSheets); selectSheet(usable[0]);
