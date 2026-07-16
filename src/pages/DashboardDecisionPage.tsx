@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { type DashboardReminder } from '../lib/investmentDashboard';
 import PageFrame from './PageFrame';
-import MarketSummaryCard from '../components/MarketSummaryCard';
 import type { MarketSnapshot } from '../lib/marketData';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
 import InvestmentIntelligenceSummary from '../components/InvestmentIntelligenceSummary';
@@ -32,6 +31,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
   const growthWidth = allocationTotal > 0 ? Math.min(100, Math.max(0, (data.growthRatio ?? 0) / allocationTotal * 100)) : 0;
   const complementaryReminders = data.reminders.filter(item => !['quotes', 'sync', 'rebalance'].includes(item.key));
   return <PageFrame page="home" title="投資決策首頁" description="30 秒掌握今日投資表現、配置與下一步。">
+    <InvestmentIntelligenceSummary intelligence={data.intelligence} />
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">今日投資摘要</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
       <div className="investment-summary-grid">
@@ -44,14 +44,6 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
       </div>
     </section>
 
-    <InvestmentIntelligenceSummary intelligence={data.intelligence} />
-
-    <MarketSummaryCard snapshot={data.market} />
-
-    <section className="dashboard-decision-card" aria-labelledby="today-decision-title">
-      <div className="dashboard-section-heading"><div><p className="eyebrow">既有規則式決策摘要</p><h2 id="today-decision-title">{data.decision.title}</h2><p>{data.decision.reason}</p></div></div>
-      <p className="dashboard-decision-note">依目前再平衡、現金安全、逢低加碼與資料完整性規則整理；不構成投資保證。</p>
-    </section>
 
     <section className="dashboard-health-card" aria-labelledby="investment-health-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">投資健康度</p><h2 id="investment-health-title">配置與現金水位</h2></div><div className="dashboard-heading-links"><Link className="dashboard-text-link" to="/tools/rebalance-recommendation">再平衡建議中心</Link><Link className="dashboard-text-link" to="/tools/risk-center">查看風險中心</Link></div></div>

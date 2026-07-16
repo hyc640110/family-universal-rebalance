@@ -99,6 +99,7 @@ export function deriveInvestmentIntelligence(input: InvestmentIntelligenceInput)
     performanceStatus: supportingItems[5],
     dividendStatus: supportingItems[6],
     nextAction,
+    attentionItems: input.ai.attention.slice(0, 3),
     supportingItems,
     limitations: ['僅整合既有本機規則與資料狀態。', '本卡只提供狀態摘要與既有中心導覽。']
   };
