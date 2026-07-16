@@ -3,7 +3,7 @@ import test from 'node:test';
 import { getToolQuickLinks, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
 
 const expectedQuickOrder = [
-  'investment-action-center', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
+  'investment-action-center', 'import-transactions', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
   'wealth-goal', 'cash-flow', 'net-worth-history', 'allocation-simulator', 'risk-center'
 ];
 
@@ -11,8 +11,9 @@ test('Tool Center and quick navigation share one ordered route definition', () =
   const available = TOOL_DEFINITIONS.filter(tool => tool.to);
   assert.deepEqual(available.map(tool => tool.id), expectedQuickOrder);
   assert.equal(new Set(TOOL_DEFINITIONS.map(tool => tool.id)).size, TOOL_DEFINITIONS.length);
+  assert.equal(TOOL_DEFINITIONS.find(tool => tool.id === 'import-transactions')?.to, '/assets#transactions-section');
   for (const tool of available) {
-    assert.match(tool.to!, /^\/tools\//);
+    assert.ok(tool.to!.startsWith('/tools/') || tool.to === '/assets#transactions-section');
     assert.ok(tool.name.length > 0);
     assert.ok(tool.actionLabel?.length);
     assert.ok(tool.icon);

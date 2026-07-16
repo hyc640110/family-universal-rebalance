@@ -1170,6 +1170,7 @@ function App() {
   const routeLocation = useLocation();
   const navigate = useNavigate();
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
+  const isTransactionImportTarget = routeLocation.pathname === '/assets' && routeLocation.hash === '#transactions-section';
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
@@ -1271,6 +1272,10 @@ function App() {
     const defaults = current.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
     return { ...current, sections: { ...current.sections, [key]: !(current.sections[key] ?? defaults[key]) } };
   });
+  useEffect(() => {
+    if (!isTransactionImportTarget) return;
+    document.getElementById('transactions-section')?.scrollIntoView({ block: 'start' });
+  }, [isTransactionImportTarget]);
   const applyDisplayMode = (displayMode: MobileDisplayMode) => setUiState({
     displayMode,
     sections: displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections
@@ -1962,7 +1967,7 @@ function App() {
           {accountWarning && <p className="warning-message">{accountWarning}</p>}
           <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
         </SectionCard>
-        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
+        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
         <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
