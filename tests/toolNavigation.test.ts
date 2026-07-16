@@ -3,7 +3,7 @@ import test from 'node:test';
 import { getToolQuickLinks, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
 
 const expectedQuickOrder = [
-  'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
+  'investment-action-center', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
   'wealth-goal', 'cash-flow', 'net-worth-history', 'allocation-simulator', 'risk-center'
 ];
 

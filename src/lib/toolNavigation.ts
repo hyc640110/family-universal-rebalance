@@ -1,6 +1,6 @@
-import { BadgeDollarSign, BrainCircuit, ChartNoAxesCombined, Crosshair, Flame, LineChart, PieChart, Scale, ShieldAlert, ShieldCheck, WalletCards, type LucideIcon } from 'lucide-react';
+import { BadgeDollarSign, BrainCircuit, ChartNoAxesCombined, Crosshair, Flame, LineChart, ListChecks, PieChart, Scale, ShieldAlert, ShieldCheck, WalletCards, type LucideIcon } from 'lucide-react';
 
-export type ToolId = 'etf-xray' | 'investment-backtest' | 'monte-carlo' | 'dividend-center' | 'ai-decision' | 'portfolio-risk' | 'rebalance-recommendation' | 'clec-strategy' | 'wealth-goal' | 'cash-flow' | 'net-worth-history' | 'retirement-planner' | 'allocation-simulator' | 'risk-center';
+export type ToolId = 'etf-xray' | 'investment-backtest' | 'monte-carlo' | 'investment-action-center' | 'dividend-center' | 'ai-decision' | 'portfolio-risk' | 'rebalance-recommendation' | 'clec-strategy' | 'wealth-goal' | 'cash-flow' | 'net-worth-history' | 'retirement-planner' | 'allocation-simulator' | 'risk-center';
 
 export type ToolDefinition = {
   id: ToolId;
@@ -21,7 +21,8 @@ export const INVESTMENT_DECISION_ROUTES = {
   portfolioRisk: '/tools/portfolio-risk',
   rebalanceRecommendation: '/tools/rebalance-recommendation',
   dividendCenter: '/tools/dividend-center',
-  aiDecision: '/tools/ai-decision'
+  aiDecision: '/tools/ai-decision',
+  investmentActionCenter: '/tools/investment-action-center'
 } as const;
 
 // This is the sole product-order source for Tool Center and tool-page quick links.
@@ -30,6 +31,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   { id: 'etf-xray', name: 'ETF X-Ray', description: '檢視 ETF 組成與曝險。', icon: PieChart },
   { id: 'investment-backtest', name: '投資回測', description: '比較策略在歷史期間的表現。', icon: ChartNoAxesCombined },
   { id: 'monte-carlo', name: '蒙地卡羅模擬', description: '評估多種市場路徑下的資產結果。', icon: Crosshair },
+  { id: 'investment-action-center', name: '投資行動中心', description: '集中查看既有每日投資判斷、待查看事項與對應工具，不產生買賣指令。', icon: ListChecks, to: INVESTMENT_DECISION_ROUTES.investmentActionCenter, actionLabel: '查看行動' },
   { id: 'dividend-center', name: '配息中心', description: '集中整理配息與現金流。', icon: BadgeDollarSign, to: '/tools/dividend-center', actionLabel: '查看股息' },
   { id: 'ai-decision', name: 'AI 決策中心', description: '以可追溯的本地規則整理投資資料，不使用生成式 AI。', icon: BrainCircuit, to: '/tools/ai-decision', actionLabel: '查看摘要' },
   { id: 'portfolio-risk', name: '投資組合風險與配置中心', description: '整合目前配置、集中度、槓桿、現金安全、投資資產回撤與報價品質；不提供買賣建議。', icon: ShieldAlert, to: '/tools/portfolio-risk', actionLabel: '查看中心' },
