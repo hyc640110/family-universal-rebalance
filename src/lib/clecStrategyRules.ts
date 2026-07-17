@@ -58,6 +58,7 @@ export type ClecRuleOutput = {
   blockingIssues: string[];
   warnings: string[];
   dataQualityNotes: string[];
+  financialSummary: { availableCash: number | null; plannedContribution: number | null; plannedWithdrawal: number | null; debtBalance: number | null; cashReserve: number | null; leverageExposure: number | null };
   calculatedAt: string;
 };
 
@@ -102,7 +103,7 @@ export function deriveClecStrategyRule(input: ClecRuleInput): ClecRuleOutput {
   if (blockingIssues.length) return {
     decisionStatus: 'blocked', recommendedAction: 'resolve_data_issue', severity: 'high', confidence: 'low', confidenceBasis: 'data_and_rule_completeness',
     reasonCodes: reasons, summary: '資料品質未通過，停止策略判定。', explanationItems: explanations, affectedAssets: [], blockingIssues,
-    warnings, dataQualityNotes: [...blockingIssues], calculatedAt: input.asOfDate
+    warnings, dataQualityNotes: [...blockingIssues], financialSummary: financialSummary(input), calculatedAt: input.asOfDate
   };
 
   const assets = input.investableAssets.map(asset => {
@@ -147,6 +148,15 @@ export function deriveClecStrategyRule(input: ClecRuleInput): ClecRuleOutput {
     decisionStatus, recommendedAction, severity: decisionStatus === 'rebalance_required' ? 'high' : warnings.length ? 'warning' : 'info',
     confidence: staleAssets.length ? 'medium' : 'high', confidenceBasis: 'data_and_rule_completeness', reasonCodes: reasons,
     summary: decisionStatus === 'no_action' ? '目前偏離未達門檻，維持監測。' : '策略規則結果僅供決策輔助，非自動交易，亦不代表市場預測。',
-    explanationItems: explanations, affectedAssets, blockingIssues, warnings, dataQualityNotes: staleAssets.length ? ['部分報價非最新。'] : [], calculatedAt: input.asOfDate
+    explanationItems: explanations, affectedAssets, blockingIssues, warnings, dataQualityNotes: staleAssets.length ? ['部分報價非最新。'] : [], financialSummary: financialSummary(input), calculatedAt: input.asOfDate
   };
 }
+
+const financialSummary = (input: ClecRuleInput) => ({
+  availableCash: finite(input.availableCash) ? input.availableCash : null,
+  plannedContribution: finite(input.plannedContribution) ? input.plannedContribution : null,
+  plannedWithdrawal: finite(input.plannedWithdrawal) ? input.plannedWithdrawal : null,
+  debtBalance: finite(input.debtBalance) ? input.debtBalance : null,
+  cashReserve: finite(input.cashReserve) ? input.cashReserve : null,
+  leverageExposure: finite(input.leverageExposure) ? input.leverageExposure : null
+});

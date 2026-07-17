@@ -23,6 +23,9 @@ export default function ClecStrategyCenterPage({ view, rule }: { view: ClecStrat
         <div><dt>decisionStatus</dt><dd>{statusText(rule.decisionStatus)}</dd></div><div><dt>recommendedAction</dt><dd>{actionText(rule.recommendedAction)}</dd></div>
         <div><dt>severity</dt><dd>{rule.severity}</dd></div><div><dt>資料／規則完整度</dt><dd>{rule.confidence === 'high' ? '高' : rule.confidence === 'medium' ? '中' : '低'}</dd></div>
         <div><dt>asOfDate</dt><dd>{rule.calculatedAt}</dd></div><div><dt>calculatedAt</dt><dd>{rule.calculatedAt}（Asia/Taipei）</dd></div>
+        <div><dt>可用現金</dt><dd>{moneyOrUnavailable(rule.financialSummary.availableCash)}</dd></div><div><dt>計畫投入</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedContribution)}</dd></div>
+        <div><dt>計畫提款</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedWithdrawal)}</dd></div><div><dt>現金儲備</dt><dd>{moneyOrUnavailable(rule.financialSummary.cashReserve)}</dd></div>
+        <div><dt>負債</dt><dd>{moneyOrUnavailable(rule.financialSummary.debtBalance)}</dd></div><div><dt>槓桿曝險</dt><dd>{rule.financialSummary.leverageExposure === null ? '未提供' : rule.financialSummary.leverageExposure.toFixed(2)}</dd></div>
       </dl>
       <p className="clec-rule-summary">{rule.summary}</p>
       {rule.blockingIssues.length > 0 && <List title="blockingIssues" rows={rule.blockingIssues} empty="無。" />}
@@ -43,3 +46,4 @@ function StrategyCard({ item }: { item: ClecStrategyDefinition }) {
 function List({ title, rows, empty }: { title: string; rows: string[]; empty: string }) { return <div><h4>{title}</h4>{rows.length ? <ul className="clec-list">{rows.map(row => <li key={row}>{row}</li>)}</ul> : <p className="note">{empty}</p>}</div>; }
 const statusText = (value: ClecRuleOutput['decisionStatus']) => ({ blocked: '資料不足／停止判定', no_action: '維持監測', monitor: '監測', rebalance_consider: '可考慮調整', rebalance_required: '需優先檢視' })[value];
 const actionText = (value: ClecRuleOutput['recommendedAction']) => ({ hold: '維持持有', contribute: '保留投入規劃', buy_underweight: '可優先補低配', sell_overweight: '可檢視高配資產', rebalance_with_cash: '可用現金補低配', full_rebalance: '檢視完整配置差距', resolve_data_issue: '先修正資料' })[value];
+const moneyOrUnavailable = (value: number | null) => value === null ? '未提供' : new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value);

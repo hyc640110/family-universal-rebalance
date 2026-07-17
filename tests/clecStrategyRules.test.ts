@@ -33,5 +33,6 @@ test('stale, leverage, reserve and debt are warnings and retain the portfolio ac
 });
 test('adapter keeps unknown values missing instead of coercing them to zero', () => {
   const input = buildClecStrategyRuleInput({ allocationPresetId: 'custom', rebalanceMode: 'standard', asOfDate: '2026-07-17', portfolioValue: null, holdings: [{ symbol: ' aaa ', currentWeight: null, targetWeight: null, quoteFreshness: 'missing' }], availableCash: null, debtBalance: null, leverageExposure: null, threshold: { drift: 5 }, dataQualityFlags: [] });
-  assert.equal(input.investableAssets[0].symbol, 'AAA'); assert.equal(input.portfolioValue, null); assert.equal(deriveClecStrategyRule(input).decisionStatus, 'blocked');
+  const result = deriveClecStrategyRule(input);
+  assert.equal(input.investableAssets[0].symbol, 'AAA'); assert.equal(input.portfolioValue, null); assert.equal(result.decisionStatus, 'blocked'); assert.equal(result.financialSummary.availableCash, null);
 });
