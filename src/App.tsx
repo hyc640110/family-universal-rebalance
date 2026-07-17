@@ -47,6 +47,8 @@ import { deriveInvestmentActionCenter } from './lib/investmentActionCenter';
 import { deriveInvestmentActionExplanations } from './lib/investmentActionExplainability';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
+import { buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
+import { deriveClecStrategyRule } from './lib/clecStrategyRules';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1502,6 +1504,23 @@ function App() {
     dataQuality: { passed: rebalanceRecommendationView.canRecommend, blockingReasons: rebalanceRecommendationView.blockingReasons, warnings: rebalanceRecommendationView.canRecommend ? ['最近有效交易日可顯示；備援、過期或日期不明報價會停止具體金額建議。'] : [] },
     trigger: { thresholdReached: rebalanceRecommendationView.thresholdReached, allocationDeviation: rebalanceRecommendationView.allocationDeviation, rebalanceThreshold: rb.threshold }
   }), [state.allocationPreset, state.allocationRoleBySymbol, state.holdings, state.rebalanceMode, rebalanceRecommendationView, rb.threshold]);
+  const clecStrategyRuleView = useMemo(() => deriveClecStrategyRule(buildClecStrategyRuleInput({
+    allocationPresetId: state.allocationPreset,
+    rebalanceMode: state.rebalanceMode,
+    asOfDate: localSnapshotDate(),
+    portfolioValue: m.totalAssets > 0 ? m.totalAssets : null,
+    holdings: m.rows.map(row => ({
+      symbol: row.symbol,
+      currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : null,
+      targetWeight: getEffectiveTargetPercent(row, state.holdings),
+      quoteFreshness: quoteDateStatus(row.quote.quoteDate) === 'unknown' ? 'missing' : quoteDateStatus(row.quote.quoteDate) === 'stale' ? 'stale' : 'fresh'
+    })),
+    availableCash: Number.isFinite(m.cash) ? m.cash : null,
+    debtBalance: Number.isFinite(m.debt) ? m.debt : null,
+    leverageExposure: Number.isFinite(m.leverage) ? m.leverage : null,
+    threshold: { drift: rb.threshold, minCashReserve: null, maxDebt: null, maxLeverageExposure: null },
+    dataQualityFlags: rebalanceRecommendationView.blockingReasons
+  })), [state.allocationPreset, state.rebalanceMode, state.holdings, m, rb.threshold, rebalanceRecommendationView.blockingReasons]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
@@ -2099,7 +2118,7 @@ function App() {
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} />}
-        {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} />}
+        {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} rule={clecStrategyRuleView} />}
         {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} explanations={investmentActionExplanations} />}
       {currentPage === 'settings' && <SettingsPage>
         <Card title="顯示設定">
