@@ -40,6 +40,7 @@
     "test:v5-14-investment-action-center": "tsx --test tests/investmentActionCenter.test.ts",
     "test:v5-15-investment-action-explainability": "tsx --test tests/investmentActionExplainability.test.ts",
     "test:v5-10-clec-strategy": "tsx --test tests/clecStrategy.test.ts",
+    "test:v6-2-clec-strategy-rules": "tsx --test tests/clecStrategyRules.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
     "test:recommendations": "tsx --test tests/recommendations.test.ts",
     "test:v5-9-intelligence": "tsx --test tests/investmentIntelligence.test.ts tests/investmentIntelligenceAdapter.test.ts",
