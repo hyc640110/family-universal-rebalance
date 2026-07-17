@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
+import AllocationContextNotice from '../components/AllocationContextNotice';
+import { getAllocationContext } from '../lib/allocationContext';
 
 type SimulatorRow = {
   symbol: string;
@@ -83,8 +85,10 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash }: Pro
   const currentChart = [...rows.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: Math.max(0, row.marketValue) })), { symbol: 'CASH', name: '台幣現金', value: Math.max(0, cash) }];
   const targetChart = [...result.entries.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: row.targetValue })), { symbol: 'CASH', name: '未配置現金', value: Math.max(0, result.simulatedTotal * Math.max(0, 100 - result.targetTotal) / 100) }];
 
-  return <PageFrame page="tools" title="資產配置模擬器" description="調整目標配置與模擬投入金額，在不修改正式持股的情況下，預覽配置結果與再平衡方向。">
-    <section className="card simulator-notice"><strong>唯讀模擬</strong><span>以下結果不會修改正式持股、現金、借款、localStorage、Firebase 或同步資料。</span></section>
+  const context = getAllocationContext('simulation');
+  return <PageFrame page="tools" title={context.name} description={context.description}>
+    <AllocationContextNotice context="simulation" showCta />
+    <section className="card simulator-notice"><strong>不會自動套用</strong><span>以下結果不會修改正式持股、現金、借款、localStorage、Firebase 或同步資料。</span></section>
     <section className="sim-summary-grid" aria-label="模擬摘要">
       <article><small>目前正式總資產</small><strong>{money(totalAssets)}</strong></article><article><small>模擬投入／抽回</small><strong>{signedMoney(result.simulatedContribution)}</strong></article><article><small>模擬後總資產</small><strong>{money(result.simulatedTotal)}</strong></article><article><small>模擬目標比例合計</small><strong className={result.isExact ? 'good' : 'bad'}>{pct(result.targetTotal)}</strong></article><article><small>預估需調整總金額</small><strong>{result.isExact && result.simulatedTotal > 0 ? money(result.buyTotal + result.sellTotal) : '等待比例符合 100%'}</strong></article><article><small>預估買進／賣出</small><strong>{result.isExact && result.simulatedTotal > 0 ? `${money(result.buyTotal)}／${money(result.sellTotal)}` : '—'}</strong></article>
     </section>

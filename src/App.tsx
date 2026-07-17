@@ -5,6 +5,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
+import AllocationContextNotice from './components/AllocationContextNotice';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -917,11 +918,11 @@ function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeep
   }, [preset, roleBySymbol]);
   const preview = deriveAllocationPresetPreview({ preset: draftPreset, holdings, roleBySymbol: draftRoles });
   const resetDraft = () => { setDraftPreset(preset); setDraftRoles(roleBySymbol); };
-  return <Card title="配置方案" className="allocation-preset-panel">
-    <p className="note">CLEC 433／442 是配置方案，不是再平衡方法。預覽不會修改資料；確認套用後只更新持股目標比例與配置方案資訊。</p>
+  return <Card title="正式目標配置" className="allocation-preset-panel">
+    <AllocationContextNotice context="official-target" />
     <div className="allocation-preset-controls">
-      <label>配置方案<select value={draftPreset} onChange={event => setDraftPreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="custom">自訂配置</option><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
-      <p><small>目前正式方案</small><strong>{allocationPresetLabel(preset)}</strong></p>
+      <label>正式目標配置<select value={draftPreset} onChange={event => setDraftPreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="custom">自訂正式配置</option><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
+      <p><small>目前正式目標配置</small><strong>{allocationPresetLabel(preset)}</strong></p>
     </div>
     {draftPreset !== 'custom' && <div className="allocation-preset-roles">{holdings.map(holding => {
       const symbol = normalizeSymbol(holding.symbol);
@@ -1055,6 +1056,7 @@ function AnalyticsSummary({ rb, orderHelper, dipStatus }: { rb: ReturnType<typeo
 function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance> }) {
   const [view, setView] = useState<'assets' | 'classes'>('assets');
   return <>
+    <AllocationContextNotice context="analysis" showCta />
     <div className="analytics-view-toggle" role="group" aria-label="資產配置分析視角">
       <button type="button" className={view === 'assets' ? 'active' : ''} onClick={() => setView('assets')}>個別資產配置</button>
       <button type="button" className={view === 'classes' ? 'active' : ''} onClick={() => setView('classes')}>成長／防守配置</button>
