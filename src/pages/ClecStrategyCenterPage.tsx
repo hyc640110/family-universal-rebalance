@@ -3,6 +3,7 @@ import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import type { ClecStrategyCenterResult, ClecStrategyDefinition } from '../lib/clecStrategy';
 import type { ClecRuleOutput } from '../lib/clecStrategyRules';
+import { clecRuleActionLabel, clecRuleDecisionStatusLabel } from '../lib/clecRuleSummaryPresentation';
 
 const pct = (value: number | null) => value === null || !Number.isFinite(value) ? '不可計算' : `${value.toFixed(1)}%`;
 const statusLabel = (status: ClecStrategyDefinition['specificationStatus']) => status === 'implemented' ? '已可可靠計算' : status === 'verified-partial' ? '僅部分核對' : '公式未核實';
@@ -20,7 +21,7 @@ export default function ClecStrategyCenterPage({ view, rule }: { view: ClecStrat
       <p className="note">僅供決策輔助，非自動交易，不代表市場預測。信心指標只反映資料與規則完整度，並非統計機率。</p>
       <dl className="clec-facts clec-rule-facts">
         <div><dt>Allocation Preset</dt><dd>{view.allocationSource.label}</dd></div><div><dt>rebalanceMode</dt><dd>{view.currentStrategy.rebalanceMode}</dd></div>
-        <div><dt>decisionStatus</dt><dd>{statusText(rule.decisionStatus)}</dd></div><div><dt>recommendedAction</dt><dd>{actionText(rule.recommendedAction)}</dd></div>
+        <div><dt>decisionStatus</dt><dd>{clecRuleDecisionStatusLabel(rule.decisionStatus)}</dd></div><div><dt>recommendedAction</dt><dd>{clecRuleActionLabel(rule.recommendedAction)}</dd></div>
         <div><dt>severity</dt><dd>{rule.severity}</dd></div><div><dt>資料／規則完整度</dt><dd>{rule.confidence === 'high' ? '高' : rule.confidence === 'medium' ? '中' : '低'}</dd></div>
         <div><dt>asOfDate</dt><dd>{rule.calculatedAt}</dd></div><div><dt>calculatedAt</dt><dd>{rule.calculatedAt}（Asia/Taipei）</dd></div>
         <div><dt>可用現金</dt><dd>{moneyOrUnavailable(rule.financialSummary.availableCash)}</dd></div><div><dt>計畫投入</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedContribution)}</dd></div>
@@ -44,6 +45,4 @@ function StrategyCard({ item }: { item: ClecStrategyDefinition }) {
   return <article className={`clec-card clec-strategy-card ${item.executable ? 'is-executable' : 'is-pending'}`}><header><h3>{item.name}</h3><span>{statusLabel(item.specificationStatus)}</span></header><p>{item.summary}</p><p><b>可執行：</b>{item.executable ? '是，使用既有引擎' : '否'}</p><List title="已核對內容" rows={item.verifiedRules} empty="目前沒有足以視為正式公式的已核對規則。" /><List title="尚缺公式／規則" rows={item.missingRules} empty="無。" /><List title="所需資料" rows={item.requiredInputs} empty="無。" /><List title="限制說明" rows={item.limitations} empty="無。" /></article>;
 }
 function List({ title, rows, empty }: { title: string; rows: string[]; empty: string }) { return <div><h4>{title}</h4>{rows.length ? <ul className="clec-list">{rows.map(row => <li key={row}>{row}</li>)}</ul> : <p className="note">{empty}</p>}</div>; }
-const statusText = (value: ClecRuleOutput['decisionStatus']) => ({ blocked: '資料不足／停止判定', no_action: '維持監測', monitor: '監測', rebalance_consider: '可考慮調整', rebalance_required: '需優先檢視' })[value];
-const actionText = (value: ClecRuleOutput['recommendedAction']) => ({ hold: '維持持有', contribute: '保留投入規劃', buy_underweight: '可優先補低配', sell_overweight: '可檢視高配資產', rebalance_with_cash: '可用現金補低配', full_rebalance: '檢視完整配置差距', resolve_data_issue: '先修正資料' })[value];
 const moneyOrUnavailable = (value: number | null) => value === null ? '未提供' : new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value);
