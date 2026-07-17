@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { fetchMarketSnapshot } from '../src/lib/marketData';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
+import { fetchMarketSnapshot, mergeMarketSnapshot, type MarketSnapshot } from '../src/lib/marketData';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
 
 const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [{ id: 'taiex', value: 23000, change: 10, changePct: .04, asOf: '2026-07-17T08:00:00+08:00', status: 'closed' }], ...patch });
 
@@ -30,10 +30,15 @@ test('quote refresh contracts distinguish successful, partial, and failed upstre
   assert.match(quoteRefreshStatus([{ symbol: '2330' }, { symbol: '0050' }], '臺北時間').message, /2\/2/);
   assert.match(quoteRefreshStatus([{ symbol: '2330' }, { symbol: '0050', error: 'HTTP 502' }], '臺北時間').message, /部分更新成功（1\/2）/);
   assert.match(quoteRefreshStatus([{ symbol: '2330', error: 'HTTP 502' }], '臺北時間').message, /股價更新失敗/);
+  const previous = { source: 'Price Worker', price: 100, previousClose: 99, change: 1, quoteDate: '2026-07-17', quoteTime: '13:30:00' };
+  assert.deepEqual(mergeQuoteRefresh(previous, { ...previous, source: '離線備援 / Worker 更新失敗', price: 0, previousClose: 0, change: 0, quoteDate: undefined, quoteTime: undefined, error: 'HTTP 429' }), { ...previous, source: 'Price Worker / 更新失敗', error: 'HTTP 429' });
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /缺少有效報價日期／時間/);
-  assert.match(app, /quote\.error && previous \? \{ \.\.\.previous, error: quote\.error/);
+  assert.match(app, /hasPreservedQuote/);
+  assert.match(app, /mergeQuoteRefresh\(previous, quote\)/);
   assert.match(app, /setHasUpdatedQuotes\(summary\.succeeded > 0\)/);
+  assert.match(app, /quoteRefreshInFlightRef\.current/);
+  assert.match(app, /disabled=\{isRefreshingQuotes\}/);
 });
 
 test('manual market refresh uses an isolated no-cache request, reports unchanged content, and prevents a parallel request', async () => {
@@ -59,4 +64,16 @@ test('manual market refresh uses an isolated no-cache request, reports unchanged
   assert.match(app, /marketRefreshInFlightRef\.current/);
   assert.match(worker, /refresh \? 'no-store' : 'public, max-age=300, s-maxage=900'/);
   assert.match(worker, /url\.searchParams\.get\('refresh'\) === '1'/);
+});
+
+test('market refresh preserves each previous usable section when a 200 response is partial, empty, or degraded', () => {
+  const point = (id: string, group: 'taiwan' | 'global' | 'treasury' | 'event', value: number | null, status = 'recent-effective') => ({ id, group, name: id, value, change: 1, changePct: .1, asOf: '2026-07-17T08:00:00+08:00', fetchedAt: '2026-07-17T08:00:00.000Z', source: 'test', status }) as const;
+  const previous: MarketSnapshot = { fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [point('taiex', 'taiwan', 23000), point('sp500', 'global', 6000), point('event', 'event', 1)] };
+  const incoming: MarketSnapshot = { fetchedAt: '2026-07-17T08:01:00.000Z', status: 'recent-effective', items: [point('taiex', 'taiwan', 23001), point('sp500', 'global', null, 'unavailable')] };
+  const merged = mergeMarketSnapshot(previous, incoming);
+  assert.equal(merged.incomplete, true);
+  assert.deepEqual(merged.reusedGroups.sort(), ['event', 'global']);
+  assert.equal(merged.snapshot.items.find(item => item.id === 'sp500')?.value, 6000);
+  assert.equal(merged.snapshot.items.find(item => item.id === 'event')?.value, 1);
+  assert.match(marketRefreshMessage('partial', merged.snapshot.fetchedAt, value => value, '沿用前次：global'), /沿用前次/);
 });

@@ -25,8 +25,8 @@ import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
-import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, type MarketSnapshot } from './lib/marketData';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
+import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -80,6 +80,7 @@ type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount
 type MobileDisplayMode = 'compact' | 'full';
 type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'transactions' | 'loans' | 'sync' | 'debug' | 'dipAnalysis' | 'analyticsDetails' | 'quoteSources' | 'syncStatus' | 'syncDiagnostics' | 'targetCheck';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
+const marketGroupLabel = (group: string) => ({ taiwan: '台股主要指標', global: '全球主要指數', treasury: '美國公債殖利率', event: '重要經濟事件' })[group] || group;
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -537,7 +538,7 @@ function derivedHoldings(state: AppState): Holding[] {
   return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
-  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
+  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasPreservedQuote = Boolean(q.error && num(q.price) > 0 && isValidQuoteTimestamp(q.quoteDate, q.quoteTime)); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasPreservedQuote || hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasPreservedQuote || hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
   const derivedBalances = deriveTransactionAccountBalances(state.transactions);
@@ -1256,9 +1257,11 @@ function App() {
     setIsRefreshingMarket(true);
     try {
       const next = await fetchMarketSnapshot(marketWorkerUrl, { manual });
-      const outcome = marketRefreshOutcome(marketContentSignature(marketSnapshot), next);
-      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, next.fetchedAt, formatMarketTime));
-      setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : next);
+      const merged = mergeMarketSnapshot(marketSnapshot, next);
+      const outcome = merged.incomplete ? (marketSnapshot.fetchedAt ? 'partial' : 'failed') : marketRefreshOutcome(marketContentSignature(marketSnapshot), merged.snapshot);
+      const detail = [merged.reusedGroups.length ? `沿用前次：${merged.reusedGroups.map(marketGroupLabel).join('、')}` : '', merged.unavailableGroups.length ? `未設定可驗證來源：${merged.unavailableGroups.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
+      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, merged.snapshot.fetchedAt, formatMarketTime, detail));
+      setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : merged.snapshot);
     } finally { marketRefreshInFlightRef.current = false; setIsRefreshingMarket(false); }
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
@@ -1319,7 +1322,7 @@ function App() {
       const summary = quoteRefreshStatus(entries.map(([symbol, quote]) => ({ symbol, error: quote.error })), tw(now()));
       setQuotes(current => Object.fromEntries(entries.map(([symbol, quote]) => {
         const previous = current[symbol];
-        return [symbol, quote.error && previous ? { ...previous, error: quote.error, source: `${previous.source} / 更新失敗` } : quote];
+        return [symbol, mergeQuoteRefresh(previous, quote)];
       })) as Record<SymbolCode, Quote>);
       setHasUpdatedQuotes(summary.succeeded > 0);
       const bySymbol = Object.fromEntries(entries.map(([symbol, quote]) => [symbol, quote])) as Record<SymbolCode, Quote>;

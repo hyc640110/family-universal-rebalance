@@ -64,6 +64,7 @@ export function parseYahoo(symbol, data) {
     updatedAt: new Date().toISOString()
   };
 }
+export const upstreamStatus = error => Number.isInteger(error?.status) && error.status >= 400 && error.status < 600 ? error.status : 500;
 
 async function quote(symbol, refresh = false) {
   const yahooUrl = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
@@ -76,7 +77,7 @@ async function quote(symbol, refresh = false) {
       'accept': 'application/json'
     }
   });
-  if (!res.ok) throw new Error(`Yahoo status ${res.status}`);
+  if (!res.ok) { const error = new Error(`Yahoo status ${res.status}`); error.status = res.status; throw error; }
   return parseYahoo(symbol, await res.json());
 }
 
@@ -92,7 +93,7 @@ export default {
       const symbol = normalizeSymbol(url.searchParams.get('symbol'));
       return new Response(JSON.stringify(await quote(symbol, url.searchParams.get('refresh') === '1')), { headers });
     } catch (error) {
-      return new Response(JSON.stringify({ ok: false, error: String(error?.message || error), version: VERSION }), { status: 500, headers });
+      return new Response(JSON.stringify({ ok: false, error: String(error?.message || error), version: VERSION }), { status: upstreamStatus(error), headers });
     }
   }
 };

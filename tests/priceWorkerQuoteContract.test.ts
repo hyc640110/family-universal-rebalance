@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseYahoo, taipeiQuoteStamp } from '../worker/index.js';
+import { parseYahoo, taipeiQuoteStamp, upstreamStatus } from '../worker/index.js';
 
 const marketTime = Math.floor(new Date('2026-07-13T16:05:06.000Z').getTime() / 1000);
 const payload = (overrides: Record<string, unknown> = {}) => ({ chart: { result: [{ meta: { regularMarketPrice: 101.5, previousClose: 100, regularMarketChange: 1.5, regularMarketChangePercent: 1.5, regularMarketVolume: 200, regularMarketTime: marketTime, ...overrides }, indicators: { quote: [{ close: [99.5, 101.5] }] } }] } });
@@ -30,4 +30,9 @@ test('missing or invalid marketTime never fabricates quoteDate or quoteTime', ()
   assert.throws(() => parseYahoo('00631L.TW', payload({ regularMarketTime: undefined })), /missing market time/);
   assert.throws(() => parseYahoo('00631L.TW', payload({ regularMarketTime: 'bad' })), /missing market time/);
   assert.throws(() => taipeiQuoteStamp(new Date('bad')), /invalid market time/);
+});
+
+test('upstream rate limits remain explicit instead of being rewritten as a generic successful response', () => {
+  assert.equal(upstreamStatus(Object.assign(new Error('Yahoo status 429'), { status: 429 })), 429);
+  assert.equal(upstreamStatus(new Error('unknown')), 500);
 });

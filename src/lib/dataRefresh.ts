@@ -1,5 +1,9 @@
 export type QuoteRefreshResult = { symbol: string; error?: string };
-export type MarketRefreshOutcome = 'updated' | 'unchanged' | 'failed';
+export type MarketRefreshOutcome = 'updated' | 'unchanged' | 'partial' | 'failed';
+type RefreshableQuote = { source: string; error?: string };
+
+export const mergeQuoteRefresh = <T extends RefreshableQuote>(previous: T | undefined, incoming: T): T =>
+  incoming.error && previous ? { ...previous, error: incoming.error, source: `${previous.source} / 更新失敗` } : incoming;
 
 export const isValidQuoteTimestamp = (quoteDate: unknown, quoteTime: unknown) =>
   typeof quoteDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) &&
@@ -31,8 +35,9 @@ export const marketRefreshOutcome = (previousSignature: string | null, snapshot:
   return previousSignature === marketContentSignature(snapshot) ? 'unchanged' : 'updated';
 };
 
-export const marketRefreshMessage = (outcome: MarketRefreshOutcome, fetchedAt: string | null, formatTime: (value: string) => string) => {
+export const marketRefreshMessage = (outcome: MarketRefreshOutcome, fetchedAt: string | null, formatTime: (value: string) => string, detail = '') => {
   if (outcome === 'failed') return '市場資料重新取得失敗；保留目前可用資料並顯示服務狀態。';
   const at = fetchedAt ? formatTime(fetchedAt) : '時間不明';
-  return outcome === 'unchanged' ? `已重新取得，資料內容未變：${at}` : `已重新取得：${at}`;
+  if (outcome === 'partial') return `本次取得完成：${at}。部分區塊沿用前次有效資料${detail ? `：${detail}` : ''}`;
+  return outcome === 'unchanged' ? `已重新取得，受管理資料內容未變：${at}${detail ? `（${detail}）` : ''}` : `已重新取得：${at}${detail ? `（${detail}）` : ''}`;
 };
