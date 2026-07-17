@@ -1173,7 +1173,7 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
 function App() {
   const routeLocation = useLocation();
   const navigate = useNavigate();
-  const previewFixtureMode = DEPLOYMENT_ENVIRONMENT === 'preview' ? new URLSearchParams(routeLocation.search).get('previewFixture') : null;
+  const previewFixtureMode = DEPLOYMENT_ENVIRONMENT === 'preview' ? new URLSearchParams(typeof window === 'undefined' ? routeLocation.search : window.location.search).get('previewFixture') : null;
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
   const isTransactionImportTarget = routeLocation.pathname === '/assets' && routeLocation.hash === '#transactions-section';
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
