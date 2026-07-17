@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { Download, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, buildFirebaseSyncRoot, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import HomePage from './pages/HomePage';
@@ -26,7 +26,7 @@ import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -62,7 +62,7 @@ import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvena
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
 type AssetClass = 'growth' | 'defensive';
-type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean };
+type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
@@ -81,6 +81,7 @@ type MobileDisplayMode = 'compact' | 'full';
 type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'transactions' | 'loans' | 'sync' | 'debug' | 'dipAnalysis' | 'analyticsDetails' | 'quoteSources' | 'syncStatus' | 'syncDiagnostics' | 'targetCheck';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 const marketGroupLabel = (group: string) => ({ taiwan: '台股主要指標', global: '全球主要指數', treasury: '美國公債殖利率', event: '重要經濟事件' })[group] || group;
+const PREVIEW_ARCHIVED_FIXTURE_SYMBOL = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? (import.meta.env.VITE_PREVIEW_ARCHIVED_FIXTURE || '') : '';
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -357,14 +358,15 @@ function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
 }
 function sanitizeHolding(h: Holding): Holding | null {
   const symbol = normalizeSymbol(h?.symbol);
-  if (!symbol || !isTaiwanSymbol(symbol) || REMOVED_SYMBOLS.has(symbol)) return null;
-  const name = resolveSymbolName(symbol, (h as Partial<Holding>)?.name);
+  const isPreviewFixture = DEPLOYMENT_ENVIRONMENT === 'preview' && Boolean(PREVIEW_ARCHIVED_FIXTURE_SYMBOL) && symbol === PREVIEW_ARCHIVED_FIXTURE_SYMBOL && Boolean(h.isPreviewFixture);
+  if (!symbol || (!isTaiwanSymbol(symbol) && !isPreviewFixture) || REMOVED_SYMBOLS.has(symbol)) return null;
+  const name = isPreviewFixture ? ((h as Partial<Holding>)?.name || 'Preview 測試資產') : resolveSymbolName(symbol, (h as Partial<Holding>)?.name);
   const shares = Math.max(0, safeNumber(h.shares));
   const avgCost = Math.max(0, safeNumber(h.avgCost));
   const rawTarget = rawTargetOf(h);
   const targetWeight = rawTarget === undefined ? undefined : clampTarget(safeNumber(rawTarget));
   const assetClass = normalizeAssetClass((h as Partial<Holding>)?.assetClass, symbol);
-  return { symbol, name, shares, avgCost, assetClass, ...(targetWeight === undefined ? {} : { targetWeight }), ...(h.isArchived ? { isArchived: true } : {}) };
+  return { symbol, name, shares, avgCost, assetClass, ...(targetWeight === undefined ? {} : { targetWeight }), ...(h.isArchived ? { isArchived: true } : {}), ...(isPreviewFixture ? { isPreviewFixture: true } : {}) };
 }
 function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
@@ -878,7 +880,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       </div>
       <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>
     </div>
-    {row.quote.error && <p className="note holding-quote-error">報價異常，請稍後再更新股價。</p>}
+    {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
     {isEditing && <div className="holding-editor">
       <div className="holding-editor-summary" aria-label="持股詳細資料">
         <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
@@ -1171,6 +1173,7 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
 function App() {
   const routeLocation = useLocation();
   const navigate = useNavigate();
+  const previewFixtureMode = DEPLOYMENT_ENVIRONMENT === 'preview' ? new URLSearchParams(routeLocation.search).get('previewFixture') : null;
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
   const isTransactionImportTarget = routeLocation.pathname === '/assets' && routeLocation.hash === '#transactions-section';
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
@@ -1259,8 +1262,9 @@ function App() {
       const next = await fetchMarketSnapshot(marketWorkerUrl, { manual });
       const merged = mergeMarketSnapshot(marketSnapshot, next);
       const outcome = merged.incomplete ? (marketSnapshot.fetchedAt ? 'partial' : 'failed') : marketRefreshOutcome(marketContentSignature(marketSnapshot), merged.snapshot);
-      const detail = [merged.reusedGroups.length ? `沿用前次：${merged.reusedGroups.map(marketGroupLabel).join('、')}` : '', merged.unavailableGroups.length ? `未設定可驗證來源：${merged.unavailableGroups.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
-      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, merged.snapshot.fetchedAt, formatMarketTime, detail));
+      const detail = [merged.updatedGroups.length ? `本次受管理：${merged.updatedGroups.map(marketGroupLabel).join('、')}` : '', merged.reusedGroups.length ? `沿用前次：${merged.reusedGroups.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
+      const unavailable = merged.unavailableGroups.length ? `${merged.unavailableGroups.map(marketGroupLabel).join('、')} 尚未接入資料來源，未納入本次重新取得。` : '';
+      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, merged.snapshot.fetchedAt, formatMarketTime, detail, unavailable));
       setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : merged.snapshot);
     } finally { marketRefreshInFlightRef.current = false; setIsRefreshingMarket(false); }
   };
@@ -1270,6 +1274,15 @@ function App() {
   const [accountWarning, setAccountWarning] = useState('');
   const [loadedAt] = useState(now());
   const [lastSavedAt, setLastSavedAt] = useState(state.syncMeta.lastLocalSaveAt || now());
+  useEffect(() => {
+    if (!PREVIEW_ARCHIVED_FIXTURE_SYMBOL || !['archived', 'clear'].includes(previewFixtureMode || '')) return;
+    setState(current => {
+      const holdings = safeHoldings(current.holdings);
+      if (previewFixtureMode === 'clear') return { ...current, holdings: holdings.filter(holding => !(holding.isPreviewFixture && normalizeSymbol(holding.symbol) === PREVIEW_ARCHIVED_FIXTURE_SYMBOL)) };
+      if (holdings.some(holding => holding.isPreviewFixture && normalizeSymbol(holding.symbol) === PREVIEW_ARCHIVED_FIXTURE_SYMBOL)) return current;
+      return { ...current, holdings: [...holdings, { symbol: PREVIEW_ARCHIVED_FIXTURE_SYMBOL, name: 'Preview 測試資產', shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth', isArchived: true, isPreviewFixture: true }] };
+    });
+  }, [previewFixtureMode]);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
