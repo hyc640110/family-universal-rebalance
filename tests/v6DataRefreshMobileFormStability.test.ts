@@ -43,11 +43,13 @@ test('quote refresh contracts distinguish successful, partial, and failed upstre
   const previous = { source: 'Price Worker', price: 100, previousClose: 99, change: 1, quoteDate: '2026-07-17', quoteTime: '13:30:00' };
   assert.deepEqual(mergeQuoteRefresh(previous, { ...previous, source: '離線備援 / Worker 更新失敗', price: 0, previousClose: 0, change: 0, quoteDate: undefined, quoteTime: undefined, error: 'HTTP 429' }), { ...previous, source: 'Price Worker / 更新失敗', error: 'HTTP 429' });
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const controller = readFileSync(new URL('../src/lib/quoteRefreshController.ts', import.meta.url), 'utf8');
   assert.match(app, /缺少有效報價日期／時間/);
   assert.match(app, /hasPreservedQuote/);
-  assert.match(app, /mergeQuoteRefresh\(previous, quote\)/);
-  assert.match(app, /setHasUpdatedQuotes\(summary\.succeeded > 0\)/);
-  assert.match(app, /quoteRefreshInFlightRef\.current/);
+  assert.match(app, /createQuoteRefreshController/);
+  assert.match(controller, /mergeQuoteRefresh\(current\[symbol\], quote\)/);
+  assert.match(controller, /setHasUpdatedQuotes\(summary\.succeeded > 0\)/);
+  assert.match(controller, /if \(inFlight\) return/);
   assert.match(app, /disabled=\{isRefreshingQuotes\}/);
   assert.match(app, /quoteRefreshErrorLabel\(row\.quote\.error\)/);
 });
