@@ -87,7 +87,7 @@ test('market refresh preserves each previous usable section when a 200 response 
   assert.equal(merged.snapshot.items.find(item => item.id === 'sp500')?.value, 6000);
   assert.equal(merged.snapshot.items.find(item => item.id === 'event')?.value, 1);
   assert.match(marketRefreshMessage('partial', merged.snapshot.fetchedAt, value => value, '沿用前次：global'), /沿用前次/);
-  assert.match(marketRefreshMessage('unchanged', merged.snapshot.fetchedAt, value => value, '本次受管理：taiwan', 'global 尚未接入資料來源'), /尚未接入資料來源/);
+  assert.doesNotMatch(marketRefreshMessage('unchanged', merged.snapshot.fetchedAt, value => value, '本次受管理：taiwan'), /尚未接入資料來源/);
   const marketPage = readFileSync(new URL('../src/pages/MarketIntelligencePage.tsx', import.meta.url), 'utf8');
-  assert.match(marketPage, /重新取得」不會更新此區塊/);
+  assert.match(marketPage, /VISIBLE_MARKET_SECTIONS\.map/);
 });
