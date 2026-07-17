@@ -1,4 +1,5 @@
 import { BadgeDollarSign, BrainCircuit, ChartNoAxesCombined, Crosshair, Flame, LineChart, ListChecks, PieChart, Scale, ShieldAlert, ShieldCheck, WalletCards, type LucideIcon } from 'lucide-react';
+import { getAllocationContext } from './allocationContext';
 
 export type ToolId = 'etf-xray' | 'investment-backtest' | 'monte-carlo' | 'investment-action-center' | 'import-transactions' | 'dividend-center' | 'ai-decision' | 'portfolio-risk' | 'rebalance-recommendation' | 'clec-strategy' | 'wealth-goal' | 'cash-flow' | 'net-worth-history' | 'retirement-planner' | 'allocation-simulator' | 'risk-center';
 
@@ -42,7 +43,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   { id: 'cash-flow', name: '收支與現金流', description: '設定每月收入、必要支出與投資預算，掌握現金流壓力和緊急預備金。', icon: WalletCards, to: '/tools/cash-flow', actionLabel: '查看現金流' },
   { id: 'net-worth-history', name: '淨資產歷史中心', description: '以每日快照追蹤資產、現金、負債與淨資產的長期變化。', icon: LineChart, to: '/tools/net-worth-history', actionLabel: '查看歷史' },
   { id: 'retirement-planner', name: '退休試算', description: '估算退休資金需求與安全存量。', icon: ShieldCheck },
-  { id: 'allocation-simulator', name: '資產配置模擬器', description: '調整目標配置與模擬投入金額，在不修改正式持股的情況下，預覽配置結果與再平衡方向。', icon: Scale, to: '/tools/allocation-simulator', actionLabel: '開始模擬' },
+  { id: 'allocation-simulator', name: getAllocationContext('simulation').name, description: getAllocationContext('simulation').description, icon: Scale, to: '/tools/allocation-simulator', actionLabel: '開始模擬' },
   { id: 'risk-center', name: '風險與現金安全中心', description: '整合現金、借款、槓桿及資產集中風險，快速找出最需要優先處理的財務問題。', icon: ShieldAlert, to: '/tools/risk-center', actionLabel: '查看風險' }
 ];
 
