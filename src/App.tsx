@@ -25,7 +25,8 @@ import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
-import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, type MarketSnapshot } from './lib/marketData';
+import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, type MarketSnapshot } from './lib/marketData';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -61,7 +62,7 @@ import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvena
 type SymbolCode = string;
 type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
 type AssetClass = 'growth' | 'defensive';
-type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass };
+type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
@@ -345,7 +346,7 @@ const removedSymbol = () => Array.from(REMOVED_SYMBOLS)[0] || '';
 function hasRemovedSymbol(value: unknown) { const symbol = removedSymbol(); return Boolean(symbol) && String(value ?? '').includes(symbol); }
 function removedSymbolMessage() { const symbol = removedSymbol(); return symbol ? `${symbol} 已從正式策略移除，請勿在現金項目中使用 ${symbol} 作為名稱或備註。` : '可自行新增合法台股代號，系統會在更新股價時動態查詢。'; }
 function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
-  const fromState = safeHoldings(state?.holdings).map(h => normalizeSymbol(h?.symbol)).filter(isTaiwanSymbol);
+  const fromState = safeHoldings(state?.holdings).filter(h => !h.isArchived).map(h => normalizeSymbol(h?.symbol)).filter(isTaiwanSymbol);
   return Array.from(new Set(fromState.filter(s => s && !REMOVED_SYMBOLS.has(s))));
 }
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
@@ -362,7 +363,7 @@ function sanitizeHolding(h: Holding): Holding | null {
   const rawTarget = rawTargetOf(h);
   const targetWeight = rawTarget === undefined ? undefined : clampTarget(safeNumber(rawTarget));
   const assetClass = normalizeAssetClass((h as Partial<Holding>)?.assetClass, symbol);
-  return { symbol, name, shares, avgCost, assetClass, ...(targetWeight === undefined ? {} : { targetWeight }) };
+  return { symbol, name, shares, avgCost, assetClass, ...(targetWeight === undefined ? {} : { targetWeight }), ...(h.isArchived ? { isArchived: true } : {}) };
 }
 function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
@@ -524,10 +525,10 @@ function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding):
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
   const resolvedSymbol = normalizeSymbol(d.code || d.symbol || symbol).replace(/\.(TW|TWO)$/, '');
   const price = Number(d.latestPrice ?? d.price), previousClose = Number(d.previousClose), change = calculateQuoteChange(price, previousClose);
-  if (change === null) return null;
+  if (change === null || !isValidQuoteTimestamp(d.quoteDate, d.quoteTime)) return null;
   return { ...backupQuote(resolvedSymbol, holding), symbol: resolvedSymbol, name: resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name), price, previousClose, change, changePct: change / previousClose * 100, quoteDate: typeof d.quoteDate === 'string' ? d.quoteDate : undefined, quoteTime: typeof d.quoteTime === 'string' ? d.quoteTime : undefined, volume: Number(d.volume ?? 0), source: d.source || '報價 Worker', updatedAt: now() };
 }
-async function fetchQuote(symbol: SymbolCode, holding?: Holding): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = `${DEFAULT_WORKER_URL}/?symbol=${encodeURIComponent(querySymbol)}`; try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, { cache: 'no-store' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 連線失敗' : '離線備援 / Worker 連線失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
+async function fetchQuote(symbol: SymbolCode, holding?: Holding, manual = false): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = refreshUrl(DEFAULT_WORKER_URL, `/?symbol=${encodeURIComponent(querySymbol)}`, manual); try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, { cache: manual ? 'no-store' : 'default', headers: manual ? { 'cache-control': 'no-cache' } : undefined }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確或缺少有效報價日期／時間：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 更新失敗' : '離線備援 / Worker 更新失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
 function derivedHoldings(state: AppState): Holding[] {
   const holdings = safeHoldings(state.holdings);
@@ -891,7 +892,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
         <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
         <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
       </div>
-      <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />刪除持股</button>
+      <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button>
     </div>}
   </article>;
 }
@@ -1244,11 +1245,21 @@ function App() {
   }, [state.accounts, state.transactions, syncBaselineDiagnostics.baselineAvailable, syncBaselineDiagnostics.dirty]);
   const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
+  const quoteRefreshInFlightRef = useRef(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
-  const refreshMarketData = async () => {
+  const marketRefreshInFlightRef = useRef(false);
+  const [marketRefreshStatus, setMarketRefreshStatus] = useState('');
+  const refreshMarketData = async (manual = false) => {
+    if (marketRefreshInFlightRef.current) return;
+    marketRefreshInFlightRef.current = true;
     setIsRefreshingMarket(true);
-    try { setMarketSnapshot(await fetchMarketSnapshot(marketWorkerUrl)); } finally { setIsRefreshingMarket(false); }
+    try {
+      const next = await fetchMarketSnapshot(marketWorkerUrl, { manual });
+      const outcome = marketRefreshOutcome(marketContentSignature(marketSnapshot), next);
+      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, next.fetchedAt, formatMarketTime));
+      setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : next);
+    } finally { marketRefreshInFlightRef.current = false; setIsRefreshingMarket(false); }
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
   const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
@@ -1290,8 +1301,9 @@ function App() {
     didMount.current = true;
     isApplyingRemoteRef.current = false;
   }, [state]);
-  const refreshQuotes = async () => {
-    if (isRefreshingQuotes) return;
+  const refreshQuotes = async (manual = false) => {
+    if (quoteRefreshInFlightRef.current) return;
+    quoteRefreshInFlightRef.current = true;
     setIsRefreshingQuotes(true);
     setQuoteStatus('股價更新中…');
     try {
@@ -1299,14 +1311,17 @@ function App() {
       const currentHoldings = safeHoldings(currentState.holdings);
       const symbols = uniqueSymbols(currentState);
       if (!symbols.length) {
-        setHasUpdatedQuotes(true);
+        setHasUpdatedQuotes(false);
         setQuoteStatus('目前沒有可更新的持股代號。');
         return;
       }
-      const entries = await Promise.all(symbols.map(async s => [s, await fetchQuote(s, currentHoldings.find(h => normalizeSymbol(h.symbol) === s))] as const));
-      const next = { ...quotes, ...Object.fromEntries(entries) } as Record<SymbolCode, Quote>;
-      setQuotes(next);
-      setHasUpdatedQuotes(true);
+      const entries = await Promise.all(symbols.map(async s => [s, await fetchQuote(s, currentHoldings.find(h => normalizeSymbol(h.symbol) === s), manual)] as const));
+      const summary = quoteRefreshStatus(entries.map(([symbol, quote]) => ({ symbol, error: quote.error })), tw(now()));
+      setQuotes(current => Object.fromEntries(entries.map(([symbol, quote]) => {
+        const previous = current[symbol];
+        return [symbol, quote.error && previous ? { ...previous, error: quote.error, source: `${previous.source} / 更新失敗` } : quote];
+      })) as Record<SymbolCode, Quote>);
+      setHasUpdatedQuotes(summary.succeeded > 0);
       const bySymbol = Object.fromEntries(entries.map(([symbol, quote]) => [symbol, quote])) as Record<SymbolCode, Quote>;
       const hasNameChange = currentHoldings.some(h => {
         const symbol = normalizeSymbol(h.symbol);
@@ -1324,11 +1339,11 @@ function App() {
           return name && name !== h.name ? { ...h, name } : h;
         }) }));
       }
-      const errors = entries.map(([, q]) => q).filter(q => q.error).map(q => `${q.symbol}: ${q.error}`);
-      setQuoteStatus(errors.length ? `部分失敗：${errors.join(' / ')}` : `股價更新成功：${tw(now())}`);
+      setQuoteStatus(summary.message);
     } catch (error) {
       setQuoteStatus(`股價更新失敗：${error instanceof Error ? error.message : String(error)}`);
     } finally {
+      quoteRefreshInFlightRef.current = false;
       setIsRefreshingQuotes(false);
     }
   };
@@ -1785,13 +1800,20 @@ function App() {
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
-    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; const allocationRoleBySymbol = { ...(s.allocationRoleBySymbol || {}) }; delete dipAlerts[normalizedSymbol]; delete allocationRoleBySymbol[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).filter(h => normalizeSymbol(h.symbol) !== normalizedSymbol), dipAlerts, allocationRoleBySymbol }; });
+    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; const allocationRoleBySymbol = { ...(s.allocationRoleBySymbol || {}) }; delete dipAlerts[normalizedSymbol]; delete allocationRoleBySymbol[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: true, targetWeight: 0 } : h), dipAlerts, allocationRoleBySymbol }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setEditingHoldingSymbol(current => current === normalizedSymbol ? null : current);
-    setAssetMessage(`${normalizedSymbol} 已從持股清單移除。`);
+    setAssetMessage(`${normalizedSymbol} 已封存為已清倉資產；不會納入投資計算或股價更新，股息中心仍可選取。`);
+  };
+  const restoreHoldingAsset = (symbol: SymbolCode) => {
+    const normalizedSymbol = normalizeSymbol(symbol);
+    setState(s => ({ ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: false } : h) }));
+    setAssetMessage(`${normalizedSymbol} 已恢復為目前持股。`);
   };
   const confirmRemoveHoldingAsset = (symbol: SymbolCode) => {
-    if (window.confirm(`確定要刪除 ${normalizeSymbol(symbol)} 嗎？此動作不會影響雲端資料，除非之後手動上傳。`)) removeHoldingAsset(symbol);
+    const holding = safeHoldings(stateRef.current.holdings).find(item => normalizeSymbol(item.symbol) === normalizeSymbol(symbol));
+    if ((holding?.shares || 0) > 0) { setAssetMessage(`${normalizeSymbol(symbol)} 仍有持股，請先將總股數調整為 0 後才能封存。`); return; }
+    if (window.confirm(`確定將 ${normalizeSymbol(symbol)} 封存為已清倉資產嗎？股息歷史會保留，且不會再納入投資計算或更新股價。`)) removeHoldingAsset(symbol);
   };
   const metaTime = (iso?: string) => iso ? tw(iso) : '尚未執行';
   const exportBackup = () => {
@@ -1875,7 +1897,7 @@ function App() {
       {currentPage === 'home' && <header id="overview-section" className="hero">
         <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>
         <div className="hero-actions" aria-label="首頁快速操作">
-          <button className="hero-refresh" onClick={refreshQuotes} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
+          <button className="hero-refresh" onClick={() => { void refreshQuotes(true); }} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
           <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
           <button className="hero-transfer" onClick={runHomeUpload} disabled={Boolean(isHomeSyncing)}><Upload size={15} aria-hidden="true" /><span>{isHomeSyncing === 'upload' ? '上傳中…' : '上傳'}</span></button>
         </div>
@@ -1902,7 +1924,7 @@ function App() {
         workflow: dailyDecisionWorkflow,
         opportunities: investmentOpportunities,
       }} />}
-      {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} onRefresh={() => { void refreshMarketData(); }} />}
+      {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
           <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
@@ -1949,7 +1971,7 @@ function App() {
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
         <div className="for-assets"><AllocationPresetPanel holdings={m.rows.map(row => ({ symbol: row.symbol, name: row.name, targetWeight: row.targetWeight }))} preset={state.allocationPreset} roleBySymbol={state.allocationRoleBySymbol} onApply={applyAllocationPreset} onKeepCustom={keepCustomAllocation} /></div>
         <Card className="page-card for-assets" title="新增持股">
-          <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
+          <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。已清倉資產可封存，保留給股息歷史使用。</p>
           <div className="asset-add-row">
             <input placeholder="輸入台股代號，例如 00981A、00670L、00662" value={newSymbolDraft} onChange={e => setNewSymbolDraft(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') addHoldingAsset(); }} />
             <button onClick={addHoldingAsset}>新增資產</button>
@@ -2137,10 +2159,11 @@ function App() {
                 <span>{item.shares.toLocaleString('zh-TW')}</span>
                 <span>{item.avgCost.toFixed(2)}</span>
                 <span>{quote.source}</span>
-                <button className="danger small" onClick={() => removeHoldingAsset(item.symbol)}>刪除</button>
+                <button className="danger small" onClick={() => confirmRemoveHoldingAsset(item.symbol)}>封存</button>
               </div>;
             })}
           </div>
+          {safeHoldings(state.holdings).filter(item => item.isArchived).length > 0 && <div className="list asset-list"><div className="list-row list-head"><span>已清倉資產</span><span>名稱</span><span>狀態</span><span>操作</span></div>{safeHoldings(state.holdings).filter(item => item.isArchived).map(item => <div className="list-row" key={`archived-${item.symbol}`}><span>{item.symbol}</span><span>{item.name || resolveSymbolName(item.symbol)}</span><span>已封存</span><button className="small" onClick={() => restoreHoldingAsset(item.symbol)}>恢復持股</button></div>)}</div>}
         </Card>
         <SectionCard id="quote-sources-section" title="報價來源" isMobile={isMobile} collapsible open={sectionOpen('quoteSources')} onToggle={() => toggleSection('quoteSources')} summary="查看各持股的報價來源與更新時間">
           <p className="note">完整技術來源集中在此處，主要投資卡片只顯示簡短報價狀態。</p>

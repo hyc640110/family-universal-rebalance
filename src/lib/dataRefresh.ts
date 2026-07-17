@@ -1,0 +1,38 @@
+export type QuoteRefreshResult = { symbol: string; error?: string };
+export type MarketRefreshOutcome = 'updated' | 'unchanged' | 'failed';
+
+export const isValidQuoteTimestamp = (quoteDate: unknown, quoteTime: unknown) =>
+  typeof quoteDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) &&
+  typeof quoteTime === 'string' && /^\d{2}:\d{2}(?::\d{2})?$/.test(quoteTime);
+
+export const refreshUrl = (endpoint: string, path: string, manual = false, requestId = Date.now()) => {
+  const url = new URL(`${endpoint.replace(/\/$/, '')}${path}`, 'https://refresh.invalid');
+  if (manual) {
+    url.searchParams.set('refresh', '1');
+    url.searchParams.set('request', String(requestId));
+  }
+  return endpoint.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
+};
+
+export const quoteRefreshStatus = (results: QuoteRefreshResult[], at: string) => {
+  const failed = results.filter(result => result.error);
+  const succeeded = results.length - failed.length;
+  if (!results.length) return { succeeded, failed, message: '目前沒有可更新的持股代號。' };
+  if (!succeeded) return { succeeded, failed, message: `股價更新失敗：${failed.map(result => `${result.symbol}: ${result.error}`).join(' / ')}` };
+  if (failed.length) return { succeeded, failed, message: `股價部分更新成功（${succeeded}/${results.length}）：${failed.map(result => `${result.symbol}: ${result.error}`).join(' / ')}` };
+  return { succeeded, failed, message: `股價更新成功（${succeeded}/${results.length}）：${at}` };
+};
+
+export const marketContentSignature = (snapshot: { status: string; items: Array<{ id: string; value: number | null; change: number | null; changePct: number | null; asOf: string | null; status: string }> }) =>
+  JSON.stringify({ status: snapshot.status, items: snapshot.items.map(item => ({ id: item.id, value: item.value, change: item.change, changePct: item.changePct, asOf: item.asOf, status: item.status })) });
+
+export const marketRefreshOutcome = (previousSignature: string | null, snapshot: { fetchedAt: string | null; status: string; items: Array<{ id: string; value: number | null; change: number | null; changePct: number | null; asOf: string | null; status: string }> }) : MarketRefreshOutcome => {
+  if (!snapshot.fetchedAt || snapshot.status === 'failed') return 'failed';
+  return previousSignature === marketContentSignature(snapshot) ? 'unchanged' : 'updated';
+};
+
+export const marketRefreshMessage = (outcome: MarketRefreshOutcome, fetchedAt: string | null, formatTime: (value: string) => string) => {
+  if (outcome === 'failed') return '市場資料重新取得失敗；保留目前可用資料並顯示服務狀態。';
+  const at = fetchedAt ? formatTime(fetchedAt) : '時間不明';
+  return outcome === 'unchanged' ? `已重新取得，資料內容未變：${at}` : `已重新取得：${at}`;
+};
