@@ -26,6 +26,7 @@ import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
+import { isMarketSectionEnabled, visibleMarketSnapshot } from './lib/marketSections';
 import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -1261,10 +1262,12 @@ function App() {
     try {
       const next = await fetchMarketSnapshot(marketWorkerUrl, { manual });
       const merged = mergeMarketSnapshot(marketSnapshot, next);
-      const outcome = merged.incomplete ? (marketSnapshot.fetchedAt ? 'partial' : 'failed') : marketRefreshOutcome(marketContentSignature(marketSnapshot), merged.snapshot);
-      const detail = [merged.updatedGroups.length ? `本次受管理：${merged.updatedGroups.map(marketGroupLabel).join('、')}` : '', merged.reusedGroups.length ? `沿用前次：${merged.reusedGroups.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
-      const unavailable = merged.unavailableGroups.length ? `${merged.unavailableGroups.map(marketGroupLabel).join('、')} 尚未接入資料來源，未納入本次重新取得。` : '';
-      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, merged.snapshot.fetchedAt, formatMarketTime, detail, unavailable));
+      const visibleMerged = visibleMarketSnapshot(merged.snapshot);
+      const visibleUpdated = merged.updatedGroups.filter(isMarketSectionEnabled);
+      const visibleReused = merged.reusedGroups.filter(isMarketSectionEnabled);
+      const outcome = merged.incomplete && visibleReused.length ? (marketSnapshot.fetchedAt ? 'partial' : 'failed') : marketRefreshOutcome(marketContentSignature(visibleMarketSnapshot(marketSnapshot)), visibleMerged);
+      const detail = [visibleUpdated.length ? `本次受管理：${visibleUpdated.map(marketGroupLabel).join('、')}` : '', visibleReused.length ? `沿用前次：${visibleReused.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
+      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, visibleMerged.fetchedAt, formatMarketTime, detail));
       setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : merged.snapshot);
     } finally { marketRefreshInFlightRef.current = false; setIsRefreshingMarket(false); }
   };
