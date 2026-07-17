@@ -22,7 +22,8 @@ test('Preview and Production Market Workers have separate names and explicit env
   assert.equal(productionConfig.vars.ENVIRONMENT, 'production');
   assert.notEqual(previewConfig.name, productionConfig.name);
   assert.equal(previewConfig.main, productionConfig.main);
-  assert.match(workerSource, /market-data-worker-v5\.4\.1/);
+  assert.match(workerSource, /market-data-worker-v6\.0\.5-refresh/);
+  assert.match(workerSource, /refresh \? 'no-store' : 'public, max-age=300, s-maxage=900'/);
 });
 
 test('Production and Preview builds inject distinct Market Worker URLs', () => {

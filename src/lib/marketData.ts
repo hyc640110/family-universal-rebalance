@@ -3,6 +3,7 @@ export type MarketDataGroup = 'taiwan' | 'global' | 'treasury' | 'event';
 
 export type MarketDataPoint = { id: string; group: MarketDataGroup; name: string; value: number | null; unit?: string; change: number | null; changePct: number | null; asOf: string | null; fetchedAt: string | null; source: string; sourceUrl?: string; status: MarketDataStatus; detail?: string };
 export type MarketSnapshot = { fetchedAt: string | null; status: MarketDataStatus; items: MarketDataPoint[]; error?: string; cacheControl?: string | null };
+export type MarketRefreshMerge = { snapshot: MarketSnapshot; updatedGroups: MarketDataGroup[]; reusedGroups: MarketDataGroup[]; unavailableGroups: MarketDataGroup[]; incomplete: boolean };
 
 const GLOBAL_PLACEHOLDERS: MarketDataPoint[] = [['sp500', 'S&P 500'], ['nasdaq', 'NASDAQ Composite'], ['sox', '費城半導體指數'], ['nikkei', '日經 225']].map(([id, name]) => ({ id, name, group: 'global', value: null, change: null, changePct: null, asOf: null, fetchedAt: null, source: '尚未設定可驗證的資料來源', status: 'unavailable', detail: '本版不使用授權或時間語意未確認的指數資料。' }));
 export const buildUnavailableMarketSnapshot = (message = '市場資料服務尚未設定。'): MarketSnapshot => ({ fetchedAt: null, status: 'unavailable', error: message, items: [
@@ -20,7 +21,29 @@ export function parseMarketSnapshot(raw: unknown, cacheControl: string | null = 
   const items = rawItems.flatMap((rawItem): MarketDataPoint[] => { const item = rawItem && typeof rawItem === 'object' ? rawItem as Record<string, unknown> : {}; const id = textOrNull(item.id); const name = textOrNull(item.name); const group = item.group; if (!id || !name || typeof group !== 'string' || !groups.has(group as MarketDataGroup)) return []; return [{ id, name, group: group as MarketDataGroup, value: finiteOrNull(item.value), unit: textOrNull(item.unit) ?? undefined, change: finiteOrNull(item.change), changePct: finiteOrNull(item.changePct), asOf: textOrNull(item.asOf), fetchedAt: textOrNull(item.fetchedAt), source: textOrNull(item.source) ?? '來源未提供', sourceUrl: textOrNull(item.sourceUrl) ?? undefined, status: typeof item.status === 'string' && statuses.has(item.status as MarketDataStatus) ? item.status as MarketDataStatus : 'unavailable', detail: textOrNull(item.detail) ?? undefined }]; });
   return { fetchedAt: textOrNull(root.fetchedAt), status: typeof root.status === 'string' && statuses.has(root.status as MarketDataStatus) ? root.status as MarketDataStatus : 'unavailable', items: items.length ? items : buildUnavailableMarketSnapshot('資料格式不完整。').items, error: textOrNull(root.error) ?? undefined, cacheControl: textOrNull(cacheControl) };
 }
-export async function fetchMarketSnapshot(endpoint: string, signal?: AbortSignal): Promise<MarketSnapshot> { if (!endpoint) return buildUnavailableMarketSnapshot(); try { const response = await fetch(`${endpoint.replace(/\/$/, '')}/market-summary`, { signal, headers: { accept: 'application/json' } }); if (!response.ok) return buildUnavailableMarketSnapshot(`市場資料服務暫時無法取得（HTTP ${response.status}）。`); return parseMarketSnapshot(await response.json(), response.headers.get('cache-control')); } catch { return buildUnavailableMarketSnapshot('市場資料服務暫時無法連線。'); } }
+const isUsableMarketPoint = (item: MarketDataPoint | undefined) => Boolean(item && item.value !== null && item.status !== 'unavailable' && item.status !== 'failed');
+const uniqueGroups = (items: MarketDataPoint[]) => Array.from(new Set(items.map(item => item.group)));
+export function mergeMarketSnapshot(previous: MarketSnapshot, incoming: MarketSnapshot): MarketRefreshMerge {
+  const incomingById = new Map(incoming.items.map(item => [item.id, item]));
+  const previousById = new Map(previous.items.map(item => [item.id, item]));
+  const allIds = Array.from(new Set([...previousById.keys(), ...incomingById.keys()]));
+  const reusedGroups = new Set<MarketDataGroup>(); const updatedGroups = new Set<MarketDataGroup>();
+  let incomplete = !incoming.fetchedAt || incoming.status === 'failed';
+  const items = allIds.flatMap(id => {
+    const oldItem = previousById.get(id); const nextItem = incomingById.get(id);
+    if (!nextItem && oldItem) { incomplete = true; reusedGroups.add(oldItem.group); return [oldItem]; }
+    if (!nextItem) return [];
+    if (oldItem && isUsableMarketPoint(oldItem) && !isUsableMarketPoint(nextItem)) {
+      incomplete = true; reusedGroups.add(oldItem.group);
+      return [{ ...oldItem, detail: `${nextItem.detail || '本次資料不完整。'} 本次重新取得失敗，沿用前次資料時間 ${formatMarketTime(oldItem.asOf)}。` }];
+    }
+    if (isUsableMarketPoint(nextItem)) updatedGroups.add(nextItem.group);
+    return [nextItem];
+  });
+  const unavailableGroups = uniqueGroups(items).filter(group => items.filter(item => item.group === group).every(item => !isUsableMarketPoint(item)));
+  return { snapshot: { ...incoming, items, ...(reusedGroups.size ? { error: `部分區塊重新取得失敗，已保留前次有效資料：${Array.from(reusedGroups).join('、')}` } : {}) }, updatedGroups: Array.from(updatedGroups), reusedGroups: Array.from(reusedGroups), unavailableGroups, incomplete };
+}
+export async function fetchMarketSnapshot(endpoint: string, options: { signal?: AbortSignal; manual?: boolean; requestId?: number } = {}): Promise<MarketSnapshot> { if (!endpoint) return buildUnavailableMarketSnapshot(); try { const url = new URL(`${endpoint.replace(/\/$/, '')}/market-summary`); if (options.manual) { url.searchParams.set('refresh', '1'); url.searchParams.set('request', String(options.requestId ?? Date.now())); } const response = await fetch(url.toString(), { signal: options.signal, cache: options.manual ? 'no-store' : 'default', headers: { accept: 'application/json', ...(options.manual ? { 'cache-control': 'no-cache' } : {}) } }); if (!response.ok) return buildUnavailableMarketSnapshot(`市場資料服務暫時無法取得（HTTP ${response.status}）。`); return parseMarketSnapshot(await response.json(), response.headers.get('cache-control')); } catch { return buildUnavailableMarketSnapshot('市場資料服務暫時無法連線。'); } }
 export const statusLabel = (status: MarketDataStatus) => ({ loading: '載入中', realtime: '即時', delayed: '延遲', closed: '收盤', 'recent-effective': '最近有效', unavailable: '資料不足', failed: '取得失敗' })[status];
 export const formatMarketTime = (value: string | null) => value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'short', timeStyle: 'short', hour12: false }).format(new Date(value)) : '—';
 export const marketTone = (value: number | null) => value === null || value === 0 ? 'hold' : value > 0 ? 'up' : 'down';

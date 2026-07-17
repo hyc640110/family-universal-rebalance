@@ -1,4 +1,4 @@
-const VERSION = '00631L-Pro-Web-App Worker v6.5 quote-date-contract';
+const VERSION = '00631L-Pro-Web-App Worker v6.5.1 manual-refresh-contract';
 const DEFAULT_SYMBOL = '00631L.TW';
 const TAIWAN_SYMBOL_RE = /^[0-9A-Z]{4,8}\.(TW|TWO)$/;
 const taipeiParts = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
@@ -64,16 +64,20 @@ export function parseYahoo(symbol, data) {
     updatedAt: new Date().toISOString()
   };
 }
+export const upstreamStatus = error => Number.isInteger(error?.status) && error.status >= 400 && error.status < 600 ? error.status : 500;
 
-async function quote(symbol) {
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d`;
+async function quote(symbol, refresh = false) {
+  const yahooUrl = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
+  yahooUrl.searchParams.set('range', '5d');
+  yahooUrl.searchParams.set('interval', '1d');
+  if (refresh) yahooUrl.searchParams.set('_refresh', String(Date.now()));
   const res = await fetch(yahooUrl, {
     headers: {
       'user-agent': VERSION,
       'accept': 'application/json'
     }
   });
-  if (!res.ok) throw new Error(`Yahoo status ${res.status}`);
+  if (!res.ok) { const error = new Error(`Yahoo status ${res.status}`); error.status = res.status; throw error; }
   return parseYahoo(symbol, await res.json());
 }
 
@@ -87,9 +91,9 @@ export default {
         return new Response(JSON.stringify({ ok: true, version: VERSION, origin: request.headers.get('origin') || null }), { headers });
       }
       const symbol = normalizeSymbol(url.searchParams.get('symbol'));
-      return new Response(JSON.stringify(await quote(symbol)), { headers });
+      return new Response(JSON.stringify(await quote(symbol, url.searchParams.get('refresh') === '1')), { headers });
     } catch (error) {
-      return new Response(JSON.stringify({ ok: false, error: String(error?.message || error), version: VERSION }), { status: 500, headers });
+      return new Response(JSON.stringify({ ok: false, error: String(error?.message || error), version: VERSION }), { status: upstreamStatus(error), headers });
     }
   }
 };
