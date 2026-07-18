@@ -8,11 +8,20 @@ const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07
 
 test('date controls declare a WebKit bounded-width contract without clipping the native picker', () => {
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-  assert.match(css, /\.financial-account-fields label,\.dividend-fields label\{inline-size:100%;max-inline-size:100%;min-inline-size:0}/);
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const dividend = readFileSync(new URL('../src/pages/DividendCenterPage.tsx', import.meta.url), 'utf8');
+  const dateSelector = '.financial-account-fields input[type="date"],.dividend-fields input[type="date"],.loan-list input[type="date"]';
+  assert.match(css, /\.financial-account-fields label,\.dividend-fields label,\.loan-list \.list-row label\{inline-size:100%;max-inline-size:100%;min-inline-size:0}/);
+  assert.match(css, new RegExp(`${dateSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\{[^}]*inline-size:100%;width:100%;max-inline-size:100%;max-width:100%;min-inline-size:0;min-width:0;[^}]*box-sizing:border-box;[^}]*font-size:16px`));
   assert.match(css, /@supports \(-webkit-touch-callout:none\)/);
-  assert.match(css, /::-webkit-date-and-time-value\{min-inline-size:0;text-align:left}/);
-  assert.match(css, /::-webkit-calendar-picker-indicator\{margin:0;padding:0;min-inline-size:0/);
+  assert.match(css, /\.loan-list input\[type="date"\]::-webkit-date-and-time-value\{min-inline-size:0;text-align:left}/);
+  assert.match(css, /\.loan-list input\[type="date"\]::-webkit-calendar-picker-indicator\{margin:0;padding:0;min-inline-size:0/);
   assert.doesNotMatch(css, /input\[type="date"\][^{]*\{[^}]*overflow:hidden/);
+  assert.doesNotMatch(css, /input\[type="date"\][^{]*\{[^}]*width:\d+px/);
+  assert.doesNotMatch(css, /input\[type="date"\][^{]*\{[^}]*transform:/);
+  assert.match(app, /<label>日期<input type="date" value=\{occurredAt\}/);
+  assert.match(app, /DraftInput type="date" value=\{item\.startDate\}/);
+  assert.match(dividend, /<label>收款日期<input type="date" value=\{occurredAt\} max=\{today\}/);
 });
 
 test('archived liquidated assets remain selectable for dividends without participating in quote refresh or portfolio calculations', () => {
