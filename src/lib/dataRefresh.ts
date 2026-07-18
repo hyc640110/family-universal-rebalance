@@ -18,6 +18,8 @@ export const refreshUrl = (endpoint: string, path: string, manual = false, reque
   return endpoint.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
 };
 
+export const quoteRefreshRequestInit = (manual = false): RequestInit => ({ cache: manual ? 'no-store' : 'default' });
+
 export const quoteRefreshStatus = (results: QuoteRefreshResult[], at: string) => {
   const failed = results.filter(result => result.error);
   const succeeded = results.length - failed.length;

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fetchMarketSnapshot, mergeMarketSnapshot, type MarketSnapshot } from '../src/lib/marketData';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshRequestInit, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
 
 const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [{ id: 'taiex', value: 23000, change: 10, changePct: .04, asOf: '2026-07-17T08:00:00+08:00', status: 'closed' }], ...patch });
 
@@ -34,6 +34,10 @@ test('quote refresh contracts distinguish successful, partial, and failed upstre
   assert.equal(isValidQuoteTimestamp('2026-07-17', null), false);
   assert.equal(isValidQuoteTimestamp('bad', '13:30'), false);
   assert.match(refreshUrl('https://price.example', '/?symbol=2330', true, 77), /symbol=2330.*refresh=1.*request=77/);
+  assert.deepEqual(quoteRefreshRequestInit(false), { cache: 'default' });
+  assert.deepEqual(quoteRefreshRequestInit(true), { cache: 'no-store' });
+  assert.equal(new Headers(quoteRefreshRequestInit(true).headers).has('cache-control'), false);
+  assert.equal(new Headers(quoteRefreshRequestInit(true).headers).has('pragma'), false);
   assert.match(quoteRefreshStatus([{ symbol: '2330' }, { symbol: '0050' }], '臺北時間').message, /2\/2/);
   assert.match(quoteRefreshStatus([{ symbol: '2330' }, { symbol: '0050', error: 'HTTP 502' }], '臺北時間').message, /部分更新成功（1\/2）/);
   assert.match(quoteRefreshStatus([{ symbol: '2330', error: 'HTTP 502' }], '臺北時間').message, /股價更新失敗/);

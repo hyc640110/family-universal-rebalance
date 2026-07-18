@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { createQuoteRefreshController } from '../src/lib/quoteRefreshController';
+import { quoteRefreshRequestInit, refreshUrl } from '../src/lib/dataRefresh';
 
 type Holding = { symbol: string; name?: string; archived?: boolean };
 type Quote = { symbol: string; source: string; price: number; quoteDate?: string; quoteTime?: string; error?: string };
@@ -58,8 +59,22 @@ test('App delegates quote orchestration and preserves the existing request, time
   assert.match(app, /endpoint: DEFAULT_WORKER_URL/);
   assert.match(app, /requestQuote: fetchQuote/);
   assert.match(app, /refreshUrl\(endpoint,/);
-  assert.match(app, /cache: manual \? 'no-store' : 'default'/);
+  assert.match(app, /quoteRefreshRequestInit\(manual\)/);
   assert.match(app, /isValidQuoteTimestamp/);
   assert.match(app, /canAutofillName/);
   assert.doesNotMatch(app, /quoteRefreshInFlightRef/);
+});
+
+test('cross-origin quote requests use cache modes and manual URL parameters without non-safelisted request headers', () => {
+  assert.match(refreshUrl('https://preview-price.example', '/?symbol=2330', true, 99), /refresh=1.*request=99/);
+  const automatic = quoteRefreshRequestInit(false);
+  const manual = quoteRefreshRequestInit(true);
+  assert.deepEqual(automatic, { cache: 'default' });
+  assert.deepEqual(manual, { cache: 'no-store' });
+  assert.equal(new Headers(manual.headers).has('cache-control'), false);
+  assert.equal(new Headers(manual.headers).has('pragma'), false);
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const fetchQuoteSource = app.match(/async function fetchQuote[\s\S]*?\n}\n\nfunction derivedHoldings/)?.[0] || '';
+  assert.doesNotMatch(fetchQuoteSource, /headers:/);
+  assert.doesNotMatch(fetchQuoteSource, /cache-control|pragma/);
 });
