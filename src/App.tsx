@@ -88,6 +88,7 @@ type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocat
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 const marketGroupLabel = (group: string) => ({ taiwan: '台股主要指標', global: '全球主要指數', treasury: '美國公債殖利率', event: '重要經濟事件' })[group] || group;
 const PREVIEW_ARCHIVED_FIXTURE_SYMBOL = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? (import.meta.env.VITE_PREVIEW_ARCHIVED_FIXTURE || '') : '';
+const PREVIEW_HISTORICAL_DIVIDEND_FIXTURE = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? { id: 'preview-historical-dividend-hist01', symbol: 'HIST01', name: '歷史測試資產', occurredAt: '2026-07-14T00:00:00.000Z' } : null;
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -1290,6 +1291,14 @@ function App() {
       return { ...current, holdings: [...holdings, { symbol: PREVIEW_ARCHIVED_FIXTURE_SYMBOL, name: 'Preview 測試資產', shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth', isArchived: true, isPreviewFixture: true }] };
     });
   }, [previewFixtureMode]);
+  const historicalDividendFixtureActive = Boolean(PREVIEW_HISTORICAL_DIVIDEND_FIXTURE && previewFixtureMode === 'historical-dividend');
+  const historicalDividendFixture = useMemo<FinancialTransaction | null>(() => {
+    if (!historicalDividendFixtureActive || !PREVIEW_HISTORICAL_DIVIDEND_FIXTURE) return null;
+    const account = state.accounts.find(item => item.isActive) || state.accounts[0];
+    return { id: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.id, accountId: account?.id || 'preview-historical-fixture-account', type: 'income', status: 'posted', source: 'manual', amount: 895, currency: account?.currency || 'TWD', categoryId: 'income-dividend', description: '', merchant: '', note: 'Preview historical dividend fixture', occurredAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, fingerprint: '', excluded: false, createdAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, updatedAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, assetSymbol: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.symbol, assetName: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.name };
+  }, [historicalDividendFixtureActive, state.accounts]);
+  const dividendCenterHoldings = useMemo(() => !historicalDividendFixture ? state.holdings : state.holdings.filter(holding => normalizeSymbol(holding.symbol) !== historicalDividendFixture.assetSymbol), [historicalDividendFixture, state.holdings]);
+  const dividendCenterTransactions = useMemo(() => !historicalDividendFixture ? state.transactions : [...state.transactions.filter(transaction => normalizeSymbol(transaction.assetSymbol || '') !== historicalDividendFixture.assetSymbol), historicalDividendFixture], [historicalDividendFixture, state.transactions]);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
@@ -2106,7 +2115,7 @@ function App() {
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
-        {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
+        {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={dividendCenterHoldings} transactions={dividendCenterTransactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} rule={clecStrategyRuleView} eligibility={rebalanceExecutionEligibility} />}
