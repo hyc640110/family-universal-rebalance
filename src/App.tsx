@@ -28,7 +28,8 @@ import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { isMarketSectionEnabled, visibleMarketSnapshot } from './lib/marketSections';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshStatus, refreshUrl } from './lib/dataRefresh';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, quoteRefreshErrorLabel, quoteRefreshRequestInit, refreshUrl } from './lib/dataRefresh';
+import { createQuoteRefreshController, type QuoteRefreshRequestOptions } from './lib/quoteRefreshController';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -535,7 +536,7 @@ function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding):
   if (change === null || !isValidQuoteTimestamp(d.quoteDate, d.quoteTime)) return null;
   return { ...backupQuote(resolvedSymbol, holding), symbol: resolvedSymbol, name: resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name), price, previousClose, change, changePct: change / previousClose * 100, quoteDate: typeof d.quoteDate === 'string' ? d.quoteDate : undefined, quoteTime: typeof d.quoteTime === 'string' ? d.quoteTime : undefined, volume: Number(d.volume ?? 0), source: d.source || '報價 Worker', updatedAt: now() };
 }
-async function fetchQuote(symbol: SymbolCode, holding?: Holding, manual = false): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = refreshUrl(DEFAULT_WORKER_URL, `/?symbol=${encodeURIComponent(querySymbol)}`, manual); try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, { cache: manual ? 'no-store' : 'default', headers: manual ? { 'cache-control': 'no-cache' } : undefined }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確或缺少有效報價日期／時間：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 更新失敗' : '離線備援 / Worker 更新失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
+async function fetchQuote(symbol: SymbolCode, holding: Holding | undefined, { endpoint, manual }: QuoteRefreshRequestOptions): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = refreshUrl(endpoint, `/?symbol=${encodeURIComponent(querySymbol)}`, manual); try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, quoteRefreshRequestInit(manual)); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確或缺少有效報價日期／時間：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 更新失敗' : '離線備援 / Worker 更新失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
 function derivedHoldings(state: AppState): Holding[] {
   const holdings = safeHoldings(state.holdings);
@@ -1254,7 +1255,6 @@ function App() {
   }, [state.accounts, state.transactions, syncBaselineDiagnostics.baselineAvailable, syncBaselineDiagnostics.dirty]);
   const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
-  const quoteRefreshInFlightRef = useRef(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
   const marketRefreshInFlightRef = useRef(false);
@@ -1324,52 +1324,41 @@ function App() {
     didMount.current = true;
     isApplyingRemoteRef.current = false;
   }, [state]);
-  const refreshQuotes = async (manual = false) => {
-    if (quoteRefreshInFlightRef.current) return;
-    quoteRefreshInFlightRef.current = true;
-    setIsRefreshingQuotes(true);
-    setQuoteStatus('股價更新中…');
-    try {
-      const currentState = stateRef.current;
-      const currentHoldings = safeHoldings(currentState.holdings);
-      const symbols = uniqueSymbols(currentState);
-      if (!symbols.length) {
-        setHasUpdatedQuotes(false);
-        setQuoteStatus('目前沒有可更新的持股代號。');
-        return;
-      }
-      const entries = await Promise.all(symbols.map(async s => [s, await fetchQuote(s, currentHoldings.find(h => normalizeSymbol(h.symbol) === s), manual)] as const));
-      const summary = quoteRefreshStatus(entries.map(([symbol, quote]) => ({ symbol, error: quote.error })), tw(now()));
-      setQuotes(current => Object.fromEntries(entries.map(([symbol, quote]) => {
-        const previous = current[symbol];
-        return [symbol, mergeQuoteRefresh(previous, quote)];
-      })) as Record<SymbolCode, Quote>);
-      setHasUpdatedQuotes(summary.succeeded > 0);
-      const bySymbol = Object.fromEntries(entries.map(([symbol, quote]) => [symbol, quote])) as Record<SymbolCode, Quote>;
-      const hasNameChange = currentHoldings.some(h => {
-        const symbol = normalizeSymbol(h.symbol);
-        const quote = bySymbol[symbol];
-        const canAutofillName = !h.name?.trim() || h.name === SYMBOL_NAMES[symbol];
-        const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : h.name;
-        return Boolean(name && name !== h.name);
-      });
-      if (hasNameChange) {
-        setState(s => ({ ...s, holdings: safeHoldings(s.holdings).map(h => {
-          const symbol = normalizeSymbol(h.symbol);
+  const quoteRefreshControllerRef = useRef<ReturnType<typeof createQuoteRefreshController<Holding, SymbolCode, Quote>> | null>(null);
+  if (!quoteRefreshControllerRef.current) {
+    quoteRefreshControllerRef.current = createQuoteRefreshController({
+      endpoint: DEFAULT_WORKER_URL,
+      getSnapshot: () => {
+        const currentState = stateRef.current;
+        return { holdings: safeHoldings(currentState.holdings), symbols: uniqueSymbols(currentState) };
+      },
+      findHolding: (holdings, symbol) => holdings.find(holding => normalizeSymbol(holding.symbol) === symbol),
+      requestQuote: fetchQuote,
+      setQuotes: updater => setQuotes(current => updater(current)),
+      setHasUpdatedQuotes,
+      setStatus: setQuoteStatus,
+      setIsRefreshing: setIsRefreshingQuotes,
+      formatRefreshTime: () => tw(now()),
+      applyNameAutofill: (entries, currentHoldings) => {
+        const bySymbol = Object.fromEntries(entries.map(([symbol, quote]) => [symbol, quote])) as Record<SymbolCode, Quote>;
+        const hasNameChange = currentHoldings.some(holding => {
+          const symbol = normalizeSymbol(holding.symbol);
           const quote = bySymbol[symbol];
-          const canAutofillName = !h.name?.trim() || h.name === SYMBOL_NAMES[symbol];
-          const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, h.name) : h.name;
-          return name && name !== h.name ? { ...h, name } : h;
+          const canAutofillName = !holding.name?.trim() || holding.name === SYMBOL_NAMES[symbol];
+          const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, holding.name) : holding.name;
+          return Boolean(name && name !== holding.name);
+        });
+        if (hasNameChange) setState(current => ({ ...current, holdings: safeHoldings(current.holdings).map(holding => {
+          const symbol = normalizeSymbol(holding.symbol);
+          const quote = bySymbol[symbol];
+          const canAutofillName = !holding.name?.trim() || holding.name === SYMBOL_NAMES[symbol];
+          const name = canAutofillName && quote && !quote.error ? resolveSymbolName(symbol, quote.name, holding.name) : holding.name;
+          return name && name !== holding.name ? { ...holding, name } : holding;
         }) }));
-      }
-      setQuoteStatus(summary.message);
-    } catch (error) {
-      setQuoteStatus(`股價更新失敗：${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      quoteRefreshInFlightRef.current = false;
-      setIsRefreshingQuotes(false);
-    }
-  };
+      },
+    });
+  }
+  const refreshQuotes = (manual = false) => quoteRefreshControllerRef.current?.refresh(manual);
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();

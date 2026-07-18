@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const quoteRefreshController = readFileSync(new URL('../src/lib/quoteRefreshController.ts', import.meta.url), 'utf8');
 const simulator = readFileSync(new URL('../src/pages/AllocationSimulatorPage.tsx', import.meta.url), 'utf8');
 const riskMetrics = readFileSync(new URL('../src/lib/riskMetrics.ts', import.meta.url), 'utf8');
 const riskCenter = readFileSync(new URL('../src/pages/RiskCenterPage.tsx', import.meta.url), 'utf8');
@@ -22,7 +23,7 @@ const dashboard = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx',
 const checks = [
   ['Holding persists name', /type Holding = \{[^}]*name\?: string/.test(app)],
   ['Quote parser reads dynamic names', /quoteNameFields/.test(app) && /parseWorkerQuote\(symbol: SymbolCode, data: unknown, holding\?: Holding\)/.test(app)],
-  ['Quote refresh writes names to holdings only on changes', /hasNameChange/.test(app) && /return name && name !== h\.name \? \{ \.\.\.h, name \} : h/.test(app)],
+  ['Quote refresh writes names to holdings only on changes', /createQuoteRefreshController/.test(app) && /hasNameChange/.test(app) && /return name && name !== holding\.name \? \{ \.\.\.holding, name \} : holding/.test(app) && /applyNameAutofill/.test(quoteRefreshController)],
   ['Backup import can recover names from quotes', /const quoteNames = r\.quotes/.test(app) && /resolveSymbolName\(symbol, holding\?\.name, quote\?\.name\)/.test(app)],
   ['Deviation has a single rendered text source', /const rebalanceDeviationText = rb\.deviationText/.test(app) && /summary=\{`\$\{rb\.thresholdStatus\}｜偏離 \$\{rebalanceDeviationText\}`\}/.test(app)],
   ['Deviation formula is currentGrowthWeight minus growthTargetPercent', /const currentGrowthWeight = stockWeight/.test(app) && /const growthTargetPercent = m\.growthTargetPct/.test(app) && /const deviation = stockWeight - m\.growthTargetPct/.test(app)],
