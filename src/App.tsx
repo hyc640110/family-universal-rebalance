@@ -60,7 +60,7 @@ import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransa
 import { EMPTY_TRANSACTION_SYNC_DIAGNOSTICS, deriveTransactionSyncDiagnostics, type TransactionSyncDiagnostics } from './lib/transactionSyncDiagnostics';
 import { IMPORT_SCHEMA_VERSION, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
-import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus, quoteDateStatusLabel } from './lib/quoteMath';
+import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
@@ -872,15 +872,13 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
-  const quoteStatus = quoteDateStatus(row.quote.quoteDate);
-  const hasTodayQuote = quoteStatus === 'today';
-  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.changePct, hasTodayQuote, quoteDateStatusLabel(quoteStatus));
+  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.change, row.quote.changePct, row.quote.previousClose);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-mobile-summary">
       <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
       <div className="holding-mobile-core">
         <h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name" title={row.quote.name}>{row.quote.name}</span></h3>
-        <p className="holding-mobile-quote"><span><span className="holding-mobile-price-label">{row.quote.error ? '參考價' : '現價'} </span>{row.quote.price.toFixed(2)} 元</span><strong className={`${compactQuoteMovement.tone}${hasTodayQuote ? '' : ' holding-stale-movement'}`}>{compactQuoteMovement.text}</strong></p>
+        <p className="holding-mobile-quote"><span><span className="holding-mobile-price-label">{row.quote.error ? '參考價' : '現價'} </span>{row.quote.price.toFixed(2)} 元</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`} aria-label={compactQuoteMovement.ariaLabel}>{compactQuoteMovement.text}</strong></p>
         <p className="holding-mobile-shares"><span className="holding-mobile-shares-label">持有 </span>{row.shares.toLocaleString('zh-TW')} 股</p>
       </div>
       <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>

@@ -1,6 +1,7 @@
 export type CompactQuoteMovement = {
   text: string;
   tone: 'up' | 'down' | 'hold';
+  ariaLabel: string;
 };
 
 /**
@@ -14,9 +15,12 @@ export function formatCompactHoldingWeight(marketValue: number, totalAssets: num
   return `${value.toFixed(1)}%`;
 }
 
-export function formatCompactQuoteMovement(changePct: number, isCurrentQuote: boolean, unavailableLabel = '非今日報價'): CompactQuoteMovement {
-  if (!isCurrentQuote || !Number.isFinite(changePct)) return { text: `— ${unavailableLabel}`, tone: 'hold' };
-  if (changePct > 0) return { text: `↑ +${changePct.toFixed(2)}%`, tone: 'up' };
-  if (changePct < 0) return { text: `↓ ${changePct.toFixed(2)}%`, tone: 'down' };
-  return { text: '— 0.00%', tone: 'hold' };
+export function formatCompactQuoteMovement(change: number | undefined, changePct: number | undefined, previousClose: number | undefined): CompactQuoteMovement {
+  const amount = Number(change);
+  const percent = Number(changePct);
+  const priorClose = Number(previousClose);
+  if (!Number.isFinite(amount) || !Number.isFinite(percent) || !Number.isFinite(priorClose) || priorClose <= 0) return { text: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' };
+  if (amount > 0) return { text: `+${amount.toFixed(2)}（+${Math.abs(percent).toFixed(2)}%）`, tone: 'up', ariaLabel: `最近交易日上漲 ${amount.toFixed(2)} 元，漲幅 ${Math.abs(percent).toFixed(2)}%` };
+  if (amount < 0) return { text: `-${Math.abs(amount).toFixed(2)}（-${Math.abs(percent).toFixed(2)}%）`, tone: 'down', ariaLabel: `最近交易日下跌 ${Math.abs(amount).toFixed(2)} 元，跌幅 ${Math.abs(percent).toFixed(2)}%` };
+  return { text: '0.00（0.00%）', tone: 'hold', ariaLabel: '最近交易日平盤' };
 }
