@@ -20,7 +20,13 @@ test('V6.7 uses the shared money trend chart for net worth and investment histor
   const source = readFileSync(new URL('../src/components/TrendChart.tsx', import.meta.url), 'utf8');
   assert.match(source, /ResizeObserver/);
   assert.match(source, /viewBox=\{`0 0 \$\{width\} \$\{height\}`\}/);
+  assert.match(source, /trendChartPlotMargins/);
+  assert.match(source, /x=\{left-8\}/);
+  assert.match(source, /formatTrendAxisTick\(value, formatValue\)/);
+  assert.doesNotMatch(source, /transform=/);
   assert.doesNotMatch(source, /const width = 320/);
+  assert.match(analytics, /deriveSharedTrendDomain\(\[historyRows\.map\(row => row\.investmentValue\), historyRows\.map\(row => row\.netWorth\)\]\)/);
+  assert.match(analytics, /domain=\{sharedHistoryDomain\}/);
   assert.match(css, /\.net-worth-history-chart-card \.trend-chart\{width:100%;max-width:none\}/);
   assert.match(css, /\.trend-chart-canvas\{width:100%;min-width:0;max-width:100%;height:210px/);
   assert.match(css, /\.performance-chart \.trend-chart-canvas\{height:170px\}/);
