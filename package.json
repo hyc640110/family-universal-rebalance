@@ -60,6 +60,7 @@
     "test:v5-4-market": "tsx --test tests/marketData.test.ts tests/marketUiFoundation.test.ts && node --test tests/marketDataWorker.test.mjs",
     "test:v6-10-market-refresh-data-update-consistency": "tsx --test tests/v6MarketRefreshDataUpdateConsistency.test.ts",
     "test:v6-10-1-market-refresh-cors-hotfix": "tsx --test tests/v6MarketRefreshCorsHotfix.test.ts",
+    "test:v6-11-dividend-asset-reference-continuity": "tsx --test tests/dividendAssetReferences.test.ts",
     "check:market-worker-bundles": "node scripts/market-worker-bundle-check.mjs",
     "check:market-worker-preview-runtime": "node scripts/market-worker-runtime-contract-check.mjs preview",
     "check:market-worker-production-runtime": "node scripts/market-worker-runtime-contract-check.mjs production",

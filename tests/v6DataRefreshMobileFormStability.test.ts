@@ -18,11 +18,13 @@ test('date controls declare a WebKit bounded-width contract without clipping the
 test('archived liquidated assets remain selectable for dividends without participating in quote refresh or portfolio calculations', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const dividend = readFileSync(new URL('../src/pages/DividendCenterPage.tsx', import.meta.url), 'utf8');
+  const references = readFileSync(new URL('../src/lib/dividendAssetReferences.ts', import.meta.url), 'utf8');
   assert.match(app, /filter\(h => !h\.isArchived\)/);
   assert.match(app, /isArchived: true, targetWeight: 0/);
   assert.match(app, /仍有持股，請先將總股數調整為 0 後才能封存/);
   assert.match(dividend, /assetOptions\.map/);
-  assert.match(dividend, /holding\.isArchived \? '（已清倉）' : ''/);
+  assert.match(dividend, /dividendAssetReferenceOptions\(holdings, transactions\)/);
+  assert.match(references, /status === 'archived' \? '（已清倉）'/);
   assert.match(app, /VITE_PREVIEW_ARCHIVED_FIXTURE/);
   assert.match(app, /isPreviewFixture: true/);
   assert.match(readFileSync(new URL('../.env.preview-deploy', import.meta.url), 'utf8'), /VITE_PREVIEW_ARCHIVED_FIXTURE=TEST-ARCHIVED/);
