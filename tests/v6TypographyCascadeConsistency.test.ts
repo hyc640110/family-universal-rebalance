@@ -5,8 +5,11 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 
-const fontSizesFor = (selector: string) => [...css.matchAll(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\{[^}]*font-size:([^;}]+)`, 'g'))]
-  .map(match => match[1].trim());
+const fontSizesFor = (selector: string) => [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+  .filter(([, selectors]) => selectors.split(',').map(item => item.trim()).includes(selector))
+  .map(([, , declarations]) => declarations.match(/font-size:([^;}]+)/)?.[1]?.trim())
+  .filter((size): size is string => Boolean(size));
+const finalFontSizeFor = (selector: string) => fontSizesFor(selector).at(-1);
 
 test('V6.13 keeps the mobile bottom navigation at a single readable final size', () => {
   assert.deepEqual(fontSizesFor('.mobile-page-nav a'), ['12px']);
@@ -34,6 +37,18 @@ test('V6.13 preserves mobile input, dividend, and chart readability contracts', 
   assert.match(css, /input, select, textarea \{ font-size: 16px !important; \}/);
   assert.match(css, /\.dividend-fields label\{font-size:14px;font-weight:600;line-height:1\.45\}/);
   assert.deepEqual(fontSizesFor('.trend-axis-label'), ['12px', '13px']);
+  assert.equal(finalFontSizeFor('.market-data-card dt'), '11px');
+});
+
+test('V6.13 applies final scoped 13px rules to audited desktop allocation and section labels', () => {
+  assert.equal(finalFontSizeFor('.allocation-preset-roles small'), '13px');
+  assert.match(css, /\.allocation-preset-roles small\{color:#b6c7da;font-size:13px;line-height:1\.4;overflow-wrap:anywhere\}/);
+  assert.match(css, /\.allocation-preset-roles span\{min-width:0\}/);
+  assert.equal(finalFontSizeFor('.performance-heading .eyebrow'), '13px');
+  assert.equal(finalFontSizeFor('.market-hero .eyebrow'), '13px');
+  assert.equal(finalFontSizeFor('.market-section header .eyebrow'), '13px');
+  assert.equal(finalFontSizeFor('.history-hero .eyebrow'), '13px');
+  assert.match(css, /\.performance-heading \.eyebrow,\.market-hero \.eyebrow,\.market-section header \.eyebrow,\.history-hero \.eyebrow\{font-size:13px;font-weight:700;line-height:1\.4\}/);
 });
 
 test('V6.13 replaces the two audited inline typography declarations with semantic classes', () => {
