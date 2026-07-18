@@ -28,7 +28,7 @@ import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
 import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { isMarketSectionEnabled, visibleMarketSnapshot } from './lib/marketSections';
-import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, quoteRefreshErrorLabel, quoteRefreshRequestInit, refreshUrl } from './lib/dataRefresh';
+import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteMap, quoteRefreshErrorLabel, quoteRefreshRequestInit, refreshUrl } from './lib/dataRefresh';
 import { createQuoteRefreshController, type QuoteRefreshRequestOptions } from './lib/quoteRefreshController';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
@@ -305,9 +305,10 @@ function isBackupQuoteSource(source: unknown) {
 function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   const hasError = rows.some(row => Boolean(row.quote.error));
   const hasBackup = rows.some(row => isBackupQuoteSource(row.quote.source));
-  const statuses = rows.map(row => quoteDateStatus(row.quote.quoteDate));
+  const statuses = rows.map(row => quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime));
   if (hasError) return '部分標的報價異常';
   if (statuses.includes('unknown')) return '部分標的報價日期不明';
+  if (statuses.includes('unavailable')) return '台股交易日資料未涵蓋';
   if (statuses.includes('stale')) return '部分標的非今日報價';
   if (statuses.includes('recent-trading-day')) return '目前為最近交易日報價';
   if (hasBackup) return '部分標的目前使用備援價格';
@@ -546,7 +547,7 @@ function derivedHoldings(state: AppState): Holding[] {
   return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
-  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasPreservedQuote = Boolean(q.error && num(q.price) > 0 && isValidQuoteTimestamp(q.quoteDate, q.quoteTime)); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasPreservedQuote || hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasPreservedQuote || hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
+  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasPreservedQuote = Boolean(q.error && num(q.price) > 0 && isValidQuoteTimestamp(q.quoteDate, q.quoteTime)); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasPreservedQuote || hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasPreservedQuote || hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate, quote.quoteTime); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
   const derivedBalances = deriveTransactionAccountBalances(state.transactions);
@@ -1478,12 +1479,12 @@ function App() {
     growthTargetPct: getGrowthTargetTotal(state.holdings), defensiveTargetPct: getDefensiveStockTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings), targetTotalPct: getHoldingTargetTotal(state.holdings),
     allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
     risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
-    quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
+    quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, quoteTime: row.quote.quoteTime, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
   }), [m, state.holdings, rb, riskMetrics, investmentStats, performanceQuality]);
   const rebalanceRecommendationView = useMemo(() => deriveRebalanceRecommendation({
     totalAssets: m.totalAssets, liquidCash: m.cash, buyOnlyBudget: state.buyOnlyBudget, rebalanceMode: state.rebalanceMode,
     rebalanceThreshold: rb.threshold, allocationDeviation: rb.deviation, targetTotal: getHoldingTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings),
-    holdings: m.rows.map(row => ({ symbol: row.symbol, name: row.name, marketValue: row.marketValue, currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : 0, targetWeight: getEffectiveTargetPercent(row, state.holdings), assetClass: row.assetClass, price: row.quote.price, quoteStatus: quoteDateStatus(row.quote.quoteDate), quoteSource: row.quote.source, quoteError: row.quote.error })),
+    holdings: m.rows.map(row => ({ symbol: row.symbol, name: row.name, marketValue: row.marketValue, currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : 0, targetWeight: getEffectiveTargetPercent(row, state.holdings), assetClass: row.assetClass, price: row.quote.price, quoteStatus: quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime), quoteSource: row.quote.source, quoteError: row.quote.error })),
     duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
     allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
   }), [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView]);
@@ -1503,7 +1504,7 @@ function App() {
       symbol: row.symbol,
       currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : null,
       targetWeight: getEffectiveTargetPercent(row, state.holdings),
-      quoteFreshness: quoteDateStatus(row.quote.quoteDate) === 'unknown' ? 'missing' : quoteDateStatus(row.quote.quoteDate) === 'stale' ? 'stale' : 'fresh'
+      quoteFreshness: ['unknown', 'unavailable'].includes(quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime)) ? 'missing' : quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime) === 'stale' ? 'stale' : 'fresh'
     })),
     availableCash: Number.isFinite(m.cash) ? m.cash : null,
     debtBalance: Number.isFinite(m.debt) ? m.debt : null,
@@ -1574,7 +1575,7 @@ function App() {
         today: localSnapshotDate(), dashboard: { investmentValue: m.stocks, dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, cashRatio: investmentDashboard.cashRatio, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
         risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
         dividend: { summary: dividendSummary(state.transactions), sources: dividendSources(state.transactions) }, market: marketSnapshot,
-        quoteStatuses: quoteRows.map(quote => quoteDateStatus(quote.quoteDate)), quoteErrors: quoteRows.filter(quote => Boolean(quote.error)).length, backupQuoteCount: quoteRows.filter(quote => isBackupQuoteSource(quote.source)).length,
+        quoteStatuses: quoteRows.map(quote => quoteDateStatus(quote.quoteDate, quote.quoteTime)), quoteErrors: quoteRows.filter(quote => Boolean(quote.error)).length, backupQuoteCount: quoteRows.filter(quote => isBackupQuoteSource(quote.source)).length,
         targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0)
       });
   }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
@@ -1882,7 +1883,7 @@ function App() {
       writeState(next);
       setLastSavedAt(importedAt);
       const importedQuotes = raw && typeof raw === 'object' && (raw as Partial<BackupPayload>).quotes && typeof (raw as Partial<BackupPayload>).quotes === 'object' ? (raw as Partial<BackupPayload>).quotes as Record<SymbolCode, Quote> : null;
-      if (importedQuotes) setQuotes(current => ({ ...current, ...importedQuotes }));
+      if (importedQuotes) setQuotes(current => mergeQuoteMap(current, importedQuotes));
       const skippedAccountMessage = accountImport.skipped.length ? `｜略過 ${accountImport.skipped.length} 筆無法恢復的帳戶資料` : '';
       updateSyncMeta(current => ({ ...current, baselineFingerprint: undefined, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: `已匯入備份；尚未建立同步基準${skippedAccountMessage}` }));
     } catch (error) {

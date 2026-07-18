@@ -1,13 +1,34 @@
 export type QuoteRefreshResult = { symbol: string; error?: string };
 export type MarketRefreshOutcome = 'updated' | 'unchanged' | 'partial' | 'failed';
-type RefreshableQuote = { source: string; error?: string };
+type RefreshableQuote = { source: string; error?: string; price?: unknown; quoteDate?: unknown; quoteTime?: unknown; previousClose?: unknown; change?: unknown; changePct?: unknown; symbol?: unknown };
 
-export const mergeQuoteRefresh = <T extends RefreshableQuote>(previous: T | undefined, incoming: T): T =>
-  incoming.error && previous ? { ...previous, error: incoming.error, source: `${previous.source} / 更新失敗` } : incoming;
+const validQuoteValue = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value > 0;
+const validQuoteDate = (value: unknown) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+const validQuoteTime = (value: unknown) => typeof value === 'string' && /^\d{2}:\d{2}(?::\d{2})?$/.test(value);
+const quoteTimestamp = (quote: RefreshableQuote) => validQuoteDate(quote.quoteDate) && validQuoteTime(quote.quoteTime) ? `${quote.quoteDate}T${quote.quoteTime}` : null;
+export const isUsableQuote = (quote: RefreshableQuote | undefined) => Boolean(quote && !quote.error && validQuoteValue(quote.price) && quoteTimestamp(quote));
+
+export const mergeQuoteRefresh = <T extends RefreshableQuote>(previous: T | undefined, incoming: T): T => {
+  if (!previous) return incoming;
+  if (incoming.error || !isUsableQuote(incoming)) return isUsableQuote(previous)
+    ? { ...previous, error: incoming.error || 'invalid quote', source: `${previous.source} / 更新失敗` }
+    : incoming;
+  if (!isUsableQuote(previous)) return incoming;
+  const previousTimestamp = quoteTimestamp(previous)!;
+  const incomingTimestamp = quoteTimestamp(incoming)!;
+  if (incomingTimestamp < previousTimestamp) return previous;
+  if (incomingTimestamp > previousTimestamp) return incoming;
+  // Same market timestamp is not a newer market quote. The controller serializes
+  // updates with its in-flight guard, so the incoming response is the stable last
+  // received result for this one refresh cycle; updatedAt is never consulted.
+  return incoming;
+};
+
+export const mergeQuoteMap = <T extends RefreshableQuote>(current: Record<string, T>, incoming: Record<string, T>) =>
+  Object.entries(incoming).reduce<Record<string, T>>((next, [symbol, quote]) => ({ ...next, [symbol]: mergeQuoteRefresh(next[symbol], quote) }), { ...current });
 
 export const isValidQuoteTimestamp = (quoteDate: unknown, quoteTime: unknown) =>
-  typeof quoteDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) &&
-  typeof quoteTime === 'string' && /^\d{2}:\d{2}(?::\d{2})?$/.test(quoteTime);
+  validQuoteDate(quoteDate) && validQuoteTime(quoteTime);
 
 export const refreshUrl = (endpoint: string, path: string, manual = false, requestId = Date.now()) => {
   const url = new URL(`${endpoint.replace(/\/$/, '')}${path}`, 'https://refresh.invalid');

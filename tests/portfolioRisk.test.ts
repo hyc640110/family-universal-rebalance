@@ -9,7 +9,7 @@ const history = [{ date: '2026-07-10', totalAssets: 1000, netWorth: 900, investm
 const makeInput = (): PortfolioRiskInput => {
   const risk = deriveRiskMetrics({ assets: [{ symbol: '00631L', name: '台灣正2', assetClass: 'growth', marketValue: 600 }, { symbol: '00865B', name: '公債', assetClass: 'defensive', marketValue: 200 }], loans: [{ id: 'loan', name: '貸款', principal: 100, annualRate: 1, monthlyPayment: 25 }], cash: 200, totalAssets: 1000, growthRatio: 60, defensiveRatio: 40, growthTargetPct: 60, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true });
   const quality = deriveInvestmentPerformanceQuality(history);
-  return { totalAssets: 1000, investmentValue: 800, growthValue: 600, defensiveValue: 200, cash: 200, growthTargetPct: 60, defensiveTargetPct: 20, cashTargetPct: 20, targetTotalPct: 80, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true, risk, performance: { stats: deriveInvestmentPerformanceStats(history, 'investmentValue'), canCalculateMaxDrawdown: quality.canCalculateMaxDrawdown, snapshotCount: quality.snapshotCount }, quotes: [{ symbol: '00631L', marketValue: 600, assetClass: 'growth', quote: { quoteDate: '2026-07-14', source: 'Price Worker' } }, { symbol: '00865B', marketValue: 200, assetClass: 'defensive', quote: { quoteDate: '2026-07-10', source: 'Price Worker' } }], rawSymbols: ['00631L', '00865B'] };
+  return { totalAssets: 1000, investmentValue: 800, growthValue: 600, defensiveValue: 200, cash: 200, growthTargetPct: 60, defensiveTargetPct: 20, cashTargetPct: 20, targetTotalPct: 80, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true, risk, performance: { stats: deriveInvestmentPerformanceStats(history, 'investmentValue'), canCalculateMaxDrawdown: quality.canCalculateMaxDrawdown, snapshotCount: quality.snapshotCount }, quotes: [{ symbol: '00631L', marketValue: 600, assetClass: 'growth', quote: { quoteDate: '2026-07-14', quoteTime: '13:30:00', source: 'Price Worker' } }, { symbol: '00865B', marketValue: 200, assetClass: 'defensive', quote: { quoteDate: '2026-07-10', quoteTime: '13:30:00', source: 'Price Worker' } }], rawSymbols: ['00631L', '00865B'] };
 };
 
 test('integrates existing selectors deterministically without mutating input', () => {
@@ -27,7 +27,7 @@ test('integrates existing selectors deterministically without mutating input', (
 test('keeps quote-date quality, fallback and duplicate-symbol conditions explicit', () => {
   const input = makeInput();
   input.quotes[0].quote = { quoteDate: undefined, source: '成交均價備援' };
-  input.quotes[1].quote = { quoteDate: '2026-07-01', source: 'Price Worker', error: 'failed' };
+  input.quotes[1].quote = { quoteDate: '2026-07-01', quoteTime: '13:30:00', source: 'Price Worker', error: 'failed' };
   input.rawSymbols.push('00631l'); input.targetTotalPct = 110;
   const items = derivePortfolioRisk(input).quality.items.join('｜');
   assert.match(items, /缺報價/); assert.match(items, /日期不明/); assert.match(items, /過期報價/);

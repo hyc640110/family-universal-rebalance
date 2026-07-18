@@ -40,6 +40,7 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
       !finite(holding.price) || holding.price <= 0 ? `${holding.symbol} 價格不足或不是有效正數。` : '',
       holding.quoteStatus === 'stale' ? `${holding.symbol} 為過期報價。` : '',
       holding.quoteStatus === 'unknown' ? `${holding.symbol} 報價日期不明。` : '',
+      holding.quoteStatus === 'unavailable' ? `${holding.symbol} 交易日資料未涵蓋。` : '',
       backup(holding.quoteSource) ? `${holding.symbol} 使用備援價格。` : '',
       !finite(holding.marketValue) || holding.marketValue < 0 || !finite(holding.targetWeight) || holding.targetWeight < 0 ? `${holding.symbol} 持股或目標資料不足。` : ''
     ])

@@ -1,4 +1,4 @@
-import { mergeQuoteRefresh, quoteRefreshStatus } from './dataRefresh';
+import { mergeQuoteMap, quoteRefreshStatus } from './dataRefresh';
 
 export type QuoteRefreshRequestOptions = { endpoint: string; manual: boolean };
 
@@ -47,10 +47,7 @@ export const createQuoteRefreshController = <
         await options.requestQuote(symbol, options.findHolding(holdings, symbol), { endpoint: options.endpoint, manual }),
       ] as const));
       const summary = quoteRefreshStatus(entries.map(([symbol, quote]) => ({ symbol, error: quote.error })), options.formatRefreshTime());
-      options.setQuotes(current => Object.fromEntries(entries.map(([symbol, quote]) => [
-        symbol,
-        mergeQuoteRefresh(current[symbol], quote),
-      ])) as Record<Symbol, Quote>);
+      options.setQuotes(current => mergeQuoteMap(current, Object.fromEntries(entries) as Record<Symbol, Quote>) as Record<Symbol, Quote>);
       options.setHasUpdatedQuotes(summary.succeeded > 0);
       options.applyNameAutofill(entries, holdings);
       options.setStatus(summary.message);
