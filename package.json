@@ -47,6 +47,7 @@
     "test:v6-6-holding-quote-change-visibility": "tsx --test tests/v6HoldingQuoteChangeVisibility.test.ts",
     "test:v6-7-chart-readability-minimum-typography": "tsx --test tests/v6ChartReadabilityMinimumTypography.test.ts",
     "test:v6-8-rebalance-execution-eligibility": "tsx --test tests/rebalanceExecutionEligibility.test.ts",
+    "test:v6-9-quote-refresh-freshness-consistency": "tsx --test tests/quoteMath.test.ts tests/v6QuoteRefreshFreshnessConsistency.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
     "test:recommendations": "tsx --test tests/recommendations.test.ts",
     "test:v5-9-intelligence": "tsx --test tests/investmentIntelligence.test.ts tests/investmentIntelligenceAdapter.test.ts",

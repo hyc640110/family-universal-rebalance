@@ -51,7 +51,7 @@ test('quote refresh contracts distinguish successful, partial, and failed upstre
   assert.match(app, /缺少有效報價日期／時間/);
   assert.match(app, /hasPreservedQuote/);
   assert.match(app, /createQuoteRefreshController/);
-  assert.match(controller, /mergeQuoteRefresh\(current\[symbol\], quote\)/);
+  assert.match(controller, /mergeQuoteMap\(current, Object\.fromEntries\(entries\)/);
   assert.match(controller, /setHasUpdatedQuotes\(summary\.succeeded > 0\)/);
   assert.match(controller, /if \(inFlight\) return/);
   assert.match(app, /disabled=\{isRefreshingQuotes\}/);

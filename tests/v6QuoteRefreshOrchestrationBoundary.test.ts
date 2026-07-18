@@ -49,7 +49,7 @@ test('controller merges successful, partial, and failed responses deterministica
   assert.deepEqual(quotes['0050'], quote('0050', { source: '前次有效報價 / 更新失敗', price: 88, error: 'HTTP 429' }));
   assert.match(statuses.at(-1) || '', /部分更新成功（1\/2）/);
   const source = readFileSync(new URL('../src/lib/quoteRefreshController.ts', import.meta.url), 'utf8');
-  assert.match(source, /mergeQuoteRefresh\(current\[symbol\], quote\)/);
+  assert.match(source, /mergeQuoteMap\(current, Object\.fromEntries\(entries\)/);
   assert.doesNotMatch(source, /localStorage|firebase|window\.location|workers\.dev/);
 });
 

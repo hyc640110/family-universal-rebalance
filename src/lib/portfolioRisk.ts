@@ -1,7 +1,7 @@
 import { quoteDateStatus, type QuoteDateStatus } from './quoteMath';
 import type { SeriesStats } from './investmentPerformanceHistory';
 
-export type PortfolioRiskQuote = { symbol: string; marketValue: number; assetClass: 'growth' | 'defensive'; quote: { quoteDate?: string; source: string; error?: string } };
+export type PortfolioRiskQuote = { symbol: string; marketValue: number; assetClass: 'growth' | 'defensive'; quote: { quoteDate?: string; quoteTime?: string; source: string; error?: string } };
 export type PortfolioRiskInput = {
   totalAssets: number; investmentValue: number; growthValue: number; defensiveValue: number; cash: number;
   growthTargetPct: number; defensiveTargetPct: number; cashTargetPct: number; targetTotalPct: number;
@@ -19,13 +19,13 @@ const backup = (source: string) => /備援|成交均價|離線/.test(source);
 export function derivePortfolioRisk(input: PortfolioRiskInput) {
   const totalAssets = Math.max(0, n(input.totalAssets));
   const quotes = input.quotes.map(row => ({ ...row, marketValue: Math.max(0, n(row.marketValue)), quote: { ...row.quote } }));
-  const quoteStatuses = quotes.map(row => quoteDateStatus(row.quote.quoteDate));
+  const quoteStatuses = quotes.map(row => quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime));
   const duplicateSymbols = [...new Set(input.rawSymbols.map(symbol => String(symbol || '').trim().toUpperCase()).filter((symbol, index, rows) => symbol && rows.indexOf(symbol) !== index))];
   const count = (status: QuoteDateStatus) => quoteStatuses.filter(value => value === status).length;
   const quality = [
     input.quotes.length === 0 ? '缺少持股資料' : '',
     quotes.filter(row => Boolean(row.quote.error)).length ? '缺報價' : '',
-    count('stale') ? '過期報價' : '', count('unknown') ? '日期不明' : '', count('recent-trading-day') ? '最近有效交易日' : '',
+    count('stale') ? '過期報價' : '', count('unknown') ? '日期不明或時間不明' : '', count('unavailable') ? '交易日資料未涵蓋' : '', count('recent-trading-day') ? '最近有效交易日' : '',
     quotes.filter(row => backup(row.quote.source)).length ? '備援價格（估值可用，報價品質不足）' : '',
     duplicateSymbols.length ? `重複 symbol：${duplicateSymbols.join('、')}` : '',
     input.targetTotalPct > 100 ? '目標比例超過 100%' : '',
