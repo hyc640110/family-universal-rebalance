@@ -18,4 +18,6 @@ const inspect = (mode, directory, envFile, oppositeRoot) => {
 
 inspect('production', 'dist', '.env.production', 'family-universal-rebalance-preview');
 inspect('preview', 'dist-preview', '.env.preview-deploy', 'family-universal-rebalance');
+assert.doesNotMatch(scripts('dist'), /preview-historical-dividend-hist01|HIST01|歷史測試資產/, 'production bundle contains Preview historical fixture data');
+assert.match(scripts('dist-preview'), /preview-historical-dividend-hist01/, 'preview bundle is missing the historical fixture marker');
 process.stdout.write('Production and Preview build artifacts contain only their usable environment roots.\n');
