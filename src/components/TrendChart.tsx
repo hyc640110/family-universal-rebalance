@@ -4,6 +4,15 @@ export type TrendPoint = { date: string; value: number };
 type Props = { title: string; unit: string; data: TrendPoint[]; formatValue: (value: number) => string; className?: string };
 
 const tickLabel = (date: string) => date.slice(5).replace('-', '/');
+export const selectTrendTickIndexes = (data: TrendPoint[], mobile = false) => {
+  const count = data.length;
+  if (!count) return [];
+  const spanDays = Math.max(0, (Date.parse(`${data.at(-1)!.date}T00:00:00`) - Date.parse(`${data[0].date}T00:00:00`)) / 86_400_000);
+  const limit = mobile ? (count <= 7 ? 5 : 4) : count <= 7 ? count : spanDays <= 30 ? 7 : 6;
+  if (count <= limit) return data.map((_, index) => index);
+  return [...new Set(Array.from({ length: limit }, (_, index) => Math.round(index * (count - 1) / (limit - 1))))];
+};
+const longLabel = (date: string, spanDays: number) => spanDays >= 365 ? date.slice(0, 7).replace('-', '/') : tickLabel(date);
 const monotonePath = (points: Array<{ x: number; y: number }>) => {
   if (points.length < 2) return '';
   const slopes = points.slice(1).map((point, index) => (point.y - points[index].y) / (point.x - points[index].x));
@@ -23,9 +32,11 @@ export default function TrendChart({ title, unit, data, formatValue, className =
   const y = (value: number) => top + (max - value) / span * (height - top - bottom);
   const plotted = valid.map((point, index) => ({ x: x(index), y: y(point.value) }));
   const path = monotonePath(plotted);
-  const xTicks = [...new Set([0, Math.floor((valid.length - 1) / 2), valid.length - 1])];
+  const spanDays = Math.max(0, (Date.parse(`${valid.at(-1)!.date}T00:00:00`) - Date.parse(`${valid[0].date}T00:00:00`)) / 86_400_000);
+  const xTicks = selectTrendTickIndexes(valid);
+  const mobileTicks = new Set(selectTrendTickIndexes(valid, true));
   const yTicks = [0, .5, 1].map(ratio => max - span * ratio);
   const current = active === null ? valid.at(-1)! : valid[active];
   const summary = `${title}，期間 ${valid[0].date} 至 ${valid.at(-1)!.date}，由 ${formatValue(valid[0].value)} 變為 ${formatValue(valid.at(-1)!.value)}。`;
-  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={left-6} y={y(value)+4} textAnchor="end" className="trend-axis-label">{formatValue(value)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className="trend-axis-label">{tickLabel(valid[index].date)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
+  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={left-6} y={y(value)+4} textAnchor="end" className="trend-axis-label">{formatValue(value)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
 }
