@@ -32,7 +32,7 @@ export const deriveTrendDomain = (values: readonly number[], axisScale = 1): Tre
   return { min: min * scale, max: max * scale, ticks };
 };
 export const deriveSharedTrendDomain = (series: ReadonlyArray<ReadonlyArray<number>>, axisScale = 1) => deriveTrendDomain(series.flat(), axisScale);
-export const trendChartPlotMargins = (width: number) => width >= 720 ? { left: 80, right: 34, top: 16, bottom: 34 } : { left: 76, right: 28, top: 16, bottom: 34 };
+export const trendChartPlotMargins = (width: number) => width >= 720 ? { labelX: 6, left: 56, right: 34, top: 16, bottom: 34 } : { labelX: 6, left: 54, right: 28, top: 16, bottom: 34 };
 export const formatTrendAxisTick = (value: number, axisScale = 1) => String(Math.round(value / axisScale));
 const monotonePath = (points: Array<{ x: number; y: number }>) => {
   if (points.length < 2) return '';
@@ -61,7 +61,7 @@ export default function TrendChart({ title, unit, data, formatValue, axisScale =
   if (!valid.length) return <div className="analytics-empty"><p>尚無趨勢資料</p><span>{title}需要至少一筆有效快照。</span></div>;
   const axis = domain ?? deriveTrendDomain(valid.map(point => point.value), axisScale);
   const min = axis.min, max = axis.max, span = max - min || 1;
-  const { width, height } = canvasSize, { left, right, top, bottom } = trendChartPlotMargins(width);
+  const { width, height } = canvasSize, { labelX, left, right, top, bottom } = trendChartPlotMargins(width);
   const x = (index: number) => valid.length < 2 ? (left + width - right) / 2 : left + index / (valid.length - 1) * (width - left - right);
   const y = (value: number) => top + (max - value) / span * (height - top - bottom);
   const plotted = valid.map((point, index) => ({ x: x(index), y: y(point.value) }));
@@ -72,5 +72,5 @@ export default function TrendChart({ title, unit, data, formatValue, axisScale =
   const yTicks = axis.ticks;
   const current = active === null ? valid.at(-1)! : valid[active];
   const summary = `${title}，期間 ${valid[0].date} 至 ${valid.at(-1)!.date}，由 ${formatValue(valid[0].value)} 變為 ${formatValue(valid.at(-1)!.value)}。`;
-  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={left-8} y={y(value)+4} textAnchor="end" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
+  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={labelX} y={y(value)+4} textAnchor="start" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
 }

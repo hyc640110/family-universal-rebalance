@@ -28,9 +28,13 @@ test('axis labels retain only integer numeric values while current values and su
   assert.equal(formatTrendAxisTick(5), '5');
 });
 
-test('mobile plot margins keep 13px y-axis labels and endpoint dates inside the SVG viewBox', () => {
+test('mobile and desktop plot margins keep labels near the left edge with a safe plot gutter', () => {
   const mobile = trendChartPlotMargins(350);
-  assert.equal(mobile.left, 76); assert.ok(mobile.left - 8 > 0);
+  assert.equal(mobile.labelX, 6); assert.equal(mobile.left, 54);
+  assert.ok(mobile.labelX >= 4); assert.ok(mobile.left - mobile.labelX >= 48);
+  assert.ok(mobile.left - 15 >= 0, 'first centered X-axis date remains inside the viewBox');
   assert.ok(350 - mobile.right > mobile.left);
-  assert.equal(trendChartPlotMargins(900).left, 80);
+  const desktop = trendChartPlotMargins(900);
+  assert.equal(desktop.labelX, 6); assert.equal(desktop.left, 56);
+  assert.ok(desktop.left - desktop.labelX >= 48);
 });

@@ -21,7 +21,8 @@ test('V6.7 uses the shared money trend chart for net worth and investment histor
   assert.match(source, /ResizeObserver/);
   assert.match(source, /viewBox=\{`0 0 \$\{width\} \$\{height\}`\}/);
   assert.match(source, /trendChartPlotMargins/);
-  assert.match(source, /x=\{left-8\}/);
+  assert.match(source, /x=\{labelX\}/);
+  assert.match(source, /textAnchor="start"/);
   assert.match(source, /formatTrendAxisTick\(value, axisScale\)/);
   assert.doesNotMatch(source, /transform=/);
   assert.doesNotMatch(source, /const width = 320/);
