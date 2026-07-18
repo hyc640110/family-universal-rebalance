@@ -23,7 +23,7 @@ test('Preview runtime contract requires health, nonce, no-store, and the unchang
   const manual = fake.calls[2];
   assert.match(manual.url, /refresh=1&request=88/);
   assert.equal(manual.init.cache, 'no-store');
-  assert.equal(new Headers(manual.init.headers).get('cache-control'), 'no-cache');
+  assert.equal(new Headers(manual.init.headers).has('cache-control'), false);
 });
 
 test('runtime parity rejects a mismatched Production version without exposing response content', async () => {

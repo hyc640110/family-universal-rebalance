@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { fetchMarketSnapshot, mergeMarketSnapshot, type MarketSnapshot } from '../src/lib/marketData';
+import { fetchMarketSnapshot, marketRefreshRequestInit, mergeMarketSnapshot, type MarketSnapshot } from '../src/lib/marketData';
 import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshRequestInit, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
 
 const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [{ id: 'taiex', value: 23000, change: 10, changePct: .04, asOf: '2026-07-17T08:00:00+08:00', status: 'closed' }], ...patch });
@@ -70,7 +70,9 @@ test('manual market refresh uses an isolated no-cache request, reports unchanged
   try {
     const result = await fetchMarketSnapshot('https://market.example', { manual: true, requestId: 88 });
     assert.equal(request?.url, 'https://market.example/market-summary?refresh=1&request=88');
-    assert.equal(new Headers(init?.headers).get('cache-control'), 'no-cache');
+    assert.equal(init?.cache, 'no-store');
+    assert.equal(new Headers(init?.headers).has('cache-control'), false);
+    assert.equal(new Headers(marketRefreshRequestInit(true).headers).has('pragma'), false);
     const signature = marketContentSignature(result);
     assert.equal(marketRefreshOutcome(signature, result), 'unchanged');
     assert.match(marketRefreshMessage('unchanged', result.fetchedAt, value => value), /目前市場內容沒有變化/);
