@@ -29,3 +29,11 @@ test('V6.7 selects original-date ticks by density while preserving both ends', (
   assert.deepEqual(selectTrendTickIndexes(thirty).at(0), 0);
   assert.deepEqual(selectTrendTickIndexes(thirty).at(-1), 29);
 });
+
+test('V6.7 typography tokens raise readable helpers and badges without global text overrides', () => {
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  assert.match(css, /--font-badge:13px/); assert.match(css, /--font-helper:14px/); assert.match(css, /--font-eyebrow:12px/);
+  assert.match(css, /\.market-status[^\n]*font-size:var\(--font-badge\)/); assert.match(css, /\.holding-mobile-value \.holding-edit-button[^\n]*font-size:var\(--font-interactive-small\)/);
+  assert.match(css, /\.mobile-page-nav a\{font-size:12px/);
+  assert.doesNotMatch(css, /(^|\n)small\{|(^|\n)span\{|(^|\n)p\{/);
+});
