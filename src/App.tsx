@@ -51,6 +51,7 @@ import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocati
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
 import { deriveClecStrategyRule } from './lib/clecStrategyRules';
+import { deriveRebalanceExecutionEligibility } from './lib/rebalanceExecutionEligibility';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1510,6 +1511,7 @@ function App() {
     threshold: { drift: rb.threshold, minCashReserve: null, maxDebt: null, maxLeverageExposure: null },
     dataQualityFlags: rebalanceRecommendationView.blockingReasons
   })), [state.allocationPreset, state.rebalanceMode, state.holdings, m, rb.threshold, rebalanceRecommendationView.blockingReasons]);
+  const rebalanceExecutionEligibility = useMemo(() => deriveRebalanceExecutionEligibility({ clecRuleOutput: clecStrategyRuleView, recommendation: rebalanceRecommendationView }), [clecStrategyRuleView, rebalanceRecommendationView]);
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
@@ -2106,7 +2108,7 @@ function App() {
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={state.holdings} transactions={state.transactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
-        {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} rule={clecStrategyRuleView} />}
+        {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} rule={clecStrategyRuleView} eligibility={rebalanceExecutionEligibility} />}
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} rule={clecStrategyRuleView} />}
         {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} explanations={investmentActionExplanations} />}
       {currentPage === 'settings' && <SettingsPage>
