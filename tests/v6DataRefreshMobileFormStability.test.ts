@@ -73,7 +73,8 @@ test('manual market refresh uses an isolated no-cache request, reports unchanged
     assert.equal(new Headers(init?.headers).get('cache-control'), 'no-cache');
     const signature = marketContentSignature(result);
     assert.equal(marketRefreshOutcome(signature, result), 'unchanged');
-    assert.match(marketRefreshMessage('unchanged', result.fetchedAt, value => value), /資料內容未變/);
+    assert.match(marketRefreshMessage('unchanged', result.fetchedAt, value => value), /目前市場內容沒有變化/);
+    assert.match(marketRefreshMessage('unchanged', result.fetchedAt, value => value), /本次服務確認時間/);
     assert.equal(marketRefreshOutcome(signature, { ...result, fetchedAt: null, status: 'failed' }), 'failed');
   } finally { globalThis.fetch = originalFetch; }
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
