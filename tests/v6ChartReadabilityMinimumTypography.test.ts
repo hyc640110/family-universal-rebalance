@@ -15,7 +15,15 @@ test('V6.7 uses the shared money trend chart for net worth and investment histor
   const analytics = readFileSync(new URL('../src/pages/PerformanceAnalyticsPage.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   assert.match(netWorth, /<TrendChart title="淨資產" unit="單位：萬元"/);
+  assert.match(netWorth, /className="card net-worth-history-chart-card"/);
   assert.match(analytics, /<TrendChart title=\{title\.replace\('趨勢',''\)\} unit="單位：萬元"/);
+  const source = readFileSync(new URL('../src/components/TrendChart.tsx', import.meta.url), 'utf8');
+  assert.match(source, /ResizeObserver/);
+  assert.match(source, /viewBox=\{`0 0 \$\{width\} \$\{height\}`\}/);
+  assert.doesNotMatch(source, /const width = 320/);
+  assert.match(css, /\.net-worth-history-chart-card \.trend-chart\{width:100%;max-width:none\}/);
+  assert.match(css, /\.trend-chart-canvas\{width:100%;min-width:0;max-width:100%;height:210px/);
+  assert.match(css, /\.performance-chart \.trend-chart-canvas\{height:170px\}/);
   assert.match(css, /\.trend-axis-label\{[^}]*font-size:12px/);
   assert.match(css, /\.trend-axis-label\{font-size:13px/);
 });
