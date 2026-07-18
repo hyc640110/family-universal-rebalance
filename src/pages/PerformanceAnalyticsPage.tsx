@@ -4,6 +4,7 @@ import { calculatePnlContribution, calculatePortfolioConcentration, calculatePor
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats, filterInvestmentPerformanceRange, type InvestmentPerformanceRange, type PeriodChange, type SeriesStats } from '../lib/investmentPerformanceHistory';
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
 import DailyAssetChangeCalendar from '../components/DailyAssetChangeCalendar';
+import TrendChart from '../components/TrendChart';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
@@ -110,10 +111,7 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
 }
 
 function HistorySeries({ title, description, rows, stats, field }: { title: string; description: string; rows: NetWorthSnapshot[]; stats: SeriesStats; field: 'investmentValue' | 'netWorth' }) {
-  const values = rows.map(row => row[field]);
-  const min = Math.min(...values, 0); const max = Math.max(...values, 1);
-  const points = rows.map((row, index) => `${index / (rows.length - 1) * 100},${100 - (row[field] - min) / (max - min || 1) * 100}`).join(' ');
-  return <section className="performance-chart"><div><h3>{title}</h3><p>{description}</p></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={title}><polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg><div className="performance-chart-metrics"><Metric label="歷史最高值" value={money(stats.highest)} /><Metric label="距離高點" value={money(stats.distanceFromHigh)} className={tone(stats.distanceFromHigh)} /><Metric label="距高點幅度" value={percent(stats.distanceFromHighRate)} className={tone(stats.distanceFromHighRate)} /><Metric label="最大回撤" value={percent(stats.maxDrawdown)} className={tone(stats.maxDrawdown)} /></div></section>;
+  return <section className="performance-chart"><div><h3>{title}</h3><p>{description}</p></div><TrendChart title={title.replace('趨勢','')} unit="單位：萬元" data={rows.map(row=>({date:row.date,value:row[field]}))} formatValue={value=>money(value)}/><div className="performance-chart-metrics"><Metric label="歷史最高值" value={money(stats.highest)} /><Metric label="距離高點" value={money(stats.distanceFromHigh)} className={tone(stats.distanceFromHigh)} /><Metric label="距高點幅度" value={percent(stats.distanceFromHighRate)} className={tone(stats.distanceFromHighRate)} /><Metric label="最大回撤" value={percent(stats.maxDrawdown)} className={tone(stats.maxDrawdown)} /></div></section>;
 }
 
 function PeriodSummary({ title, rows }: { title: string; rows: PeriodChange[] }) { const latest = rows[0]; return <section><h3>{title}</h3>{latest ? <><strong className={tone(latest.change)}>{money(latest.change)}</strong><p>{latest.key}｜{latest.startDate} → {latest.endDate}</p><small>期初 {money(latest.startValue)}｜期末 {money(latest.endValue)}</small></> : <p className="note">資料不足（期間內至少需要兩筆有效快照）。</p>}</section>; }
