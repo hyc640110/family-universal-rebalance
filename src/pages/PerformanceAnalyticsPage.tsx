@@ -4,7 +4,7 @@ import { calculatePnlContribution, calculatePortfolioConcentration, calculatePor
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats, filterInvestmentPerformanceRange, type InvestmentPerformanceRange, type PeriodChange, type SeriesStats } from '../lib/investmentPerformanceHistory';
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
 import DailyAssetChangeCalendar from '../components/DailyAssetChangeCalendar';
-import TrendChart from '../components/TrendChart';
+import TrendChart, { deriveSharedTrendDomain, type TrendDomain } from '../components/TrendChart';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
@@ -30,6 +30,7 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
   const netWorthStats = useMemo(() => deriveInvestmentPerformanceStats(history, 'netWorth'), [history]);
   const quality = useMemo(() => deriveInvestmentPerformanceQuality(history), [history]);
   const historyRows = useMemo(() => filterInvestmentPerformanceRange(history, historyRange), [history, historyRange]);
+  const sharedHistoryDomain = useMemo(() => deriveSharedTrendDomain([historyRows.map(row => row.investmentValue), historyRows.map(row => row.netWorth)], 10000), [historyRows]);
   const sortedAssets = useMemo(() => {
     const rows = [...performance.assets];
     if (sort === 'return-rate') return rows.sort((a, b) => (b.returnRate ?? -Infinity) - (a.returnRate ?? -Infinity));
@@ -63,8 +64,8 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
         <div className="performance-heading"><div><p className="eyebrow">歷史快照</p><h2>資產變化與回撤</h2></div><span>依每日快照，不補日期、不插值；這是資產變化，不是已排除現金流的投資報酬。</span></div>
         <div className="performance-sort" aria-label="歷史期間">{([['30d', '30 天'], ['90d', '90 天'], ['1y', '1 年'], ['all', '全部']] as const).map(([value, label]) => <button type="button" key={value} className={historyRange === value ? 'active' : ''} onClick={() => setHistoryRange(value)}>{label}</button>)}</div>
         {historyRows.length < 2 ? <div className="analytics-empty"><p>歷史資料不足</p><span>至少需要兩筆有效快照才能呈現趨勢與資產變化。</span></div> : <div className="performance-history-grid">
-          <HistorySeries title="投資資產趨勢" description="快照中的投資市值；不等同期間投資報酬。" rows={historyRows} stats={investmentStats} field="investmentValue" />
-          <HistorySeries title="淨資產趨勢" description="投資、現金與負債共同影響的淨資產變化。" rows={historyRows} stats={netWorthStats} field="netWorth" />
+          <HistorySeries title="投資資產趨勢" description="快照中的投資市值；不等同期間投資報酬。" rows={historyRows} stats={investmentStats} field="investmentValue" domain={sharedHistoryDomain} />
+          <HistorySeries title="淨資產趨勢" description="投資、現金與負債共同影響的淨資產變化。" rows={historyRows} stats={netWorthStats} field="netWorth" domain={sharedHistoryDomain} />
         </div>}
       </article>
 
@@ -110,8 +111,8 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
   </section>;
 }
 
-function HistorySeries({ title, description, rows, stats, field }: { title: string; description: string; rows: NetWorthSnapshot[]; stats: SeriesStats; field: 'investmentValue' | 'netWorth' }) {
-  return <section className="performance-chart"><div><h3>{title}</h3><p>{description}</p></div><TrendChart title={title.replace('趨勢','')} unit="單位：萬元" data={rows.map(row=>({date:row.date,value:row[field]}))} formatValue={value=>money(value)}/><div className="performance-chart-metrics"><Metric label="歷史最高值" value={money(stats.highest)} /><Metric label="距離高點" value={money(stats.distanceFromHigh)} className={tone(stats.distanceFromHigh)} /><Metric label="距高點幅度" value={percent(stats.distanceFromHighRate)} className={tone(stats.distanceFromHighRate)} /><Metric label="最大回撤" value={percent(stats.maxDrawdown)} className={tone(stats.maxDrawdown)} /></div></section>;
+function HistorySeries({ title, description, rows, stats, field, domain }: { title: string; description: string; rows: NetWorthSnapshot[]; stats: SeriesStats; field: 'investmentValue' | 'netWorth'; domain: TrendDomain }) {
+  return <section className="performance-chart"><div><h3>{title}</h3><p>{description}</p></div><TrendChart title={title.replace('趨勢','')} unit="單位：萬元" data={rows.map(row=>({date:row.date,value:row[field]}))} formatValue={value=>money(value)} axisScale={10000} domain={domain}/><div className="performance-chart-metrics"><Metric label="歷史最高值" value={money(stats.highest)} /><Metric label="距離高點" value={money(stats.distanceFromHigh)} className={tone(stats.distanceFromHigh)} /><Metric label="距高點幅度" value={percent(stats.distanceFromHighRate)} className={tone(stats.distanceFromHighRate)} /><Metric label="最大回撤" value={percent(stats.maxDrawdown)} className={tone(stats.maxDrawdown)} /></div></section>;
 }
 
 function PeriodSummary({ title, rows }: { title: string; rows: PeriodChange[] }) { const latest = rows[0]; return <section><h3>{title}</h3>{latest ? <><strong className={tone(latest.change)}>{money(latest.change)}</strong><p>{latest.key}｜{latest.startDate} → {latest.endDate}</p><small>期初 {money(latest.startValue)}｜期末 {money(latest.endValue)}</small></> : <p className="note">資料不足（期間內至少需要兩筆有效快照）。</p>}</section>; }
