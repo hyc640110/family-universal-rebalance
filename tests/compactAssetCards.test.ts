@@ -10,11 +10,9 @@ test('formats the existing market-value / total-assets holding ratio without inv
   assert.equal(formatCompactHoldingWeight(Number.NaN, 1_000_000), '—');
 });
 
-test('presents current quote movement with Taiwan-market colors, signs and a neutral stale state', () => {
-  assert.deepEqual(formatCompactQuoteMovement(1.25, true), { text: '↑ +1.25%', tone: 'up' });
-  assert.deepEqual(formatCompactQuoteMovement(-0.75, true), { text: '↓ -0.75%', tone: 'down' });
-  assert.deepEqual(formatCompactQuoteMovement(0, true), { text: '— 0.00%', tone: 'hold' });
-  assert.deepEqual(formatCompactQuoteMovement(1.25, false), { text: '— 非今日報價', tone: 'hold' });
-  assert.deepEqual(formatCompactQuoteMovement(1.25, false, '最近交易日'), { text: '— 最近交易日', tone: 'hold' });
-  assert.deepEqual(formatCompactQuoteMovement(1.25, false, '日期不明'), { text: '— 日期不明', tone: 'hold' });
+test('presents recent-trading-day quote movement from existing quote fields without treating closed markets as unavailable', () => {
+  assert.deepEqual(formatCompactQuoteMovement(0.25, 0.78, 32), { text: '+0.25（+0.78%）', tone: 'up', ariaLabel: '最近交易日上漲 0.25 元，漲幅 0.78%' });
+  assert.deepEqual(formatCompactQuoteMovement(-0.15, -0.3, 50), { text: '-0.15（-0.30%）', tone: 'down', ariaLabel: '最近交易日下跌 0.15 元，跌幅 0.30%' });
+  assert.deepEqual(formatCompactQuoteMovement(0, 0, 100.15), { text: '0.00（0.00%）', tone: 'hold', ariaLabel: '最近交易日平盤' });
+  assert.deepEqual(formatCompactQuoteMovement(0.25, 0.78, 0), { text: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' });
 });

@@ -98,7 +98,7 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-mobile-core .holding-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .holding-mobile-quote,.holding-mobile-shares{margin:4px 0 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .holding-mobile-quote{display:flex;align-items:baseline;gap:5px;color:#cfe4ff;font-size:12px;line-height:1.35}
-.holding-mobile-quote strong{font-size:12px;white-space:nowrap}
+.holding-mobile-quote .holding-quote-change{font-size:12px;white-space:nowrap}
 .holding-mobile-shares{color:#8da3bd;font-size:12px;line-height:1.35}
 .holding-mobile-value{display:grid;justify-items:end;gap:3px;min-width:0;text-align:right}
 .holding-mobile-value>span{color:#8da3bd;font-size:10px}
@@ -296,14 +296,14 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holdings{grid-template-columns:1fr;gap:0}
   .holding-compact{min-height:64px;padding:0 14px;background:transparent;border-width:0 0 1px;border-radius:0}
   .holding-compact:first-child{border-top:1px solid #1d3d66}
-  .holding-mobile-summary{grid-template-columns:44px 64px minmax(72px,1.35fr) minmax(68px,.55fr) minmax(66px,.55fr) minmax(96px,.85fr) minmax(138px,1.1fr);gap:8px;min-height:64px}
+  .holding-mobile-summary{grid-template-columns:44px 64px minmax(72px,1.2fr) minmax(84px,.65fr) minmax(126px,1.15fr) minmax(66px,.55fr) minmax(96px,.85fr);gap:8px;min-height:64px}
   .holding-mobile-weight{width:44px;height:44px}
   .holding-mobile-weight strong{font-size:13px}
   .holding-mobile-core,.holding-mobile-core .holding-title,.holding-mobile-quote{display:contents}
   .holding-mobile-core .holding-symbol{grid-column:2;font-size:18px;white-space:nowrap}
   .holding-mobile-core .holding-name{grid-column:3;font-size:15px}
   .holding-mobile-quote>span{grid-column:4;color:#cfe4ff;font-size:15px;white-space:nowrap}
-  .holding-mobile-quote>strong{grid-column:5;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .holding-mobile-quote>.holding-quote-change{grid-column:5;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .holding-mobile-price-label,.holding-mobile-shares-label{display:none}
   .holding-mobile-shares{grid-column:6;margin:0;color:#8da3bd;font-size:15px;overflow:visible;text-overflow:clip;white-space:nowrap}
   .holding-mobile-value{grid-column:7;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%}
@@ -352,7 +352,8 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-mobile-core .holding-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
   .holding-mobile-quote,.holding-mobile-shares{margin:4px 0 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .holding-mobile-quote{display:flex;align-items:baseline;gap:5px;color:#cfe4ff;font-size:13px;line-height:1.35}
-  .holding-mobile-quote strong{font-size:13px;white-space:nowrap}
+  .holding-mobile-quote{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:2px}
+  .holding-mobile-quote .holding-quote-change{font-size:13px;white-space:nowrap}
   .holding-mobile-shares{color:#8da3bd;font-size:13px;line-height:1.35}
   .holding-mobile-value{display:grid;justify-items:end;gap:3px;min-width:0;text-align:right}
   .holding-mobile-value>span{color:#8da3bd;font-size:10px}
@@ -414,7 +415,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-mobile-summary{grid-template-columns:44px minmax(0,1fr) auto;gap:7px}
   .holding-mobile-weight{width:44px;height:44px}
   .holding-mobile-quote{font-size:13px;gap:4px}
-  .holding-mobile-quote strong{font-size:13px}
+  .holding-mobile-quote .holding-quote-change{font-size:13px}
   .holding-mobile-value>strong{max-width:78px;font-size:17px}
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
 }
