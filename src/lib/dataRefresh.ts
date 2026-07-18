@@ -69,9 +69,11 @@ export const marketRefreshOutcome = (previousSignature: string | null, snapshot:
 };
 
 export const marketRefreshMessage = (outcome: MarketRefreshOutcome, fetchedAt: string | null, formatTime: (value: string) => string, detail = '', unavailable = '') => {
-  if (outcome === 'failed') return '市場資料重新取得失敗；保留目前可用資料並顯示服務狀態。';
+  if (outcome === 'failed') return '本次重新取得市場資料失敗；已保留目前可用資料並顯示服務狀態。';
   const at = fetchedAt ? formatTime(fetchedAt) : '時間不明';
   const sourceNote = unavailable ? `。${unavailable}` : '';
-  if (outcome === 'partial') return `本次取得完成：${at}。部分區塊沿用前次有效資料${detail ? `：${detail}` : ''}${sourceNote}`;
-  return outcome === 'unchanged' ? `已重新取得，受管理資料內容未變：${at}${detail ? `（${detail}）` : ''}${sourceNote}` : `已重新取得：${at}${detail ? `（${detail}）` : ''}${sourceNote}`;
+  if (outcome === 'partial') return `已重新取得市場資料；部分市場資料更新失敗，已保留先前可用資料。本次服務確認時間：${at}${detail ? `（${detail}）` : ''}${sourceNote}`;
+  return outcome === 'unchanged'
+    ? `已重新取得市場資料；目前市場內容沒有變化。本次服務確認時間：${at}${detail ? `（${detail}）` : ''}${sourceNote}`
+    : `已重新取得市場資料；資料內容已更新。本次服務確認時間：${at}${detail ? `（${detail}）` : ''}${sourceNote}`;
 };
