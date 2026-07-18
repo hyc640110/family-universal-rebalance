@@ -53,7 +53,7 @@ export async function assertMarketWorkerRuntimeContract({ environment, fetchFn =
   assertSnapshotContract(normal, config.version, 'normal');
 
   const manualUrl = `${base}/market-summary?refresh=1&request=${requestNonce}`;
-  const manualResponse = await safeFetch(fetchFn, manualUrl, { cache: 'no-store', headers: { accept: 'application/json', 'cache-control': 'no-cache' } }, 'manual refresh');
+  const manualResponse = await safeFetch(fetchFn, manualUrl, { cache: 'no-store', headers: { accept: 'application/json' } }, 'manual refresh');
   assert.match(manualResponse.headers.get('cache-control') || '', /(^|,)\s*no-store\s*(,|$)/i, 'Market Worker manual refresh cache-control must be no-store');
   const manual = await readJson(manualResponse, 'manual refresh');
   assertSnapshotContract(manual, config.version, 'manual refresh');
