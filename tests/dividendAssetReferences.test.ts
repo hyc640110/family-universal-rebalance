@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { dividendAssetReferenceOptions } from '../src/lib/dividendAssetReferences';
+import { DividendAssetReferenceSelect } from '../src/pages/DividendCenterPage';
 
 const transaction = (assetSymbol: string, assetName?: string, patch: Record<string, unknown> = {}) => ({
   id: `transaction-${assetSymbol}-${assetName || 'none'}`,
@@ -56,13 +59,32 @@ test('is deterministic across input order and preserves unknown symbols without 
   assert.equal(first.find(option => option.symbol === 'X-UNKNOWN')?.name, '外部快照');
 });
 
-test('Dividend Center consumes the adapter so old transaction-only references remain selectable without touching holdings', () => {
+test('Dividend Center renders exact active, archived, historical, and unspecified option labels from fixture inputs', () => {
+  const holdings = [{ symbol: '00631L', name: '元大台灣50正2' }, { symbol: 'TEST-ARCHIVED', name: '封存測試資產', isArchived: true }];
+  const transactions = [transaction('00895', '富邦未來車', { id: 'preview-historical-dividend-00895' })];
+  const before = JSON.stringify({ holdings, transactions });
+  const options = dividendAssetReferenceOptions(holdings, transactions);
+  const markup = renderToStaticMarkup(createElement(DividendAssetReferenceSelect, { value: '', options, onChange: () => undefined }));
+  assert.match(markup, /<option value=""(?: selected="")?>未指定資產<\/option>/);
+  assert.match(markup, /<option value="00631L">00631L 元大台灣50正2<\/option>/);
+  assert.doesNotMatch(markup, /00631L 元大台灣50正2（歷史紀錄）/);
+  assert.match(markup, /<option value="TEST-ARCHIVED">TEST-ARCHIVED 封存測試資產（已清倉）<\/option>/);
+  assert.match(markup, /<option value="00895">00895 富邦未來車（歷史紀錄）<\/option>/);
+  assert.equal(holdings.some(holding => holding.symbol === '00895'), false);
+  assert.equal(holdings.length, 2);
+  assert.equal(JSON.stringify({ holdings, transactions }), before);
+});
+
+test('Dividend Center consumes the adapter and Preview injects the historical fixture into transactions only', () => {
   const page = readFileSync(new URL('../src/pages/DividendCenterPage.tsx', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(page, /dividendAssetReferenceOptions\(holdings, transactions\)/);
   assert.match(page, /assetOptions\.find\(item => item\.symbol === symbol\)/);
-  assert.match(page, /<option value="">未指定資產<\/option>/);
-  assert.match(page, /assetOptions\.map\(option => <option key=\{option\.symbol\} value=\{option\.symbol\}>\{option\.label\}<\/option>\)/);
+  assert.match(page, /<DividendAssetReferenceSelect value=\{assetSymbol\} options=\{assetOptions\} onChange=\{selectAsset\} \/>/);
+  assert.match(app, /PREVIEW_HISTORICAL_DIVIDEND_FIXTURE/);
+  assert.match(app, /previewFixtureMode !== 'historical-dividend'/);
+  assert.match(app, /transactions: \[\.\.\.current\.transactions, fixture\]/);
+  assert.doesNotMatch(app.match(/PREVIEW_HISTORICAL_DIVIDEND_FIXTURE[\s\S]{0,900}/)?.[0] || '', /holdings:/);
   assert.match(app, /isArchived: true, targetWeight: 0/);
   assert.match(app, /return \{ \.\.\.s, holdings: safeHoldings\(s\.holdings\)\.map/);
 });

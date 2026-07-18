@@ -88,6 +88,7 @@ type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocat
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 const marketGroupLabel = (group: string) => ({ taiwan: '台股主要指標', global: '全球主要指數', treasury: '美國公債殖利率', event: '重要經濟事件' })[group] || group;
 const PREVIEW_ARCHIVED_FIXTURE_SYMBOL = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? (import.meta.env.VITE_PREVIEW_ARCHIVED_FIXTURE || '') : '';
+const PREVIEW_HISTORICAL_DIVIDEND_FIXTURE = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? { id: 'preview-historical-dividend-00895', symbol: '00895', name: '富邦未來車', occurredAt: '2026-07-14T00:00:00.000Z' } : null;
 
 const REMOVED_SYMBOLS = new Set<SymbolCode>();
 const DEFAULT_HOLDINGS: Holding[] = [
@@ -1288,6 +1289,16 @@ function App() {
       if (previewFixtureMode === 'clear') return { ...current, holdings: holdings.filter(holding => !(holding.isPreviewFixture && normalizeSymbol(holding.symbol) === PREVIEW_ARCHIVED_FIXTURE_SYMBOL)) };
       if (holdings.some(holding => holding.isPreviewFixture && normalizeSymbol(holding.symbol) === PREVIEW_ARCHIVED_FIXTURE_SYMBOL)) return current;
       return { ...current, holdings: [...holdings, { symbol: PREVIEW_ARCHIVED_FIXTURE_SYMBOL, name: 'Preview 測試資產', shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth', isArchived: true, isPreviewFixture: true }] };
+    });
+  }, [previewFixtureMode]);
+  useEffect(() => {
+    if (!PREVIEW_HISTORICAL_DIVIDEND_FIXTURE || previewFixtureMode !== 'historical-dividend') return;
+    setState(current => {
+      if (current.transactions.some(transaction => transaction.id === PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.id)) return current;
+      const account = current.accounts.find(item => item.isActive);
+      if (!account) return current;
+      const fixture: FinancialTransaction = { id: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.id, accountId: account.id, type: 'income', status: 'posted', source: 'manual', amount: 895, currency: account.currency, categoryId: 'income-dividend', description: '', merchant: '', note: 'Preview historical dividend fixture', occurredAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, fingerprint: '', excluded: false, createdAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, updatedAt: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.occurredAt, assetSymbol: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.symbol, assetName: PREVIEW_HISTORICAL_DIVIDEND_FIXTURE.name };
+      return { ...current, transactions: [...current.transactions, fixture] };
     });
   }, [previewFixtureMode]);
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');

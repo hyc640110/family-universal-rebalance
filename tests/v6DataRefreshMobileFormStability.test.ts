@@ -22,7 +22,7 @@ test('archived liquidated assets remain selectable for dividends without partici
   assert.match(app, /filter\(h => !h\.isArchived\)/);
   assert.match(app, /isArchived: true, targetWeight: 0/);
   assert.match(app, /仍有持股，請先將總股數調整為 0 後才能封存/);
-  assert.match(dividend, /assetOptions\.map/);
+  assert.match(dividend, /DividendAssetReferenceSelect value=\{assetSymbol\} options=\{assetOptions\}/);
   assert.match(dividend, /dividendAssetReferenceOptions\(holdings, transactions\)/);
   assert.match(references, /status === 'archived' \? '（已清倉）'/);
   assert.match(app, /VITE_PREVIEW_ARCHIVED_FIXTURE/);
