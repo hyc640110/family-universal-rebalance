@@ -334,8 +334,6 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   h2{font-size:1rem;margin-bottom:10px}
   h3{font-size:1rem}
   button,.file{min-height:42px;padding:9px 12px;font-size:.9rem!important}
-.mobile-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px auto 10px;max-width:720px;width:100%}
-.settings-mode-switch button{min-height:76px;text-align:left;background:#0b2541;border:1px solid #315b8d;color:#cfe4ff}.settings-mode-switch button b,.settings-mode-switch button small{display:block}.settings-mode-switch button b{font-size:14px}.settings-mode-switch button small{margin-top:5px;color:#9fb3c8;font-weight:700;line-height:1.35}.settings-mode-switch button.active{background:#2563eb;border-color:#93c5fd;color:#fff;box-shadow:0 0 0 2px #60a5fa55}.settings-mode-switch button.active small{color:#dbeafe}
   .collapsible-card{padding:0;overflow:hidden}
   .section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#102033;color:#eaf3ff;border-radius:12px;padding:13px 14px;text-align:left}
   .section-toggle span{font-size:1rem;font-weight:900;word-break:keep-all!important}
