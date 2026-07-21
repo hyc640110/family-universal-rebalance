@@ -50,6 +50,9 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .hold{color:#9fb3c8}
 .card{margin:16px 0}
 .collapsible-card{padding:0;overflow:hidden}
+.section-toggle-row{display:flex;align-items:stretch;gap:8px;background:#102033;border-radius:12px;padding:0 8px 0 0}
+.section-toggle-row .section-toggle{min-width:0;flex:1}
+.section-card-action{display:flex;align-items:center;flex:0 0 auto}
 .section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#102033;color:#eaf3ff;border-radius:12px;padding:13px 14px;text-align:left}
 .section-toggle-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .section-toggle-title,.section-toggle-title>span{font-size:1rem;font-weight:900;overflow-wrap:anywhere}
@@ -57,6 +60,11 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .section-toggle-status .section-status{display:inline-flex;align-items:center;min-height:24px;padding:3px 7px;border:1px solid currentColor;border-radius:999px;font-size:12px;font-weight:900;line-height:1.2}
 .section-summary{margin:0;padding:0 14px 13px;color:#9fb3c8;line-height:1.45;overflow-wrap:anywhere}
 .section-content{padding:0 14px 14px}
+.assets-quote-refresh{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 10px;white-space:nowrap;background:#2563eb;color:#fff;border-color:#60a5fa;box-shadow:none}
+.assets-quote-refresh:disabled{opacity:.7;cursor:wait}
+.assets-pull-refresh-surface{touch-action:pan-y}
+.asset-quote-provenance{margin:0 0 12px;padding:10px 12px;border:1px solid #1d3d66;border-radius:10px;background:#09182a;color:#cfe4ff}
+.asset-quote-provenance p{margin:0;color:#dbeafe;font-size:13px;line-height:1.45}.asset-quote-provenance ul{display:grid;gap:6px;margin:8px 0 0;padding:0;list-style:none}.asset-quote-provenance li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;min-width:0;color:#9fb3c8;font-size:12px;line-height:1.4}.asset-quote-provenance li b{color:#eaf3ff}.asset-quote-provenance li span{overflow-wrap:anywhere}
 .holdings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .holding-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0;line-height:1.25;min-width:0}
 .holding-symbol{color:#fff;font-size:22px;font-weight:950;letter-spacing:.01em}
