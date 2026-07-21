@@ -48,6 +48,7 @@
     "test:v6-7-chart-readability-minimum-typography": "tsx --test tests/v6ChartReadabilityMinimumTypography.test.ts",
     "test:trend-chart-shared-axis": "tsx --test tests/trendChartSharedAxis.test.ts",
     "test:v6-13-typography-cascade-consistency": "tsx --test tests/v6TypographyCascadeConsistency.test.ts",
+    "test:v6-14-quote-consistency-asset-refresh": "tsx --test tests/v6QuoteConsistencyAssetRefresh.test.ts",
     "test:v6-8-rebalance-execution-eligibility": "tsx --test tests/rebalanceExecutionEligibility.test.ts",
     "test:v6-9-quote-refresh-freshness-consistency": "tsx --test tests/quoteMath.test.ts tests/v6QuoteRefreshFreshnessConsistency.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",

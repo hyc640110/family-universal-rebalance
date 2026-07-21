@@ -30,6 +30,8 @@ import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, 
 import { isMarketSectionEnabled, visibleMarketSnapshot } from './lib/marketSections';
 import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteMap, quoteRefreshErrorLabel, quoteRefreshRequestInit, refreshUrl } from './lib/dataRefresh';
 import { createQuoteRefreshController, type QuoteRefreshRequestOptions } from './lib/quoteRefreshController';
+import { describeQuotePresentation } from './lib/quotePresentation';
+import { createAssetsPullToRefresh } from './lib/assetsPullToRefresh';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -962,12 +964,15 @@ function SectionCard({ id, title, children, action, style, className = '', isMob
   if (!collapsible) return <Card id={id} title={title} action={action} style={style} className={className}>{children}</Card>;
   const contentId = id ? `${id}-content` : `section-${title}-content`;
   return <section id={id} className={`card collapsible-card ${open ? 'open' : 'closed'} ${className}`.trim()} style={style}>
-    <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
-      <span className="section-toggle-title">{title}{status && <span className="section-toggle-status">{status}</span>}</span>
-      <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
-    </button>
+    <div className="section-toggle-row">
+      <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
+        <span className="section-toggle-title">{title}{status && <span className="section-toggle-status">{status}</span>}</span>
+        <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
+      </button>
+      {action && <div className="section-card-action">{action}</div>}
+    </div>
     {!open && summary && <p className="section-summary">{summary}</p>}
-    {open && <div id={contentId} className="section-content">{action && <div className="section-action">{action}</div>}{children}</div>}
+    {open && <div id={contentId} className="section-content">{children}</div>}
   </section>;
 }
 function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: string; items: OrderSuggestion[]; actionLabel: string; emptyText: string }) {
@@ -1368,6 +1373,8 @@ function App() {
     });
   }
   const refreshQuotes = (manual = false) => quoteRefreshControllerRef.current?.refresh(manual);
+  const assetsPullRefreshRef = useRef<ReturnType<typeof createAssetsPullToRefresh> | null>(null);
+  if (!assetsPullRefreshRef.current) assetsPullRefreshRef.current = createAssetsPullToRefresh({ threshold: 72, onRefresh: () => { void refreshQuotes(true); } });
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
@@ -1472,6 +1479,7 @@ function App() {
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const rebalanceDeviationText = rb.deviationText;
   const quoteSummaryText = quoteDisplayStatus(m.rows);
+  const quotePresentation = useMemo(() => m.rows.map(row => ({ symbol: row.symbol, ...describeQuotePresentation(row.quote) })), [m.rows]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const riskInput = useMemo(() => ({
@@ -2017,13 +2025,16 @@ function App() {
           </div>
           {assetMessage && <p className={assetMessage.includes('請輸入') ? 'warning-message' : 'note'}>{assetMessage}</p>}
         </Card>
-        <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`}>
+        <div className="assets-pull-refresh-surface" onTouchStart={event => assetsPullRefreshRef.current?.start({ pageTop: window.scrollY <= 0, clientY: event.touches[0]?.clientY ?? 0, isRefreshing: isRefreshingQuotes })} onTouchMove={event => assetsPullRefreshRef.current?.move(event.touches[0]?.clientY ?? 0)} onTouchEnd={() => assetsPullRefreshRef.current?.end(isRefreshingQuotes)} onTouchCancel={() => assetsPullRefreshRef.current?.cancel()}>
+        <SectionCard className="page-card for-assets" title="持股資產管理" isMobile={isMobile} collapsible open={sectionOpen('holdings')} onToggle={() => toggleSection('holdings')} summary={`${m.rows.length} 檔持股｜點選編輯管理資料`} action={<button type="button" className="assets-quote-refresh" onClick={() => { void refreshQuotes(true); }} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>}>
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           {(quoteSummaryText === '部分標的非今日報價' || quoteSummaryText === '部分標的報價日期不明') && <p className="note holding-stale-notice">{quoteSummaryText}；今日漲跌僅供參考。</p>}
+          <section className="asset-quote-provenance" aria-label="持股報價來源與新鮮度"><p><strong>更新狀態：</strong>{quoteStatus}</p><ul>{quotePresentation.map(quote => <li key={quote.symbol}><b>{quote.symbol}</b><span>{quote.statusLabel}</span><span>市場時間：{quote.marketTimestamp || '—'}</span><span>來源：{quote.source}</span><span>系統取得：{quote.receiptTimestamp || '—'}</span></li>)}</ul></section>
           <div className="holdings">
             {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
         </SectionCard>
+        </div>
         <SectionCard className="page-card for-assets" id="accounts-section" title="帳戶管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`可用現金 ${money(m.cash)}｜${state.accounts.filter(account => account.isActive).length} 個啟用帳戶`}>
           {accountWarning && <p className="warning-message">{accountWarning}</p>}
           <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
