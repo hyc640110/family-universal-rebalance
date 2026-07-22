@@ -14,12 +14,12 @@ import { createSyncPayloadSnapshot } from '../src/lib/syncState';
 
 const profile = (overrides: Partial<CashFlowProfile> = {}): CashFlowProfile => ({
   monthlyIncome: null, fixedExpenses: [{ id: 'utilities', name: '水電', amount: 500, category: 'utilities', enabled: true }],
-  variableExpenseBudget: 200, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, ...overrides
+  variableExpenseBudget: 200, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, externalContribution: 0, plannedWithdrawal: 0, ...overrides
 });
 const normalized = (value: unknown) => normalizeCashFlowProfile(value);
 const source = (cashFlowProfile: CashFlowProfile, loans = [{ id: 'loan-1', monthlyPayment: 3_000 }]) => ({
   accounts: [{ id: 'cash', name: '現金', type: 'cash' as const, balanceMode: 'manual' as const, manualBalance: 100_000, currency: 'TWD', institutionName: '', note: '', isActive: true, sortOrder: 0, createdAt: '', updatedAt: '' }],
-  legacyCash: [], loans, cashFlowProfile, configuredBudget: 1_000, externalContribution: 0, plannedWithdrawal: 0
+  legacyCash: [], loans, cashFlowProfile, configuredBudget: 1_000
 });
 
 test('1. legacy Cash Flow 缺少 provenance 仍可載入且不虛構 role 或 linkage', () => {
@@ -137,7 +137,7 @@ test('16. invalid provenance 經 Adapter→Core 仍會阻擋且不可執行', ()
 });
 
 test('17. legacy ambiguous、mixed liquidity 與 missing plan 的 Core gate 保持有效', () => {
-  const legacy = buildHouseholdLiquidityInput({ ...source(profile({ fixedExpenses: [{ id: 'housing', name: '房貸', amount: 3_000, category: 'housing', enabled: true }] })), legacyCash: [{ id: 'legacy', amount: 1 }], externalContribution: undefined, plannedWithdrawal: undefined });
+  const legacy = buildHouseholdLiquidityInput({ ...source(profile({ fixedExpenses: [{ id: 'housing', name: '房貸', amount: 3_000, category: 'housing', enabled: true }], externalContribution: undefined, plannedWithdrawal: undefined })), legacyCash: [{ id: 'legacy', amount: 1 }] });
   const codes = deriveHouseholdLiquidity(legacy).blockingReasons.map(reason => reason.code);
   assert.ok(codes.includes('DEBT_PAYMENT_AMBIGUOUS'));
   assert.ok(codes.includes('MIXED_LIQUID_ACCOUNT_SOURCES'));

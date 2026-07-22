@@ -14,8 +14,6 @@ export type HouseholdLiquidityAdapterSources = Readonly<{
   loans: ReadonlyArray<HouseholdLiquidityLoanSource> | null | undefined;
   cashFlowProfile: CashFlowProfile | null | undefined;
   configuredBudget: number | null | undefined;
-  externalContribution: number | null | undefined;
-  plannedWithdrawal: number | null | undefined;
 }>;
 
 const finiteNonnegative = (value: unknown): value is number =>
@@ -53,8 +51,6 @@ const cashFlowRole = (item: CashFlowItem, loanIds: ReadonlySet<string>) => {
     : 'ambiguous' as const;
   return ['housing', 'loan', 'other'].includes(item.category) ? 'ambiguous' as const : 'essential-living' as const;
 };
-
-const planMoney = (value: number | null | undefined) => unavailableMoney(value);
 
 /**
  * Maps explicit App-level source slices into the V6.17 core contract. It intentionally
@@ -95,8 +91,8 @@ export function buildHouseholdLiquidityInput(sources: HouseholdLiquidityAdapterS
       ? null
       : unavailableMoney(sources.configuredBudget),
     protectedSafetyMonths: profile !== null ? unavailableMoney(profile.emergencyFundTargetMonths) : Number.NaN,
-    externalContribution: planMoney(sources.externalContribution),
-    plannedWithdrawal: planMoney(sources.plannedWithdrawal),
+    externalContribution: unavailableMoney(profile?.externalContribution),
+    plannedWithdrawal: unavailableMoney(profile?.plannedWithdrawal),
     allowSafetyCashUsage: false
   };
 }
