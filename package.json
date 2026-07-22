@@ -51,6 +51,7 @@
     "test:v6-14-quote-consistency-asset-refresh": "tsx --test tests/v6QuoteConsistencyAssetRefresh.test.ts",
     "test:v6-15-mobile-simplified-experience": "tsx --test tests/v6MobileSimplifiedExperience.test.ts",
     "test:v6-16-assets-card-information": "tsx --test tests/v6AssetsCardInformation.test.ts",
+    "test:v6-17-household-liquidity-core": "tsx --test tests/householdLiquidity.test.ts",
     "test:v6-8-rebalance-execution-eligibility": "tsx --test tests/rebalanceExecutionEligibility.test.ts",
     "test:v6-9-quote-refresh-freshness-consistency": "tsx --test tests/quoteMath.test.ts tests/v6QuoteRefreshFreshnessConsistency.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
