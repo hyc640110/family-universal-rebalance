@@ -1,22 +1,37 @@
 export type CashFlowCategory = 'housing' | 'loan' | 'insurance' | 'utilities' | 'transportation' | 'family' | 'subscription' | 'other';
-export type CashFlowItem = { id: string; name: string; amount: number; category: CashFlowCategory; enabled: boolean };
-export type CashFlowProfile = { monthlyIncome: number | null; fixedExpenses: CashFlowItem[]; variableExpenseBudget: number | null; monthlyInvestmentBudget: number | null; emergencyFundTargetMonths: number; notes?: string };
+export const CASH_FLOW_SCHEMA_VERSION = 2;
+export const CASH_FLOW_LIQUIDITY_ROLES = ['essential-living', 'debt-payment', 'excluded', 'ambiguous'] as const;
+export type CashFlowLiquidityRole = typeof CASH_FLOW_LIQUIDITY_ROLES[number];
+export type CashFlowItem = { id: string; name: string; amount: number; category: CashFlowCategory; enabled: boolean; liquidityRole?: CashFlowLiquidityRole; linkedLoanId?: string };
+export type CashFlowProfile = { schemaVersion?: number; monthlyIncome: number | null; fixedExpenses: CashFlowItem[]; variableExpenseBudget: number | null; monthlyInvestmentBudget: number | null; emergencyFundTargetMonths: number; notes?: string };
 export type CashFlowStatus = '穩定' | '偏緊' | '赤字' | '資料不足';
 
 const n = (value: unknown): number => typeof value === 'number' && Number.isFinite(value) ? value : Number.isFinite(Number(value)) ? Number(value) : 0;
 const nullableMoney = (value: unknown): number | null => value === null || value === undefined || value === '' ? null : Math.max(0, n(value));
-export const DEFAULT_CASH_FLOW_PROFILE: CashFlowProfile = { monthlyIncome: null, fixedExpenses: [], variableExpenseBudget: null, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, notes: '' };
+export const DEFAULT_CASH_FLOW_PROFILE: CashFlowProfile = { schemaVersion: CASH_FLOW_SCHEMA_VERSION, monthlyIncome: null, fixedExpenses: [], variableExpenseBudget: null, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, notes: '' };
 export const categoryLabels: Record<CashFlowCategory, string> = { housing: '房貸／房租', loan: '信貸', insurance: '保險', utilities: '水電瓦斯／電信', transportation: '交通', family: '家庭支出', subscription: '訂閱服務', other: '其他' };
+
+const liquidityRole = (value: unknown): CashFlowLiquidityRole | undefined =>
+  CASH_FLOW_LIQUIDITY_ROLES.includes(value as CashFlowLiquidityRole) ? value as CashFlowLiquidityRole : undefined;
+const linkedLoanId = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : undefined;
+const schemaVersion = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value > CASH_FLOW_SCHEMA_VERSION
+  ? value
+  : CASH_FLOW_SCHEMA_VERSION;
 
 export function normalizeCashFlowProfile(raw: unknown): CashFlowProfile {
   const source = raw && typeof raw === 'object' ? raw as Partial<CashFlowProfile> : {};
   const expenses = Array.isArray(source.fixedExpenses) ? source.fixedExpenses.map((item, index) => {
     const row = item && typeof item === 'object' ? item as Partial<CashFlowItem> : {};
     const category = Object.hasOwn(categoryLabels, row.category ?? '') ? row.category as CashFlowCategory : 'other';
-    return { id: row.id || `cash-flow-${index}`, name: String(row.name ?? '').trim(), amount: Math.max(0, n(row.amount)), category, enabled: row.enabled !== false };
+    const role = liquidityRole(row.liquidityRole);
+    const loanId = role === 'debt-payment' ? linkedLoanId(row.linkedLoanId) : undefined;
+    return { id: row.id || `cash-flow-${index}`, name: String(row.name ?? '').trim(), amount: Math.max(0, n(row.amount)), category, enabled: row.enabled !== false, ...(role ? { liquidityRole: role } : {}), ...(loanId ? { linkedLoanId: loanId } : {}) };
   }).filter(item => item.name) : [];
-  return { monthlyIncome: nullableMoney(source.monthlyIncome), fixedExpenses: expenses, variableExpenseBudget: nullableMoney(source.variableExpenseBudget), monthlyInvestmentBudget: nullableMoney(source.monthlyInvestmentBudget), emergencyFundTargetMonths: Math.min(24, Math.max(1, Math.round(n(source.emergencyFundTargetMonths) || 6))), notes: typeof source.notes === 'string' ? source.notes : '' };
+  return { schemaVersion: schemaVersion(source.schemaVersion), monthlyIncome: nullableMoney(source.monthlyIncome), fixedExpenses: expenses, variableExpenseBudget: nullableMoney(source.variableExpenseBudget), monthlyInvestmentBudget: nullableMoney(source.monthlyInvestmentBudget), emergencyFundTargetMonths: Math.min(24, Math.max(1, Math.round(n(source.emergencyFundTargetMonths) || 6))), notes: typeof source.notes === 'string' ? source.notes : '' };
 }
+
+/** The existing Cash Flow normalization boundary is the deterministic, idempotent provenance migration. */
+export const migrateCashFlowProfile = (raw: unknown): CashFlowProfile => normalizeCashFlowProfile(raw);
 
 export const wanToYuan = (value: string): number | null => {
   if (value.trim() === '') return null;
