@@ -13,11 +13,11 @@ import {
 const account = (input: Partial<FinancialAccount> = {}) => createFinancialAccount({ id: 'cash-1', type: 'cash', manualBalance: 1_000, ...input }, '2026-07-22T00:00:00.000Z');
 const profile = (overrides: Partial<CashFlowProfile> = {}): CashFlowProfile => ({
   monthlyIncome: null, fixedExpenses: [{ id: 'utilities-1', name: '水電', amount: 500, category: 'utilities', enabled: true }],
-  variableExpenseBudget: 200, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, ...overrides
+  variableExpenseBudget: 200, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, externalContribution: 0, plannedWithdrawal: 0, ...overrides
 });
 const sources = (overrides: Partial<HouseholdLiquidityAdapterSources> = {}): HouseholdLiquidityAdapterSources => ({
   accounts: [account()], legacyCash: [], loans: [], cashFlowProfile: profile(), configuredBudget: 1_000,
-  externalContribution: 0, plannedWithdrawal: 0, ...overrides
+  ...overrides
 });
 const accountById = (input: ReturnType<typeof buildHouseholdLiquidityInput>, accountId: string) =>
   input.liquidAccounts.find(item => item.accountId === accountId);
@@ -129,7 +129,7 @@ test('15. profile 缺失或 safety months 無效不預設為 6', () => {
 });
 
 test('16. externalContribution 與 plannedWithdrawal 缺失保留 unavailable boundary', () => {
-  const input = buildHouseholdLiquidityInput(sources({ externalContribution: undefined, plannedWithdrawal: null }));
+  const input = buildHouseholdLiquidityInput(sources({ cashFlowProfile: profile({ externalContribution: undefined, plannedWithdrawal: undefined }) }));
   assert.ok(Number.isNaN(input.externalContribution));
   assert.ok(Number.isNaN(input.plannedWithdrawal));
 });
@@ -146,8 +146,7 @@ test('17. allowSafetyCashUsage 永遠為 false 且不修改輸入', () => {
 
 test('18. adapter output 可直接交給 Core，缺失計畫與歧義會阻擋而非假裝可執行', () => {
   const input = buildHouseholdLiquidityInput(sources({
-    cashFlowProfile: profile({ fixedExpenses: [{ id: 'housing', name: '住房', amount: 8_000, category: 'housing', enabled: true }] }),
-    externalContribution: undefined, plannedWithdrawal: undefined
+    cashFlowProfile: profile({ fixedExpenses: [{ id: 'housing', name: '住房', amount: 8_000, category: 'housing', enabled: true }], externalContribution: undefined, plannedWithdrawal: undefined })
   }));
   const result = deriveHouseholdLiquidity(input);
   assert.equal(result.canExecuteBuy, false);
@@ -178,7 +177,7 @@ test('21. 一般 Cash Flow 金額無效不轉 0，交由 Core 標記 invalid', (
 });
 
 test('22. externalContribution 與 plannedWithdrawal 的 NaN、Infinity 不轉 0', () => {
-  const input = buildHouseholdLiquidityInput(sources({ externalContribution: Number.NaN, plannedWithdrawal: Infinity }));
+  const input = buildHouseholdLiquidityInput(sources({ cashFlowProfile: profile({ externalContribution: Number.NaN, plannedWithdrawal: Infinity }) }));
   assert.ok(Number.isNaN(input.externalContribution));
   assert.ok(Number.isNaN(input.plannedWithdrawal));
 });
