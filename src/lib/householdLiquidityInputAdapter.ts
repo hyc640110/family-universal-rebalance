@@ -45,8 +45,12 @@ const legacyAccount = (cash: LegacyCashItem, index: number) => {
   };
 };
 
-const cashFlowRole = (item: CashFlowItem) => {
+const cashFlowRole = (item: CashFlowItem, loanIds: ReadonlySet<string>) => {
   if (!item.enabled) return 'excluded' as const;
+  if (item.liquidityRole === 'essential-living' || item.liquidityRole === 'excluded' || item.liquidityRole === 'ambiguous') return item.liquidityRole;
+  if (item.liquidityRole === 'debt-payment') return typeof item.linkedLoanId === 'string' && item.linkedLoanId && loanIds.has(item.linkedLoanId)
+    ? 'debt-payment' as const
+    : 'ambiguous' as const;
   return ['housing', 'loan', 'other'].includes(item.category) ? 'ambiguous' as const : 'essential-living' as const;
 };
 
@@ -62,6 +66,7 @@ export function buildHouseholdLiquidityInput(sources: HouseholdLiquidityAdapterS
   const loans = Array.isArray(sources.loans) ? sources.loans : [];
   const profile = sources.cashFlowProfile ?? null;
   const fixedExpenses = profile?.fixedExpenses ?? [];
+  const loanIds = new Set(loans.map(loan => loan.id));
 
   return {
     liquidAccounts: [
@@ -70,11 +75,15 @@ export function buildHouseholdLiquidityInput(sources: HouseholdLiquidityAdapterS
       ...legacyCash.map(legacyAccount)
     ],
     livingExpenses: profile === null ? [] : [
-      ...fixedExpenses.map(item => ({
-        sourceId: `cash-flow:${item.id}`,
-        amount: finiteNonnegative(item.amount) ? item.amount : null,
-        role: cashFlowRole(item)
-      })),
+      ...fixedExpenses.map(item => {
+        const role = cashFlowRole(item, loanIds);
+        return {
+          sourceId: `cash-flow:${item.id}`,
+          amount: finiteNonnegative(item.amount) ? item.amount : null,
+          role,
+          ...(role === 'debt-payment' && typeof item.linkedLoanId === 'string' && item.linkedLoanId && loanIds.has(item.linkedLoanId) ? { linkedLoanId: item.linkedLoanId } : {})
+        };
+      }),
       {
         sourceId: 'cash-flow:variable-expense-budget',
         amount: finiteNonnegative(profile.variableExpenseBudget) ? profile.variableExpenseBudget : null,
