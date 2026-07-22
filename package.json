@@ -55,6 +55,7 @@
     "test:v6-17-1-household-liquidity-input-adapter": "tsx --test tests/householdLiquidityInputAdapter.test.ts",
     "test:v6-17-2-household-liquidity-provenance": "tsx --test tests/cashFlowLiquidityProvenance.test.ts",
     "test:v6-17-3a-household-liquidity-plan-input": "tsx --test tests/householdLiquidityPlanInput.test.ts",
+    "test:v6-17-3a-1-household-liquidity-plan-input-entry": "tsx --test tests/householdLiquidityPlanInputEntryPoint.test.ts",
     "test:v6-8-rebalance-execution-eligibility": "tsx --test tests/rebalanceExecutionEligibility.test.ts",
     "test:v6-9-quote-refresh-freshness-consistency": "tsx --test tests/quoteMath.test.ts tests/v6QuoteRefreshFreshnessConsistency.test.ts",
     "test:tool-navigation": "tsx --test tests/toolNavigation.test.ts",
