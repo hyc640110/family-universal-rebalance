@@ -15,10 +15,11 @@ export function formatCompactHoldingWeight(marketValue: number, totalAssets: num
   return `${value.toFixed(1)}%`;
 }
 
-export function formatCompactQuoteMovement(change: number | undefined, changePct: number | undefined, previousClose: number | undefined): CompactQuoteMovement {
+export function formatCompactQuoteMovement(change: number | null | undefined, changePct: number | null | undefined, previousClose: number | null | undefined, previousCloseTrusted = true): CompactQuoteMovement {
   const amount = Number(change);
   const percent = Number(changePct);
   const priorClose = Number(previousClose);
+  if (!previousCloseTrusted) return { text: '—', tone: 'hold', ariaLabel: '今日漲跌比較基準未驗證' };
   if (!Number.isFinite(amount) || !Number.isFinite(percent) || !Number.isFinite(priorClose) || priorClose <= 0) return { text: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' };
   if (amount > 0) return { text: `+${amount.toFixed(2)}（+${Math.abs(percent).toFixed(2)}%）`, tone: 'up', ariaLabel: `最近交易日上漲 ${amount.toFixed(2)} 元，漲幅 ${Math.abs(percent).toFixed(2)}%` };
   if (amount < 0) return { text: `-${Math.abs(amount).toFixed(2)}（-${Math.abs(percent).toFixed(2)}%）`, tone: 'down', ariaLabel: `最近交易日下跌 ${Math.abs(amount).toFixed(2)} 元，跌幅 ${Math.abs(percent).toFixed(2)}%` };

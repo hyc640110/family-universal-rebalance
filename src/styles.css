@@ -97,6 +97,9 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}
 .holding-card-detail>span{display:block;margin-bottom:3px;color:#8da3bd;font-size:11px;font-weight:800;line-height:1.25}
 .holding-card-detail>strong{display:block;min-width:0;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.holding-card-price>strong.up{color:#ff5b5b}
+.holding-card-price>strong.down{color:#43d17a}
+.holding-card-price>strong.hold{color:#9fb3c8}
 .holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:#ff5b5b}
 .holding-card-today-change>strong.down,.holding-card-unrealized-pnl>strong.down{color:#43d17a}
 .holding-card-today-change>strong.hold,.holding-card-unrealized-pnl>strong.hold{color:#9fb3c8}
