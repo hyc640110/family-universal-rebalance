@@ -91,6 +91,18 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-edit-button{flex:0 0 auto;min-height:36px;padding:7px 10px;border:1px solid #315b8d;background:#173b66;color:#dbeafe;font-size:13px;box-shadow:none}
 .holding-edit-button:hover{background:#214f85;filter:none}
 .holding-quote-error{margin:8px 0 0}
+.holding-card-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+.holding-card-identity{display:flex;align-items:center;gap:9px;grid-column:1/-1;min-width:0}
+.holding-card-identity .holding-title{min-width:0}.holding-card-identity .holding-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}
+.holding-card-detail>span{display:block;margin-bottom:3px;color:#8da3bd;font-size:11px;font-weight:800;line-height:1.25}
+.holding-card-detail>strong{display:block;min-width:0;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:#ff5b5b}
+.holding-card-today-change>strong.down,.holding-card-unrealized-pnl>strong.down{color:#43d17a}
+.holding-card-today-change>strong.hold,.holding-card-unrealized-pnl>strong.hold{color:#9fb3c8}
+.holding-card-unrealized-pnl{min-width:0}
+.holding-card-unrealized-pnl strong{display:flex;flex-wrap:wrap;gap:2px 5px;white-space:normal;overflow-wrap:anywhere}
+.holding-card-summary>.holding-edit-button{justify-self:end;min-height:32px;padding:5px 10px}
 .holding-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .holding-snapshot>div{min-width:0;padding:10px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
 .holding-snapshot span{display:block;color:#8da3bd;font-size:12px;margin-bottom:5px}
@@ -304,6 +316,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holdings{grid-template-columns:1fr;gap:0}
   .holding-compact{min-height:64px;padding:0 14px;background:transparent;border-width:0 0 1px;border-radius:0}
   .holding-compact:first-child{border-top:1px solid #1d3d66}
+  .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto;gap:8px;align-items:center;min-height:72px}
+  .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:15px;white-space:nowrap}.holding-card-identity .holding-symbol{font-size:16px}
+  .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
+  .holding-card-summary>.holding-edit-button{justify-self:end;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
   .holding-mobile-summary{grid-template-columns:44px 64px minmax(72px,1.2fr) minmax(84px,.65fr) minmax(126px,1.15fr) minmax(66px,.55fr) minmax(96px,.85fr);gap:8px;min-height:64px}
   .holding-mobile-weight{width:44px;height:44px}
   .holding-mobile-weight strong{font-size:13px}
@@ -348,6 +364,11 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.decision-grid,.status-grid,.order-grid,.dip-alert-list,.dip-alert-fields,.dip-alert-result{grid-template-columns:1fr!important;gap:8px!important}
   .holding{padding:12px;min-width:0}
   .holding-compact{padding:10px 12px}
+  .holding-card-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .holding-card-average-cost{display:none}
+  .holding-card-shares{grid-column:1/-1}
+  .holding-card-detail{padding:8px 9px}.holding-card-detail>strong{font-size:14px}
+  .holding-card-summary>.holding-edit-button{grid-column:1/-1;justify-self:stretch;min-height:36px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-weight{display:grid;place-items:center;align-content:center;width:46px;height:46px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
   .holding-mobile-weight span{max-width:34px;color:#8da3bd;font-size:9px;font-weight:800}
@@ -423,6 +444,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-mobile-quote{font-size:13px;gap:4px}
   .holding-mobile-quote .holding-quote-change{font-size:13px}
   .holding-mobile-value>strong{max-width:78px;font-size:17px}
+  .holding-card-detail{padding:8px}.holding-card-detail>strong{font-size:13px}
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
 }
 

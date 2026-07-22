@@ -21,9 +21,10 @@ test('V6.6 compact list consumes Quote fields without calculating from average c
   const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function AllocationPresetPanel'));
   const summary = card.slice(card.indexOf('const compactQuoteMovement'), card.indexOf('{isEditing &&'));
+  const todayChange = summary.slice(summary.indexOf('holding-card-today-change'), summary.indexOf('holding-card-market-value'));
   assert.match(summary, /formatCompactQuoteMovement\(row\.quote\.change, row\.quote\.changePct, row\.quote\.previousClose\)/);
   assert.match(summary, /aria-label=\{compactQuoteMovement\.ariaLabel\}/);
-  assert.doesNotMatch(summary, /avgCost|row\.pnl|quoteDateStatus|isTodayQuote/);
+  assert.doesNotMatch(todayChange, /avgCost|row\.pnl|quoteDateStatus|isTodayQuote/);
   assert.doesNotMatch(helper, /price\s*-/);
   assert.match(styles, /holding-quote-change/);
   assert.match(styles, /grid-template-columns:minmax\(0,1fr\)/);

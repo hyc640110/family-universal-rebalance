@@ -879,14 +879,18 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
   const compactQuoteMovement = formatCompactQuoteMovement(row.quote.change, row.quote.changePct, row.quote.previousClose);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
-    <div className="holding-mobile-summary">
-      <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
-      <div className="holding-mobile-core">
-        <h3 className="holding-title"><span className="holding-symbol">{row.symbol}</span><span className="holding-name" title={row.quote.name}>{row.quote.name}</span></h3>
-        <p className="holding-mobile-quote"><span><span className="holding-mobile-price-label">{row.quote.error ? '參考價' : '現價'} </span>{row.quote.price.toFixed(2)} 元</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`} aria-label={compactQuoteMovement.ariaLabel}>{compactQuoteMovement.text}</strong></p>
-        <p className="holding-mobile-shares"><span className="holding-mobile-shares-label">持有 </span>{row.shares.toLocaleString('zh-TW')} 股</p>
+    <div className="holding-card-summary">
+      <div className="holding-card-identity">
+        <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
+        <h3 className="holding-title"><span className="holding-name" title={row.quote.name}>{row.quote.name}</span><span className="holding-symbol">{row.symbol}</span></h3>
       </div>
-      <div className="holding-mobile-value"><span>目前市值</span><strong>{money(row.marketValue)}</strong><button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button></div>
+      <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
+      <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{row.avgCost.toFixed(2)} 元</strong></p>
+      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong>{row.quote.price.toFixed(2)} 元</strong></p>
+      <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`} aria-label={compactQuoteMovement.ariaLabel}>{compactQuoteMovement.text}</strong></p>
+      <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
+      <p className="holding-card-detail holding-card-unrealized-pnl"><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
+      <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>
     </div>
     {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
     {isEditing && <div className="holding-editor">
