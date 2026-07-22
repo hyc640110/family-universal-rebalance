@@ -19,4 +19,37 @@ export const quoteDateStatusLabel = (status: QuoteDateStatus) => ({ today: 'ไปๆ
 export const isTodayQuote = (quoteDate: string | undefined, quoteTime: string | undefined, now = new Date()) => quoteDateStatus(quoteDate, quoteTime, now) === 'today';
 const stableNumber = (value: number, decimals = 8) => Number(value.toFixed(decimals));
 export const calculateQuoteChange = (latestPrice: number, previousClose: number) => Number.isFinite(latestPrice) && Number.isFinite(previousClose) && previousClose > 0 ? stableNumber(latestPrice - previousClose) : null;
-export const calculateDailyProfitLoss = (shares: number, change: number | null, quoteDate: string | undefined, quoteTime: string | undefined, now = new Date()) => isTodayQuote(quoteDate, quoteTime, now) && Number.isFinite(shares) && change !== null ? stableNumber(shares * change, 4) : null;
+export type DailyChangeDirection = 'up' | 'down' | 'flat' | 'unknown';
+export type TrustedDailyChangeInput = {
+  currentPrice: number;
+  previousClose: number | null | undefined;
+  previousCloseDate: string | null | undefined;
+  quoteDate: string | null | undefined;
+  previousCloseTrusted: boolean | undefined;
+};
+export type TrustedDailyChange = {
+  currentPrice: number;
+  previousClose: number | null;
+  previousCloseDate: string | null;
+  change: number | null;
+  changePercent: number | null;
+  direction: DailyChangeDirection;
+  isTrusted: boolean;
+  reason: string | null;
+};
+export const deriveTrustedDailyChange = (input: TrustedDailyChangeInput): TrustedDailyChange => {
+  const currentPrice = Number(input.currentPrice);
+  const previousClose = Number(input.previousClose);
+  const previousCloseDate = typeof input.previousCloseDate === 'string' ? input.previousCloseDate : null;
+  const quoteDate = typeof input.quoteDate === 'string' ? input.quoteDate : null;
+  const validTrustedPair = input.previousCloseTrusted === true
+    && Number.isFinite(currentPrice) && currentPrice > 0
+    && Number.isFinite(previousClose) && previousClose > 0
+    && previousCloseDate !== null && quoteDate !== null
+    && validDate(previousCloseDate) && validDate(quoteDate) && previousCloseDate < quoteDate;
+  if (!validTrustedPair) return { currentPrice: Number.isFinite(currentPrice) ? currentPrice : 0, previousClose: null, previousCloseDate: null, change: null, changePercent: null, direction: 'unknown', isTrusted: false, reason: 'previous_close_untrusted' };
+  const change = stableNumber(currentPrice - previousClose);
+  const changePercent = stableNumber(change / previousClose * 100);
+  return { currentPrice, previousClose, previousCloseDate, change, changePercent, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'flat', isTrusted: true, reason: null };
+};
+export const calculateDailyProfitLoss = (shares: number, change: number | null, quoteDate: string | undefined, quoteTime: string | undefined, now = new Date(), previousCloseTrusted = true) => previousCloseTrusted && isTodayQuote(quoteDate, quoteTime, now) && Number.isFinite(shares) && change !== null ? stableNumber(shares * change, 4) : null;

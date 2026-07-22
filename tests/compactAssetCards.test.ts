@@ -16,3 +16,7 @@ test('presents recent-trading-day quote movement from existing quote fields with
   assert.deepEqual(formatCompactQuoteMovement(0, 0, 100.15), { text: '0.00（0.00%）', tone: 'hold', ariaLabel: '最近交易日平盤' });
   assert.deepEqual(formatCompactQuoteMovement(0.25, 0.78, 0), { text: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' });
 });
+
+test('never presents an untrusted previous close as a daily movement', () => {
+  assert.deepEqual(formatCompactQuoteMovement(-2.18, -5.86, 37.19, false), { text: '—', tone: 'hold', ariaLabel: '今日漲跌比較基準未驗證' });
+});

@@ -63,12 +63,12 @@ import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransa
 import { EMPTY_TRANSACTION_SYNC_DIAGNOSTICS, deriveTransactionSyncDiagnostics, type TransactionSyncDiagnostics } from './lib/transactionSyncDiagnostics';
 import { IMPORT_SCHEMA_VERSION, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
-import { calculateDailyProfitLoss, calculateQuoteChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
+import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 
 type SymbolCode = string;
-type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number; change: number; changePct: number; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
+type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
 type AssetClass = 'growth' | 'defensive';
 type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
@@ -308,6 +308,7 @@ function isBackupQuoteSource(source: unknown) {
 function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   const hasError = rows.some(row => Boolean(row.quote.error));
   const hasBackup = rows.some(row => isBackupQuoteSource(row.quote.source));
+  const hasUntrustedPreviousClose = rows.some(row => row.quote.previousCloseTrusted !== true);
   const statuses = rows.map(row => quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime));
   if (hasError) return '部分標的報價異常';
   if (statuses.includes('unknown')) return '部分標的報價日期不明';
@@ -315,14 +316,15 @@ function quoteDisplayStatus(rows: Array<{ quote: Quote }>) {
   if (statuses.includes('stale')) return '部分標的非今日報價';
   if (statuses.includes('recent-trading-day')) return '目前為最近交易日報價';
   if (hasBackup) return '部分標的目前使用備援價格';
+  if (hasUntrustedPreviousClose) return '部分標的今日漲跌比較基準未驗證';
   return '報價正常';
 }
 const defaultQuotes: Record<SymbolCode, Quote> = {
-  '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
-  '00670L': { symbol: '00670L', name: SYMBOL_NAMES['00670L'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() },
-  '00631L': { symbol: '00631L', name: SYMBOL_NAMES['00631L'], price: 38.42, previousClose: 37.61, change: 0.81, changePct: 2.15, volume: 0, source: '內建備援', updatedAt: now() },
-  '00865B': { symbol: '00865B', name: SYMBOL_NAMES['00865B'], price: 48.52, previousClose: 48.41, change: 0.11, changePct: 0.23, volume: 0, source: '內建備援', updatedAt: now() },
-  '0050': { symbol: '0050', name: SYMBOL_NAMES['0050'], price: 0, previousClose: 0, change: 0, changePct: 0, volume: 0, source: '無股價資料', updatedAt: now() }
+  '00662': { symbol: '00662', name: SYMBOL_NAMES['00662'], price: 0, previousClose: null, previousCloseTrusted: false, change: null, changePct: null, volume: 0, source: '無股價資料', updatedAt: now() },
+  '00670L': { symbol: '00670L', name: SYMBOL_NAMES['00670L'], price: 0, previousClose: null, previousCloseTrusted: false, change: null, changePct: null, volume: 0, source: '無股價資料', updatedAt: now() },
+  '00631L': { symbol: '00631L', name: SYMBOL_NAMES['00631L'], price: 38.42, previousClose: null, previousCloseTrusted: false, change: null, changePct: null, volume: 0, source: '內建備援', updatedAt: now() },
+  '00865B': { symbol: '00865B', name: SYMBOL_NAMES['00865B'], price: 48.52, previousClose: null, previousCloseTrusted: false, change: null, changePct: null, volume: 0, source: '內建備援', updatedAt: now() },
+  '0050': { symbol: '0050', name: SYMBOL_NAMES['0050'], price: 0, previousClose: null, previousCloseTrusted: false, change: null, changePct: null, volume: 0, source: '無股價資料', updatedAt: now() }
 };
 
 const defaultState: AppState = {
@@ -364,7 +366,7 @@ function uniqueSymbols(state?: Partial<AppState>): SymbolCode[] {
 function backupQuote(symbol: SymbolCode, holding?: Holding): Quote {
   const base = defaultQuotes[symbol];
   const price = num(holding?.avgCost || base?.price || 0);
-  return { ...(base || { symbol, name: resolveSymbolName(symbol, holding?.name), volume: 0 }), symbol, name: resolveSymbolName(symbol, holding?.name, base?.name), price, previousClose: price, change: 0, changePct: 0, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
+  return { ...(base || { symbol, name: resolveSymbolName(symbol, holding?.name), volume: 0 }), symbol, name: resolveSymbolName(symbol, holding?.name, base?.name), price, previousClose: null, previousCloseDate: null, previousCloseSource: 'unavailable', previousCloseTrusted: false, previousCloseReason: 'fallback_quote', change: null, changePct: null, volume: base?.volume || 0, source: holding?.avgCost ? '成交均價備援' : '無股價資料', updatedAt: now() };
 }
 function sanitizeHolding(h: Holding): Holding | null {
   const symbol = normalizeSymbol(h?.symbol);
@@ -484,7 +486,11 @@ function writeUiState(state: UiState) { localStorage.setItem(UI_STATE_KEY, JSON.
 function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>): BackupPayload {
   assertNoOAuthSecrets(state);
   const normalized = normalizeState(state);
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, allocationRoleBySymbol: normalized.allocationRoleBySymbol, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
+  const backupQuotes = Object.fromEntries(Object.entries(quotes).map(([symbol, quote]) => {
+    const { previousCloseDate: _previousCloseDate, previousCloseSource: _previousCloseSource, previousCloseTrusted: _previousCloseTrusted, previousCloseReason: _previousCloseReason, ...legacyQuote } = quote;
+    return [symbol, legacyQuote];
+  })) as Record<SymbolCode, Quote>;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, allocationRoleBySymbol: normalized.allocationRoleBySymbol, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -534,12 +540,13 @@ function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim();
 async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
 async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
-  const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
+  const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number | null; previousCloseDate?: string | null; previousCloseSource?: Quote['previousCloseSource']; previousCloseTrusted?: boolean; previousCloseReason?: string | null; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
   const resolvedSymbol = normalizeSymbol(d.code || d.symbol || symbol).replace(/\.(TW|TWO)$/, '');
-  const price = Number(d.latestPrice ?? d.price), previousClose = Number(d.previousClose), change = calculateQuoteChange(price, previousClose);
-  if (change === null || !isValidQuoteTimestamp(d.quoteDate, d.quoteTime)) return null;
-  return { ...backupQuote(resolvedSymbol, holding), symbol: resolvedSymbol, name: resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name), price, previousClose, change, changePct: change / previousClose * 100, quoteDate: typeof d.quoteDate === 'string' ? d.quoteDate : undefined, quoteTime: typeof d.quoteTime === 'string' ? d.quoteTime : undefined, volume: Number(d.volume ?? 0), source: d.source || '報價 Worker', updatedAt: now() };
+  const price = Number(d.latestPrice ?? d.price);
+  if (!Number.isFinite(price) || price <= 0 || !isValidQuoteTimestamp(d.quoteDate, d.quoteTime)) return null;
+  const dailyChange = deriveTrustedDailyChange({ currentPrice: price, previousClose: d.previousClose, previousCloseDate: d.previousCloseDate, quoteDate: d.quoteDate, previousCloseTrusted: d.previousCloseTrusted === true });
+  return { ...backupQuote(resolvedSymbol, holding), symbol: resolvedSymbol, name: resolveSymbolName(resolvedSymbol, ...quoteNameFields(data), holding?.name), price, previousClose: dailyChange.previousClose, previousCloseDate: dailyChange.previousCloseDate, previousCloseSource: dailyChange.isTrusted ? d.previousCloseSource : 'unavailable', previousCloseTrusted: dailyChange.isTrusted, previousCloseReason: dailyChange.isTrusted ? null : d.previousCloseReason || dailyChange.reason, change: dailyChange.change, changePct: dailyChange.changePercent, quoteDate: typeof d.quoteDate === 'string' ? d.quoteDate : undefined, quoteTime: typeof d.quoteTime === 'string' ? d.quoteTime : undefined, volume: Number(d.volume ?? 0), source: d.source || '報價 Worker', updatedAt: now() };
 }
 async function fetchQuote(symbol: SymbolCode, holding: Holding | undefined, { endpoint, manual }: QuoteRefreshRequestOptions): Promise<Quote> { const querySymbol = normalizeSymbol(symbol); const url = refreshUrl(endpoint, `/?symbol=${encodeURIComponent(querySymbol)}`, manual); try { if (!isTaiwanSymbol(querySymbol)) throw new Error(`不支援的台股代號格式：${querySymbol}`); const res = await fetch(url, quoteRefreshRequestInit(manual)); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error((data as { error?: string }).error || `Worker ${res.status}`); const q = parseWorkerQuote(querySymbol, data, holding); if (!q) throw new Error(`Worker 回傳格式不正確或缺少有效報價日期／時間：${JSON.stringify(data).slice(0, 80)}`); return q; } catch (error) { return { ...backupQuote(querySymbol, holding), source: holding?.avgCost ? '成交均價備援 / Worker 更新失敗' : '離線備援 / Worker 更新失敗', updatedAt: now(), error: error instanceof Error ? error.message : String(error) }; } }
 
@@ -550,7 +557,7 @@ function derivedHoldings(state: AppState): Holding[] {
   return uniqueSymbols(state).map(s => map[s] || defaultMap[s] || { symbol: s, shares: 0, avgCost: 0, targetWeight: 0, assetClass: 'growth' });
 }
 function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
-  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasPreservedQuote = Boolean(q.error && num(q.price) > 0 && isValidQuoteTimestamp(q.quoteDate, q.quoteTime)); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasPreservedQuote || hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasPreservedQuote || hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: price, change: 0, changePct: 0, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate, quote.quoteTime); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
+  const rows = derivedHoldings(state).map(h => { const q = quotes[h.symbol] || backupQuote(h.symbol, h); const quoteName = resolveSymbolName(h.symbol, q.name, h.name); const hasPreservedQuote = Boolean(q.error && num(q.price) > 0 && isValidQuoteTimestamp(q.quoteDate, q.quoteTime)); const hasLatestPrice = !q.error && !q.source.includes('備援') && num(q.price) > 0; const price = hasPreservedQuote || hasLatestPrice ? num(q.price) : num(h.avgCost) || num(q.price); const quote = hasPreservedQuote || hasLatestPrice ? { ...q, name: quoteName } : { ...q, name: quoteName, price, previousClose: null, previousCloseDate: null, previousCloseSource: 'unavailable' as const, previousCloseTrusted: false, previousCloseReason: 'fallback_quote', change: null, changePct: null, quoteDate: undefined, quoteTime: undefined, source: h.avgCost ? '成交均價備援' : q.source }; const marketValue = h.shares * price; const cost = h.shares * h.avgCost; const pnl = marketValue - cost; const dayPnl = calculateDailyProfitLoss(h.shares, quote.change, quote.quoteDate, quote.quoteTime, undefined, quote.previousCloseTrusted === true); return { ...h, name: quoteName, quote, marketValue, cost, pnl, dayPnl }; });
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
   const derivedBalances = deriveTransactionAccountBalances(state.transactions);
@@ -877,7 +884,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
-  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.change, row.quote.changePct, row.quote.previousClose);
+  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
@@ -886,7 +893,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
       <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{row.avgCost.toFixed(2)} 元</strong></p>
-      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong>{row.quote.price.toFixed(2)} 元</strong></p>
+      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`}>{row.quote.price.toFixed(2)} 元</strong></p>
       <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`} aria-label={compactQuoteMovement.ariaLabel}>{compactQuoteMovement.text}</strong></p>
       <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
       <p className="holding-card-detail holding-card-unrealized-pnl"><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
@@ -1479,7 +1486,7 @@ function App() {
     cost: row.cost,
     pnl: row.pnl,
     dayPnl: row.dayPnl ?? 0,
-    previousClose: row.quote.previousClose
+    previousClose: row.quote.previousCloseTrusted ? row.quote.previousClose ?? undefined : undefined
   })), [m.rows]);
   const rb = useMemo(() => rebalance(state, quotes), [state, quotes]);
   const rebalanceDeviationText = rb.deviationText;
