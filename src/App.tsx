@@ -1312,12 +1312,13 @@ function App() {
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
   useEffect(() => { writeUiState(uiState); }, [uiState]);
-  useEffect(() => { document.documentElement.dataset.displayMode = uiState.displayMode; }, [uiState.displayMode]);
-  const defaultSectionsForMode = uiState.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
+  const effectiveDisplayMode = isMobile ? 'compact' : uiState.displayMode;
+  useEffect(() => { document.documentElement.dataset.displayMode = effectiveDisplayMode; }, [effectiveDisplayMode]);
+  const defaultSectionsForMode = effectiveDisplayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
   const sectionOpen = (key: SectionKey) => uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
   const analyticsSectionOpen = (key: 'dipAnalysis' | 'analyticsDetails') => uiState.sections[key] ?? Boolean(defaultSectionsForMode[key]);
   const toggleSection = (key: SectionKey) => setUiState(current => {
-    const defaults = current.displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
+    const defaults = effectiveDisplayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections;
     return { ...current, sections: { ...current.sections, [key]: !(current.sections[key] ?? defaults[key]) } };
   });
   useEffect(() => {
@@ -1973,10 +1974,6 @@ function App() {
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
-        {isMobile && (currentPage === 'assets' || currentPage === 'analytics') && <div className="mobile-mode-switch" aria-label="手機顯示模式">
-          <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} onClick={() => applyDisplayMode('compact')}>簡潔模式</button>
-          <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} onClick={() => applyDisplayMode('full')}>完整模式</button>
-        </div>}
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
@@ -2133,13 +2130,13 @@ function App() {
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} rule={clecStrategyRuleView} />}
         {isInvestmentActionCenter && <InvestmentActionCenterPage model={investmentActionCenter} explanations={investmentActionExplanations} />}
       {currentPage === 'settings' && <SettingsPage>
-        <Card title="顯示設定">
+        {!isMobile && <Card title="顯示設定">
           <p className="note">簡潔／完整模式只控制可收合區塊的預設展開狀態，不會改變資料或計算。</p>
           <div className="mobile-mode-switch settings-mode-switch" aria-label="顯示模式">
             <button type="button" className={uiState.displayMode === 'compact' ? 'active' : ''} aria-pressed={uiState.displayMode === 'compact'} onClick={() => applyDisplayMode('compact')}><b>簡潔模式</b><small>只顯示核心資訊，適合日常快速查看。</small></button>
             <button type="button" className={uiState.displayMode === 'full' ? 'active' : ''} aria-pressed={uiState.displayMode === 'full'} onClick={() => applyDisplayMode('full')}><b>完整模式</b><small>顯示完整分析、進階欄位與說明。</small></button>
           </div>
-        </Card>
+        </Card>}
         <Card id="sync-section" title="同步與資料設定">
           <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
           <div className="params">
