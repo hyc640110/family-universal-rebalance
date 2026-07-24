@@ -1,6 +1,6 @@
-# Universal Rebalance Todo Backlog v1.8
+# Universal Rebalance Todo Backlog v1.9
 
-最後更新：2026-07-24
+最後更新：2026-07-25
 
 本文件是 Universal Rebalance 所有未完成事項的單一正式來源。
 
@@ -23,6 +23,8 @@
 2026-07-24 PR #109（跨 AI 交接制度＋Full／Lite Bundle，merge commit `4a95a8abe3c3b58359cb6ce5caa65cde4b14928d`）與 PR #110（PR #109 Merge 後治理文件補同步，merge commit `081bf91267d4a28c2c118266feb62379fa01fc64`）皆為治理文件／交接制度變更，唯讀盤點確認兩者內容均未涉及任何現行 UR-TODO 項目，本文件狀態不變動。
 
 2026-07-24 針對 UR-TODO-001 執行 Repository 唯讀盤點（未存取 Firebase Console），確認 App 未整合 Firebase Auth、Preview／Production 共用同一 Firebase 專案／RTDB 實例（僅靠路徑前綴隔離）、Database URL 與 secretPath 皆為使用者手動輸入；現行 Security Rules 內容與到期日期仍無法從 Repository 確認，需 Firebase Console 存取權限。狀態維持「待盤點」，詳見下方 UR-TODO-001 項目。
+
+2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001：專案 `my-00662`、資料庫 `my-00662-default-rtdb`，現行規則為 `now < 1785168000000`（到期日 2026-07-28）、到期前完全公開讀寫、到期後 Firebase 預設轉為全部拒絕（權限自然收斂，非資料外洩）。使用者拍板決策：不在到期前修改規則、接受自然到期、正式 Firebase Auth 方案列為未來獨立 Sprint。UR-TODO-001 狀態由「待盤點」更新為**「已盤點」**，正式解法仍為「待開發」，不得標記為「已完成」。
 
 狀態：
 
@@ -49,7 +51,7 @@
 ### UR-TODO-001 Firebase Realtime Database Security Rules Expiry
 
 - 優先級：P0
-- 狀態：待盤點
+- 狀態：**已盤點**（Rules 內容與到期日已由使用者本人於 Firebase Console 查證確認；正式解法〔Firebase Auth 整合〕仍為**待開發**，尚未排入 Sprint，不得標記為「已完成」）
 - 提出日期：2026-07-22
 - 問題：`my-00662-default-rtdb` 測試模式用戶端存取權限即將到期。
 - 可能影響：
@@ -71,6 +73,26 @@
   - Preview 驗證
   - Production 手動同步驗證
   - 不公開資料
+  - 無資料遺失
+
+**2026-07-25 Firebase Console 唯讀查證結論（使用者本人於 Firebase Console 查證，非 Repository 唯讀盤點得出）：**
+
+- 專案：`my-00662`，資料庫：`my-00662-default-rtdb`
+- 現行規則（確認日 2026-07-25）：
+  ```
+  ".read": "now < 1785168000000"
+  ".write": "now < 1785168000000"
+  ```
+- **到期日：2026-07-28**（確認日 2026-07-25 起僅剩 3 天）
+- 到期前：完全公開讀寫，無任何條件限制
+- 到期後：Firebase 預設行為自動轉為全部拒絕（deny all）——這是**權限自然收斂**，不是資料外洩事件
+
+**使用者決策（已拍板，非 AI 建議代為決定）：**
+
+- **不在到期前修改 Firebase Console 規則**，不手動延長現有公開規則，維持本 Todo「禁止」項目既有規定
+- 讓規則自然到期，接受屆時雲端上傳／下載／Firebase 手動同步暫時中斷
+- 已確認不受影響的功能：localStorage 持久化、JSON Backup 匯出／匯入、Price Worker／Market Worker 報價、GitHub Pages、Gmail OAuth、Allocation Simulator
+- 正式解法（於 App 內加入 Firebase Auth、規則改為 `auth != null`）列為**未來獨立 Development Sprint**，不在到期前這幾天內倉促進行，待使用者另行排定時程啟動
 
 **2026-07-24 Repository 唯讀盤點結論（Claude Code Review Mode，僅限 Repository 內容與公開 HTTP 探測，未存取 Firebase Console）：**
 
@@ -91,8 +113,7 @@
 2. **中期（正式方案）**：App 目前完全無 Firebase Auth，若要以 `auth != null` 收斂權限，須先在 App 內新增登入機制（可能沿用現有 Gmail／Google OAuth 身份，或另外導入 Firebase Anonymous／Email Auth），並在規則改動前後分別驗證 Preview／Production 的上傳／下載仍可運作，屬有實質開發工作量的 Sprint，非單純 Console 設定。
 3. **架構層考量**：因 Database URL 與 secretPath 皆為使用者輸入、且 Preview／Production 共用同一實例，任何規則收斂都須同時涵蓋兩個環境的路徑前綴（`family-universal-rebalance` 與 `family-universal-rebalance-preview`），並重新驗證 `environmentBoundary.ts` 的隔離防呆邏輯在新規則下仍然有效。
 
-三個方向的優先順序、時程與是否走 Console-only Hotfix 或正式 Sprint，待使用者查閱 Firebase Console 後決定；狀態維持「待盤點」，不因本次程式碼面盤點而變更。
-  - 無資料遺失
+三個方向的優先順序、時程與是否走 Console-only Hotfix 或正式 Sprint，於 2026-07-25 由使用者查閱 Firebase Console 後決定：**不在到期前修改規則，接受 2026-07-28 自然到期**，正式解法（Firebase Auth 整合）列為未來獨立 Sprint。狀態依此更新為「已盤點」，詳見上方 2026-07-25 段落；正式解法本身仍為「待開發」。
 
 ### UR-TODO-002 持股資產管理卡片 2.0 差異盤點
 
