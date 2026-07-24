@@ -90,7 +90,7 @@
 ## 3. 基本資訊
 
 - 最後更新時間：2026-07-24
-- 更新者／工具：Claude Code（PR #108 治理文件收尾）
+- 更新者／工具：Claude Code（PR #109 Merge 後治理狀態同步）
 - 交接給：（尚未指定，供下一位 AI／工作階段使用）
 - 工作模式：
   - [x] Review Mode
@@ -101,13 +101,13 @@
 
 ## 4. 正式基線
 
-- 正式版本：Hotfix — Deploy Workflow Node Runtime & DevDependency Install Failure（UR-TODO-038／CI-01／CI-02）
-- 正式 PR：#108（MERGED）
-- merge commit：`0ae17a1716b32a5cdc67227a26549bec964a307c`
-- Production Pages workflow：`30103172752`（success）
+- 正式版本：Cross-AI Handover Governance & Lite Bundle（整理交接口令、Claude Home→Claude Code→ChatGPT 交接流程、Full／Lite Bundle）
+- 正式 PR：#109（MERGED）
+- merge commit：`4a95a8abe3c3b58359cb6ce5caa65cde4b14928d`
+- Production Pages workflow：`30106106352`（success）
 - Production Worker 版本：沿用 `003_CURRENT_STATUS.md` 既有記錄，本次未重新查詢
 - 正式基線是否已重新驗證：
-  - [x] 是（見 `003_CURRENT_STATUS.md` 2026-07-24 PR #108 Merge 後 Deploy 成功記錄）
+  - [x] 是（見 `003_CURRENT_STATUS.md` 2026-07-24 PR #109 Merge 後 Deploy 成功記錄）
   - [ ] 否，沿用 `003_Current_Status` 已驗證結果
 
 ---
@@ -117,7 +117,7 @@
 - Repository：`hyc640110/family-universal-rebalance`
 - Repository Root：目前 checkout 所在的 Repository 根目錄（依實際環境而定，不固定寫死本機絕對路徑）
 - 目前 Branch：`main`
-- HEAD：`0ae17a1716b32a5cdc67227a26549bec964a307c`
+- HEAD：`4a95a8abe3c3b58359cb6ce5caa65cde4b14928d`
 - origin/main：同上
 - main：同上
 - `main...origin/main`：`0 / 0`
@@ -141,7 +141,7 @@
 
 ## 6. 目前 Sprint
 
-**目前無進行中的 Branch、Draft PR 或未完成開發工作。** PR #108（Hotfix）已於 2026-07-24 14:56:47Z Merge 完成並通過 Production 驗證，UR-TODO-038、CI-01、CI-02 已標記為已完成。下一個 Sprint（例如 Household Liquidity Sprint 3／UR-TODO-008，或 Firebase Security Rules P0 盤點／UR-TODO-001）尚未啟動，需使用者明確指示才開始。
+**目前無進行中的 Branch、Draft PR 或未完成開發工作。** PR #108（Hotfix）已於 2026-07-24 14:56:47Z Merge 並通過 Production 驗證，UR-TODO-038、CI-01、CI-02 已標記為已完成；PR #109（跨 AI 交接制度＋Full／Lite Bundle）已於 2026-07-24 15:37:45Z Merge 並通過 Production 驗證。下一個 Sprint（例如 Household Liquidity Sprint 3／UR-TODO-008，或 Firebase Security Rules P0 盤點／UR-TODO-001）尚未啟動，需使用者明確指示才開始。
 
 - Sprint／版本名稱：（無）
 - 對應 Todo ID：（無）
@@ -162,6 +162,7 @@
 ## 7. 已完成工作
 
 - PR #108：修復 Deploy Workflow Node Runtime／DevDependency Install Failure（見 `009_CHANGELOG.md`「[Hotfix] Deploy Workflow Node Runtime & DevDependency Install Failure - 2026-07-24」）
+- PR #109：新增「整理交接」口令、Claude Home→Claude Code→ChatGPT 正式交接流程、Full／Lite Bundle 同步產生（見 `009_CHANGELOG.md`「[Docs] Cross-AI Handover Governance & Lite Bundle - 2026-07-24」）
 
 ---
 
