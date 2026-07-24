@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-24T15:21:18.286424+00:00
+Generated UTC: 2026-07-24T15:33:39.459777+00:00
 
 ## Manifest
 
@@ -23,7 +23,7 @@ Generated UTC: 2026-07-24T15:21:18.286424+00:00
 - `012_AI_HANDOVER.md` — SHA-256 `ddb74f2ddfb32dcda6337668a8057c212b4bd8ba1e5adb4658bcb74c33c622ac`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `99aa67622ebcc13f9b171c2845a0e11f5f2d015c03466c582994151f81495fdf`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
-- `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `fd8dbf6a9adadc4fa2354581e6e13704032c464574791f50c7d6da6642a5bbf8`
+- `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3b09ed71952383c11e31a49788054aa854bc8c8af7c9fd4b54cc9f12bcacdb22`
 
 ---
 
@@ -5938,7 +5938,7 @@ Claude Home（或 Claude Project）
 - 不包含 EXPORTS，避免 Bundle 自我遞迴。
 - 每份文件使用清楚的 BEGIN／END 標記。
 - 每次產生寫入檔案清單與 SHA-256，便於確認版本。
-- 同一次執行同時產生 **Full Bundle**（含 `AI_CONTEXT/` 全部正式文件，供需要完整規則細節的場合使用）與 **Lite Bundle**（只含 `000_AI_START_HERE.md`、`001_README.md`、`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md`、`012_AI_HANDOVER.md`，供日常「開始工作」快速對齊使用），皆輸出到 `AI_CONTEXT/EXPORTS/`，不手動維護兩套內容。
+- 同一次執行同時產生 **Full Bundle**（含 `AI_CONTEXT/` 全部正式文件，供需要完整規則細節的場合使用）與 **Lite Bundle**（只含 `000_AI_START_HERE.md`、`000_AI_WORKSPACE_RULES.md`、`001_README.md`、`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md`、`012_AI_HANDOVER.md`，供日常「開始工作」快速對齊使用），皆輸出到 `AI_CONTEXT/EXPORTS/`，不手動維護兩套內容。
 - ChatGPT／Claude Project Knowledge 預設使用 Full Bundle；若平台對單一檔案大小或知識庫檔案數量有限制，改用 Lite Bundle，並在專案指令中註明「本 Project 使用 Lite Bundle，涉及 004／006／007／010／011／013／015 等細節時提示使用者改查 Repository 或 Full Bundle」。
 
 ## 6. 失敗處理
