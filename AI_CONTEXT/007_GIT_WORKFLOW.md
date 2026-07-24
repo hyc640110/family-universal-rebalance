@@ -1,0 +1,227 @@
+# Universal Rebalance Git Workflow
+
+## 1. 目的
+
+本文件定義 Universal Rebalance 的固定 Git、Branch、Pull Request、Preview、驗收與 Merge 流程。
+
+---
+
+## 2. 核心原則
+
+1. 永遠從最新 `main` 建立新 Branch。
+2. 不沿用舊 Branch。
+3. 每個 Sprint 使用一個獨立 PR。
+4. PR 初始狀態為 Draft。
+5. 必須提供 Preview。
+6. 使用者驗收後才改為 Ready for review。
+7. 由使用者自行 Merge。
+8. AI 不可自行 Merge。
+9. 不直接修改正式 GitHub Pages。
+10. Preview 與 Production 必須隔離。
+11. 不任意變更既有資料格式。
+12. 不破壞 localStorage、Firebase、JSON Backup 相容性。
+
+---
+
+## 3. 開始工作前
+
+```bash
+git status
+git branch --show-current
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+```
+
+必須確認：
+
+- 目前是否在正確 Repository
+- 工作目錄是否乾淨
+- 是否存在未提交修改
+- 是否存在未處理 stash
+- `main` 是否為最新
+- 是否有尚未 Merge 的相關 PR
+- 本次修改是否會影響正式資料
+
+若工作目錄不乾淨，不可直接覆蓋或刪除使用者修改。
+
+---
+
+## 4. Branch 命名
+
+建議格式：
+
+```text
+feat/vX.Y-short-description
+fix/vX.Y-short-description
+hotfix/vX.Y-short-description
+docs/short-description
+refactor/short-description
+```
+
+範例：
+
+```text
+feat/v6.14-mobile-asset-refresh
+fix/v6.13-chart-date-overflow
+docs/project-architecture
+```
+
+---
+
+## 5. Commit 原則
+
+建議使用：
+
+```text
+feat: 新增功能
+fix: 修正錯誤
+docs: 文件更新
+refactor: 重構但不改功能
+test: 測試
+chore: 工具或設定
+```
+
+範例：
+
+```bash
+git add .
+git commit -m "fix: correct mobile chart date overflow"
+```
+
+要求：
+
+- 每個 Commit 聚焦單一目的
+- 不混入無關格式化
+- 不提交密鑰
+- 不提交大型暫存檔
+- 不提交未驗證的產物
+
+---
+
+## 6. 驗證流程
+
+開 PR 前至少執行：
+
+```bash
+npm install
+npm run typecheck
+npm run test
+npm run build
+```
+
+若專案實際 script 名稱不同，應依 `package.json` 為準。
+
+還需檢查：
+
+- 桌機版
+- 手機版
+- 主要資料流程
+- localStorage 舊資料
+- Firebase 手動同步
+- JSON Backup
+- 報價日期
+- Preview / Production 隔離
+
+---
+
+## 7. Pull Request 流程
+
+### 7.1 建立 Draft PR
+
+PR 應包含：
+
+- PR 標題
+- 修改摘要
+- 修改檔案
+- 測試結果
+- Preview 連結
+- 驗收重點
+- 相容性說明
+- 已知限制
+- 回復方式
+
+### 7.2 PR 範本
+
+```md
+## 修改摘要
+
+## 修改檔案
+
+## 驗證結果
+
+- [ ] TypeScript
+- [ ] Test
+- [ ] Build
+- [ ] Desktop
+- [ ] Mobile
+- [ ] localStorage
+- [ ] Firebase
+- [ ] JSON Backup
+
+## Preview
+
+## 驗收重點
+
+## 相容性與風險
+
+## 回復方式
+```
+
+### 7.3 驗收後
+
+只有使用者確認通過後，才能：
+
+- 將 Draft 改為 Ready for review
+- 等待使用者手動 Merge
+
+AI 不可自行 Merge。
+
+---
+
+## 8. Preview 與 Production
+
+### Preview
+
+- 僅供驗收
+- 使用 Preview Worker
+- 使用 Preview OAuth callback
+- 不覆蓋正式 Firebase
+- 不覆蓋正式 GitHub Pages
+
+### Production
+
+- 只在使用者確認後發布
+- 使用 Production Worker
+- 使用正式 OAuth callback
+- 由使用者決定 Merge 與部署
+
+---
+
+## 9. Hotfix 流程
+
+Hotfix 仍需：
+
+1. 從最新 `main` 建立新 Branch
+2. 確認問題可重現
+3. 做最小修改
+4. 執行 TypeScript、Test、Build
+5. 建立 Draft PR
+6. 提供 Preview 或明確驗證證據
+7. 使用者手動 Merge
+
+不可因為是 Hotfix 就直接修改正式站。
+
+---
+
+## 10. 禁止事項
+
+- 不直接推送到 `main`
+- 不自行 Merge
+- 不刪除使用者 stash
+- 不強制 reset 使用者工作目錄
+- 不混入無關重構
+- 不改動正式環境密鑰
+- 不把 Preview 指向 Production 資料
+- 不在測試未通過時宣稱完成
+- 不改變資料格式卻沒有 migration
