@@ -53,6 +53,26 @@
 
 ---
 
+## [Docs] PR #109 Post-Merge Context Sync - 2026-07-24
+
+### Changed
+- `003_CURRENT_STATUS.md`（v3.13→v3.14）、`009_CHANGELOG.md`、`012_AI_HANDOVER.md`：補齊 PR #109（Cross-AI Handover Governance & Lite Bundle）Merge 後尚未同步的治理文件落差；基線改為 PR #109／merge commit `4a95a8abe3c3b58359cb6ce5caa65cde4b14928d`。
+- Full／Lite Bundle：依上述文件變更重新產生。
+
+### Compatibility
+- localStorage／Firebase／JSON Backup：不受影響（未修改 `src/`）
+- Preview／Production：Production 已透過 `Deploy GitHub Pages` workflow run `30106106352` 成功部署；`gh-pages` 更新至 `4b6fecf723e825fa4c64a1af93d92f906e13dc5a`；HTTP 200 與環境隔離實測正常
+
+### Verification
+- `git diff --stat -- src/ tests/ package.json package-lock.json .github/`：空
+- Full manifest 17/17、Lite manifest 6/6 一致
+- 敏感資訊掃描：無命中
+
+### Pull Request
+- PR #110（`chore/pr109-post-merge-context-sync`），merge commit `081bf91267d4a28c2c118266feb62379fa01fc64`
+
+---
+
 ## [Docs] Cross-AI Handover Governance & Lite Bundle - 2026-07-24
 
 ### Added
