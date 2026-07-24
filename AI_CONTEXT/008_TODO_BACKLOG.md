@@ -1,4 +1,4 @@
-# Universal Rebalance Todo Backlog v1.7
+# Universal Rebalance Todo Backlog v1.8
 
 最後更新：2026-07-24
 
@@ -17,6 +17,8 @@
 2026-07-24 UR-TODO-038 根因確認為 `package-lock.json` 有 56 個條目的 `resolved` 指向內部沙盒網關 `applied-caas-gateway1.internal.api.openai.org`，而非公開 `registry.npmjs.org`；`package.json` 8 個 `"latest"` 套件已改為固定版本（沿用舊 lockfile 鎖定值），`package-lock.json` 僅正規化上述 56 個 `resolved` 欄位，version／integrity／依賴樹／`lockfileVersion` 完全不變。同時記錄並拒絕採用「完整重新解析 lockfile」路徑產生的 223 條目、TypeScript 7 版本樹（本專案禁止非必要依賴升級）。
 
 2026-07-24 修正 Commit `ed24f84ed7e0b329abce3418a8f9af6ddea0def8` 已 Push 到 Draft PR #108，對應 `CI Verification` run `30101961703` 已於真實 GitHub-hosted Ubuntu runner 完整成功。UR-TODO-038、CI-01、CI-02 狀態更新為「Hotfix 已完成，待 PR Merge／Production 驗證」，尚未 Merge，不得標記為完全已完成。
+
+2026-07-24 PR #108 已由使用者手動 Merge（merge commit `0ae17a1716b32a5cdc67227a26549bec964a307c`），對應 Production `Deploy GitHub Pages` workflow run `30103172752` 成功，`gh-pages` 已更新，Production／Preview HTTP 200 且環境隔離正常，`package-lock.json` 正式基線已無內部 gateway URL。依完成標準（程式碼完成＋自動測試通過＋Preview 驗收通過＋PR Merge＋Production 唯讀驗證通過），UR-TODO-038、CI-01、CI-02 正式標記為**已完成**。其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -158,7 +160,7 @@
 ### UR-TODO-038 Deploy Workflow Node Runtime / DevDependency Install Failure
 
 - 優先級：P0
-- 狀態：**Hotfix 已完成，待 PR Merge／Production 驗證**（根因已確認、修正已 Commit＋Push、Draft PR #108 的 `CI Verification` 已於真實 GitHub Ubuntu runner 驗證成功；尚未 Merge，未達本文件「完成標準」定義的 Production 唯讀驗證，不得標記為完全已完成）
+- 狀態：**已完成**（完成日期：2026-07-24；完成依據：PR #108 MERGED＋Production workflow 成功＋真實 Ubuntu runner CI 成功＋Production 驗證成功，四項皆達成，詳見下方「已確認驗證結果」）
 - 提出日期：2026-07-24
 - 提出依據：PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）合併後的 Merge 後唯讀驗證，以及後續兩次 Draft PR #108 上 `CI Verification` workflow 的實測
 
@@ -178,27 +180,21 @@
 - `package-lock.json` 僅正規化 56 個條目的 `resolved` 欄位（`applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/<path>` → `registry.npmjs.org/<path>`，逐筆以腳本驗證 package 名稱／版本／integrity 與原始 lockfile 完全一致才寫入），其餘 199 個條目、`version`、`integrity`、依賴樹、`lockfileVersion`（仍為 3）**完全未變**。
 
 **已確認驗證結果：**
-- Draft PR #108 上 `CI Verification` run **`30101961703`**（headSha `ed24f84`）於真實 GitHub-hosted Ubuntu runner **完整成功**，總耗時 39 秒（相較先前兩次逾時 13 分鐘以上）：
-  - `npm ci --include=dev --no-audit --no-fund`：成功，約 7 秒完成
-  - tsx 驗證：`node v24.18.0`、`npm 11.16.0`、`tsx v4.23.0` 皆正常
-  - `npm run test:ci`：`test:ci:unit-ts` 435/435、`test:ci:unit-mjs` 18/18、`test:ci:checks` 52 個 PASS，0 fail
-  - TypeScript：確認為 `6.0.3`（非 7.x）
-  - Production build、Preview build：皆成功
-- `deploy.yml` 未被觸發；`gh-pages` 分支未被寫入（SHA 維持 `55b9a075...` 不變）
-- PR #108 仍為 Draft，尚未 Merge、尚未部署 Production
+- Draft PR #108 上 `CI Verification` 於真實 GitHub-hosted Ubuntu runner **兩次完整成功**：run `30101961703`（headSha `ed24f84`，39 秒）與 run `30102799090`（headSha `f78e643`，文件用語修正後再驗證一次，38 秒），`npm ci --include=dev`、tsx 驗證（`node v24.18.0`、`npm 11.16.0`、`tsx v4.23.0`）、`test:ci`（435/435＋18/18＋52 PASS，0 fail）、TypeScript `6.0.3`、Production build、Preview build 皆通過。
+- **PR #108 已由使用者手動 Merge**，merge commit `0ae17a1716b32a5cdc67227a26549bec964a307c`，`mergedAt: 2026-07-24T14:56:47Z`。
+- **Production Deploy GitHub Pages workflow run `30103172752`（headSha `0ae17a1`，`event: push`）成功**：`npm ci`、tsx 驗證、`test:ci`（435/435＋18/18）、Production build、Preview build、`Deploy production and Preview to gh-pages branch` 全數通過。
+- **Production 唯讀驗證通過**：`gh-pages` 分支已更新（`55b9a075...` → `cbc44063ee911ecc3a24401c0c834f5e8fc271f7`）；Production 根目錄／`index.html`／主要 JS／CSS assets／`/preview/` 皆 `HTTP 200`；環境隔離確認正常（Production `index.html` 的 `deployment-environment` meta 為 `production`，資源路徑與 `/preview/` 完全分離、未混用）。
+- 正式 main 上的 `package-lock.json` 已確認：內部 gateway URL 0 筆、全部 200 筆 `resolved` 為 `registry.npmjs.org`、`lockfileVersion` 仍為 3；`npm ci` 已於本次真實 Production workflow 直接驗證可重現。
 
-**尚未完成／待確認：**
-- 需等待使用者手動 Merge PR #108 進 `main`，並依 Merge 後觸發的 `Deploy GitHub Pages` workflow 實際結果，完成本文件「完成標準」定義的 Production 唯讀驗證，才可視為本 Todo 完全解決。
-- 若 Merge 後的正式部署仍在 `Install dependencies` 逾時，需回頭確認是否還有其他遺漏的內部網關 URL，或屬於全新的獨立問題，不得直接以重建 lockfile 掩蓋。
-
-**禁止：**
+**禁止（歷史記錄，事件已解決，供未來參考）：**
 - 不得以重跑既有失敗 run（re-run）當作修復（已驗證過此路徑無效）。
 - 不得接受 TypeScript 7 或任何非必要的依賴版本升級；不得使用曾產生的 223 條目新 lockfile。
 
-**驗收條件：**
-- `CI Verification`（`ci.yml`）在 Hotfix PR 的 Ubuntu runner 上，`npm ci`、tsx 驗證、`test:ci`、Production build、Preview build 全數通過 —— **已達成**（run `30101961703`）。
-- CI-01、CI-02 狀態：因應上述 CI Verification 已通過，更新為「**Hotfix 已完成，待 PR Merge／Production 驗證**」，尚不得標記為完全已完成。
-- 之後下一次 push 到 main（本 Hotfix Merge 後）觸發的 `Deploy GitHub Pages` workflow 需完整跑過 `npm ci`→測試→build→部署且成功，才可視為本 Todo 完全解決，屆時方可將 UR-TODO-038、CI-01、CI-02 標記為完全已完成。
+**驗收條件（全數達成）：**
+- `CI Verification`（`ci.yml`）在 Hotfix PR 的 Ubuntu runner 上，`npm ci`、tsx 驗證、`test:ci`、Production build、Preview build 全數通過 —— ✅ 已達成。
+- PR #108 MERGED —— ✅ 已達成。
+- Production `Deploy GitHub Pages` workflow 成功，`gh-pages` 更新，Production／Preview HTTP 200 且環境隔離正常 —— ✅ 已達成。
+- 依本文件「完成標準」（程式碼完成＋自動測試通過＋Preview 驗收通過＋PR Merge＋Production 唯讀驗證通過），**UR-TODO-038、CI-01、CI-02 正式標記為已完成**。
 
 ## P1－家庭流動性高風險主題
 
