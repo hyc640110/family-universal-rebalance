@@ -1,4 +1,4 @@
-# Universal Rebalance Todo Backlog v1.4
+# Universal Rebalance Todo Backlog v1.5
 
 最後更新：2026-07-24
 
@@ -11,6 +11,8 @@
 2026-07-24 依「最新基線與 AI 治理文件唯讀差異盤點」（PR #102～#105 唯讀實證）更新 UR-TODO-006、UR-TODO-007 狀態，並補登 UR-TODO-036、UR-TODO-037。
 
 2026-07-24 Sprint「Deployment CI Reproducibility & Test Gate」（CI-01／CI-02／UR-TODO-037 部分範圍）將 UR-TODO-037 更新為部分完成，並記載尚未完成的 GitHub Environment 人工核准、Branch Protection、預設分支修正等延後範圍。
+
+2026-07-24 PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）合併後，對應 Deploy GitHub Pages workflow run `30096396958` 實測失敗（`npm ci` 後 `tsx: not found`，exit code 127）。測試閘門正確中止部署，Production／Preview 仍停留在上一個成功部署版本（`0d2ec05`）未受影響。補登 UR-TODO-038 追蹤此 Hotfix；CI-01、CI-02 狀態改為「開發中／待真實 CI 驗證」，不得標記已完成。
 
 狀態：
 
@@ -148,6 +150,38 @@
 - 驗收條件：
   - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差 —— **已透過 `007_GIT_WORKFLOW.md` 更新達成**。
   - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **未完成，留待後續 Sprint**。
+
+### UR-TODO-038 Deploy Workflow Node Runtime / DevDependency Install Failure
+
+- 優先級：P0
+- 狀態：開發中（Hotfix Draft PR 待真實 GitHub Ubuntu runner CI 驗證）
+- 提出日期：2026-07-24
+- 提出依據：PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）合併後的 Merge 後唯讀驗證
+- 問題：
+  - `Deploy GitHub Pages` workflow run `30096396958`（headSha `eebee98`）**失敗**，`Run CI regression test gate` 步驟回報 `sh: 1: tsx: not found`，exit code 127。
+  - 前一步 `Install dependencies`（`npm ci --no-audit --no-fund`）顯示成功（✓），但日誌出現 `npm error Exit handler never called!`（npm CLI 已知內部錯誤），代表安裝過程並未確實、可驗證地把 `tsx`（devDependency）安裝到 `node_modules/.bin`。
+  - 安裝過程另有 3 筆 `EBADENGINE` 警告：`@cloudflare/kv-asset-handler`、`miniflare`、`wrangler` 皆要求 `node >=22.0.0`，但 workflow 當時的 `actions/setup-node@v4` 設定 `node-version: 20`。
+  - 本機（Node v24.18.0）執行相同的 `npm ci` 與 `npm run test:ci` 皆成功，代表落差來自 CI runner 與本機的 Node／npm 版本不一致，而非測試或程式碼本身錯誤。
+- 已確認影響：
+  - 測試閘門正確發揮作用：Build production／Preview／deploy 到 `gh-pages` 全數**未執行**，未以壞狀態覆蓋正式站。
+  - Production（`https://hyc640110.github.io/family-universal-rebalance/`）與 Preview（`.../preview/`）皆仍是上一個成功部署版本（workflow run `30089243284`，headSha `0d2ec05`），HTTP 200 正常回應，未受影響。
+  - main 目前的部署 pipeline 在修復前，之後任何 push 到 main 大機率會以相同方式再次失敗。
+- 本次 Hotfix 已完成：
+  - `actions/setup-node@v4` 的 `node-version` 由 `20` 提升為 `24`，對齊本機已驗證可用的執行環境，並解決 `EBADENGINE` 警告涵蓋的三個套件版本需求。
+  - `package.json` 新增 `engines.node: ">=22.0.0"`，明確記錄專案實際的最低 Node 版本需求。
+  - `Install dependencies` 步驟改為明確的 `npm ci --include=dev --no-audit --no-fund`。
+  - 新增「Verify Node/npm runtime and installed dev tooling」步驟，安裝後立即驗證 `node --version`、`npm --version`、`npm config get omit`，並確認 `node_modules/.bin/tsx` 存在且可執行；若驗證失敗，該步驟本身會明確失敗並中止後續部署，不會讓問題被靜默帶到後面的測試步驟才爆出難以診斷的錯誤。
+  - 新增獨立、唯讀的 `.github/workflows/ci.yml`（`on: pull_request`，`permissions: contents: read`，無任何部署步驟），讓 Hotfix 與未來所有 PR 都能在真實 GitHub Ubuntu runner 上驗證 `npm ci`／`tsx`／`test:ci`／Production build／Preview build，且保證不會寫入 `gh-pages`。
+- 尚未完成／待確認：
+  - 需等待 Hotfix Draft PR 的 `CI Verification` workflow 實際在 GitHub Ubuntu runner 跑一次，確認新的 Node 24 設定確實解決 `npm error Exit handler never called!` 與 `tsx: not found`，而非只是本機重現良好。
+  - 若 Node 版本提升後問題仍重現，需要另外排查是否為 npm 版本本身的 bug、registry 逾時，或 `esbuild`／`sharp`／`workerd` 的 postinstall 行為在 GitHub runner 上的其他限制，不得直接以重建 lockfile 掩蓋。
+- 禁止：
+  - 不得以重跑既有失敗 run（re-run）當作修復。
+  - 不得任意升級依賴版本或重建 `package-lock.json`（本次未變更任何依賴版本）。
+- 驗收條件：
+  - `CI Verification`（`ci.yml`）在 Hotfix PR 的 Ubuntu runner 上，`npm ci`、tsx 驗證、`test:ci`、Production build、Preview build 全數通過。
+  - 上述通過後，方可將 CI-01、CI-02 標記為完成；在此之前兩者維持「開發中／待真實 CI 驗證」。
+  - 之後下一次 push 到 main（例如本 Hotfix Merge 後）觸發的 `Deploy GitHub Pages` workflow 需完整跑過 `npm ci`→測試→build→部署且成功，才可視為本 Todo 完全解決。
 
 ## P1－家庭流動性高風險主題
 

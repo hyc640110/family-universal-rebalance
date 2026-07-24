@@ -22,12 +22,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: |
           npm config set registry https://registry.npmjs.org/
-          npm ci --no-audit --no-fund
+          npm ci --include=dev --no-audit --no-fund
+
+      - name: Verify Node/npm runtime and installed dev tooling
+        run: |
+          node --version
+          npm --version
+          npm config get omit
+          test -x node_modules/.bin/tsx
+          node_modules/.bin/tsx --version
 
       - name: Run CI regression test gate
         run: npm run test:ci

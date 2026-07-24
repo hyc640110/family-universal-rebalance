@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-24T12:35:47.313748+00:00
+Generated UTC: 2026-07-24T13:38:05.350842+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-07-24T12:35:47.313748+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `b52f445b37fee2411b29200c4ccc66a668e2817e2d26c1394ff55cc34da1d000`
 - `001_README.md` — SHA-256 `6bf2a676dc565b576eb792e44ea545b42f1ad3549c1a97d32c2271bb468d514c`
 - `002_MASTER_ROADMAP.md` — SHA-256 `170f2f77d193336e15e2972e04224c0ee5a110a1c17b11fcbf200e236505e4d8`
-- `003_CURRENT_STATUS.md` — SHA-256 `be26ab28df3d27ce9c529f5bb87b7161439d694c1b54d31cad55dc4a7b557564`
+- `003_CURRENT_STATUS.md` — SHA-256 `044bcb8f5d8771e29a57e6d7eed01ad2b29692b139e515b0d5f9033447db41ed`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `37517b8714694240dfb3e80c2cd93351b3b3c0256bc1ed9f906eaa6597a823b4`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
-- `007_GIT_WORKFLOW.md` — SHA-256 `ba7592765bf405593efd0b18aa9316a084e796b42b5b797f4a4690519b877a71`
-- `008_TODO_BACKLOG.md` — SHA-256 `fa511767d2cb5ac128bd6fca3d87104dfe4dc59282b30e98f1e7662e792327b0`
+- `007_GIT_WORKFLOW.md` — SHA-256 `dc43aac9e1f5186e04371f866a77064636090ffba241bbe1b4192a82d9890bb6`
+- `008_TODO_BACKLOG.md` — SHA-256 `dd11a631a8bde73f54ce64ce70a88241c41a790c99bfd40b4932fc06ed7c3ecc`
 - `009_CHANGELOG.md` — SHA-256 `1dcdda7d02bcbe5f72e4e111bbf2e0d63b7041be4ba3070d856b64faa60b48de`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
@@ -600,7 +600,7 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.9
+# Universal Rebalance Current Status v3.10
 
 最後更新：2026-07-24
 
@@ -645,6 +645,14 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
   - PR #105 → run `29935264176`（success，headSha `2510169`，**目前 Production 實際內容**）
 - 現況：Production Pages 目前實際服務內容為 V6.17.3A（`2510169`），含 Household Liquidity Core／Input Adapter／Data Provenance／Plan Input UI Entry Point 全部四個 PR 的內容。
 - 已知落差（本次盤點更正）：PR #102～#105 內文皆敘述「未部署 Production／未手動重跑 workflow」，此敘述僅代表「未人工手動觸發」，並未涵蓋 push-to-main 自動部署這件事。舊版本文件（v3.8 及之前）沿用此敘述，誤記 Production 仍停留在 PR #101（V6.16.1，`941daf3`）。本節已依 Workflow 實際執行紀錄更正。
+
+### 2026-07-24 PR #107 Merge 後 Deploy 失敗記錄（重要，本節之後尚未再次全面更新基線）
+
+- `main`／`origin/main` 之後又經 PR #106（`0d2ec05`）、PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）推進，但**本節以上內容尚未更新到該基線**，僅在此記錄一筆與 Production 狀態直接相關的重大事件，避免與實際部署狀態產生落差。
+- PR #107 合併後觸發的 `Deploy GitHub Pages` workflow run `30096396958`（headSha `eebee98`）**失敗**：`Install dependencies`（`npm ci`）步驟顯示成功但日誌含 `npm error Exit handler never called!`；下一步 `Run CI regression test gate` 失敗，`sh: 1: tsx: not found`，exit code 127。Production build／Preview build／`gh-pages` 部署步驟因此全數未執行。
+- **Production（`https://hyc640110.github.io/family-universal-rebalance/`）與 Preview（`.../preview/`）目前仍是上一個成功部署版本**（workflow run `30089243284`，headSha `0d2ec05`，即 PR #106 內容），兩者皆 HTTP 200 正常回應；PR #107 的內容（CI-01／CI-02 變更本身）**尚未實際上線**。
+- 根因與 Hotfix 追蹤見 `008_TODO_BACKLOG.md` 的 `UR-TODO-038 Deploy Workflow Node Runtime / DevDependency Install Failure`。
+- CI-01、CI-02 狀態：**開發中／待真實 GitHub Ubuntu runner CI 驗證**，不得標記已完成。UR-TODO-037 維持部分完成，不受本次事件影響其既有驗收內容。
 
 ### Price Worker
 
@@ -2209,6 +2217,8 @@ npm run build:preview
 
 若專案實際 script 名稱不同，應依 `package.json` 為準。`npm run test:ci` 是 2026-07-24 CI-01 Sprint 建立的完整回歸測試聚合腳本，涵蓋當時既有全部 `test:*` 腳本引用的檔案；新增測試時，若該測試檔未被任何既有 `test:*` 腳本或 `test:ci:unit-ts`／`test:ci:unit-mjs`／`test:ci:checks` 引用，必須一併加入，否則不會被部署前的 CI 測試閘門涵蓋。
 
+2026-07-24 Hotfix「Deploy Workflow Node Runtime / DevDependency Install Failure」（UR-TODO-038）起，`.github/workflows/ci.yml`（`on: pull_request`，唯讀權限，無任何部署或 `gh-pages` 寫入步驟）會在每個 PR 於真實 GitHub Ubuntu runner 上自動執行 `npm ci`、tsx 可用性驗證、`npm run test:ci`、Production build、Preview build。開 PR 前的本機驗證仍應照上方指令執行，但 Draft PR 建立後應等待 `CI Verification` workflow 的實際結果，不得只憑本機通過就假設 GitHub Actions runner 環境也會成功——PR #107 合併後即發生本機通過但 CI runner 失敗的案例（`tsx: not found`，因 Node 版本落差所致）。
+
 還需檢查：
 
 - 桌機版
@@ -2333,7 +2343,7 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.4
+# Universal Rebalance Todo Backlog v1.5
 
 最後更新：2026-07-24
 
@@ -2346,6 +2356,8 @@ Hotfix 仍需：
 2026-07-24 依「最新基線與 AI 治理文件唯讀差異盤點」（PR #102～#105 唯讀實證）更新 UR-TODO-006、UR-TODO-007 狀態，並補登 UR-TODO-036、UR-TODO-037。
 
 2026-07-24 Sprint「Deployment CI Reproducibility & Test Gate」（CI-01／CI-02／UR-TODO-037 部分範圍）將 UR-TODO-037 更新為部分完成，並記載尚未完成的 GitHub Environment 人工核准、Branch Protection、預設分支修正等延後範圍。
+
+2026-07-24 PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）合併後，對應 Deploy GitHub Pages workflow run `30096396958` 實測失敗（`npm ci` 後 `tsx: not found`，exit code 127）。測試閘門正確中止部署，Production／Preview 仍停留在上一個成功部署版本（`0d2ec05`）未受影響。補登 UR-TODO-038 追蹤此 Hotfix；CI-01、CI-02 狀態改為「開發中／待真實 CI 驗證」，不得標記已完成。
 
 狀態：
 
@@ -2483,6 +2495,38 @@ Hotfix 仍需：
 - 驗收條件：
   - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差 —— **已透過 `007_GIT_WORKFLOW.md` 更新達成**。
   - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **未完成，留待後續 Sprint**。
+
+### UR-TODO-038 Deploy Workflow Node Runtime / DevDependency Install Failure
+
+- 優先級：P0
+- 狀態：開發中（Hotfix Draft PR 待真實 GitHub Ubuntu runner CI 驗證）
+- 提出日期：2026-07-24
+- 提出依據：PR #107（merge commit `eebee98e226501dddace68ac14505937096c6c08`）合併後的 Merge 後唯讀驗證
+- 問題：
+  - `Deploy GitHub Pages` workflow run `30096396958`（headSha `eebee98`）**失敗**，`Run CI regression test gate` 步驟回報 `sh: 1: tsx: not found`，exit code 127。
+  - 前一步 `Install dependencies`（`npm ci --no-audit --no-fund`）顯示成功（✓），但日誌出現 `npm error Exit handler never called!`（npm CLI 已知內部錯誤），代表安裝過程並未確實、可驗證地把 `tsx`（devDependency）安裝到 `node_modules/.bin`。
+  - 安裝過程另有 3 筆 `EBADENGINE` 警告：`@cloudflare/kv-asset-handler`、`miniflare`、`wrangler` 皆要求 `node >=22.0.0`，但 workflow 當時的 `actions/setup-node@v4` 設定 `node-version: 20`。
+  - 本機（Node v24.18.0）執行相同的 `npm ci` 與 `npm run test:ci` 皆成功，代表落差來自 CI runner 與本機的 Node／npm 版本不一致，而非測試或程式碼本身錯誤。
+- 已確認影響：
+  - 測試閘門正確發揮作用：Build production／Preview／deploy 到 `gh-pages` 全數**未執行**，未以壞狀態覆蓋正式站。
+  - Production（`https://hyc640110.github.io/family-universal-rebalance/`）與 Preview（`.../preview/`）皆仍是上一個成功部署版本（workflow run `30089243284`，headSha `0d2ec05`），HTTP 200 正常回應，未受影響。
+  - main 目前的部署 pipeline 在修復前，之後任何 push 到 main 大機率會以相同方式再次失敗。
+- 本次 Hotfix 已完成：
+  - `actions/setup-node@v4` 的 `node-version` 由 `20` 提升為 `24`，對齊本機已驗證可用的執行環境，並解決 `EBADENGINE` 警告涵蓋的三個套件版本需求。
+  - `package.json` 新增 `engines.node: ">=22.0.0"`，明確記錄專案實際的最低 Node 版本需求。
+  - `Install dependencies` 步驟改為明確的 `npm ci --include=dev --no-audit --no-fund`。
+  - 新增「Verify Node/npm runtime and installed dev tooling」步驟，安裝後立即驗證 `node --version`、`npm --version`、`npm config get omit`，並確認 `node_modules/.bin/tsx` 存在且可執行；若驗證失敗，該步驟本身會明確失敗並中止後續部署，不會讓問題被靜默帶到後面的測試步驟才爆出難以診斷的錯誤。
+  - 新增獨立、唯讀的 `.github/workflows/ci.yml`（`on: pull_request`，`permissions: contents: read`，無任何部署步驟），讓 Hotfix 與未來所有 PR 都能在真實 GitHub Ubuntu runner 上驗證 `npm ci`／`tsx`／`test:ci`／Production build／Preview build，且保證不會寫入 `gh-pages`。
+- 尚未完成／待確認：
+  - 需等待 Hotfix Draft PR 的 `CI Verification` workflow 實際在 GitHub Ubuntu runner 跑一次，確認新的 Node 24 設定確實解決 `npm error Exit handler never called!` 與 `tsx: not found`，而非只是本機重現良好。
+  - 若 Node 版本提升後問題仍重現，需要另外排查是否為 npm 版本本身的 bug、registry 逾時，或 `esbuild`／`sharp`／`workerd` 的 postinstall 行為在 GitHub runner 上的其他限制，不得直接以重建 lockfile 掩蓋。
+- 禁止：
+  - 不得以重跑既有失敗 run（re-run）當作修復。
+  - 不得任意升級依賴版本或重建 `package-lock.json`（本次未變更任何依賴版本）。
+- 驗收條件：
+  - `CI Verification`（`ci.yml`）在 Hotfix PR 的 Ubuntu runner 上，`npm ci`、tsx 驗證、`test:ci`、Production build、Preview build 全數通過。
+  - 上述通過後，方可將 CI-01、CI-02 標記為完成；在此之前兩者維持「開發中／待真實 CI 驗證」。
+  - 之後下一次 push 到 main（例如本 Hotfix Merge 後）觸發的 `Deploy GitHub Pages` workflow 需完整跑過 `npm ci`→測試→build→部署且成功，才可視為本 Todo 完全解決。
 
 ## P1－家庭流動性高風險主題
 

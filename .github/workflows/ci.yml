@@ -1,0 +1,45 @@
+name: CI Verification
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm ci --include=dev --no-audit --no-fund
+
+      - name: Verify Node/npm runtime and installed dev tooling
+        run: |
+          node --version
+          npm --version
+          npm config get omit
+          test -x node_modules/.bin/tsx
+          node_modules/.bin/tsx --version
+
+      - name: Run CI regression test gate
+        run: npm run test:ci
+
+      - name: Build production Vite app
+        run: npm run build
+
+      - name: Build Preview Vite app
+        run: npm run build:preview
