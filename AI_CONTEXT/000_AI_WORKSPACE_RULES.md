@@ -1,6 +1,7 @@
 # Universal Rebalance AI Workspace Rules
 
-版本：v4.0  
+版本：v4.0
+
 最後更新：2026-07-23
 
 ## 核心規則

@@ -1,13 +1,14 @@
 # Universal Rebalance AI Start Here
 
-版本：v2.0  
-最後更新：2026-07-23
+版本：v2.1
+
+最後更新：2026-07-24
 
 ## 唯一入口
 
 本文件是 Universal Rebalance 在所有 AI 平台上的共同入口。
 
-使用者只需要記住兩句：
+使用者只需要記住三句：
 
 ```text
 開始工作
@@ -20,6 +21,12 @@
 ```
 
 代表申請進入 **Development Mode**：AI 必須先完成唯讀初始化與 Git 基線確認，才可修改程式；仍不得自行 Merge 或部署 Production。
+
+```text
+整理交接
+```
+
+代表結束目前這段 Review／規劃工作，將本次討論的結論整理成跨 AI／跨對話可延續的交接快照；不得修改 Repository 程式，詳見第 2.1 節與 [012_AI_HANDOVER.md](012_AI_HANDOVER.md)。
 
 ---
 
@@ -112,6 +119,19 @@
 
 - `009_CHANGELOG.md`
 - `014_TODO_GAP_AUDIT.md`
+
+---
+
+## 2.1 整理交接（Review／規劃工作結束時）
+
+適用於 Review Mode 或 Planning 討論告一段落、需要把結論交給另一個 AI、另一個平台或另一個對話延續時（例如 Claude Home 交給 Claude Code，或 Claude／Codex 交給 ChatGPT）。
+
+觸發後 AI 必須：
+
+1. 停在唯讀範圍：只更新 `AI_CONTEXT` 內的治理文件（主要是 `012_AI_HANDOVER.md`，必要時同步 `008_TODO_BACKLOG.md` 的 Todo 狀態），不修改程式、不建立 Branch、不 Commit、不 Push、不建立 PR、不部署。
+2. 依 `012_AI_HANDOVER.md` 規定的交接快照格式輸出：本次工作主題、已確認決策、Todo 變更、建議 Sprint、待盤點事項、下一位 AI 的直接起點、建議更新的 AI_CONTEXT 文件。
+3. 明確標註：本次交接內容不是 Todo Backlog、Roadmap 或 Current Status 的替代品，未完成事項仍以既有正式文件為準。
+4. 若有 Repository 存取權，可將整理結果直接寫入 `012_AI_HANDOVER.md`；若只有 Project Knowledge（無 Repository 存取權），則以聊天訊息輸出同樣格式的交接內容，交由下一位有 Repository 存取權的 AI 寫入文件。
 
 ---
 
@@ -226,6 +246,12 @@ AI 不得自行 Merge，也不得未經驗收部署 Production。
 
 ```text
 開始開發
+```
+
+或：
+
+```text
+整理交接
 ```
 
 其餘文件選擇、初始化與模式判斷由 AI 負責。

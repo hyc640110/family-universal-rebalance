@@ -4,7 +4,7 @@
 >
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
-> 所有未完成事項仍以 `008_Universal_Rebalance_Todo_Backlog_v1.0.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_Universal_Rebalance_Current_Status_v3.7.md` 為準。
+> 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
 
 ---
 
@@ -19,6 +19,54 @@
 - 同一 Sprint 尚未完成，需要跨工具或跨對話延續
 
 若目前沒有進行中的 Sprint、Branch 或 Draft PR，可保留本文件為「無進行中工作」。
+
+本文件同時涵蓋兩種交接內容：
+
+- **開發交接快照**（第 3～14 節）：有 Repository 存取權、涉及 Branch／PR／程式修改時使用。
+- **Claude Home／ChatGPT 規劃交接**（第 2.2 節）：只在 Review Mode／規劃討論中使用「整理交接」口令時使用，不涉及 Branch 或程式。
+
+---
+
+## 2.1 與其他文件的關係
+
+- 本文件是「工作狀態快照」，記錄目前這一段交接需要的短期資訊。
+- 不是 `008_TODO_BACKLOG.md` 的替代品：所有未完成事項一律以 Todo Backlog 為唯一正式來源。
+- 不是 `002_MASTER_ROADMAP.md` 的替代品：長期優先順序與版本規劃一律以 Roadmap 為準。
+- 不是 `003_CURRENT_STATUS.md` 的替代品：正式版本與正式環境狀態一律以 Current Status 為準。
+- 本文件只做「指向＋短期快照」，不得複製上述文件的完整內容；下一位 AI 仍須自行讀取正式文件確認細節。
+
+---
+
+## 2.2 Claude Home／ChatGPT 規劃交接格式
+
+適用於 [000_AI_START_HERE.md](000_AI_START_HERE.md) 第 2.1 節「整理交接」口令觸發時，且本次只是 Review／規劃討論（沒有 Branch、沒有程式修改）。
+
+輸出格式：
+
+```text
+### 本次工作主題
+
+
+### 已確認決策
+
+
+### Todo 變更
+（是否已同步寫入 008_TODO_BACKLOG.md；若尚未寫入，列出待補項目）
+
+### 建議 Sprint
+（若討論結論指向未來某個 Sprint，列出候選與優先級；不代表已核准開始開發）
+
+### 待盤點事項
+（下一位 AI 需要另外唯讀確認、本次未確認的項目）
+
+### 下一位 AI 的直接起點
+（下一位 AI 應先讀哪些文件、先做哪些唯讀確認，才能接續本次結論）
+
+### 建議更新的 AI_CONTEXT 文件
+（本次結論預期會影響哪些正式文件，例如 002／003／008／013，由下一位有 Repository 存取權的 AI 實際執行更新）
+```
+
+只有 Project Knowledge、沒有 Repository 存取權時，以聊天訊息輸出以上格式；有 Repository 存取權時，可直接寫入本節下方或第 3～14 節對應欄位。
 
 ---
 
@@ -41,11 +89,11 @@
 
 ## 3. 基本資訊
 
-- 最後更新時間：
-- 更新者／工具：
-- 交接給：
+- 最後更新時間：2026-07-24
+- 更新者／工具：Claude Code（PR #108 治理文件收尾）
+- 交接給：（尚未指定，供下一位 AI／工作階段使用）
 - 工作模式：
-  - [ ] Review Mode
+  - [x] Review Mode
   - [ ] Planning Mode
   - [ ] Development Mode
 
@@ -53,13 +101,13 @@
 
 ## 4. 正式基線
 
-- 正式版本：
-- 正式 PR：
-- merge commit：
-- Production Pages workflow：
-- Production Worker 版本：
+- 正式版本：Hotfix — Deploy Workflow Node Runtime & DevDependency Install Failure（UR-TODO-038／CI-01／CI-02）
+- 正式 PR：#108（MERGED）
+- merge commit：`0ae17a1716b32a5cdc67227a26549bec964a307c`
+- Production Pages workflow：`30103172752`（success）
+- Production Worker 版本：沿用 `003_CURRENT_STATUS.md` 既有記錄，本次未重新查詢
 - 正式基線是否已重新驗證：
-  - [ ] 是
+  - [x] 是（見 `003_CURRENT_STATUS.md` 2026-07-24 PR #108 Merge 後 Deploy 成功記錄）
   - [ ] 否，沿用 `003_Current_Status` 已驗證結果
 
 ---
@@ -68,17 +116,17 @@
 
 - Repository：`hyc640110/family-universal-rebalance`
 - Repository Root：目前 checkout 所在的 Repository 根目錄（依實際環境而定，不固定寫死本機絕對路徑）
-- 目前 Branch：
-- HEAD：
-- origin/main：
-- main：
-- `main...origin/main`：
-- Working tree：
-- Open／Draft PR：
-- PR Head：
-- Preview：
-- 是否存在未提交修改：
-- 是否存在未追蹤檔案：
+- 目前 Branch：`main`
+- HEAD：`0ae17a1716b32a5cdc67227a26549bec964a307c`
+- origin/main：同上
+- main：同上
+- `main...origin/main`：`0 / 0`
+- Working tree：乾淨
+- Open／Draft PR：無
+- PR Head：不適用（無進行中 PR）
+- Preview：不適用
+- 是否存在未提交修改：否
+- 是否存在未追蹤檔案：否
 
 ### 固定 stash
 
@@ -93,13 +141,15 @@
 
 ## 6. 目前 Sprint
 
-- Sprint／版本名稱：
-- 對應 Todo ID：
-- 目標：
-- 開發範圍：
-- 明確不包含：
-- Branch：
-- PR：
+**目前無進行中的 Branch、Draft PR 或未完成開發工作。** PR #108（Hotfix）已於 2026-07-24 14:56:47Z Merge 完成並通過 Production 驗證，UR-TODO-038、CI-01、CI-02 已標記為已完成。下一個 Sprint（例如 Household Liquidity Sprint 3／UR-TODO-008，或 Firebase Security Rules P0 盤點／UR-TODO-001）尚未啟動，需使用者明確指示才開始。
+
+- Sprint／版本名稱：（無）
+- 對應 Todo ID：（無）
+- 目標：（無）
+- 開發範圍：（無）
+- 明確不包含：（無）
+- Branch：（無）
+- PR：（無）
 - PR 狀態：
   - [ ] 尚未建立
   - [ ] Draft
@@ -111,64 +161,58 @@
 
 ## 7. 已完成工作
 
--
--
--
+- PR #108：修復 Deploy Workflow Node Runtime／DevDependency Install Failure（見 `009_CHANGELOG.md`「[Hotfix] Deploy Workflow Node Runtime & DevDependency Install Failure - 2026-07-24」）
 
 ---
 
 ## 8. 尚未完成工作
 
--
--
--
+- 無進行中工作。未完成事項請一律以 `008_TODO_BACKLOG.md` 為準（例如 UR-TODO-001 Firebase P0、UR-TODO-037 延後範圍、UR-TODO-008 等 Household Liquidity 後續 Sprint）。
 
 ---
 
 ## 9. 已修改檔案
 
--
--
--
+- 不適用（本次僅為治理文件收尾，無進行中程式修改）
 
 ---
 
 ## 10. 驗證狀態
 
-- [ ] 對應單元測試
-- [ ] 回歸測試
-- [ ] Stability
-- [ ] TypeScript
-- [ ] Production build
-- [ ] Preview build
-- [ ] Artifact isolation
-- [ ] `npm audit --omit=dev --audit-level=high`
-- [ ] `git diff --check`
-- [ ] 桌機 1000px 驗收
-- [ ] 桌機 1600px 驗收
-- [ ] iPhone Safari 約 390px 驗收
-- [ ] localStorage 相容性
-- [ ] Firebase 相容性
-- [ ] JSON Backup round-trip
-- [ ] Preview／Production 隔離
+- [x] 對應單元測試（`test:ci` 435/435＋18/18＋52 PASS，0 fail）
+- [x] 回歸測試（同上）
+- [ ] Stability（`test:stability` 未於本次 Hotfix 單獨重跑，涵蓋於 `test:ci:checks`）
+- [x] TypeScript（確認 `6.0.3`）
+- [x] Production build
+- [x] Preview build
+- [x] Artifact isolation
+- [x] `npm audit --omit=dev --audit-level=high`（0 vulnerabilities）
+- [x] `git diff --check`
+- [ ] 桌機 1000px 驗收（不適用，本次未修改 UI）
+- [ ] 桌機 1600px 驗收（不適用）
+- [ ] iPhone Safari 約 390px 驗收（不適用）
+- [x] localStorage 相容性（未修改 `src/`，不受影響）
+- [x] Firebase 相容性（未修改，不受影響）
+- [x] JSON Backup round-trip（未修改，不受影響）
+- [x] Preview／Production 隔離（實測確認正常，見 `003_CURRENT_STATUS.md`）
 
 ### 驗證結果摘要
 
-- 已通過：
-- 尚未執行：
-- 失敗項目：
-- 失敗原因：
+- 已通過：npm ci、tsx 驗證、test:ci、TypeScript、Production／Preview build、npm audit、git diff --check、Preview／Production 隔離實測、真實 Ubuntu runner CI（Draft PR 兩次＋正式 Production 部署一次）
+- 尚未執行：桌機／手機 UI 驗收（不適用，本次無 UI 變更）
+- 失敗項目：無
+- 失敗原因：不適用
 
 ---
 
 ## 11. 已知問題與阻擋
 
-- 阻擋事項：
-- 已知風險：
-- 尚未確認資訊：
-- 外部服務限制：
-- 是否影響 Production：
-- 是否影響使用者資料：
+- 阻擋事項：無
+- 已知風險：main 的 GitHub 預設分支目前仍是 `gh-pages`（非 `main`），會影響 `gh pr create` 等工具的預設行為（UR-TODO-037 延後範圍）；`main` 無 Branch Protection、無 GitHub Environment 人工核准（同上）
+- 尚未確認資訊：Firebase Realtime Database Security Rules 到期日期與影響範圍（UR-TODO-001，P0，仍待盤點）
+- 外部服務限制：Price Worker `/health` 本次未重新查詢
+- 是否影響 Production：否，Production 已驗證正常
+- 是否影響使用者資料：否
 
 ---
 
@@ -178,8 +222,8 @@
 
 1. 讀取：
    - `000_AI_WORKSPACE_RULES.md`
-   - `003_Universal_Rebalance_Current_Status_v3.7.md`
-   - `008_Universal_Rebalance_Todo_Backlog_v1.0.md`
+   - `003_CURRENT_STATUS.md`
+   - `008_TODO_BACKLOG.md`
    - 本文件
 2. 唯讀確認 Repository：
    - Branch
@@ -193,9 +237,8 @@
 
 ### 下一步
 
--
--
--
+- 無強制下一步。建議候選（依優先級）：UR-TODO-001 Firebase Security Rules 到期唯讀盤點（P0）、UR-TODO-037 延後範圍（GitHub Environment／Branch Protection／預設分支）、Household Liquidity Sprint 3（UR-TODO-008）。
+- 一律先以 Review Mode 完成唯讀初始化，待使用者明確指示後才進入 Development Mode，不得自行選擇並開始下一個 Sprint。
 
 ---
 
@@ -252,10 +295,10 @@
 目前無進行中的 Branch、Draft PR 或未完成開發工作。
 
 最新正式狀態請讀取：
-- 003_Universal_Rebalance_Current_Status_v3.7.md
+- 003_CURRENT_STATUS.md
 
 未完成事項請讀取：
-- 008_Universal_Rebalance_Todo_Backlog_v1.0.md
+- 008_TODO_BACKLOG.md
 
 下一位 AI 應先以 Review Mode 完成 Workspace 與 Repository 唯讀初始化，
 不得自行開始 Coding。
