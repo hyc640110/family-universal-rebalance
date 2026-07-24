@@ -25,42 +25,42 @@
 
 # 目錄
 
-1. 文件治理與使用方式  
-2. 問題背景與現況缺口  
-3. 目標、非目標與不可變原則  
-4. 領域語言與名詞定義  
-5. 金額、資料來源與來源分類  
-6. 核心輸入契約  
-7. 核心輸出契約  
-8. 核心公式與推導規則  
-9. Data Completeness、Confidence 與 Blocking Reasons  
-10. 防守資產、現金與可投資資金語意  
-11. 決策狀態模型  
-12. 理論建議與可執行建議分離  
-13. Standard 與 Buy-only 執行規則  
-14. 逢低加碼與機會訊號 Gate  
-15. 外部資金與提款語意  
-16. Data Provenance 與防重複計算  
-17. 建議 TypeScript Domain Contract  
-18. Adapter、Selector 與 Service 邊界  
-19. 跨模組整合規格  
-20. Dashboard／首頁規格  
-21. Analytics／分析頁規格  
-22. Risk Center 規格  
-23. Rebalance／交易建議規格  
-24. AI Decision 與 Daily Decision Workflow 規格  
-25. Investment Action Center／Opportunities 規格  
-26. Allocation Simulator 規格  
-27. CLEC 規格  
-28. UI 呈現與文案規格  
-29. Schema、Migration 與同步相容性  
-30. 開發分期與 Sprint 邊界  
-31. 測試策略與測試案例矩陣  
-32. 驗收標準與完成定義  
-33. Rollback、失敗模式與風險控制  
-34. 未決策事項與唯讀盤點清單  
-35. AI 開發與交接規則  
-36. 架構決策摘要  
+1. 文件治理與使用方式
+2. 問題背景與現況缺口
+3. 目標、非目標與不可變原則
+4. 領域語言與名詞定義
+5. 金額、資料來源與來源分類
+6. 核心輸入契約
+7. 核心輸出契約
+8. 核心公式與推導規則
+9. Data Completeness、Confidence 與 Blocking Reasons
+10. 防守資產、現金與可投資資金語意
+11. 決策狀態模型
+12. 理論建議與可執行建議分離
+13. Standard 與 Buy-only 執行規則
+14. 逢低加碼與機會訊號 Gate
+15. 外部資金與提款語意
+16. Data Provenance 與防重複計算
+17. 建議 TypeScript Domain Contract
+18. Adapter、Selector 與 Service 邊界
+19. 跨模組整合規格
+20. Dashboard／首頁規格
+21. Analytics／分析頁規格
+22. Risk Center 規格
+23. Rebalance／交易建議規格
+24. AI Decision 與 Daily Decision Workflow 規格
+25. Investment Action Center／Opportunities 規格
+26. Allocation Simulator 規格
+27. CLEC 規格
+28. UI 呈現與文案規格
+29. Schema、Migration 與同步相容性
+30. 開發分期與 Sprint 邊界
+31. 測試策略與測試案例矩陣
+32. 驗收標準與完成定義
+33. Rollback、失敗模式與風險控制
+34. 未決策事項與唯讀盤點清單
+35. AI 開發與交接規則
+36. 架構決策摘要
 
 ---
 

@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-24T10:57:42.612265+00:00
+Generated UTC: 2026-07-24T11:09:02.170682+00:00
 
 ## Manifest
 
@@ -20,8 +20,8 @@ Generated UTC: 2026-07-24T10:57:42.612265+00:00
 - `009_CHANGELOG.md` — SHA-256 `473fb0ac8a016f9d1a1516b471952f91452f9ff9c99fa179ce10d43ba462ea34`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `b2c0ec6129d7ec82cf8c876438a04426d642318756b456ba7f0e6f00359507fb`
-- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `72eca73ee7bb9c866b4604e79b2c1b6d572335fd085bf610dbcc100a03fd5bce`
+- `012_AI_HANDOVER.md` — SHA-256 `50feb17c3cf58184ad044d78779f4b52d2b2d53206b5716e3f22001e0f38006f`
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `60a6aa7b0095557e2aef92ad77be1c8487b3c43f63730d126d78e964aa7cc75b`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3047364c9317e0254106b029dce2812fe0ebae41b98502fff5804092143dfa12`
 
@@ -3261,25 +3261,25 @@ interface ServiceResult<T> {
 
 ## 7. 已完成工作
 
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
 ## 8. 尚未完成工作
 
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
 ## 9. 已修改檔案
 
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
@@ -3343,9 +3343,9 @@ interface ServiceResult<T> {
 
 ### 下一步
 
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
@@ -3444,42 +3444,42 @@ interface ServiceResult<T> {
 
 # 目錄
 
-1. 文件治理與使用方式  
-2. 問題背景與現況缺口  
-3. 目標、非目標與不可變原則  
-4. 領域語言與名詞定義  
-5. 金額、資料來源與來源分類  
-6. 核心輸入契約  
-7. 核心輸出契約  
-8. 核心公式與推導規則  
-9. Data Completeness、Confidence 與 Blocking Reasons  
-10. 防守資產、現金與可投資資金語意  
-11. 決策狀態模型  
-12. 理論建議與可執行建議分離  
-13. Standard 與 Buy-only 執行規則  
-14. 逢低加碼與機會訊號 Gate  
-15. 外部資金與提款語意  
-16. Data Provenance 與防重複計算  
-17. 建議 TypeScript Domain Contract  
-18. Adapter、Selector 與 Service 邊界  
-19. 跨模組整合規格  
-20. Dashboard／首頁規格  
-21. Analytics／分析頁規格  
-22. Risk Center 規格  
-23. Rebalance／交易建議規格  
-24. AI Decision 與 Daily Decision Workflow 規格  
-25. Investment Action Center／Opportunities 規格  
-26. Allocation Simulator 規格  
-27. CLEC 規格  
-28. UI 呈現與文案規格  
-29. Schema、Migration 與同步相容性  
-30. 開發分期與 Sprint 邊界  
-31. 測試策略與測試案例矩陣  
-32. 驗收標準與完成定義  
-33. Rollback、失敗模式與風險控制  
-34. 未決策事項與唯讀盤點清單  
-35. AI 開發與交接規則  
-36. 架構決策摘要  
+1. 文件治理與使用方式
+2. 問題背景與現況缺口
+3. 目標、非目標與不可變原則
+4. 領域語言與名詞定義
+5. 金額、資料來源與來源分類
+6. 核心輸入契約
+7. 核心輸出契約
+8. 核心公式與推導規則
+9. Data Completeness、Confidence 與 Blocking Reasons
+10. 防守資產、現金與可投資資金語意
+11. 決策狀態模型
+12. 理論建議與可執行建議分離
+13. Standard 與 Buy-only 執行規則
+14. 逢低加碼與機會訊號 Gate
+15. 外部資金與提款語意
+16. Data Provenance 與防重複計算
+17. 建議 TypeScript Domain Contract
+18. Adapter、Selector 與 Service 邊界
+19. 跨模組整合規格
+20. Dashboard／首頁規格
+21. Analytics／分析頁規格
+22. Risk Center 規格
+23. Rebalance／交易建議規格
+24. AI Decision 與 Daily Decision Workflow 規格
+25. Investment Action Center／Opportunities 規格
+26. Allocation Simulator 規格
+27. CLEC 規格
+28. UI 呈現與文案規格
+29. Schema、Migration 與同步相容性
+30. 開發分期與 Sprint 邊界
+31. 測試策略與測試案例矩陣
+32. 驗收標準與完成定義
+33. Rollback、失敗模式與風險控制
+34. 未決策事項與唯讀盤點清單
+35. AI 開發與交接規則
+36. 架構決策摘要
 
 ---
 
