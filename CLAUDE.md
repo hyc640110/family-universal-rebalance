@@ -1,5 +1,16 @@
 # CLAUDE.md — Universal Rebalance / Claude Code
 
+## 語言規則
+
+所有面向使用者的回應（包含說明文字、初始化回報、唯讀盤點結果、PR 說明、提出的問題等）一律使用**繁體中文**，無論使用者輸入的語言為何。
+
+例外（不受此規則限制）：
+
+- 程式碼本身、變數名稱、函式名稱、檔案路徑
+- Commit message 的技術用語（可維持英文慣例，但建議摘要句可中文）
+- Log／錯誤訊息原文引用
+- 既有英文專有名詞（例如 PR、Merge、Branch、Deploy、CI 等）可保留英文，不必刻意翻譯
+
 At the start of every session, read and follow:
 
 ```text
