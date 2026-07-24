@@ -3,27 +3,27 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-24T11:09:02.170682+00:00
+Generated UTC: 2026-07-24T12:35:47.313748+00:00
 
 ## Manifest
 
-- `000_AI_START_HERE.md` — SHA-256 `2f9ea3b02769bef30fc49cdaf38266c26d21ce44d5b39ff032bd8f259f4a5230`
-- `000_AI_WORKSPACE_RULES.md` — SHA-256 `c77114ae7432fff7fb4520ee5e9b8000aa20749192fab720b7bb816ffa301a79`
-- `001_README.md` — SHA-256 `d9b97dba2b5736b9d8672e342830e047c23c2c40cd28ef5963a01177943a6938`
-- `002_MASTER_ROADMAP.md` — SHA-256 `2bea98421e95a2628be74383dbf7dc9597a7e2b94e1b4e66c91c68ae383add10`
-- `003_CURRENT_STATUS.md` — SHA-256 `f69466fd516fb6317ad3900fae35052284e48b9a26c18bb7fddd4d62a8a7f1f2`
-- `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
+- `000_AI_START_HERE.md` — SHA-256 `be6fa6101625da450696a713952ee58a448ea1d06c9c7b7e565022df0980f2ef`
+- `000_AI_WORKSPACE_RULES.md` — SHA-256 `b52f445b37fee2411b29200c4ccc66a668e2817e2d26c1394ff55cc34da1d000`
+- `001_README.md` — SHA-256 `6bf2a676dc565b576eb792e44ea545b42f1ad3549c1a97d32c2271bb468d514c`
+- `002_MASTER_ROADMAP.md` — SHA-256 `170f2f77d193336e15e2972e04224c0ee5a110a1c17b11fcbf200e236505e4d8`
+- `003_CURRENT_STATUS.md` — SHA-256 `be26ab28df3d27ce9c529f5bb87b7161439d694c1b54d31cad55dc4a7b557564`
+- `004_DEVELOPMENT_GUIDE.md` — SHA-256 `37517b8714694240dfb3e80c2cd93351b3b3c0256bc1ed9f906eaa6597a823b4`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
-- `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
-- `007_GIT_WORKFLOW.md` — SHA-256 `5c7f5784389796ba25168b39a1f7c65018e26f7b0bced7d27241e6d376077cc4`
-- `008_TODO_BACKLOG.md` — SHA-256 `28e7b95f4415d660cd54276ab1f62586b331f994910de2e02d0d415bef56248d`
-- `009_CHANGELOG.md` — SHA-256 `473fb0ac8a016f9d1a1516b471952f91452f9ff9c99fa179ce10d43ba462ea34`
-- `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
-- `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `50feb17c3cf58184ad044d78779f4b52d2b2d53206b5716e3f22001e0f38006f`
-- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `60a6aa7b0095557e2aef92ad77be1c8487b3c43f63730d126d78e964aa7cc75b`
-- `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
-- `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3047364c9317e0254106b029dce2812fe0ebae41b98502fff5804092143dfa12`
+- `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
+- `007_GIT_WORKFLOW.md` — SHA-256 `ba7592765bf405593efd0b18aa9316a084e796b42b5b797f4a4690519b877a71`
+- `008_TODO_BACKLOG.md` — SHA-256 `fa511767d2cb5ac128bd6fca3d87104dfe4dc59282b30e98f1e7662e792327b0`
+- `009_CHANGELOG.md` — SHA-256 `1dcdda7d02bcbe5f72e4e111bbf2e0d63b7041be4ba3070d856b64faa60b48de`
+- `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
+- `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
+- `012_AI_HANDOVER.md` — SHA-256 `73ecb8d80740a44e5331b4ca8e337cb5e815e043da89ce641d51662f64beec94`
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `99aa67622ebcc13f9b171c2845a0e11f5f2d015c03466c582994151f81495fdf`
+- `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
+- `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `88644c429eba71654ca950bf8e92c0c81fee819d2710cdbcb4f07430f265a0b6`
 
 ---
 
@@ -2200,13 +2200,14 @@ git commit -m "fix: correct mobile chart date overflow"
 開 PR 前至少執行：
 
 ```bash
-npm install
-npm run typecheck
-npm run test
+npm ci
+npx tsc -b
+npm run test:ci
 npm run build
+npm run build:preview
 ```
 
-若專案實際 script 名稱不同，應依 `package.json` 為準。
+若專案實際 script 名稱不同，應依 `package.json` 為準。`npm run test:ci` 是 2026-07-24 CI-01 Sprint 建立的完整回歸測試聚合腳本，涵蓋當時既有全部 `test:*` 腳本引用的檔案；新增測試時，若該測試檔未被任何既有 `test:*` 腳本或 `test:ci:unit-ts`／`test:ci:unit-mjs`／`test:ci:checks` 引用，必須一併加入，否則不會被部署前的 CI 測試閘門涵蓋。
 
 還需檢查：
 
@@ -2290,7 +2291,11 @@ AI 不可自行 Merge。
 - 只在使用者確認後發布
 - 使用 Production Worker
 - 使用正式 OAuth callback
-- 由使用者決定 Merge 與部署
+- **`main` 的 push（含 PR Merge）會由 `.github/workflows/deploy.yml` 自動觸發 Production 部署，沒有獨立、額外的人工部署核准步驟。因此「使用者手動 Merge」本身就是目前實際的 Production 發布決策點，不是「先 Merge、之後再另外決定要不要部署」。**
+- 2026-07-24 CI-01／CI-02 Sprint 起，`deploy.yml` 會先執行 `npm ci` 與 `npm run test:ci`，任一失敗會中止該次 workflow、不會產出部署；但這是「部署當下」的自動把關，不是「Merge 前」的人工核准，Merge 之前仍不得描述 Production 已部署或已發布。
+- PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」；只能敘述本機／Preview 驗證結果。
+- Merge 完成後，AI 或負責回報的人必須實際查詢該次 push 觸發的 `Deploy GitHub Pages` workflow run（run id、headSha、`status`、`conclusion`），並如實記錄為「成功」「失敗」或「待確認」，不得只憑「PR 已 Merge」就假設 Production 已成功更新。
+- GitHub Environment 人工核准、Branch Protection、預設分支（目前為 `gh-pages`）修正等強化措施，本次（CI-01／CI-02／UR-TODO-037 部分）**明確不處理**，需另立獨立 Todo／Sprint。
 
 ---
 
@@ -2328,7 +2333,7 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.3
+# Universal Rebalance Todo Backlog v1.4
 
 最後更新：2026-07-24
 
@@ -2339,6 +2344,8 @@ Hotfix 仍需：
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
 2026-07-24 依「最新基線與 AI 治理文件唯讀差異盤點」（PR #102～#105 唯讀實證）更新 UR-TODO-006、UR-TODO-007 狀態，並補登 UR-TODO-036、UR-TODO-037。
+
+2026-07-24 Sprint「Deployment CI Reproducibility & Test Gate」（CI-01／CI-02／UR-TODO-037 部分範圍）將 UR-TODO-037 更新為部分完成，並記載尚未完成的 GitHub Environment 人工核准、Branch Protection、預設分支修正等延後範圍。
 
 狀態：
 
@@ -2455,22 +2462,27 @@ Hotfix 仍需：
 ### UR-TODO-037 Deployment Workflow Approval & Status Accuracy
 
 - 優先級：P0
-- 狀態：待盤點
+- 狀態：**部分完成**（Sprint「Deployment CI Reproducibility & Test Gate」，2026-07-24）
 - 提出日期：2026-07-24
 - 提出依據：2026-07-24「最新基線與 AI 治理文件唯讀差異盤點」
 - 問題：
   - `.github/workflows/deploy.yml` 觸發條件為 `on: push: branches: [main]`，沒有 Draft／Ready／人工核准閘門。
   - 任何 PR 一旦 Merge 進 `main`，即會自動部署到 Production GitHub Pages，與治理文件（`000_AI_START_HERE.md`、`001_README.md`）描述的「PR 預設 Draft、Preview 驗收後才 Ready、使用者手動 Merge」流程之間，實際上沒有對應的「使用者手動決定是否部署 Production」步驟。
   - PR #102～#105 內文均敘述「Production 未部署」，但實際上四次 Merge 皆各自觸發成功的 Production 部署（見 `003_CURRENT_STATUS.md` 第 3 節），代表既有 PR 撰寫慣例未正確區分「未手動觸發部署」與「未部署」。
-- 待確認：
-  - 是否需要在 `deploy.yml` 增加人工核准（如 GitHub Environments 的 required reviewers）或改為 `workflow_dispatch` 觸發 Production 部署。
-  - 若不新增閘門，未來 PR 描述與治理文件（Current Status、Handover）是否需要固定用語，明確區分「Merge 即會自動部署 Production」與「已驗收／已對外公告」。
-  - 是否需要回溯確認 PR #102～#105 之前的既有 PR 是否也有相同認知落差。
+- 本次已完成：
+  - `007_GIT_WORKFLOW.md` §8 已明確記載：「使用者手動 Merge」是目前實際的 Production 發布決策點，push-to-main 會自動觸發部署，不存在額外的人工部署核准步驟。
+  - 明確規定 PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」。
+  - 明確規定 Merge 完成後，必須依實際 `Deploy GitHub Pages` workflow run 結果（run id、headSha、status、conclusion）記錄成功、失敗或待確認，不得只憑「已 Merge」推定成功。
+  - 部署 pipeline 本身新增測試與依賴可重現性把關（見 CI-01、CI-02），降低「品質不佳但仍自動上線」的風險，但這屬於部署當下的自動檢查，不是 Merge 前的人工核准。
+- 尚未完成範圍（明確延後，需另立 Todo／Sprint）：
+  - GitHub Environments 人工核准（required reviewers）
+  - Branch Protection Rule（`main` 目前仍是 `Branch not protected`）
+  - GitHub 預設分支修正（目前仍是 `gh-pages`，非 `main`，會影響 `gh pr create` 等工具的預設行為）
 - 禁止：
   - 不得未經使用者授權直接修改 `deploy.yml` 或其他 CI／CD 設定。
 - 驗收條件：
-  - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差。
-  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證。
+  - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差 —— **已透過 `007_GIT_WORKFLOW.md` 更新達成**。
+  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **未完成，留待後續 Sprint**。
 
 ## P1－家庭流動性高風險主題
 

@@ -26,9 +26,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          rm -f package-lock.json
           npm config set registry https://registry.npmjs.org/
-          npm install --no-package-lock --no-audit --no-fund
+          npm ci --no-audit --no-fund
+
+      - name: Run CI regression test gate
+        run: npm run test:ci
 
       - name: Build production Vite app
         if: github.event_name == 'push'

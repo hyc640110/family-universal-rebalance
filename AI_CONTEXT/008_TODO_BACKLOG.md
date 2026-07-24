@@ -1,4 +1,4 @@
-# Universal Rebalance Todo Backlog v1.3
+# Universal Rebalance Todo Backlog v1.4
 
 最後更新：2026-07-24
 
@@ -9,6 +9,8 @@
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
 2026-07-24 依「最新基線與 AI 治理文件唯讀差異盤點」（PR #102～#105 唯讀實證）更新 UR-TODO-006、UR-TODO-007 狀態，並補登 UR-TODO-036、UR-TODO-037。
+
+2026-07-24 Sprint「Deployment CI Reproducibility & Test Gate」（CI-01／CI-02／UR-TODO-037 部分範圍）將 UR-TODO-037 更新為部分完成，並記載尚未完成的 GitHub Environment 人工核准、Branch Protection、預設分支修正等延後範圍。
 
 狀態：
 
@@ -125,22 +127,27 @@
 ### UR-TODO-037 Deployment Workflow Approval & Status Accuracy
 
 - 優先級：P0
-- 狀態：待盤點
+- 狀態：**部分完成**（Sprint「Deployment CI Reproducibility & Test Gate」，2026-07-24）
 - 提出日期：2026-07-24
 - 提出依據：2026-07-24「最新基線與 AI 治理文件唯讀差異盤點」
 - 問題：
   - `.github/workflows/deploy.yml` 觸發條件為 `on: push: branches: [main]`，沒有 Draft／Ready／人工核准閘門。
   - 任何 PR 一旦 Merge 進 `main`，即會自動部署到 Production GitHub Pages，與治理文件（`000_AI_START_HERE.md`、`001_README.md`）描述的「PR 預設 Draft、Preview 驗收後才 Ready、使用者手動 Merge」流程之間，實際上沒有對應的「使用者手動決定是否部署 Production」步驟。
   - PR #102～#105 內文均敘述「Production 未部署」，但實際上四次 Merge 皆各自觸發成功的 Production 部署（見 `003_CURRENT_STATUS.md` 第 3 節），代表既有 PR 撰寫慣例未正確區分「未手動觸發部署」與「未部署」。
-- 待確認：
-  - 是否需要在 `deploy.yml` 增加人工核准（如 GitHub Environments 的 required reviewers）或改為 `workflow_dispatch` 觸發 Production 部署。
-  - 若不新增閘門，未來 PR 描述與治理文件（Current Status、Handover）是否需要固定用語，明確區分「Merge 即會自動部署 Production」與「已驗收／已對外公告」。
-  - 是否需要回溯確認 PR #102～#105 之前的既有 PR 是否也有相同認知落差。
+- 本次已完成：
+  - `007_GIT_WORKFLOW.md` §8 已明確記載：「使用者手動 Merge」是目前實際的 Production 發布決策點，push-to-main 會自動觸發部署，不存在額外的人工部署核准步驟。
+  - 明確規定 PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」。
+  - 明確規定 Merge 完成後，必須依實際 `Deploy GitHub Pages` workflow run 結果（run id、headSha、status、conclusion）記錄成功、失敗或待確認，不得只憑「已 Merge」推定成功。
+  - 部署 pipeline 本身新增測試與依賴可重現性把關（見 CI-01、CI-02），降低「品質不佳但仍自動上線」的風險，但這屬於部署當下的自動檢查，不是 Merge 前的人工核准。
+- 尚未完成範圍（明確延後，需另立 Todo／Sprint）：
+  - GitHub Environments 人工核准（required reviewers）
+  - Branch Protection Rule（`main` 目前仍是 `Branch not protected`）
+  - GitHub 預設分支修正（目前仍是 `gh-pages`，非 `main`，會影響 `gh pr create` 等工具的預設行為）
 - 禁止：
   - 不得未經使用者授權直接修改 `deploy.yml` 或其他 CI／CD 設定。
 - 驗收條件：
-  - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差。
-  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證。
+  - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差 —— **已透過 `007_GIT_WORKFLOW.md` 更新達成**。
+  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **未完成，留待後續 Sprint**。
 
 ## P1－家庭流動性高風險主題
 
