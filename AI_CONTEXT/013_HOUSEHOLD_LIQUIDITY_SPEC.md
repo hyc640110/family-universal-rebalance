@@ -1,18 +1,20 @@
-# 013_Household_Liquidity_Model_Spec_v3.0
+# 013_Household_Liquidity_Model_Spec_v4.0
 
 # Household Liquidity, Safety Reserve & Investable Cash Architecture Specification
 
 **中文名稱：家庭流動性、安全存量與可投資現金整合架構規格書**
 
-- 文件版本：v3.0
+- 文件版本：v4.0（文件本身版號，與產品版本代號無關；見 `016_Product_Decisions.md`「版本命名區隔規則」）
+- 對應產品版本：**產品版本 V7.0B（Financial Liquidity Core）** 的正式規格來源，兩者是同一件事，非兩份規格，詳見第 1.4 節
 - 文件狀態：正式架構規格
 - 適用專案：Universal Rebalance
 - 適用 Repository：`hyc640110/family-universal-rebalance`
 - 規格提出日期：2026-07-23
+- v4.0 更新日期：2026-07-25
 - 規格層級：高風險跨模組核心財務架構
 - 詳細規格 SSOT：本文件
-- 未完成工作 SSOT：`008_Universal_Rebalance_Todo_Backlog_v1.1.md`
-- 最新正式基線：以最新 `003_Universal_Rebalance_Current_Status` 為準
+- 未完成工作 SSOT：`008_TODO_BACKLOG.md`
+- 最新正式基線：以最新 `003_CURRENT_STATUS.md` 為準
 
 > 本文件定義 Universal Rebalance 的 Household Liquidity Model（家庭流動性模型），
 > 作為安全存量、可投資現金、實際可執行預算、外部資金需求與投資行動資格判斷的唯一詳細規格來源。
@@ -126,6 +128,24 @@ ChatGPT、Claude、Codex、Gemini、Cursor 等 AI 在處理下列工作前，必
 - 安全現金與可投資現金 UI
 
 不得只讀 Todo 標題後自行推導公式。
+
+## 1.4 與產品版本 V7.0B 的對應關係
+
+2026-07-25 使用者確認：本文件即為**產品版本 V7.0B（Financial Liquidity Core）**——「建立唯一的 Financial Liquidity Engine，讓 Dashboard／AI Decision／Household／CLEC／Rebalance／Simulation 全部共用同一套資料」——所指的正式規格來源，兩者是同一件事，**不另立新規格文件**（不建立 `016_Financial_Liquidity_Model_v2.md` 或任何類似命名的新檔案）。
+
+對應關係：
+
+| 產品版本 V7.0B 範圍 | 本文件對應章節 | 對應 Todo |
+|---|---|---|
+| 唯一 Financial Liquidity Engine 核心模型 | 第 4～9 節（領域語言、輸入輸出契約、核心公式、Completeness／Confidence／Blocking） | UR-TODO-006（已完成）、UR-TODO-007（部分完成） |
+| Rebalance／Trade Execution 共用 | 第 12～14、23 節、第 30 節 Sprint 3 | UR-TODO-008（待開發） |
+| Risk／AI Decision／Dashboard 共用 | 第 11、19～25 節、第 30 節 Sprint 4 | UR-TODO-009（待開發） |
+| CLEC／Simulator 共用 | 第 15、26、27 節、第 30 節 Sprint 5 | UR-TODO-010（待開發） |
+| 跨模組呈現一致性 | 第 19、28 節、第 30 節 Sprint 6 | UR-TODO-011（待開發） |
+
+若未來規劃或討論中提及「V7.0B」「Financial Liquidity Core」「Financial Liquidity Engine」，一律指本文件與上表對應的 Sprint 3～6／UR-TODO-008～011，不得視為獨立於本規格之外的新工作。
+
+v4.0 相對 v3.0 的唯一實質變更是新增本節與少量文件內部參照更正（見附錄 C）；核心公式、契約、Blocking Reason、Sprint 邊界等既有內容未變更，Sprint 1／2 已完成範圍不受影響。
 
 ---
 
@@ -1384,6 +1404,10 @@ Adapter 不負責：
 
 Dashboard 與 Analytics、AI Decision 的結論必須一致。
 
+## 20.4 與 Dashboard UX Guideline 的分工（v4.0 新增）
+
+本節只定義首頁應顯示「哪些資料」與其優先順序，不定義版面配置、視覺呈現、互動細節或「今日行動中心」的具體資訊架構——這些屬於 `018_Dashboard_UX_Guideline.md`（V7.0C）的範圍，該文件目前僅有骨架、內容待補完。本文件與 `018` 的分工原則：本文件回答「首頁要不要顯示、顯示什麼、資料從哪裡來」，`018` 回答「怎麼排版、怎麼互動、視覺上長什麼樣子」。
+
 ---
 
 # 21. Analytics／分析頁規格
@@ -1635,6 +1659,10 @@ CLEC 理論比例可保留，但可執行交易仍受：
 ```text
 目前配置仍有理論缺口，但沒有可投資現金，建議先保留現金。
 ```
+
+## 28.5 與 Design System 的分工（v4.0 新增）
+
+本節只定義文案內容、應顯示欄位與手機版的資訊揭露原則，不定義元件層級的視覺規範（Card、Button、Icon、Color、Typography、Spacing、Animation、Skeleton 等）——這些屬於 `017_Design_System.md`（V7.0E）的範圍，該文件目前僅有骨架、內容待補完。任何實作本節內容的 UI，元件層級樣式應遵守 `017`，本文件不重複定義視覺規範。
 
 ---
 
@@ -2169,4 +2197,16 @@ Handover 應記錄：
 
 - `013_Household_Liquidity_Model_Spec_v1.0.md`：舊版摘要，可封存
 - `013_Household_Liquidity_Model_Spec_v2.0.md`：舊版摘要，可封存
-- `013_Household_Liquidity_Model_Spec_v3.0.md`：目前正式詳細架構規格
+- `013_Household_Liquidity_Model_Spec_v3.0`：已由 v4.0 取代
+- `013_Household_Liquidity_Model_Spec_v4.0`（本文件）：目前正式詳細架構規格
+
+## v4.0 版本歷史（2026-07-25）
+
+本次升版由 V7.0A（Foundation & Product Governance）觸發，用途是回應「V7.0B Financial Liquidity Core 是否與本規格重疊」的唯讀核對結論：確認兩者是同一件事，不另立新規格文件。
+
+變更內容：
+
+- 新增第 1.4 節，明確記錄本文件與產品版本 V7.0B 的對應關係（Sprint 3～6／UR-TODO-008～011 對照表）
+- 新增第 20.4 節、第 28.5 節，說明本文件與 `018_Dashboard_UX_Guideline.md`（V7.0C）、`017_Design_System.md`（V7.0E）的分工邊界——本文件只定義資料與內容層級的規格，版面配置與元件視覺規範另由該兩份文件負責
+- 修正文件開頭兩處指向舊版帶版本號檔名的過期參照（`008_Universal_Rebalance_Todo_Backlog_v1.1.md` → `008_TODO_BACKLOG.md`；`003_Universal_Rebalance_Current_Status` → `003_CURRENT_STATUS.md`）
+- **未變更**：核心公式、輸入輸出契約、Blocking Reason、Sprint 1～6 邊界定義、Sprint 1／2 已完成範圍。本次唯讀盤點確認 013 v3.0 原有內容已完整涵蓋 V7.0B 所述範圍，除上述文件層級的定位說明外，無其他實質缺口需要擴充。
