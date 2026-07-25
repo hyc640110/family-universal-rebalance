@@ -69,6 +69,7 @@ import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quote
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
+import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting } from './lib/dipAlertEngine';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -79,10 +80,8 @@ type LoanItem = { id: string; name: string; principal: number; annualRate: numbe
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
 type AllocationRoleBySymbol = Record<string, AllocationRole>;
-type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
 export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
-type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
@@ -105,7 +104,6 @@ const MIN_GROWTH_TARGET = 0;
 const MAX_GROWTH_TARGET = 100;
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const DEFAULT_BUY_ONLY_BUDGET = 100000;
-const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
 const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, transactions: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, syncStatus: false, syncDiagnostics: false, targetCheck: false } };
@@ -243,13 +241,6 @@ const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESH
 const budgetWanOf = (value: unknown) => safeNumber(value) / 10000;
 const budgetFromWan = (value: unknown) => Math.max(0, safeNumber(value) * 10000);
 const rebalanceModeDescription = (mode: RebalanceMode) => mode === 'standard' ? '允許買入與賣出，目標是讓配置回到目標比例。' : '不賣出超標資產，只用現金或新資金補足低配資產，適合分批投入。';
-const defaultDipAlertSetting = (): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: DEFAULT_DIP_ALERT_THRESHOLD });
-function normalizeDipAlertSetting(raw: unknown): DipAlertSetting {
-  const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-  const rawThreshold = r.thresholdPct;
-  const threshold = rawThreshold === undefined || rawThreshold === null || rawThreshold === '' ? DEFAULT_DIP_ALERT_THRESHOLD : safeNumber(rawThreshold);
-  return { enabled: Boolean(r.enabled), referencePrice: Math.max(0, safeNumber(r.referencePrice)), thresholdPct: threshold };
-}
 function normalizeDipAlerts(raw: unknown, holdings: unknown): Record<SymbolCode, DipAlertSetting> {
   const source = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
   return safeHoldings(holdings).reduce<Record<SymbolCode, DipAlertSetting>>((next, holding) => {
@@ -1453,16 +1444,10 @@ function App() {
   const wealthProjection = useMemo(() => deriveWealthGoalProjection(m.netWorth, state.wealthGoal), [m.netWorth, state.wealthGoal]);
   const cashFlowSummary = useMemo(() => state.cashFlowProfile ? deriveCashFlow(state.cashFlowProfile, m.cash) : null, [state.cashFlowProfile, m.cash]);
   const historySummary = useMemo(() => deriveHistoryStats(netWorthHistory), [netWorthHistory]);
-  const dipAlertRows = useMemo<DipAlertRow[]>(() => m.rows.map(row => {
-    const symbol = normalizeSymbol(row.symbol);
-    const setting = normalizeDipAlertSetting(state.dipAlerts?.[symbol] ?? defaultDipAlertSetting());
-    const price = Math.max(0, safeNumber((quotes[symbol] || row.quote)?.price));
-    const referencePrice = Math.max(0, safeNumber(setting.referencePrice));
-    const drawdownPct = price > 0 && referencePrice > 0 ? (price - referencePrice) / referencePrice * 100 : null;
-    const triggered = Boolean(setting.enabled && drawdownPct !== null && drawdownPct <= setting.thresholdPct);
-    const status = !setting.enabled ? '未啟用' : drawdownPct === null ? '尚未設定有效波段最高價' : triggered ? '已達逢低加碼觀察條件，可列入加碼觀察' : '尚未觸發';
-    return { symbol, name: row.quote.name || SYMBOL_NAMES[symbol] || symbol, price, setting, drawdownPct, triggered, status };
-  }), [m.rows, quotes, state.dipAlerts]);
+  // V7.0B sub-PR 5a (UR-TODO-008): dip signal price-only computation moved to src/lib/dipAlertEngine.ts
+  // (getDipAlertRows), mirroring the sub-PR 4a relocation of getOrderSuggestions. Pure relocation, no behavior
+  // change — funding-eligibility gating (013 §14.2) is sub-PR 5b scope.
+  const dipAlertRows = useMemo<DipAlertRow[]>(() => getDipAlertRows(m.rows, quotes, state.dipAlerts), [m.rows, quotes, state.dipAlerts]);
   const decisionSummary = useMemo(() => getDecisionSummary(rb, orderHelper, dipAlertRows), [rb, orderHelper, dipAlertRows]);
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
   const currentWeights = useMemo(() => Object.fromEntries(m.rows.map(row => [row.symbol, m.totalAssets > 0 ? num(row.marketValue) / num(m.totalAssets) * 100 : 0])), [m.rows, m.totalAssets]);
