@@ -8,7 +8,11 @@ export type RecommendationHolding = {
 };
 export type RebalanceRecommendationInput = {
   totalAssets: number; liquidCash: number; buyOnlyBudget: number; rebalanceMode: RebalanceRecommendationMode;
-  /** V7.0B: household-liquidity-derived investable cash (013 §13.2), used only in buy-only mode. Standard mode still uses liquidCash. */
+  /**
+   * V7.0B: household-liquidity-derived investable cash (013 §13.1/§13.2), used as the budget basis for both modes:
+   * buy-only clamps it against buyOnlyBudget, standard uses it directly (no user-set budget ceiling). `liquidCash`
+   * itself remains only as an informational "current account cash" figure, no longer the budget basis for either mode.
+   */
   investableCash: number | null;
   rebalanceThreshold: number; allocationDeviation: number; targetTotal: number; cashTargetPct: number;
   holdings: RecommendationHolding[]; duplicateSymbols: string[]; otherAssetValue?: number;
@@ -35,7 +39,7 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
     !input.holdings.length ? '尚無持股資料，無法計算個別標的建議。' : '',
     !finite(input.totalAssets) || totalAssets <= 0 ? '總資產不是有效正數，無法計算目標市值。' : '',
     !finite(input.targetTotal) || targetTotal > 100 ? '持股目標比例總和超過 100%，請先修正目標比例。' : '',
-    mode === 'buy-only' && input.investableCash === null ? '家庭流動性資料不足，無法確認可投資現金，只買不賣模式暫停產生具體金額建議。' : '',
+    input.investableCash === null ? '家庭流動性資料不足，無法確認可投資現金，暫停產生具體金額建議。' : '',
     input.duplicateSymbols.length ? `偵測到重複 symbol：${input.duplicateSymbols.join('、')}，請先合併或修正持股資料。` : '',
     number(input.otherAssetValue) > amountFloor ? '總資產含有未分類的非持股／非流動現金資產，無法可靠分配投資目標。' : '',
     ...input.holdings.flatMap(holding => [
@@ -67,8 +71,14 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
     };
   }
   const rankedBuys = baseRows.filter(row => row.difference > amountFloor).sort((a, b) => b.difference - a.difference || a.symbol.localeCompare(b.symbol));
-  // Buy-only mode is limited by investableCash (013 §13.2: min(requestedInvestmentBudget, investableCash)), not the raw liquidCash used by standard mode.
-  const availableBuyBudget = mode === 'buy-only' ? Math.max(0, Math.min(number(input.buyOnlyBudget), number(input.investableCash))) : liquidCash;
+  // Buy-only mode is limited by investableCash (013 §13.2: min(requestedInvestmentBudget, investableCash)).
+  // Standard mode has no user-set budget ceiling, so it uses investableCash directly (013 §13.1: existingInvestableCash
+  // + settledSellProceeds + explicitExternalContribution — settledSellProceeds is already folded into investableCash
+  // because the household liquidity core only ever sees cash the user has actually recorded as received; theoretical
+  // sale proceeds that haven't been recorded are never assumed available, matching the notice below).
+  const availableBuyBudget = mode === 'buy-only'
+    ? Math.max(0, Math.min(number(input.buyOnlyBudget), number(input.investableCash)))
+    : Math.max(0, number(input.investableCash));
   const noInvestableCash = mode === 'buy-only' && input.investableCash === 0;
   const buyAmounts = new Map<string, number>();
   if (mode === 'buy-only') {
@@ -98,8 +108,12 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
   return {
     canRecommend, blockingReasons, mode, totalAssets, liquidCash, cashTargetPct, cashTargetValue: totalAssets * cashTargetPct / 100, targetTotal,
     thresholdReached, allocationDeviation: number(input.allocationDeviation), thresholdGap, allocation: input.allocation, rows,
-    buyTotal, sellTotal, netCashImpact: buyTotal - sellTotal, availableBuyBudget, usedBuyBudget: buyTotal, remainingBudget: mode === 'buy-only' ? Math.max(0, availableBuyBudget - buyTotal) : Math.max(0, liquidCash - buyTotal), unresolvedGap,
-    cashShortfall: mode === 'standard' ? Math.max(0, buyTotal - liquidCash) : 0,
+    // Both modes now share the same remainingBudget shape because availableBuyBudget already carries the
+    // mode-specific basis above (buy-only: min(buyOnlyBudget, investableCash); standard: investableCash).
+    buyTotal, sellTotal, netCashImpact: buyTotal - sellTotal, availableBuyBudget, usedBuyBudget: buyTotal, remainingBudget: Math.max(0, availableBuyBudget - buyTotal), unresolvedGap,
+    // cashShortfall reuses availableBuyBudget (== investableCash for standard mode) so it never drifts from the
+    // same basis as availableBuyBudget/remainingBudget above.
+    cashShortfall: mode === 'standard' ? Math.max(0, buyTotal - availableBuyBudget) : 0,
     notices: [thresholdReached ? `配置偏離已達門檻，超過 ${thresholdGap.toFixed(2)} 個百分點。` : '目前未達執行門檻；以下僅為理論配置差額。', mode === 'standard' ? '理論賣出所得與現有流動現金分開呈現，不假設可立即用於買入。' : '只買不賣模式依最大缺口優先，預算用完即停止。'],
     limitations: ['金額為理論試算，未含手續費、交易稅與滑價。', '不構成投資建議，不代表必須立即執行。', '不預測價格或市場時機。']
   };
