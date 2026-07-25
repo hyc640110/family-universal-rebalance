@@ -8,14 +8,16 @@ import type { AppState, Holding, Quote } from '../App';
 // (fully erased at compile time, zero runtime import), so this file stays free of that problem while still sharing
 // App.tsx's real state shape instead of a hand-rolled duplicate. RebalanceMode/SymbolCode are trivial aliases
 // re-declared locally rather than imported, since they cannot drift from App.tsx's identical definitions.
-// This is a pure relocation: no logic, formula, or output has changed from the App.tsx versions it replaces.
+// sub-PR 4a itself was a pure relocation (no logic, formula, or output change). sub-PR 4b then wired investableCash
+// into getOrderSuggestions below as its first intentional behavior change since the move — see that function's own
+// comment for the money-basis change (013 §12~14).
 
 export type SymbolCode = string;
 export type RebalanceMode = 'standard' | 'buy-only';
 
 export type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
 export type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
-export type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
+export type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; investableCash: number | null; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
 
 export type OrderHelperRow = Holding & { quote: Quote; marketValue: number };
 export type OrderHelperMetrics = { rows: OrderHelperRow[]; totalAssets: number; cash: number; defensiveHoldingsValue: number };
@@ -80,7 +82,14 @@ function withOrderAmount(item: Omit<OrderSuggestion, 'amount' | 'shares' | 'lots
     conversionText: formatShares(shares)
   };
 }
-export function getOrderSuggestions(state: OrderHelperState, quotes: Record<SymbolCode, Quote>, m: OrderHelperMetrics): OrderHelper {
+// V7.0B sub-PR 4b (UR-TODO-008, 013 §12~14, §13.1/§13.2): `investableCash` is the executable-cash basis for
+// buyOnlyLimit/remainingBudget/shortage/cashEnough/cashLimited below (protected-safety-reserve-aware, from
+// deriveHouseholdLiquidity via App.tsx's householdLiquidityForRebalance). `m.cash` (raw account total) stays only
+// as the informational `cash` field on the returned OrderHelper — it no longer drives any funding decision, mirroring
+// rebalanceRecommendation.ts's existing liquidCash-vs-investableCash split (013 §12.3: 可投資現金／實際可執行／外部
+// 資金需求 must stay separate from the raw account total). This is the intentional sub-PR 4b behavior change from
+// sub-PR 4a's characterization baseline (tests/getOrderSuggestions.test.ts), documented per-test where it applies.
+export function getOrderSuggestions(state: OrderHelperState, quotes: Record<SymbolCode, Quote>, m: OrderHelperMetrics, investableCash: number | null): OrderHelper {
   const mode = normalizeRebalanceMode(state.rebalanceMode);
   const rows = m.rows.map(row => {
     const targetPercent = getEffectiveTargetPercent(row, state.holdings);
@@ -99,15 +108,20 @@ export function getOrderSuggestions(state: OrderHelperState, quotes: Record<Symb
     };
   });
   const cash = Math.max(0, safeNumber(m.cash));
+  // When investableCash is unconfirmed (null), the executable basis is conservatively treated as 0 so no buy order
+  // is ever silently funded from unconfirmed cash (013 §12.4 prohibits displaying a precise buy order when data is
+  // incomplete). investableCash itself is still returned as null on the output below, never coerced to 0, so
+  // callers can tell "confirmed zero" apart from "unconfirmed".
+  const investableCashBasis = investableCash === null ? 0 : Math.max(0, safeNumber(investableCash));
   const buyOnlyBudget = normalizeBuyOnlyBudget(state.buyOnlyBudget);
-  const buyOnlyLimit = Math.min(buyOnlyBudget, cash);
+  const buyOnlyLimit = Math.min(buyOnlyBudget, investableCashBasis);
   const hasInvalidBuyOnlyBudget = mode === 'buy-only' && buyOnlyBudget <= 0;
   const rowClassMap = Object.fromEntries(m.rows.map(row => [normalizeSymbol(row.symbol), row.assetClass])) as Record<SymbolCode, Holding['assetClass']>;
   const growthRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] !== 'defensive');
   const defensiveRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] === 'defensive');
   const buyGaps = growthRows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
   const fullBuyGap = buyGaps.reduce((total, item) => total + Math.max(0, safeNumber(item.diff)), 0);
-  let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : cash;
+  let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : investableCashBasis;
   const growthBuy = buyGaps.map(item => {
     const amount = mode === 'buy-only' ? Math.min(Math.max(0, item.diff), remainingBudget) : Math.max(0, item.diff);
     remainingBudget = mode === 'buy-only' ? Math.max(0, remainingBudget - amount) : remainingBudget;
@@ -130,6 +144,6 @@ export function getOrderSuggestions(state: OrderHelperState, quotes: Record<Symb
         ? { status: 'over', message: '以下防守標的高於自訂目標，標準再平衡時可作為資金來源。', item: defensiveOver[0], items: defensiveOver, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
         : { status: 'ok', message: '防守股票目前未明顯低配或高配。', item: defensiveItems[0], items: defensiveItems, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent };
   const totalBuyAmount = growthBuy.reduce((total, item) => total + item.amount, 0);
-  const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - cash) : Math.max(0, fullBuyGap - buyOnlyLimit);
-  return { growthBuy, growthSell, skippedSell, defensiveReminder, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
+  const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - investableCashBasis) : Math.max(0, fullBuyGap - buyOnlyLimit);
+  return { growthBuy, growthSell, skippedSell, defensiveReminder, cash, investableCash, totalBuyAmount, fullBuyGap, shortage, cashEnough: investableCashBasis >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
 }
