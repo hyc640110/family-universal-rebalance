@@ -627,8 +627,10 @@ function getTradePlan(orderHelper: OrderHelper): TradeStep[] {
   return steps;
 }
 function getFundingSource(orderHelper: OrderHelper) {
+  // V7.0B sub-PR 4b: reuses orderHelper.cashEnough (investableCash-basis) instead of re-comparing against
+  // orderHelper.cash (raw account total) here, so this never drifts from the same basis cashEnough already uses.
   if (orderHelper.totalBuyAmount <= 0) return '目前沒有建議加碼金額。';
-  if (orderHelper.totalBuyAmount <= orderHelper.cash) return '現金';
+  if (orderHelper.cashEnough) return '現金';
   if (orderHelper.mode === 'standard' && orderHelper.defensiveReminder.status === 'over') return '現金 + 高配防守標的';
   return orderHelper.mode === 'buy-only' ? '現金或新資金分批投入' : '現金不足，需補充新資金或調整賣出順序';
 }
@@ -1395,7 +1397,7 @@ function App() {
     loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
     cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
   })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
-  const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
+  const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const riskInput = useMemo(() => ({
     assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
@@ -1963,10 +1965,12 @@ function App() {
               <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
             </>}
             <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
+            <p><span>可投資現金</span><strong>{orderHelper.investableCash === null ? '資料不足' : formatCurrency(orderHelper.investableCash)}</strong></p>
             <p><span>建議加碼總額</span><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></p>
-            <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.cash <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.mode === 'buy-only' ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.cash <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠' : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
+            {/* V7.0B sub-PR 4b: 現金檢查改以可投資現金為基準（orderHelper.buyOnlyLimit／cashEnough 已改用 investableCash），不再直接比對 orderHelper.cash（僅為資訊性原始現金總額）。 */}
+            <p><span>現金檢查</span><strong className={orderHelper.mode === 'buy-only' && (orderHelper.cashLimited || orderHelper.buyOnlyLimit <= 0) ? 'warn' : orderHelper.cashEnough ? 'good' : 'warn'}>{orderHelper.mode === 'buy-only' ? orderHelper.hasInvalidBuyOnlyBudget ? '預算需調整' : orderHelper.buyOnlyLimit <= 0 ? '無可用現金' : orderHelper.cashLimited ? '依實際上限分配' : '現金足夠' : orderHelper.cashEnough ? '現金足夠' : `不足 ${formatCurrency(orderHelper.shortage)}`}</strong></p>
           </div>
-          {orderHelper.mode === 'buy-only' && orderHelper.cash < orderHelper.buyOnlyBudget && orderHelper.cash > 0 && <p className="note">目前現金低於設定預算，系統將以實際現金為上限。</p>}
+          {orderHelper.mode === 'buy-only' && orderHelper.investableCash !== null && orderHelper.investableCash < orderHelper.buyOnlyBudget && orderHelper.investableCash > 0 && <p className="note">目前可投資現金低於設定預算，系統將以可投資現金為上限。</p>}
           {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
           <TradeStepList steps={tradeSteps} currentWeights={currentWeights} />
           <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
