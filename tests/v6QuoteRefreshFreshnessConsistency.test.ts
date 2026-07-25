@@ -51,7 +51,12 @@ test('partial quote maps preserve each successful quote and do not mutate either
 
 test('the four supported symbols, market suffix normalization, and one quote map remain wired through the App boundary', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  for (const symbol of ['00631L', '00865B', '00685L', '00895']) assert.match(app, new RegExp(`'${symbol}'`));
+  // V7.0B sub-PR 4a (UR-TODO-008): SYMBOL_NAMES (and therefore '00685L'/'00895') moved out of App.tsx verbatim into
+  // src/lib/rebalanceOrderHelper.ts so getOrderSuggestions could be characterization-tested; App.tsx still imports
+  // it from there, so the boundary check now spans both files instead of App.tsx text alone.
+  const orderHelperLib = readFileSync(new URL('../src/lib/rebalanceOrderHelper.ts', import.meta.url), 'utf8');
+  const wiredText = `${app}\n${orderHelperLib}`;
+  for (const symbol of ['00631L', '00865B', '00685L', '00895']) assert.match(wiredText, new RegExp(`'${symbol}'`));
   assert.match(app, /replace\(\/\\\.\(TW\|TWO\)\$\//);
   assert.match(app, /const \[quotes, setQuotes\] = useState<Record<SymbolCode, Quote>>/);
   assert.match(app, /quoteDateStatus\(row\.quote\.quoteDate, row\.quote\.quoteTime\)/);

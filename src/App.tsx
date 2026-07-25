@@ -68,22 +68,20 @@ import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
+import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 
 type SymbolCode = string;
-type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
+export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
 type AssetClass = 'growth' | 'defensive';
-type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
+export type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
 type AllocationRoleBySymbol = Record<string, AllocationRole>;
 type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
+export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; allocationRoleBySymbol: AllocationRoleBySymbol; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
-type OrderSuggestion = { symbol: SymbolCode; name: string; diff: number; amount: number; price: number; targetPercent: number; currentValue: number; targetValue: number; shares: number | null; lots: number; oddLots: number; conversionText: string };
-type DefensiveReminder = { status: 'missing' | 'under' | 'over' | 'ok'; message: string; item?: OrderSuggestion; items: OrderSuggestion[]; currentWeight: number; targetPercent: number };
-type OrderHelper = { growthBuy: OrderSuggestion[]; growthSell: OrderSuggestion[]; skippedSell: OrderSuggestion[]; defensiveReminder: DefensiveReminder; cash: number; totalBuyAmount: number; fullBuyGap: number; shortage: number; cashEnough: boolean; cashLimited: boolean; mode: RebalanceMode; modeLabel: string; buyOnlyBudget: number; buyOnlyLimit: number; hasInvalidBuyOnlyBudget: boolean };
 type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
@@ -101,20 +99,10 @@ const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '00865B', name: '國泰US短期公債', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
   { symbol: '00631L', name: '元大台灣50正2', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
 ];
-const SYMBOL_NAMES: Record<SymbolCode, string> = {
-  '00662': '富邦NASDAQ',
-  '00670L': '富邦NASDAQ正2',
-  '00631L': '元大台灣50正2',
-  '00865B': '國泰US短期公債',
-  '00685L': '群益臺灣加權正2',
-  '00895': '富邦未來車',
-  '0050': '元大台灣50'
-};
 const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
 const MIN_GROWTH_TARGET = 0;
 const MAX_GROWTH_TARGET = 100;
-const DEFAULT_REBALANCE_MODE: RebalanceMode = 'buy-only';
 const DEFAULT_REBALANCE_THRESHOLD = 5;
 const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const DEFAULT_DIP_ALERT_THRESHOLD = -10;
@@ -126,7 +114,6 @@ const defaultSyncMeta = (): SyncMeta => ({ dirty: true, source: '本機資料', 
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
-const num = (n: number) => Number.isFinite(n) ? n : 0;
 const formatWan = (n: number, fractionDigits = 1) => `${(Math.abs(num(n)) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits })} 萬元`;
 const signedWan = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${formatWan(n)}`;
 const money = (n: number) => formatWan(n);
@@ -135,7 +122,6 @@ const signedMoney = (n: number) => signedWan(n);
 const pct = (n: number) => `${num(n).toFixed(2)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
-const normalizeSymbol = (value: unknown) => String(value ?? '').trim().toUpperCase().replace(/\s+/g, '');
 const isTaiwanSymbol = (value: unknown) => TAIWAN_SYMBOL_RE.test(normalizeSymbol(value));
 const sanitizeName = (value: unknown) => String(value ?? '').trim();
 const pickName = (...values: unknown[]) => {
@@ -213,40 +199,21 @@ async function copyTextWithFallback(text: string) {
   textarea.remove();
   if (!ok) throw new Error('copy command failed');
 }
-const safeNumber = (value: unknown) => {
-  const n = Number(value) || 0;
-  return Number.isFinite(n) ? n : 0;
-};
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, Number.isFinite(value) ? value : 0));
-const safeHoldings = (holdings: unknown): Holding[] => Array.isArray(holdings) ? holdings.filter(Boolean) as Holding[] : [];
-const rawTargetOf = (asset: unknown) => {
-  const a = asset && typeof asset === 'object' ? asset as Record<string, unknown> : {};
-  return a.targetWeight ?? a.targetPercent ?? a.targetRatio ?? a.allocation ?? 0;
-};
 const normalizeAssetClass = (value: unknown, symbol?: SymbolCode): AssetClass => {
   if (value === 'defensive') return 'defensive';
   if (value === 'growth') return 'growth';
   return normalizeSymbol(symbol) === '00865B' ? 'defensive' : 'growth';
 };
 const assetClassLabel = (value: AssetClass) => value === 'defensive' ? '防守資產' : '成長資產';
-const isDefensiveHolding = (asset: Pick<Holding, 'assetClass'> | null | undefined) => asset?.assetClass === 'defensive';
 const isGrowthHolding = (asset: Pick<Holding, 'assetClass'> | null | undefined) => asset?.assetClass !== 'defensive';
 const getGrowthTargetTotal = (holdings: unknown) => {
   return safeHoldings(holdings)
     .filter(asset => isGrowthHolding(asset))
     .reduce((total, asset) => total + Math.max(0, safeNumber(rawTargetOf(asset))), 0);
 };
-const getDefensiveStockTargetTotal = (holdings: unknown) => {
-  return safeHoldings(holdings)
-    .filter(asset => isDefensiveHolding(asset))
-    .reduce((total, asset) => total + Math.max(0, safeNumber(rawTargetOf(asset))), 0);
-};
 const getHoldingTargetTotal = (holdings: unknown) => getGrowthTargetTotal(holdings) + getDefensiveStockTargetTotal(holdings);
 const getCashTarget = (holdings: unknown) => Math.max(0, 100 - getHoldingTargetTotal(holdings));
-const getEffectiveTargetPercent = (asset: Holding | null | undefined, holdings: unknown) => {
-  if (!asset) return 0;
-  return Math.max(0, safeNumber(rawTargetOf(asset)));
-};
 const growthTargetTotalOf = (state: Partial<Pick<AppState, 'holdings'>>) => getGrowthTargetTotal(state?.holdings);
 const growthTargetOf = (state: Partial<Pick<AppState, 'holdings'>>) => Math.min(MAX_GROWTH_TARGET, growthTargetTotalOf(state));
 const defensiveTargetOf = (state: Partial<Pick<AppState, 'holdings'>>) => Math.max(0, 100 - growthTargetOf(state));
@@ -272,12 +239,9 @@ const getRepaymentSafetyTone = (months: number, monthlyPayment: number) => {
   if (months >= 12) return 'warn';
   return 'bad';
 };
-const normalizeRebalanceMode = (value: unknown): RebalanceMode => value === 'standard' ? 'standard' : DEFAULT_REBALANCE_MODE;
 const clampRebalanceThreshold = (value: number) => Math.min(MAX_REBALANCE_THRESHOLD, Math.max(0, num(value) || 0));
-const normalizeBuyOnlyBudget = (value: unknown) => Math.max(0, safeNumber(value));
 const budgetWanOf = (value: unknown) => safeNumber(value) / 10000;
 const budgetFromWan = (value: unknown) => Math.max(0, safeNumber(value) * 10000);
-const rebalanceModeLabel = (mode: RebalanceMode) => mode === 'standard' ? '標準再平衡' : '只買不賣';
 const rebalanceModeDescription = (mode: RebalanceMode) => mode === 'standard' ? '允許買入與賣出，目標是讓配置回到目標比例。' : '不賣出超標資產，只用現金或新資金補足低配資產，適合分批投入。';
 const defaultDipAlertSetting = (): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: DEFAULT_DIP_ALERT_THRESHOLD });
 function normalizeDipAlertSetting(raw: unknown): DipAlertSetting {
@@ -293,15 +257,6 @@ function normalizeDipAlerts(raw: unknown, holdings: unknown): Record<SymbolCode,
     if (symbol && isTaiwanSymbol(symbol)) next[symbol] = normalizeDipAlertSetting(source[symbol]);
     return next;
   }, {});
-}
-function getLotAndOddLot(shares: number) {
-  const safeShares = Math.max(0, Math.floor(safeNumber(shares)));
-  return { lots: Math.floor(safeShares / 1000), oddLots: safeShares % 1000 };
-}
-function formatShares(shares: number | null) {
-  if (shares === null) return '價格不足，無法換算股數';
-  const { lots, oddLots } = getLotAndOddLot(shares);
-  return `${shares.toLocaleString('zh-TW')} 股（${lots} 張 + ${oddLots} 股）`;
 }
 function isBackupQuoteSource(source: unknown) {
   const text = String(source ?? '');
@@ -638,72 +593,6 @@ function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const defensiveRow = { symbol: '防守資產', currentWeight: defensiveWeight, targetText: pct(m.defensiveTargetPct), diffText: signedWan(defensiveDiff), deviationText: signedPct(defensiveDeviation), thresholdText: pct(threshold), action: defensiveAction, tone: defensiveTone };
   const defensiveDetails = [{ symbol: '現金', currentWeight: m.totalAssets ? m.cash / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '列入防守資產' }, ...m.defensiveHoldings.map(r => ({ symbol: r.symbol, currentWeight: m.totalAssets ? r.marketValue / m.totalAssets * 100 : 0, targetText: '—', diffText: '—', deviationText: '—', thresholdText: '—', action: '保留實際持股，不參與再平衡' }))];
   return { rows: [stockRow, defensiveRow], stockRow, defensiveRow, defensiveDetails, stockAction, defensiveAction, defensiveCurrent: m.defensive, defensiveTarget, nonStrategy: [], mode, modeLabel: rebalanceModeLabel(mode), currentGrowthWeight, growthTargetPercent, deviation, deviationText: stockRow.deviationText, threshold, thresholdReached, thresholdStatus: thresholdReached ? '已達提醒門檻' : '尚未達門檻，維持目前配置' };
-}
-function withOrderAmount(item: Omit<OrderSuggestion, 'amount' | 'shares' | 'lots' | 'oddLots' | 'conversionText'>, amount: number): OrderSuggestion {
-  const safeAmount = Math.max(0, safeNumber(amount));
-  const shares = item.price > 0 ? Math.floor(safeAmount / item.price) : null;
-  const lotInfo = getLotAndOddLot(shares ?? 0);
-  return {
-    ...item,
-    amount: safeAmount,
-    shares,
-    lots: lotInfo.lots,
-    oddLots: lotInfo.oddLots,
-    conversionText: formatShares(shares)
-  };
-}
-function getOrderSuggestions(state: AppState, quotes: Record<SymbolCode, Quote>, m: ReturnType<typeof calculateMetrics>): OrderHelper {
-  const mode = normalizeRebalanceMode(state.rebalanceMode);
-  const rows = m.rows.map(row => {
-    const targetPercent = getEffectiveTargetPercent(row, state.holdings);
-    const targetValue = m.totalAssets * (targetPercent / 100);
-    const diff = num(targetValue - row.marketValue);
-    const quote = quotes[row.symbol] || row.quote;
-    const price = Math.max(0, safeNumber(quote?.price));
-    return {
-      symbol: row.symbol,
-      name: row.quote.name || SYMBOL_NAMES[row.symbol] || row.symbol,
-      diff,
-      price,
-      targetPercent,
-      currentValue: row.marketValue,
-      targetValue
-    };
-  });
-  const cash = Math.max(0, safeNumber(m.cash));
-  const buyOnlyBudget = normalizeBuyOnlyBudget(state.buyOnlyBudget);
-  const buyOnlyLimit = Math.min(buyOnlyBudget, cash);
-  const hasInvalidBuyOnlyBudget = mode === 'buy-only' && buyOnlyBudget <= 0;
-  const rowClassMap = Object.fromEntries(m.rows.map(row => [normalizeSymbol(row.symbol), row.assetClass])) as Record<SymbolCode, AssetClass>;
-  const growthRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] !== 'defensive');
-  const defensiveRows = rows.filter(item => rowClassMap[normalizeSymbol(item.symbol)] === 'defensive');
-  const buyGaps = growthRows.filter(item => item.diff > 0).sort((a, b) => b.diff - a.diff);
-  const fullBuyGap = buyGaps.reduce((total, item) => total + Math.max(0, safeNumber(item.diff)), 0);
-  let remainingBudget = mode === 'buy-only' ? buyOnlyLimit : cash;
-  const growthBuy = buyGaps.map(item => {
-    const amount = mode === 'buy-only' ? Math.min(Math.max(0, item.diff), remainingBudget) : Math.max(0, item.diff);
-    remainingBudget = mode === 'buy-only' ? Math.max(0, remainingBudget - amount) : remainingBudget;
-    return withOrderAmount(item, amount);
-  }).filter(item => item.amount >= 1);
-  const overTargets = growthRows.filter(item => item.diff < 0).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
-  const growthSell = mode === 'standard' ? overTargets : [];
-  const skippedSell = mode === 'buy-only' ? overTargets : [];
-  const defensiveTargetPercent = getDefensiveStockTargetTotal(state.holdings);
-  const defensiveCurrentWeight = m.totalAssets ? m.defensiveHoldingsValue / m.totalAssets * 100 : 0;
-  const defensiveUnder = defensiveRows.filter(item => item.diff > 999).map(item => withOrderAmount(item, item.diff)).sort((a, b) => b.amount - a.amount);
-  const defensiveOver = defensiveRows.filter(item => item.diff < -999).map(item => withOrderAmount(item, Math.abs(item.diff))).sort((a, b) => b.amount - a.amount);
-  const defensiveNeutral = defensiveRows.filter(item => Math.abs(item.diff) <= 999).map(item => withOrderAmount(item, Math.abs(item.diff)));
-  const defensiveItems = defensiveUnder.length ? defensiveUnder : defensiveOver.length ? defensiveOver : defensiveNeutral;
-  const defensiveReminder: DefensiveReminder = defensiveRows.length === 0
-    ? { status: 'missing', message: '目前沒有防守股票，防守資產由現金承擔。', items: [], currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
-    : defensiveUnder.length
-      ? { status: 'under', message: '以下防守標的低於自訂目標，可依現金與還款安全存量分批補足。', item: defensiveUnder[0], items: defensiveUnder, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
-      : defensiveOver.length
-        ? { status: 'over', message: '以下防守標的高於自訂目標，標準再平衡時可作為資金來源。', item: defensiveOver[0], items: defensiveOver, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent }
-        : { status: 'ok', message: '防守股票目前未明顯低配或高配。', item: defensiveItems[0], items: defensiveItems, currentWeight: defensiveCurrentWeight, targetPercent: defensiveTargetPercent };
-  const totalBuyAmount = growthBuy.reduce((total, item) => total + item.amount, 0);
-  const shortage = mode === 'standard' ? Math.max(0, totalBuyAmount - cash) : Math.max(0, fullBuyGap - buyOnlyLimit);
-  return { growthBuy, growthSell, skippedSell, defensiveReminder, cash, totalBuyAmount, fullBuyGap, shortage, cashEnough: cash >= totalBuyAmount, cashLimited: mode === 'buy-only' && fullBuyGap > buyOnlyLimit, mode, modeLabel: rebalanceModeLabel(mode), buyOnlyBudget, buyOnlyLimit, hasInvalidBuyOnlyBudget };
 }
 function tradeStepFromSuggestion(action: TradeAction, item: OrderSuggestion, order: number, note: string): TradeStep {
   return {
@@ -1494,6 +1383,18 @@ function App() {
   const rebalanceDeviationText = rb.deviationText;
   const quoteSummaryText = quoteDisplayStatus(m.rows);
   const quotePresentation = useMemo(() => m.rows.map(row => ({ symbol: row.symbol, ...describeQuotePresentation(row.quote) })), [m.rows]);
+  // V7.0B sub-PR 1 (UR-TODO-008): buy-only budget must read investableCash from the Household Liquidity core model
+  // (013 §13.2), not the raw account cash total, so it never exceeds what's left after the protected safety reserve.
+  // Hoisted out of rebalanceRecommendationView in sub-PR 4a so orderHelper can also read investableCash in sub-PR 4b
+  // without recomputing this twice per render.
+  const householdLiquidityForRebalance = useMemo(() => deriveHouseholdLiquidity(buildHouseholdLiquidityInput({
+    // state.accounts is the app's only active cash/net-worth source (see calculateMetrics above); state.cash is
+    // legacy data retained only for rollback and must never be mixed in here, or every already-migrated user
+    // would spuriously trip MIXED_LIQUID_ACCOUNT_SOURCES.
+    accounts: state.accounts, legacyCash: [], derivedAccountBalances: deriveTransactionAccountBalances(state.transactions),
+    loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
+    cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
+  })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m), [state, quotes, m]);
   const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
   const riskInput = useMemo(() => ({
@@ -1513,16 +1414,6 @@ function App() {
     quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, quoteTime: row.quote.quoteTime, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
   }), [m, state.holdings, rb, riskMetrics, investmentStats, performanceQuality]);
   const rebalanceRecommendationView = useMemo(() => {
-    // V7.0B (UR-TODO-008 sub-PR 1): buy-only budget must read investableCash from the Household Liquidity core model
-    // (013 §13.2), not the raw account cash total, so it never exceeds what's left after the protected safety reserve.
-    const householdLiquidityForRebalance = deriveHouseholdLiquidity(buildHouseholdLiquidityInput({
-      // state.accounts is the app's only active cash/net-worth source (see calculateMetrics above); state.cash is
-      // legacy data retained only for rollback and must never be mixed in here, or every already-migrated user
-      // would spuriously trip MIXED_LIQUID_ACCOUNT_SOURCES.
-      accounts: state.accounts, legacyCash: [], derivedAccountBalances: deriveTransactionAccountBalances(state.transactions),
-      loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
-      cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
-    }));
     return deriveRebalanceRecommendation({
       totalAssets: m.totalAssets, liquidCash: m.cash, buyOnlyBudget: state.buyOnlyBudget, rebalanceMode: state.rebalanceMode,
       investableCash: householdLiquidityForRebalance.investableCash,
@@ -1531,7 +1422,7 @@ function App() {
       duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
       allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
     });
-  }, [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView, state.accounts, state.transactions, state.loans, state.cashFlowProfile]);
+  }, [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView, householdLiquidityForRebalance]);
   const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: state.allocationRoleBySymbol },
