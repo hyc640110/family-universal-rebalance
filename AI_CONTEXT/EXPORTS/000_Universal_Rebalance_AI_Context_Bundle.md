@@ -3,27 +3,31 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-24T17:43:04.344127+00:00
+Generated UTC: 2026-07-25T04:15:20.800333+00:00
 
 ## Manifest
 
-- `000_AI_START_HERE.md` — SHA-256 `6d6219f839630aea7eda3e49a78c3003b9d133b0d68d21437ba3c0026d056314`
+- `000_AI_START_HERE.md` — SHA-256 `5dca6f804fa96b054a9802fd535cdbd4dc174a5985f3951e22a016507f69a330`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
-- `001_README.md` — SHA-256 `6bf2a676dc565b576eb792e44ea545b42f1ad3549c1a97d32c2271bb468d514c`
-- `002_MASTER_ROADMAP.md` — SHA-256 `170f2f77d193336e15e2972e04224c0ee5a110a1c17b11fcbf200e236505e4d8`
-- `003_CURRENT_STATUS.md` — SHA-256 `0a3158925624bd11fdf5af3d77cc99ccaf2ae8a820a95c6ac9cd07204444f4b6`
+- `001_README.md` — SHA-256 `7f091455da51d7f2bd8bb2d6d9da746ba2be6fae06d7cb2e8b3a7415ffada6b0`
+- `002_MASTER_ROADMAP.md` — SHA-256 `318949955a01065843902d5c207969d6b799101f9af414709e8ca10b093dae77`
+- `003_CURRENT_STATUS.md` — SHA-256 `a670c1d29e9fe01e16e7eadf44c4d759c113de82ddbf6b5dbbb0184f6f60112c`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `37517b8714694240dfb3e80c2cd93351b3b3c0256bc1ed9f906eaa6597a823b4`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9d1c71d6761913f13469a6a7fc7e121d10c57f42a53e2c110053c653b8d29acf`
-- `008_TODO_BACKLOG.md` — SHA-256 `634114c859ba589a567b24b48b79b6085eee4417c1707ce2185ac4c5723a1e8b`
+- `008_TODO_BACKLOG.md` — SHA-256 `052d57125c0dce7057a2f8c23a328292c9128c50c7085edd99250b71eafab2e0`
 - `009_CHANGELOG.md` — SHA-256 `7ed138b1b95d0e24a1097d14579ec4d8c3cd5d021b62093c946b7ba89f45f72f`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
 - `012_AI_HANDOVER.md` — SHA-256 `809b2b3d61fdd8b98d92a5f14a83860fea539461b86b7a22eea9384aa6115220`
-- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `99aa67622ebcc13f9b171c2845a0e11f5f2d015c03466c582994151f81495fdf`
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `b48d51674cef1af7f3b8b7eb3581475963e1d00ddc9682900bf0b3e2e4d4d571`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3b09ed71952383c11e31a49788054aa854bc8c8af7c9fd4b54cc9f12bcacdb22`
+- `016_Product_Decisions.md` — SHA-256 `50a3ed7889968b73346eaf7018e5bc71461728f844fb5d3335b54a5110885642`
+- `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
+- `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
+- `019_Idea_Pool.md` — SHA-256 `840f7aa5b5c689a821c66dca2cc4c761e648c2582cde8e9913ec46921903cee0`
 
 ---
 
@@ -31,9 +35,9 @@ Generated UTC: 2026-07-24T17:43:04.344127+00:00
 
 # Universal Rebalance AI Start Here
 
-版本：v2.1
+版本：v2.2
 
-最後更新：2026-07-24
+最後更新：2026-07-25
 
 ## 唯一入口
 
@@ -102,8 +106,11 @@ Generated UTC: 2026-07-24T17:43:04.344127+00:00
 1. `001_README.md`
 2. `003_CURRENT_STATUS.md`
 3. `008_TODO_BACKLOG.md`
+4. `016_Product_Decisions.md`
 
 由 AI 自行判斷本次工作是否需要其他文件；使用者不需要指定。
+
+`016_Product_Decisions.md` 記錄產品定位、審查機制、產品原則、版本代號哲學等永久產品治理決策（2026-07-25 V7.0A 新增），與前三項文件同等級必讀，但不取代 002／003／008／013 各自的正式來源地位。
 
 ### 新增 Todo、規劃版本或改變優先順序
 
@@ -362,7 +369,7 @@ tools\更新_AI_內容包.cmd
 
 # Universal Rebalance AI Context
 
-最後更新：2026-07-23
+最後更新：2026-07-25
 
 ## 使用者只需記住
 
@@ -418,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 | `010_CODING_STANDARDS.md` | Coding 規範 |
 | `011_RELEASE_CHECKLIST.md` | 發布檢查 |
 | `012_AI_HANDOVER.md` | 進行中交接 |
-| `013_HOUSEHOLD_LIQUIDITY_SPEC.md` | 家庭流動性架構 |
+| `013_HOUSEHOLD_LIQUIDITY_SPEC.md` | 家庭流動性架構（現行 v4.0） |
 | `014_TODO_GAP_AUDIT.md` | 舊待辦補登紀錄 |
 | `015_CROSS_AI_COMPATIBILITY_SPEC.md` | 跨平台設計與限制 |
+| `016_Product_Decisions.md` | 產品定位、審查機制、產品原則、版本命名區隔規則 |
+| `017_Design_System.md` | 全站 UI 元件視覺規範（骨架，內容待補完） |
+| `018_Dashboard_UX_Guideline.md` | 首頁版面與互動規範（骨架，內容待補完） |
+| `019_Idea_Pool.md` | 創意模式新想法收錄區（尚未評估） |
 
 <!-- END FILE: 001_README.md -->
 
@@ -428,9 +439,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 002_MASTER_ROADMAP.md -->
 
-# Universal Rebalance Master Roadmap v7.4
+# Universal Rebalance Master Roadmap v7.5
 
-最後更新：2026-07-24
+最後更新：2026-07-25
+
+> **命名提醒**：本文件標題的「v7.5」是**文件本身的版本號**（文件迭代次數），與第 5.1 節「產品版本 V7.0A／V7.0B……」的產品功能版本代號是兩套不同的編號系統，僅為巧合撞號，兩者無關。完整區隔規則見 [016_Product_Decisions.md](016_Product_Decisions.md) 第 5 節。
 
 ## 1. 專案定位
 
@@ -485,9 +498,9 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 # 家庭流動性、安全存量與可投資現金跨模組整合
 
-詳細架構規格：`013_Household_Liquidity_Model_Spec_v3.0.md`
+詳細架構規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）
 
-本 Roadmap 僅保存階段、依賴與順序；公式、資料契約、模組整合、測試矩陣與驗收規則以 `013 v3.0` 為準。
+本 Roadmap 僅保存階段、依賴與順序；公式、資料契約、模組整合、測試矩陣與驗收規則以 `013` 現行版本為準。
 
 目前系統沒有單一家庭流動性來源。`liquidCash` 同時被當成：
 
@@ -583,6 +596,18 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - 阻擋原因
 - 手機與桌機一致性
 
+## 5.1 產品版本 V7（Product Polish & Financial Intelligence）規劃
+
+2026-07-25 新增。以下為**產品功能版本代號**（見上方命名提醒），記錄規劃意圖，**不代表已核准啟動**；每個 Sprint 實際開始開發前仍須使用者明確下達「開始開發」指示。完整產品定位、審查機制、產品原則見 [016_Product_Decisions.md](016_Product_Decisions.md)。
+
+- **產品版本 V7.0A — Foundation & Product Governance**：建立 `016_Product_Decisions.md`、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`、`019_Idea_Pool.md`，同步更新治理文件（本次工作）。
+- **產品版本 V7.0B — Financial Liquidity Core**：**＝上方 Sprint 3～6**（`013_HOUSEHOLD_LIQUIDITY_SPEC.md` v4.0 所定義），非另一份規格或另一個獨立範疇，詳見 013 第 1.4 節對應表。
+- **產品版本 V7.0C — Dashboard UX**：首頁改版為「今日行動中心」，規格待 `018_Dashboard_UX_Guideline.md` 補完。
+- **產品版本 V7.0D — AI Decision**：所有 AI 建議改用 Financial Liquidity 輸出格式，對應 013 第 24 節與 Sprint 4／UR-TODO-009。
+- **產品版本 V7.0E — Design Polish**：全站 UI 統一，規格待 `017_Design_System.md` 補完。
+
+版本代號哲學：V6＝Feature Expansion、V7＝Product Polish、V8（未來）＝AI Financial Assistant，詳見 `016_Product_Decisions.md` 第 4 節。
+
 ## 6. P0 唯讀盤點待辦
 
 完成高風險主題前，仍需逐項驗證：
@@ -615,11 +640,13 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 ## 8. 文件治理
 
-- `008_TODO_BACKLOG.md`（現行版本 v1.3）是未完成事項的單一正式來源。
+- `008_TODO_BACKLOG.md` 是未完成事項的單一正式來源（現行版本以文件內容為準，不在此處寫死版號避免過期）。
 - Roadmap 只保存階段、依賴與長期順序。
 - Current Status 保存最新正式基線與下一步。
 - Development Guide 保存固定流程與治理規則。
-- `013_Household_Liquidity_Model_Spec_v3.0.md` 保存家庭流動性主題的唯一詳細架構規格。
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 保存家庭流動性主題的唯一詳細架構規格。
+- `016_Product_Decisions.md` 保存產品定位、審查機制、產品原則、版本代號哲學與版本命名區隔規則等永久產品治理決策。
+- `019_Idea_Pool.md` 保存創意模式產出、尚未評估的新想法。
 
 <!-- END FILE: 002_MASTER_ROADMAP.md -->
 
@@ -627,11 +654,11 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.17
+# Universal Rebalance Current Status v3.18
 
 最後更新：2026-07-25
 
-本次更新依據：2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001（`my-00662-default-rtdb` Security Rules 內容與到期日 2026-07-28），並拍板決策接受自然到期、不修改規則、正式 Firebase Auth 方案列為未來獨立 Sprint。本次由 Claude Code 在 Review Mode 下寫入上述已確認結果與使用者決策，僅更新治理文件內容，未修改 Repository 程式、AppState、Firebase、Backup 或 Production，亦未變更任何 Firebase Console 設定。
+本次更新依據：2026-07-25 落地產品版本 **V7.0A（Foundation & Product Governance）**（產品版本代號，非本文件版號，命名區隔規則見 `016_Product_Decisions.md` 第 5 節）。使用者於 ChatGPT（Project Knowledge）規劃 V7 產品治理架構，經 Claude Code 唯讀核對現況後，使用者逐項拍板六項決定，本次由 Claude Code 在 Review Mode 下建立／升版對應治理文件。僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`，未開始任何 Development Mode 工作。
 
 ## 1. 最新正式版本
 
@@ -859,28 +886,59 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 1. UR-TODO-001（Firebase Security Rules 到期）已於 2026-07-25 由使用者本人完成 Firebase Console 查證，狀態更新為「已盤點」，使用者決策為接受 2026-07-28 自然到期、不修改規則。正式解法（Firebase Auth 整合）待使用者未來另行排定為獨立 Development Sprint，目前不在待處理 P0 唯讀盤點清單中，但仍是待開發項目。
 2. UR-TODO-037 尚未完成範圍（GitHub Environment 人工核准、Branch Protection、預設分支修正）仍待另立獨立 Todo／Sprint。
 3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）等家庭流動性後續工作仍待使用者決定是否啟動；本次治理狀態同步**不自動開始**下一個 Sprint。
-4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`72fa46c`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`10ae692`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+5. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`，**均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
 
 ## 12. AI 治理文件版控狀態（已更正）
 
 - `AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`（全部正式文件與 `EXPORTS/` 產生檔）、`tools/`（`build_ai_context_bundle.py`、`更新_AI_內容包.cmd`）**已於 PR #106（`chore/ai-context-governance-baseline`，2026-07-24 Merge）正式進版控**，現存在於 `main` 的 git 歷史中，不再是未追蹤內容。此節先前記載的「未追蹤」狀態已過期，本次更正。
 - 本機絕對路徑錯誤已於 PR #106 一併修正為中性描述；敏感資訊掃描（此後歷次 Sprint／Hotfix 皆重複執行）持續確認無密鑰、Token、帳密或 Firebase URL。
 
+## 12.1 V7.0A（Foundation & Product Governance）治理文件落地記錄（2026-07-25）
+
+背景：使用者於 ChatGPT（Project Knowledge，無 Repository 存取權）規劃一套 V7 產品治理架構，經 Claude Code 唯讀核對 Repository 現況（發現檔名編號、版本命名、Financial Liquidity Model 範疇三項與現況有落差）後，使用者逐項拍板六項決定。本次依決定落地，僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`。
+
+新增文件：
+
+- `016_Product_Decisions.md`（v1.0）：V7 定位、三個審查機制、十大產品原則、版本代號哲學、**版本命名區隔規則**（永久規則）、V7 Sprint 規劃摘要、新功能檢核表、V7 期間原則、模式切換、一進一出原則、品質標準
+- `017_Design_System.md`（v0.1，骨架）：對應產品版本 V7.0E，章節大綱已建立，內容待該版本啟動後補完
+- `018_Dashboard_UX_Guideline.md`（v0.1，骨架）：對應產品版本 V7.0C，章節大綱已建立，內容待該版本啟動後補完
+- `019_Idea_Pool.md`（v0.1，空白）：創意模式新想法收錄區，含收錄規則與週期檢討規則（僅適用本文件新增項目，不追溯既有 UR-TODO）
+
+升版文件：
+
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md`：v3.0 → **v4.0**。唯讀盤點確認 ChatGPT 提議的「V7.0B Financial Liquidity Core」與本文件既有第 30 節 Sprint 3～6／UR-TODO-008～011 範圍實質重疊，**判定為同一件事，不另立新規格文件**。v4.0 新增第 1.4 節（與產品版本 V7.0B 對應表）、第 20.4／28.5 節（與 `018`／`017` 的分工邊界說明），核心公式、契約、Sprint 邊界等既有內容未變更，Sprint 1／2 已完成範圍不受影響。
+
+同步調整：
+
+- `000_AI_START_HERE.md`（v2.1→v2.2）：第 2 節「每次初始化必讀」清單加入 `016_Product_Decisions.md`，與 `001`／`003`／`008` 同等級；其餘主題式彈性補充閱讀規則維持不變
+- `002_MASTER_ROADMAP.md`（v7.4→v7.5）：新增第 5.1 節「產品版本 V7 規劃」，並於文件開頭加註版本命名區隔提醒
+- `008_TODO_BACKLOG.md`（v1.9→v1.10）：新增「新想法先進 Idea Pool」說明，**未改動任何既有 UR-TODO 的優先級或狀態**，現行 P0～P4 五級制維持不變
+
+明確不處理（列為未來獨立任務）：
+
+- `tools/build_ai_context_bundle.py` 的 `LITE_FILENAMES` 本次不修改，`016_Product_Decisions.md` 暫不加入 Lite Bundle
+- V7.0B～V7.0E 皆**未核准啟動**，本次僅記錄規劃意圖
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄）：
+本次同步更新（2026-07-25 產品版本 V7.0A 治理文件落地）：
 
-- Current Status v3.17（本文件）：第 10 節改寫為已確認之 Rules 內容、到期日 2026-07-28 與使用者拍板決策，UR-TODO-001 狀態由「待盤點」更新為「已盤點」（正式解法仍為「待開發」）；第 11 節現行下一步第 1、4 項同步更新
-- Todo Backlog：UR-TODO-001 補登 Firebase Console 查證結論與使用者決策，狀態更新為「已盤點」，不得標記為「已完成」
-- Changelog：本次為文件補登與狀態決策記錄，未涉及功能完成，不新增 Changelog 條目
+- Current Status v3.18（本文件）：新增第 12.1 節記錄 V7.0A 落地內容；第 11 節現行下一步新增第 5 項
+- Todo Backlog（v1.9→v1.10）：新增 Idea Pool 指引，未改動既有 UR-TODO 狀態
+- 013_HOUSEHOLD_LIQUIDITY_SPEC（v3.0→v4.0）：新增與產品版本 V7.0B 對應說明、與 017／018 的分工邊界，核心內容未變
+- 000_AI_START_HERE（v2.1→v2.2）：必讀清單加入 016
+- 002_MASTER_ROADMAP（v7.4→v7.5）：新增產品版本 V7 規劃段落與命名區隔提醒
+- 新增：016_Product_Decisions.md、017_Design_System.md（骨架）、018_Dashboard_UX_Guideline.md（骨架）、019_Idea_Pool.md（空白骨架）
+- Changelog：本次為治理文件建立與升版，未涉及程式功能完成，不新增 Changelog 條目
 - AI Handover：不涉及 Sprint／Branch／PR 狀態變化，維持既有「無進行中工作」快照不變
-- AI Context Bundle（Full／Lite）：依上述變更重新產生，manifest SHA-256 已與來源文件核對一致
+- AI Context Bundle（Full／Lite）：依上述變更重新產生；Lite 內容依決定 6 不變（016～019 暫不納入 Lite），manifest SHA-256 已與來源文件核對一致
 
-歷史記錄：2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段，Repository 面向）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
+歷史記錄：2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
 
 歷史記錄：2026-07-24 PR #109 Merge 後治理狀態同步（基線改為 `4a95a8a`，記錄 Full／Lite Bundle 首次正式合併）已於前次同步完成；2026-07-24 PR #108 Merge 後治理文件收尾（UR-TODO-038、CI-01、CI-02 標記已完成、清除 PR #108 進行中狀態）已於更早一次同步完成，詳見上方各節歷史記錄段落。
 
-未完成事項以 Todo Backlog 為單一正式來源；家庭流動性詳細設計以 `013_Household_Liquidity_Model_Spec_v3.0.md` 為唯一正式來源。
+未完成事項以 Todo Backlog 為單一正式來源；家庭流動性詳細設計以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；產品定位與治理決策以 `016_Product_Decisions.md` 為唯一正式來源。
 
 <!-- END FILE: 003_CURRENT_STATUS.md -->
 
@@ -2460,13 +2518,15 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.9
+# Universal Rebalance Todo Backlog v1.10
 
 最後更新：2026-07-25
 
 本文件是 Universal Rebalance 所有未完成事項的單一正式來源。
 
-家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_Household_Liquidity_Model_Spec_v3.0.md` 為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
+**新想法請先進 `019_Idea_Pool.md`，經評估後才轉為正式 UR-TODO 項目**（2026-07-25 V7.0A 新增規則，見 `016_Product_Decisions.md` 第 9 節「模式切換」）。本次新增規則不改動既有任何 UR-TODO 的優先級或狀態，現行 P0～P4 五級制維持不變。
+
+家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
 
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
@@ -2487,6 +2547,8 @@ Hotfix 仍需：
 2026-07-24 針對 UR-TODO-001 執行 Repository 唯讀盤點（未存取 Firebase Console），確認 App 未整合 Firebase Auth、Preview／Production 共用同一 Firebase 專案／RTDB 實例（僅靠路徑前綴隔離）、Database URL 與 secretPath 皆為使用者手動輸入；現行 Security Rules 內容與到期日期仍無法從 Repository 確認，需 Firebase Console 存取權限。狀態維持「待盤點」，詳見下方 UR-TODO-001 項目。
 
 2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001：專案 `my-00662`、資料庫 `my-00662-default-rtdb`，現行規則為 `now < 1785168000000`（到期日 2026-07-28）、到期前完全公開讀寫、到期後 Firebase 預設轉為全部拒絕（權限自然收斂，非資料外洩）。使用者拍板決策：不在到期前修改規則、接受自然到期、正式 Firebase Auth 方案列為未來獨立 Sprint。UR-TODO-001 狀態由「待盤點」更新為**「已盤點」**，正式解法仍為「待開發」，不得標記為「已完成」。
+
+2026-07-25 落地 V7.0A（Foundation & Product Governance）：新增 `016_Product_Decisions.md`（永久產品治理決策）、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`（骨架，內容待補完）、`019_Idea_Pool.md`（空白，含收錄規則）；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` 升版為 v4.0（新增與產品版本 V7.0B 的對應說明，核心內容未變）。本文件新增「新想法先進 Idea Pool」規則，未改動任何既有 UR-TODO 的優先級或狀態，不新增任何 UR-TODO 項目。
 
 狀態：
 
@@ -3772,21 +3834,23 @@ interface ServiceResult<T> {
 
 <!-- BEGIN FILE: 013_HOUSEHOLD_LIQUIDITY_SPEC.md -->
 
-# 013_Household_Liquidity_Model_Spec_v3.0
+# 013_Household_Liquidity_Model_Spec_v4.0
 
 # Household Liquidity, Safety Reserve & Investable Cash Architecture Specification
 
 **中文名稱：家庭流動性、安全存量與可投資現金整合架構規格書**
 
-- 文件版本：v3.0
+- 文件版本：v4.0（文件本身版號，與產品版本代號無關；見 `016_Product_Decisions.md`「版本命名區隔規則」）
+- 對應產品版本：**產品版本 V7.0B（Financial Liquidity Core）** 的正式規格來源，兩者是同一件事，非兩份規格，詳見第 1.4 節
 - 文件狀態：正式架構規格
 - 適用專案：Universal Rebalance
 - 適用 Repository：`hyc640110/family-universal-rebalance`
 - 規格提出日期：2026-07-23
+- v4.0 更新日期：2026-07-25
 - 規格層級：高風險跨模組核心財務架構
 - 詳細規格 SSOT：本文件
-- 未完成工作 SSOT：`008_Universal_Rebalance_Todo_Backlog_v1.1.md`
-- 最新正式基線：以最新 `003_Universal_Rebalance_Current_Status` 為準
+- 未完成工作 SSOT：`008_TODO_BACKLOG.md`
+- 最新正式基線：以最新 `003_CURRENT_STATUS.md` 為準
 
 > 本文件定義 Universal Rebalance 的 Household Liquidity Model（家庭流動性模型），
 > 作為安全存量、可投資現金、實際可執行預算、外部資金需求與投資行動資格判斷的唯一詳細規格來源。
@@ -3900,6 +3964,24 @@ ChatGPT、Claude、Codex、Gemini、Cursor 等 AI 在處理下列工作前，必
 - 安全現金與可投資現金 UI
 
 不得只讀 Todo 標題後自行推導公式。
+
+## 1.4 與產品版本 V7.0B 的對應關係
+
+2026-07-25 使用者確認：本文件即為**產品版本 V7.0B（Financial Liquidity Core）**——「建立唯一的 Financial Liquidity Engine，讓 Dashboard／AI Decision／Household／CLEC／Rebalance／Simulation 全部共用同一套資料」——所指的正式規格來源，兩者是同一件事，**不另立新規格文件**（不建立 `016_Financial_Liquidity_Model_v2.md` 或任何類似命名的新檔案）。
+
+對應關係：
+
+| 產品版本 V7.0B 範圍 | 本文件對應章節 | 對應 Todo |
+|---|---|---|
+| 唯一 Financial Liquidity Engine 核心模型 | 第 4～9 節（領域語言、輸入輸出契約、核心公式、Completeness／Confidence／Blocking） | UR-TODO-006（已完成）、UR-TODO-007（部分完成） |
+| Rebalance／Trade Execution 共用 | 第 12～14、23 節、第 30 節 Sprint 3 | UR-TODO-008（待開發） |
+| Risk／AI Decision／Dashboard 共用 | 第 11、19～25 節、第 30 節 Sprint 4 | UR-TODO-009（待開發） |
+| CLEC／Simulator 共用 | 第 15、26、27 節、第 30 節 Sprint 5 | UR-TODO-010（待開發） |
+| 跨模組呈現一致性 | 第 19、28 節、第 30 節 Sprint 6 | UR-TODO-011（待開發） |
+
+若未來規劃或討論中提及「V7.0B」「Financial Liquidity Core」「Financial Liquidity Engine」，一律指本文件與上表對應的 Sprint 3～6／UR-TODO-008～011，不得視為獨立於本規格之外的新工作。
+
+v4.0 相對 v3.0 的唯一實質變更是新增本節與少量文件內部參照更正（見附錄 C）；核心公式、契約、Blocking Reason、Sprint 邊界等既有內容未變更，Sprint 1／2 已完成範圍不受影響。
 
 ---
 
@@ -5158,6 +5240,10 @@ Adapter 不負責：
 
 Dashboard 與 Analytics、AI Decision 的結論必須一致。
 
+## 20.4 與 Dashboard UX Guideline 的分工（v4.0 新增）
+
+本節只定義首頁應顯示「哪些資料」與其優先順序，不定義版面配置、視覺呈現、互動細節或「今日行動中心」的具體資訊架構——這些屬於 `018_Dashboard_UX_Guideline.md`（V7.0C）的範圍，該文件目前僅有骨架、內容待補完。本文件與 `018` 的分工原則：本文件回答「首頁要不要顯示、顯示什麼、資料從哪裡來」，`018` 回答「怎麼排版、怎麼互動、視覺上長什麼樣子」。
+
 ---
 
 # 21. Analytics／分析頁規格
@@ -5409,6 +5495,10 @@ CLEC 理論比例可保留，但可執行交易仍受：
 ```text
 目前配置仍有理論缺口，但沒有可投資現金，建議先保留現金。
 ```
+
+## 28.5 與 Design System 的分工（v4.0 新增）
+
+本節只定義文案內容、應顯示欄位與手機版的資訊揭露原則，不定義元件層級的視覺規範（Card、Button、Icon、Color、Typography、Spacing、Animation、Skeleton 等）——這些屬於 `017_Design_System.md`（V7.0E）的範圍，該文件目前僅有骨架、內容待補完。任何實作本節內容的 UI，元件層級樣式應遵守 `017`，本文件不重複定義視覺規範。
 
 ---
 
@@ -5943,7 +6033,19 @@ Handover 應記錄：
 
 - `013_Household_Liquidity_Model_Spec_v1.0.md`：舊版摘要，可封存
 - `013_Household_Liquidity_Model_Spec_v2.0.md`：舊版摘要，可封存
-- `013_Household_Liquidity_Model_Spec_v3.0.md`：目前正式詳細架構規格
+- `013_Household_Liquidity_Model_Spec_v3.0`：已由 v4.0 取代
+- `013_Household_Liquidity_Model_Spec_v4.0`（本文件）：目前正式詳細架構規格
+
+## v4.0 版本歷史（2026-07-25）
+
+本次升版由 V7.0A（Foundation & Product Governance）觸發，用途是回應「V7.0B Financial Liquidity Core 是否與本規格重疊」的唯讀核對結論：確認兩者是同一件事，不另立新規格文件。
+
+變更內容：
+
+- 新增第 1.4 節，明確記錄本文件與產品版本 V7.0B 的對應關係（Sprint 3～6／UR-TODO-008～011 對照表）
+- 新增第 20.4 節、第 28.5 節，說明本文件與 `018_Dashboard_UX_Guideline.md`（V7.0C）、`017_Design_System.md`（V7.0E）的分工邊界——本文件只定義資料與內容層級的規格，版面配置與元件視覺規範另由該兩份文件負責
+- 修正文件開頭兩處指向舊版帶版本號檔名的過期參照（`008_Universal_Rebalance_Todo_Backlog_v1.1.md` → `008_TODO_BACKLOG.md`；`003_Universal_Rebalance_Current_Status` → `003_CURRENT_STATUS.md`）
+- **未變更**：核心公式、輸入輸出契約、Blocking Reason、Sprint 1～6 邊界定義、Sprint 1／2 已完成範圍。本次唯讀盤點確認 013 v3.0 原有內容已完整涵蓋 V7.0B 所述範圍，除上述文件層級的定位說明外，無其他實質缺口需要擴充。
 
 <!-- END FILE: 013_HOUSEHOLD_LIQUIDITY_SPEC.md -->
 
@@ -6121,3 +6223,377 @@ Claude Home（或 Claude Project）
 - Claude Home → Claude Code → ChatGPT 的交接可依第 4.2 節流程完整走完一輪，且每一步都能唯讀比對交接內容與 Repository／Bundle 是否一致。
 
 <!-- END FILE: 015_CROSS_AI_COMPATIBILITY_SPEC.md -->
+
+---
+
+<!-- BEGIN FILE: 016_Product_Decisions.md -->
+
+# Universal Rebalance Product Decisions
+
+版本：v1.0
+
+最後更新：2026-07-25
+
+## 0. 文件定位
+
+本文件記錄 Universal Rebalance 的**永久產品治理決策**：產品定位、審查機制、產品原則、版本代號哲學、命名區隔規則。這些決策一經確立，除非使用者明確要求，否則不輕易更動。
+
+本文件不是：
+
+- `002_MASTER_ROADMAP.md` 的替代品：長期 Sprint 順序與時程仍以 Roadmap 為準
+- `003_CURRENT_STATUS.md` 的替代品：正式版本與環境狀態仍以 Current Status 為準
+- `008_TODO_BACKLOG.md` 的替代品：未完成事項仍以 Todo Backlog 為唯一正式來源
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 的替代品：財務模型細節仍以 013 為唯一正式來源
+
+依 `000_AI_START_HERE.md` 第 2 節規定，本文件屬於「每次開始工作／開始開發至少讀取」清單項目之一，與 `001_README.md`、`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md` 同等級。
+
+---
+
+## 1. V7 定位
+
+- 代號：**Product Polish & Financial Intelligence**
+- 一句話目標：**打造以家庭安全為核心的財務決策平台，不是功能堆疊的理財工具。**
+
+---
+
+## 2. 三個審查機制
+
+新增三項審查機制，作為未來 Sprint 流程的一部分（見第 9 節固定 Sprint 流程）：
+
+- **Product Review（產品審查）**：每個功能檢查是否符合產品定位、是否增加使用成本、是否值得做。
+- **Architecture Review（架構審查）**：新功能先盤點受影響模組，一次規劃完整，避免半年後重寫。
+- **UX Review（體驗審查）**：每完成一個 Sprint 檢查首頁是否越來越複雜、操作是否越來越多步驟。
+
+---
+
+## 3. 十大產品原則（永久規則，未來不輕易更動）
+
+1. 家庭安全永遠大於投資報酬
+2. 首頁只做今日決策
+3. 每個畫面只回答一個問題
+4. Less is More
+5. 資訊不要重複
+6. 所有 AI 建議必須可執行（例如不要建議「增加現金」，而是「停止加碼、保留 18 萬安全資金」）
+7. 所有計算共用同一套 Financial Model（即 [013_HOUSEHOLD_LIQUIDITY_SPEC.md](013_HOUSEHOLD_LIQUIDITY_SPEC.md)）
+8. 所有 UI 遵守 Design System（[017_Design_System.md](017_Design_System.md)）
+9. Mobile First（不是桌機縮小）
+10. 每天三秒內知道今天要不要操作
+
+---
+
+## 4. 版本代號哲學
+
+- **V6＝Feature Expansion**（大量增加功能）
+- **V7＝Product Polish**（全面提升產品品質）
+- **V8（未來）＝AI Financial Assistant**（真正主動協助）
+
+---
+
+## 5. 版本命名區隔規則（永久規則）
+
+**背景**：2026-07-25 唯讀核對發現，`002_MASTER_ROADMAP.md` 的文件版號恰好也走到 `v7.x`（文件本身第 N 次改版的版號），與這裡定義的「V7＝Product Polish 產品功能版本代號」是**兩套完全不同、互不相關的編號系統**，同時存在時容易混淆。
+
+**規則**：
+
+- 「**V7**」系列（`V7.0A`、`V7.0B`、`V7.0C`……）**專指產品功能版本代號**，對應 `003_CURRENT_STATUS.md` 記載的正式版本序列（`V6.13`、`V6.17.3A`……之後的下一個版本世代）。
+- `002_MASTER_ROADMAP.md` 開頭的「`v7.4`」這類版號是**文件本身的版本號**（文件迭代次數），與產品版本代號無關，純屬巧合撞號。
+- **任何文件、PR 說明、Commit message、回報內容，只要可能造成「V7」與治理文件版號混淆，一律加類別前綴**，不得單寫「V7」或「v7.x」不加前綴：
+  - 產品版本一律寫成「**產品版本 V7.0A**」「**產品版本 V7.0B**」……
+  - 治理文件版號一律寫成「**Roadmap 文件 v7.x**」「**013 文件 v4.0**」……
+- 本規則適用於所有 `AI_CONTEXT/` 文件與未來所有 AI 平台（Claude Code、Codex、ChatGPT）的回應，不因平台而異。
+
+---
+
+## 6. V7 Sprint 規劃（記錄規劃意圖，實際啟動仍需使用者另行確認）
+
+以下規劃記錄目前的產品願景與 Sprint 邊界構想，**不代表已核准啟動**；每個 Sprint 實際開始開發前，仍須使用者明確下達「開始開發」指示，並依 `000_AI_START_HERE.md` 第 4 節固定流程執行。
+
+- **V7.0A — Foundation & Product Governance**（本次工作）：建立本文件、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`、`019_Idea_Pool.md` 骨架；同步更新 `000_AI_START_HERE.md`、`002_MASTER_ROADMAP.md`、`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md`、`013_HOUSEHOLD_LIQUIDITY_SPEC.md`。
+- **V7.0B — Financial Liquidity Core**：**＝ [013_HOUSEHOLD_LIQUIDITY_SPEC.md](013_HOUSEHOLD_LIQUIDITY_SPEC.md) v4.0 所定義的 Sprint 3～6／UR-TODO-008～011**，不是另一份規格或另一個獨立範疇（詳見 013 第 1.4 節對應表）。
+- **V7.0C — Dashboard UX**：首頁改版為「今日行動中心」。內容規格待 `018_Dashboard_UX_Guideline.md` 補完。
+- **V7.0D — AI Decision**：所有 AI 建議改用 Financial Liquidity 輸出格式（例如「可投資現金 28 萬，建議本次投入 15 萬，保留安全預備金」），對應 013 第 24 節與 UR-TODO-009。
+- **V7.0E — Design Polish**：Card／Button／Icon／Color／Typography／Animation／Skeleton／Spacing 全站統一。內容規格待 `017_Design_System.md` 補完。
+
+---
+
+## 7. 新功能檢核表
+
+每個新功能都必須能回答以下五個問題，答不出來就不做：
+
+1. 解決什麼問題？
+2. 每天真的會用嗎？
+3. 是否增加操作複雜度？
+4. 是否影響家庭安全？
+5. 是否有更簡單的方法？
+
+---
+
+## 8. V7 期間原則
+
+V7 期間避免同時新增大型新功能，包含：
+
+- 新 AI 功能
+- 新分析頁
+- 新 CLEC 模組
+- 新匯入格式
+
+優先完成五個核心領域：**Financial Liquidity／Dashboard／Design System／AI Decision／Household**。
+
+---
+
+## 9. 模式切換
+
+- **產品模式**（預設）：專注簡化既有功能。
+- **創意模式**：使用者主動要求才開啟；新點子一律先進 [019_Idea_Pool.md](019_Idea_Pool.md)，不直接變成正式 Todo（不直接寫入 `008_TODO_BACKLOG.md`）。
+
+---
+
+## 10. 一進一出原則
+
+新增功能前必須先問：**「有沒有一個舊功能可以整合、取代或刪除？」**
+
+---
+
+## 11. 品質標準
+
+不追求功能數量，追求完成度。KPI 是：
+
+- 首頁更簡潔
+- 操作步驟更少
+- 計算模型更一致
+- 程式更容易維護
+- 每天更願意打開使用
+
+**不是**功能數增加。
+
+---
+
+## 12. 固定 Sprint 流程（V7 版本）
+
+延續 `000_AI_START_HERE.md` 第 4 節固定開發流程，V7 期間額外納入三個審查機制（第 2 節）：
+
+```text
+Review → Architecture Review → Product Review → Development → Verification → AI Context Update → Merge
+```
+
+與既有固定流程（初始化 → 唯讀盤點 → 最新 main → 新 Branch → 實作 → TypeScript／測試／Build → Preview → Draft PR → 使用者驗收 → Ready for review → 使用者手動 Merge）並存，三項審查在「唯讀盤點」與「實作」之間、「實作」完成後分別執行，不取代既有流程步驟。
+
+---
+
+## 13. 與其他文件的關係
+
+- 十大產品原則、版本代號哲學、版本命名區隔規則：本文件為正式來源，其他文件如需引用一律連結回本文件，不得重複定義。
+- Financial Model 細節：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`
+- Design System 細節：`017_Design_System.md`（骨架，內容待補完）
+- Dashboard UX 細節：`018_Dashboard_UX_Guideline.md`（骨架，內容待補完）
+- 未評估的新想法：`019_Idea_Pool.md`
+- Sprint 時程與長期順序：`002_MASTER_ROADMAP.md`
+- 未完成事項：`008_TODO_BACKLOG.md`
+
+---
+
+## 14. 版本歷史
+
+- v1.0（2026-07-25）：首次建立，落地 V7.0A Foundation & Product Governance；內容來源為使用者於 ChatGPT（Project Knowledge）規劃、經 Claude Code 唯讀核對後由使用者逐項拍板確認。
+
+<!-- END FILE: 016_Product_Decisions.md -->
+
+---
+
+<!-- BEGIN FILE: 017_Design_System.md -->
+
+# Universal Rebalance Design System
+
+版本：v0.1（骨架）
+
+最後更新：2026-07-25
+
+**狀態：內容待補完，非本次 Sprint（V7.0A）範圍。**
+
+## 0. 文件定位
+
+本文件是 Universal Rebalance 全站 UI 元件層級視覺規範的唯一正式來源，對應產品版本 **V7.0E（Design Polish）**。
+
+本次（V7.0A）僅建立章節骨架，**不在缺乏實際 UI 討論的情況下自行捏造設計決策**。所有章節內容留待 V7.0E 啟動、且有實際 UI 討論／設計素材依據後才正式填寫。
+
+本文件不是：
+
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 的替代品：財務資料與計算邏輯規格仍以 013 為準，本文件只定義視覺與元件層級規範
+- `018_Dashboard_UX_Guideline.md` 的替代品：頁面級資訊架構與互動流程屬於 018 的範圍
+- 已完成實作的證明
+
+## 1. 與其他文件的分工
+
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md`：定義「顯示什麼資料、什麼文案」（內容層級）
+- `018_Dashboard_UX_Guideline.md`：定義「頁面怎麼排版、怎麼互動」（頁面層級）
+- 本文件：定義「元件長什麼樣子、怎麼組成」（元件層級）
+
+---
+
+## 2. 章節大綱（待補完）
+
+以下章節僅列出大綱，內容留待正式 Sprint 啟動後補完：
+
+### 2.1 設計原則
+（待補完：呼應 `016_Product_Decisions.md` 十大產品原則，特別是 Less is More、Mobile First）
+
+### 2.2 色彩系統（Color）
+（待補完：品牌色、語意色〔成功／警告／危險／中性〕、深色模式對應、台股紅漲綠跌既有慣例的相容性）
+
+### 2.3 文字排印（Typography）
+（待補完：字級階層、行高、字重、桌機／手機差異）
+
+### 2.4 間距系統（Spacing）
+（待補完：基礎間距單位、元件內外距規則）
+
+### 2.5 卡片（Card）
+（待補完：卡片層級、陰影、圓角、內距規則）
+
+### 2.6 按鈕（Button）
+（待補完：主要／次要／危險／禁用狀態、尺寸階層）
+
+### 2.7 圖示（Icon）
+（待補完：圖示庫選用、尺寸、色彩搭配規則）
+
+### 2.8 動畫（Animation）
+（待補完：轉場時長、緩動曲線、使用時機與禁止濫用原則）
+
+### 2.9 骨架屏（Skeleton）
+（待補完：Loading 狀態的骨架屏規範，與現有各頁面 Loading 狀態的相容性）
+
+### 2.10 響應式斷點與 Mobile First 規則
+（待補完：斷點定義、Mobile First 的實際落地方式，呼應現有「手機固定簡潔模式」等既有慣例）
+
+---
+
+## 3. 版本歷史
+
+- v0.1（2026-07-25）：建立骨架，落地 V7.0A Foundation & Product Governance 的一部分；章節內容待 V7.0E 啟動後補完。
+
+<!-- END FILE: 017_Design_System.md -->
+
+---
+
+<!-- BEGIN FILE: 018_Dashboard_UX_Guideline.md -->
+
+# Universal Rebalance Dashboard UX Guideline
+
+版本：v0.1（骨架）
+
+最後更新：2026-07-25
+
+**狀態：內容待補完，非本次 Sprint（V7.0A）範圍。**
+
+## 0. 文件定位
+
+本文件是 Universal Rebalance 首頁（Dashboard）版面配置、資訊架構與互動流程的唯一正式來源，對應產品版本 **V7.0C（Dashboard UX：首頁改版為「今日行動中心」）**。
+
+本次（V7.0A）僅建立章節骨架，**不在缺乏實際 UI 討論的情況下自行捏造設計決策**。所有章節內容留待 V7.0C 啟動、且有實際 UI 討論／設計素材依據後才正式填寫。
+
+本文件不是：
+
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 的替代品：首頁應顯示「哪些資料」與其優先順序仍以 013 第 20 節為準，本文件只定義版面配置與互動細節
+- `017_Design_System.md` 的替代品：元件層級視覺規範屬於 017 的範圍
+- 已完成實作的證明
+
+## 1. 與其他文件的分工
+
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 第 20 節：定義首頁「要不要顯示、顯示什麼、資料從哪裡來」
+- 本文件：定義首頁「怎麼排版、怎麼互動、資訊架構長什麼樣子」
+- `017_Design_System.md`：定義首頁使用的元件「視覺上長什麼樣子」
+
+---
+
+## 2. 章節大綱（待補完）
+
+以下章節僅列出大綱，內容留待正式 Sprint 啟動後補完：
+
+### 2.1 「今日行動中心」定位
+（待補完：呼應 `016_Product_Decisions.md` 原則 2「首頁只做今日決策」與原則 10「每天三秒內知道今天要不要操作」）
+
+### 2.2 資訊架構（Information Architecture）
+（待補完：首頁區塊順序、優先權排序，對應 013 第 20.2 節顯示優先級）
+
+### 2.3 今日決策卡片規格
+（待補完：可執行行動的呈現方式，對應 `016_Product_Decisions.md` 原則 6「所有 AI 建議必須可執行」）
+
+### 2.4 桌機／手機版面差異
+（待補完：呼應 Mobile First 原則，手機版與桌機版的資訊揭露差異）
+
+### 2.5 與既有「重要提醒」等區塊的整合或去重
+（待補完：對應既有 UR-TODO-030「首頁重要提醒重複性盤點」，避免重複設計）
+
+### 2.6 互動與導覽流程
+（待補完：首頁到各功能頁的導覽路徑、操作步驟精簡原則）
+
+### 2.7 不一致防護的 UX 呈現
+（待補完：對應 013 第 20.3 節「Dashboard 與 Analytics、AI Decision 的結論必須一致」，如何在 UI 上避免呈現矛盾結論）
+
+---
+
+## 3. 版本歷史
+
+- v0.1（2026-07-25）：建立骨架，落地 V7.0A Foundation & Product Governance 的一部分；章節內容待 V7.0C 啟動後補完。
+
+<!-- END FILE: 018_Dashboard_UX_Guideline.md -->
+
+---
+
+<!-- BEGIN FILE: 019_Idea_Pool.md -->
+
+# Universal Rebalance Idea Pool
+
+版本：v0.1（骨架，目前為空）
+
+最後更新：2026-07-25
+
+## 0. 文件定位
+
+本文件收錄「創意模式」（見 `016_Product_Decisions.md` 第 9 節）產出的新想法，**尚未評估、不算正式 Todo**，與 `008_TODO_BACKLOG.md` 的正式 P0～P4 清單分開存在。
+
+本文件不是：
+
+- `008_TODO_BACKLOG.md` 的替代品：任何想法只要經評估、確認要做，必須轉為正式 `UR-TODO-XXX` 項目寫入 Todo Backlog，才算正式排入工作範圍
+- Roadmap 的替代品：本文件的想法不代表已規劃時程
+
+**本文件目前為空**——2026-07-25 建立時尚無任何待收錄的想法；本次 V7.0A 只是骨架與規則建立，不主動從既有討論中挖掘想法灌入本文件。
+
+---
+
+## 1. 收錄規則
+
+- 新想法一律先寫入本文件，不直接寫入 `008_TODO_BACKLOG.md`
+- 每個想法至少記錄：提出日期、一句話描述、提出脈絡（哪次討論、哪個模式下產生）
+- 想法在本文件中的狀態只有兩種：**尚未評估**、**已評估**（評估後若確認要做，移除本條並轉為 `008_TODO_BACKLOG.md` 的正式 UR-TODO 項目，同時在本文件標註「已轉為 UR-TODO-XXX」）
+
+---
+
+## 2. 週期檢討規則
+
+**連續 3 個版本沒有被排進 Roadmap 的想法，必須重新檢討：提升優先級或移除。**
+
+- 此規則**只適用於本文件（`019_Idea_Pool.md`）新增的項目**，**不追溯套用到現行 `008_TODO_BACKLOG.md` 既有的任何 UR-TODO 項目**（現行 P0～P4 五級制與既有項目維持不變，見 `016_Product_Decisions.md` 決定 5）。
+- 「版本」以 `003_CURRENT_STATUS.md` 記載的正式版本序列為準。
+
+---
+
+## 3. 想法清單
+
+目前為空。格式範例（供未來收錄想法時參考，非既有項目）：
+
+```text
+### IDEA-001 〈一句話描述〉
+
+- 提出日期：YYYY-MM-DD
+- 提出脈絡：〈哪次討論、創意模式下的哪個構想〉
+- 狀態：尚未評估
+- 已檢討次數：0（每次版本迭代未被排入 Roadmap 則 +1，累積 3 次需重新檢討）
+```
+
+---
+
+## 4. 版本歷史
+
+- v0.1（2026-07-25）：建立骨架與收錄／週期檢討規則，落地 V7.0A Foundation & Product Governance 的一部分；目前無任何想法收錄。
+
+<!-- END FILE: 019_Idea_Pool.md -->

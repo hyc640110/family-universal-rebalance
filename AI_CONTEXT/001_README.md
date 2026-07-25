@@ -1,6 +1,6 @@
 # Universal Rebalance AI Context
 
-最後更新：2026-07-23
+最後更新：2026-07-25
 
 ## 使用者只需記住
 
@@ -56,6 +56,10 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 | `010_CODING_STANDARDS.md` | Coding 規範 |
 | `011_RELEASE_CHECKLIST.md` | 發布檢查 |
 | `012_AI_HANDOVER.md` | 進行中交接 |
-| `013_HOUSEHOLD_LIQUIDITY_SPEC.md` | 家庭流動性架構 |
+| `013_HOUSEHOLD_LIQUIDITY_SPEC.md` | 家庭流動性架構（現行 v4.0） |
 | `014_TODO_GAP_AUDIT.md` | 舊待辦補登紀錄 |
 | `015_CROSS_AI_COMPATIBILITY_SPEC.md` | 跨平台設計與限制 |
+| `016_Product_Decisions.md` | 產品定位、審查機制、產品原則、版本命名區隔規則 |
+| `017_Design_System.md` | 全站 UI 元件視覺規範（骨架，內容待補完） |
+| `018_Dashboard_UX_Guideline.md` | 首頁版面與互動規範（骨架，內容待補完） |
+| `019_Idea_Pool.md` | 創意模式新想法收錄區（尚未評估） |

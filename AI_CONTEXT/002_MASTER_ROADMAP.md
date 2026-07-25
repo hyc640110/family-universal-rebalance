@@ -1,6 +1,8 @@
-# Universal Rebalance Master Roadmap v7.4
+# Universal Rebalance Master Roadmap v7.5
 
-最後更新：2026-07-24
+最後更新：2026-07-25
+
+> **命名提醒**：本文件標題的「v7.5」是**文件本身的版本號**（文件迭代次數），與第 5.1 節「產品版本 V7.0A／V7.0B……」的產品功能版本代號是兩套不同的編號系統，僅為巧合撞號，兩者無關。完整區隔規則見 [016_Product_Decisions.md](016_Product_Decisions.md) 第 5 節。
 
 ## 1. 專案定位
 
@@ -55,9 +57,9 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 # 家庭流動性、安全存量與可投資現金跨模組整合
 
-詳細架構規格：`013_Household_Liquidity_Model_Spec_v3.0.md`
+詳細架構規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）
 
-本 Roadmap 僅保存階段、依賴與順序；公式、資料契約、模組整合、測試矩陣與驗收規則以 `013 v3.0` 為準。
+本 Roadmap 僅保存階段、依賴與順序；公式、資料契約、模組整合、測試矩陣與驗收規則以 `013` 現行版本為準。
 
 目前系統沒有單一家庭流動性來源。`liquidCash` 同時被當成：
 
@@ -153,6 +155,18 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - 阻擋原因
 - 手機與桌機一致性
 
+## 5.1 產品版本 V7（Product Polish & Financial Intelligence）規劃
+
+2026-07-25 新增。以下為**產品功能版本代號**（見上方命名提醒），記錄規劃意圖，**不代表已核准啟動**；每個 Sprint 實際開始開發前仍須使用者明確下達「開始開發」指示。完整產品定位、審查機制、產品原則見 [016_Product_Decisions.md](016_Product_Decisions.md)。
+
+- **產品版本 V7.0A — Foundation & Product Governance**：建立 `016_Product_Decisions.md`、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`、`019_Idea_Pool.md`，同步更新治理文件（本次工作）。
+- **產品版本 V7.0B — Financial Liquidity Core**：**＝上方 Sprint 3～6**（`013_HOUSEHOLD_LIQUIDITY_SPEC.md` v4.0 所定義），非另一份規格或另一個獨立範疇，詳見 013 第 1.4 節對應表。
+- **產品版本 V7.0C — Dashboard UX**：首頁改版為「今日行動中心」，規格待 `018_Dashboard_UX_Guideline.md` 補完。
+- **產品版本 V7.0D — AI Decision**：所有 AI 建議改用 Financial Liquidity 輸出格式，對應 013 第 24 節與 Sprint 4／UR-TODO-009。
+- **產品版本 V7.0E — Design Polish**：全站 UI 統一，規格待 `017_Design_System.md` 補完。
+
+版本代號哲學：V6＝Feature Expansion、V7＝Product Polish、V8（未來）＝AI Financial Assistant，詳見 `016_Product_Decisions.md` 第 4 節。
+
 ## 6. P0 唯讀盤點待辦
 
 完成高風險主題前，仍需逐項驗證：
@@ -185,8 +199,10 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 ## 8. 文件治理
 
-- `008_TODO_BACKLOG.md`（現行版本 v1.3）是未完成事項的單一正式來源。
+- `008_TODO_BACKLOG.md` 是未完成事項的單一正式來源（現行版本以文件內容為準，不在此處寫死版號避免過期）。
 - Roadmap 只保存階段、依賴與長期順序。
 - Current Status 保存最新正式基線與下一步。
 - Development Guide 保存固定流程與治理規則。
-- `013_Household_Liquidity_Model_Spec_v3.0.md` 保存家庭流動性主題的唯一詳細架構規格。
+- `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 保存家庭流動性主題的唯一詳細架構規格。
+- `016_Product_Decisions.md` 保存產品定位、審查機制、產品原則、版本代號哲學與版本命名區隔規則等永久產品治理決策。
+- `019_Idea_Pool.md` 保存創意模式產出、尚未評估的新想法。
