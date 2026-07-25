@@ -182,10 +182,16 @@ test('22. externalContribution 與 plannedWithdrawal 的 NaN、Infinity 不轉 0
   assert.ok(Number.isNaN(input.plannedWithdrawal));
 });
 
-test('23. 正式 consumer import graph 尚未接入 Adapter', () => {
+test('23. V7.0B sub-PR 1 (UR-TODO-008): only App.tsx (buy-only budget wiring) consumes the Adapter; every other file in src/ stays unwired', () => {
+  // 2026-07-25 update: this test previously asserted zero consumers anywhere in src/, matching Sprint 1/2's
+  // explicit "no consumer yet" scope (013 §29.1). V7.0B sub-PR 1 is the user-authorized Sprint that deliberately
+  // wires App.tsx's buy-only budget to the adapter (see AI_CONTEXT/008_TODO_BACKLOG.md UR-TODO-008); App.tsx is
+  // now an intentional, explicit exception, everything else must remain unwired.
   const walk = (directory: string): string[] => readdirSync(directory, { withFileTypes: true }).flatMap(entry =>
     entry.isDirectory() ? walk(join(directory, entry.name)) : [join(directory, entry.name)]
   );
-  const consumers = walk('src').filter(file => /\.(ts|tsx)$/.test(file) && !file.endsWith('householdLiquidityInputAdapter.ts'));
+  const wiredException = join('src', 'App.tsx');
+  const consumers = walk('src').filter(file => /\.(ts|tsx)$/.test(file) && !file.endsWith('householdLiquidityInputAdapter.ts') && file !== wiredException);
   assert.ok(consumers.every(file => !readFileSync(file, 'utf8').includes('householdLiquidityInputAdapter')));
+  assert.ok(readFileSync(wiredException, 'utf8').includes('householdLiquidityInputAdapter'));
 });

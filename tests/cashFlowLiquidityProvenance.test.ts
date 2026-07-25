@@ -145,9 +145,16 @@ test('17. legacy ambiguous、mixed liquidity 與 missing plan 的 Core gate 保�
   assert.ok(codes.includes('PLANNED_WITHDRAWAL_INVALID'));
 });
 
-test('18. 正式 consumer import graph 未接入 Adapter 或 provenance helper', () => {
+test('18. V7.0B sub-PR 1 (UR-TODO-008): App.tsx now wires the Adapter for buy-only budget only, and still never touches provenance-level liquidityRole/linkedLoanId directly', () => {
+  // 2026-07-25 update: previously asserted zero Adapter references, matching Sprint 1/2's "no consumer yet" scope
+  // (013 §29.1). V7.0B sub-PR 1 (see AI_CONTEXT/008_TODO_BACKLOG.md UR-TODO-008) deliberately wires App.tsx's
+  // buy-only budget to buildHouseholdLiquidityInput/deriveHouseholdLiquidity; this only reads the Adapter's
+  // aggregate output (investableCash), it never reads or writes the provenance fields (liquidityRole/linkedLoanId)
+  // themselves, so those two identifiers must still never appear in App.tsx.
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(app, /householdLiquidityInputAdapter|buildHouseholdLiquidityInput|liquidityRole|linkedLoanId/);
+  assert.match(app, /householdLiquidityInputAdapter/);
+  assert.match(app, /buildHouseholdLiquidityInput/);
+  assert.doesNotMatch(app, /liquidityRole|linkedLoanId/);
 });
 
 test('19. 預設 Cash Flow profile 明確使用目前 schema version', () => {
@@ -193,8 +200,11 @@ test('25. sync canonical payload 保留 optional missing 與 explicit provenance
 });
 
 test('26. 現行手動 Firebase 路徑未新增自動同步或網路 API', () => {
+  // 2026-07-25: the householdLiquidityInputAdapter clause was dropped from this assertion — that guard belongs to,
+  // and is now covered by, test 18 above (V7.0B sub-PR 1 intentionally wires the Adapter for buy-only budget).
+  // This test's own concern (no Firebase realtime auto-sync) is unrelated and unaffected.
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(app, /onValue\(|householdLiquidityInputAdapter/);
+  assert.doesNotMatch(app, /onValue\(/);
   assert.match(app, /uploadCloud\(\)|downloadCloud\(\)/);
 });
 

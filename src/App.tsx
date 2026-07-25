@@ -54,6 +54,8 @@ import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
 import { deriveClecStrategyRule } from './lib/clecStrategyRules';
 import { deriveRebalanceExecutionEligibility } from './lib/rebalanceExecutionEligibility';
+import { deriveHouseholdLiquidity } from './lib/householdLiquidity';
+import { buildHouseholdLiquidityInput } from './lib/householdLiquidityInputAdapter';
 import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
@@ -1510,13 +1512,26 @@ function App() {
     risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
     quotes: m.rows.map(row => ({ symbol: row.symbol, marketValue: row.marketValue, assetClass: row.assetClass, quote: { quoteDate: row.quote.quoteDate, quoteTime: row.quote.quoteTime, source: row.quote.source, error: row.quote.error } })), rawSymbols: state.holdings.map(holding => holding.symbol)
   }), [m, state.holdings, rb, riskMetrics, investmentStats, performanceQuality]);
-  const rebalanceRecommendationView = useMemo(() => deriveRebalanceRecommendation({
-    totalAssets: m.totalAssets, liquidCash: m.cash, buyOnlyBudget: state.buyOnlyBudget, rebalanceMode: state.rebalanceMode,
-    rebalanceThreshold: rb.threshold, allocationDeviation: rb.deviation, targetTotal: getHoldingTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings),
-    holdings: m.rows.map(row => ({ symbol: row.symbol, name: row.name, marketValue: row.marketValue, currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : 0, targetWeight: getEffectiveTargetPercent(row, state.holdings), assetClass: row.assetClass, price: row.quote.price, quoteStatus: quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime), quoteSource: row.quote.source, quoteError: row.quote.error })),
-    duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
-    allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
-  }), [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView]);
+  const rebalanceRecommendationView = useMemo(() => {
+    // V7.0B (UR-TODO-008 sub-PR 1): buy-only budget must read investableCash from the Household Liquidity core model
+    // (013 §13.2), not the raw account cash total, so it never exceeds what's left after the protected safety reserve.
+    const householdLiquidityForRebalance = deriveHouseholdLiquidity(buildHouseholdLiquidityInput({
+      // state.accounts is the app's only active cash/net-worth source (see calculateMetrics above); state.cash is
+      // legacy data retained only for rollback and must never be mixed in here, or every already-migrated user
+      // would spuriously trip MIXED_LIQUID_ACCOUNT_SOURCES.
+      accounts: state.accounts, legacyCash: [], derivedAccountBalances: deriveTransactionAccountBalances(state.transactions),
+      loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
+      cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
+    }));
+    return deriveRebalanceRecommendation({
+      totalAssets: m.totalAssets, liquidCash: m.cash, buyOnlyBudget: state.buyOnlyBudget, rebalanceMode: state.rebalanceMode,
+      investableCash: householdLiquidityForRebalance.investableCash,
+      rebalanceThreshold: rb.threshold, allocationDeviation: rb.deviation, targetTotal: getHoldingTargetTotal(state.holdings), cashTargetPct: getCashTarget(state.holdings),
+      holdings: m.rows.map(row => ({ symbol: row.symbol, name: row.name, marketValue: row.marketValue, currentWeight: m.totalAssets > 0 ? row.marketValue / m.totalAssets * 100 : 0, targetWeight: getEffectiveTargetPercent(row, state.holdings), assetClass: row.assetClass, price: row.quote.price, quoteStatus: quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime), quoteSource: row.quote.source, quoteError: row.quote.error })),
+      duplicateSymbols: portfolioRiskView.quality.duplicateSymbols, otherAssetValue: Math.max(0, m.totalAssets - m.stocks - m.cash),
+      allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
+    });
+  }, [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView, state.accounts, state.transactions, state.loans, state.cashFlowProfile]);
   const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: state.allocationRoleBySymbol },
