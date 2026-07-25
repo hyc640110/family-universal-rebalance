@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-25T04:15:20.800333+00:00
+Generated UTC: 2026-07-25T08:31:24.278398+00:00
 
 ## Manifest
 
@@ -16,7 +16,7 @@ Generated UTC: 2026-07-25T04:15:20.800333+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9d1c71d6761913f13469a6a7fc7e121d10c57f42a53e2c110053c653b8d29acf`
-- `008_TODO_BACKLOG.md` — SHA-256 `052d57125c0dce7057a2f8c23a328292c9128c50c7085edd99250b71eafab2e0`
+- `008_TODO_BACKLOG.md` — SHA-256 `77b2967983406ef3408cc823c24fbcf44455c2d2e3723f829a202f8b556dbafb`
 - `009_CHANGELOG.md` — SHA-256 `7ed138b1b95d0e24a1097d14579ec4d8c3cd5d021b62093c946b7ba89f45f72f`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
@@ -24,10 +24,10 @@ Generated UTC: 2026-07-25T04:15:20.800333+00:00
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `b48d51674cef1af7f3b8b7eb3581475963e1d00ddc9682900bf0b3e2e4d4d571`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3b09ed71952383c11e31a49788054aa854bc8c8af7c9fd4b54cc9f12bcacdb22`
-- `016_Product_Decisions.md` — SHA-256 `50a3ed7889968b73346eaf7018e5bc71461728f844fb5d3335b54a5110885642`
-- `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
-- `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
-- `019_Idea_Pool.md` — SHA-256 `840f7aa5b5c689a821c66dca2cc4c761e648c2582cde8e9913ec46921903cee0`
+- `016_Product_Decisions.md` — SHA-256 `4fdf586d8ec6b4ddfbaf128f0f2305484a89fdfdbf4abf3becd9d4921580fbd9`
+- `017_Design_System.md` — SHA-256 `8266a04995d93cb83ba210e50697908764584e55dc74d290f4280a102d3f2585`
+- `018_Dashboard_UX_Guideline.md` — SHA-256 `cd9a2e520e6d3fa365902ef26c37032aa390b14ae5ce6bac731eec925cc36652`
+- `019_Idea_Pool.md` — SHA-256 `0b49d8664cdb13de3ca6121f2f4b0101ffa5210b95541464a97102fe968e5fc1`
 
 ---
 
@@ -2518,7 +2518,7 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.10
+# Universal Rebalance Todo Backlog v1.11
 
 最後更新：2026-07-25
 
@@ -2549,6 +2549,8 @@ Hotfix 仍需：
 2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001：專案 `my-00662`、資料庫 `my-00662-default-rtdb`，現行規則為 `now < 1785168000000`（到期日 2026-07-28）、到期前完全公開讀寫、到期後 Firebase 預設轉為全部拒絕（權限自然收斂，非資料外洩）。使用者拍板決策：不在到期前修改規則、接受自然到期、正式 Firebase Auth 方案列為未來獨立 Sprint。UR-TODO-001 狀態由「待盤點」更新為**「已盤點」**，正式解法仍為「待開發」，不得標記為「已完成」。
 
 2026-07-25 落地 V7.0A（Foundation & Product Governance）：新增 `016_Product_Decisions.md`（永久產品治理決策）、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`（骨架，內容待補完）、`019_Idea_Pool.md`（空白，含收錄規則）；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` 升版為 v4.0（新增與產品版本 V7.0B 的對應說明，核心內容未變）。本文件新增「新想法先進 Idea Pool」規則，未改動任何既有 UR-TODO 的優先級或狀態，不新增任何 UR-TODO 項目。
+
+2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 1／5（buy-only 模式改用 investableCash）已由使用者手動 Merge，PR #116，merge commit `3882e713ebb03f5f4d14408a66f566c4fcf20848`，對應 Production `Deploy GitHub Pages` workflow run `30151027865` 成功，`gh-pages` 已更新，Production／Preview HTTP 200。UR-TODO-008 狀態由「待開發」更新為**「開發中」**，詳細規格參照同步更正為 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0，取代過期的 `013_Household_Liquidity_Model_Spec_v3.0.md` 檔名參照）。子 PR 2～5 尚未開始，其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -2823,17 +2825,19 @@ Hotfix 仍需：
 
 ### UR-TODO-008 Rebalance & Trade Execution Integration
 
-- 詳細規格：`013_Household_Liquidity_Model_Spec_v3.0.md` 第 12～14、23、30 節
+- 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 12～14、23、30 節
 
 - 優先級：P1
-- 狀態：待開發
+- 狀態：**開發中**
+  - 子 PR 1／5（buy-only 模式改用 investableCash）已完成，PR #116（`feat/v7-0b-buyonly-investable-cash`）MERGED，merge commit `3882e713ebb03f5f4d14408a66f566c4fcf20848`，2026-07-25
+  - 子 PR 2～5（standard 模式、Order Helper／Dip Alert、Execution Eligibility）尚未開始
 - 涉及：
   - 再平衡與加碼建議
   - 交易建議清單
   - Order Helper
   - Execution Eligibility
   - standard
-  - buy-only
+  - buy-only（子 PR 1 已完成）
   - Dip signal gate
 - 原則：
   - 理論缺口與可執行金額分離
