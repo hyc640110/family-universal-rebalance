@@ -27,7 +27,9 @@ const baseInput = (overrides: Partial<RebalanceRecommendationInput> = {}): Rebal
 });
 
 test('standard mode uses total assets for each holding target and keeps sale within current value', () => {
-  const input = baseInput();
+  // V7.0B sub-PR 2: standard mode's cashShortfall now reads investableCash, not liquidCash; investableCash is
+  // explicitly set to match the prior liquidCash-based expectation so this test's assertions stay unchanged.
+  const input = baseInput({ investableCash: 200 });
   const result = deriveRebalanceRecommendation(input);
   const buy = result.rows.find(row => row.symbol === 'AAA')!;
   const sell = result.rows.find(row => row.symbol === 'BBB')!;
@@ -39,14 +41,18 @@ test('standard mode uses total assets for each holding target and keeps sale wit
   assert.ok((sell.recommendedAmount ?? Infinity) <= sell.currentValue);
   assert.equal(result.cashShortfall, 0);
   assert.equal(result.netCashImpact, 0);
-  assert.deepEqual(input, baseInput());
+  assert.deepEqual(input, baseInput({ investableCash: 200 }));
 });
 
-test('standard mode shows a cash shortfall without treating theoretical sales as immediately available', () => {
-  const result = deriveRebalanceRecommendation(baseInput({ liquidCash: 50 }));
+test('standard mode shows a cash shortfall without treating theoretical sales as immediately available (V7.0B: shortfall basis is investableCash, not liquidCash)', () => {
+  // liquidCash is intentionally left high to prove standard mode's cashShortfall no longer reads it; only
+  // investableCash (50) drives the shortfall now, matching the same numeric outcome the old liquidCash-based test had.
+  const result = deriveRebalanceRecommendation(baseInput({ liquidCash: 5_000, investableCash: 50 }));
   assert.equal(result.buyTotal, 200);
   assert.equal(result.sellTotal, 200);
+  assert.equal(result.availableBuyBudget, 50);
   assert.equal(result.cashShortfall, 150);
+  assert.equal(result.remainingBudget, 0);
 });
 
 const buyOnlyDeficitHoldings = [
@@ -112,13 +118,30 @@ test('V7.0B: buy-only mode blocks all concrete amounts (instead of substituting 
   assert.equal(result.availableBuyBudget, null);
 });
 
-test('V7.0B: standard mode is unaffected by investableCash and still uses liquidCash', () => {
-  const withHighInvestableCash = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 50, investableCash: 999_999 }));
-  const withNullInvestableCash = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 50, investableCash: null }));
-  assert.equal(withHighInvestableCash.canRecommend, true);
-  assert.equal(withNullInvestableCash.canRecommend, true);
-  assert.equal(withHighInvestableCash.cashShortfall, withNullInvestableCash.cashShortfall);
-  assert.equal(withHighInvestableCash.buyTotal, withNullInvestableCash.buyTotal);
+test('V7.0B sub-PR 2: standard mode with investableCash of 0 leaves nothing fundable (100% cash shortfall, 0 remaining budget)', () => {
+  const result = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 5_000, investableCash: 0 }));
+  assert.equal(result.canRecommend, true);
+  assert.equal(result.availableBuyBudget, 0);
+  assert.equal(result.buyTotal, 200);
+  assert.equal(result.cashShortfall, 200);
+  assert.equal(result.remainingBudget, 0);
+});
+
+test('V7.0B sub-PR 2: standard mode with investableCash sufficient to cover the full theoretical buy shows zero shortfall', () => {
+  const result = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 0, investableCash: 500 }));
+  assert.equal(result.availableBuyBudget, 500);
+  assert.equal(result.buyTotal, 200);
+  assert.equal(result.cashShortfall, 0);
+  assert.equal(result.remainingBudget, 300);
+});
+
+test('V7.0B sub-PR 2: standard mode blocks all concrete amounts (instead of substituting 0) when investableCash itself is missing', () => {
+  const result = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', investableCash: null }));
+  assert.equal(result.canRecommend, false);
+  assert.ok(result.blockingReasons.some(reason => reason.includes('家庭流動性資料不足')));
+  assert.ok(result.rows.every(row => row.recommendedAmount === null && row.unresolvedAmount === null));
+  assert.equal(result.availableBuyBudget, null);
+  assert.equal(result.cashShortfall, null);
 });
 
 test('data quality gates block all concrete amounts instead of substituting zero', () => {
