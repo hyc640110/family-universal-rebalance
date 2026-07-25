@@ -1,15 +1,26 @@
 import type { Quote } from '../App';
 import { SYMBOL_NAMES, normalizeSymbol, safeNumber, type OrderHelperRow, type SymbolCode } from './rebalanceOrderHelper';
+import type { HouseholdLiquidityOutput } from './householdLiquidity';
 
 // V7.0B sub-PR 5a (UR-TODO-008): dipAlertRows (逢低加碼觀察清單的價格判斷邏輯) moved out of App.tsx verbatim,
 // mirroring the sub-PR 4a relocation of getOrderSuggestions, so tests/dipAlertRows.test.ts can import and exercise
-// the real production code instead of a hand-rolled duplicate. This is a pure relocation (no logic, formula, or
-// output change) — the dip signal here remains a price-only condition (013 §14.1: "Dip Signal 是市場或價格條件
-// 訊號，不是資金資格"). Household Liquidity investableCash / funding-eligibility gating (013 §14.2 狀態矩陣) is
-// explicitly out of scope for 5a and is planned for sub-PR 5b.
+// the real production code instead of a hand-rolled duplicate. This was a pure relocation (no logic, formula, or
+// output change) — the dip signal itself remains a price-only condition (013 §14.1: "Dip Signal 是市場或價格條件
+// 訊號，不是資金資格") and `triggered` below is derived from price alone, exactly as in 5a.
+//
+// V7.0B sub-PR 5b (013 §14.2 狀態矩陣): adds `fundingStatus`, a second, independent classification layered on top
+// of (never replacing) the price-only `triggered` signal. `deriveDipFundingStatus` reuses the three
+// HouseholdLiquidityOutput fields the caller already computed once (investableCash / dataCompleteness /
+// safetyCashShortfall) — no parallel funding-eligibility formula is introduced here. `triggered` and `status`
+// keep their pre-5b values verbatim; a safety-cash shortfall or a zero investableCash changes `fundingStatus` only,
+// never the price signal itself. This mirrors sub-PR 4b's investableCash wiring into getOrderSuggestions, but for
+// the dip-alert domain and using a categorical funding classification rather than a money basis, since a dip alert
+// has no per-symbol requested amount of its own to reduce.
 
 export type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
-export type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean };
+export type DipFundingStatus = 'no-signal' | 'data-insufficient' | 'safety-cash-priority' | 'observe-only' | 'executable';
+export type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean; fundingStatus: DipFundingStatus };
+export type DipAlertLiquidityContext = Pick<HouseholdLiquidityOutput, 'investableCash' | 'dataCompleteness' | 'safetyCashShortfall'>;
 
 export const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 
@@ -22,7 +33,18 @@ export function normalizeDipAlertSetting(raw: unknown): DipAlertSetting {
   return { enabled: Boolean(r.enabled), referencePrice: Math.max(0, safeNumber(r.referencePrice)), thresholdPct: threshold };
 }
 
-export function getDipAlertRows(rows: OrderHelperRow[], quotes: Record<SymbolCode, Quote>, dipAlerts: Record<SymbolCode, DipAlertSetting> | undefined): DipAlertRow[] {
+// 013 §14.2 五列狀態矩陣：無訊號一律 no-signal；有訊號時再依資料完整度／安全存量／可投資現金分流。
+// dataCompleteness !== 'complete'、investableCash === null、safetyCashShortfall === null 三者只要有一個成立，
+// 代表家庭流動性資料不足以判斷資金資格，一律歸類 data-insufficient（對應矩陣第 2 列「否／未知／未知」）。
+export function deriveDipFundingStatus(triggered: boolean, liquidity: DipAlertLiquidityContext): DipFundingStatus {
+  if (!triggered) return 'no-signal';
+  if (liquidity.dataCompleteness !== 'complete' || liquidity.investableCash === null || liquidity.safetyCashShortfall === null) return 'data-insufficient';
+  if (liquidity.safetyCashShortfall > 0) return 'safety-cash-priority';
+  if (liquidity.investableCash === 0) return 'observe-only';
+  return 'executable';
+}
+
+export function getDipAlertRows(rows: OrderHelperRow[], quotes: Record<SymbolCode, Quote>, dipAlerts: Record<SymbolCode, DipAlertSetting> | undefined, liquidity: DipAlertLiquidityContext): DipAlertRow[] {
   return rows.map(row => {
     const symbol = normalizeSymbol(row.symbol);
     const setting = normalizeDipAlertSetting(dipAlerts?.[symbol] ?? defaultDipAlertSetting());
@@ -31,6 +53,7 @@ export function getDipAlertRows(rows: OrderHelperRow[], quotes: Record<SymbolCod
     const drawdownPct = price > 0 && referencePrice > 0 ? (price - referencePrice) / referencePrice * 100 : null;
     const triggered = Boolean(setting.enabled && drawdownPct !== null && drawdownPct <= setting.thresholdPct);
     const status = !setting.enabled ? '未啟用' : drawdownPct === null ? '尚未設定有效波段最高價' : triggered ? '已達逢低加碼觀察條件，可列入加碼觀察' : '尚未觸發';
-    return { symbol, name: row.quote.name || SYMBOL_NAMES[symbol] || symbol, price, setting, drawdownPct, triggered, status };
+    const fundingStatus = deriveDipFundingStatus(triggered, liquidity);
+    return { symbol, name: row.quote.name || SYMBOL_NAMES[symbol] || symbol, price, setting, drawdownPct, triggered, status, fundingStatus };
   });
 }

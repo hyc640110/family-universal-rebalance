@@ -69,7 +69,7 @@ import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quote
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
-import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting } from './lib/dipAlertEngine';
+import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -629,10 +629,23 @@ function getDecisionSummary(rb: ReturnType<typeof rebalance>, orderHelper: Order
   const enabledDipAlerts = dipAlertRows.filter(row => row.setting.enabled);
   const triggeredDipAlerts = enabledDipAlerts.filter(row => row.triggered);
   const buyAmount = orderHelper.totalBuyAmount;
+  // V7.0B sub-PR 5b (013 §14.2): dipAlertRows all share one liquidity read (see the useMemo that builds them), so
+  // every triggeredDipAlerts row carries the same fundingStatus — reading [0] is exact, not an approximation.
+  // `triggered` itself (and adjustmentStatus/rebalanceStatus below, which only read triggeredDipAlerts.length) are
+  // unchanged from sub-PR 5a: the price signal stays independent of funding. Only dipStatus's wording gains a
+  // funding-aware suffix for the three non-executable states, so this summary line never implies a ready buy when
+  // it isn't one; the 'executable' wording is left exactly as sub-PR 5a to avoid an unrelated text diff.
+  const dipFundingStatus = triggeredDipAlerts[0]?.fundingStatus;
+  const dipStatus = enabledDipAlerts.length === 0 ? '逢低加碼提醒關閉'
+    : triggeredDipAlerts.length === 0 ? '逢低加碼尚未觸發'
+    : dipFundingStatus === 'data-insufficient' ? `已觸發 ${triggeredDipAlerts.length} 檔逢低觀察，家庭流動性資料不足`
+    : dipFundingStatus === 'safety-cash-priority' ? `已觸發 ${triggeredDipAlerts.length} 檔逢低觀察，安全存量不足，建議優先補現金`
+    : dipFundingStatus === 'observe-only' ? `已觸發 ${triggeredDipAlerts.length} 檔逢低觀察，可投資現金為 0，僅觀察`
+    : `已觸發 ${triggeredDipAlerts.length} 檔逢低觀察`;
   return {
     adjustmentStatus: rb.thresholdReached || triggeredDipAlerts.length > 0 ? '需要關注' : '暫不需要調整',
     rebalanceStatus: rb.thresholdReached ? '已觸發再平衡' : '未觸發再平衡',
-    dipStatus: enabledDipAlerts.length === 0 ? '逢低加碼提醒關閉' : triggeredDipAlerts.length > 0 ? `已觸發 ${triggeredDipAlerts.length} 檔逢低觀察` : '逢低加碼尚未觸發',
+    dipStatus,
     buyAmount,
     fundingSource: getFundingSource(orderHelper),
     triggeredDipAlerts
@@ -969,13 +982,32 @@ function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>;
     </div>}
   </>;
 }
-function DipOpportunityAnalysis({ rows, onOpenAssets }: { rows: DipAlertRow[]; onOpenAssets: () => void }) {
+// V7.0B sub-PR 5b (013 §14.2/§14.3): dip signal (row.triggered/row.status, price-only, unchanged since 5a) and
+// funding eligibility (row.fundingStatus) are deliberately rendered as two separate blocks below — never collapsed
+// into a single "建議加碼 X 元" line — so a triggered price signal never reads as an executable order on its own.
+function dipFundingMessage(status: DipFundingStatus): string {
+  switch (status) {
+    case 'data-insufficient': return '家庭流動性資料不足，僅顯示逢低訊號，暫不產生買入建議。';
+    case 'safety-cash-priority': return '安全存量不足，建議優先補足安全現金，暫不產生買入建議。';
+    case 'observe-only': return '可投資現金為 0，僅列入觀察，不產生買單。';
+    default: return '';
+  }
+}
+function DipFundingSummary({ row, investableCash, executableBudget, externalFundingRequired }: { row: DipAlertRow; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null }) {
+  if (!row.triggered) return null;
+  if (row.fundingStatus === 'executable') {
+    return <div className="dip-funding-metrics"><p><span>可投資現金</span><strong>{money(investableCash ?? 0)}</strong></p><p><span>本次可執行加碼</span><strong>{money(executableBudget ?? 0)}</strong></p><p><span>未滿足理論需求</span><strong>{money(externalFundingRequired ?? 0)}</strong></p></div>;
+  }
+  return <p className="dip-funding-note">{dipFundingMessage(row.fundingStatus)}</p>;
+}
+function DipOpportunityAnalysis({ rows, investableCash, executableBudget, externalFundingRequired, onOpenAssets }: { rows: DipAlertRow[]; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null; onOpenAssets: () => void }) {
   const enabledRows = rows.filter(row => row.setting.enabled).sort((a, b) => Number(b.triggered) - Number(a.triggered) || num(a.drawdownPct ?? 0) - num(b.drawdownPct ?? 0));
   if (!enabledRows.length) return <div className="analytics-empty"><p>目前沒有啟用逢低加碼提醒的資產。</p><button type="button" onClick={onOpenAssets}>前往資產頁設定</button></div>;
   return <div className="dip-opportunity-list">
     {enabledRows.map((row, index) => <article className={`dip-opportunity-card ${row.triggered ? 'triggered' : ''}`} key={row.symbol}>
       <div><h3>{index + 1}. {row.symbol} <span>{row.name}</span></h3><b className={row.triggered ? 'warn' : 'hold'}>{row.triggered ? '已達逢低加碼觀察條件' : '持續觀察'}</b></div>
       <div className="dip-opportunity-metrics"><p><span>最新價格</span><strong>{row.price > 0 ? `${row.price.toFixed(2)} 元` : '價格不足'}</strong></p><p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? `${row.setting.referencePrice.toFixed(2)} 元` : '尚未設定'}</strong></p><p><span>距高點跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p><p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p></div>
+      <DipFundingSummary row={row} investableCash={investableCash} executableBudget={executableBudget} externalFundingRequired={externalFundingRequired} />
     </article>)}
   </div>;
 }
@@ -986,7 +1018,7 @@ function AnalyticsDetails({ m, rb, health, quoteSummaryText, latestQuoteTime, on
     <details><summary>詳細分析資料／除錯資訊</summary><p>股價狀態：{quoteSummaryText}。最近更新：{latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}。總資產：{money(m.totalAssets)}。</p><button type="button" className="small" onClick={onCopy}>{copyStatus}</button></details>
   </div>;
 }
-function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void }) {
+function DipAlertCard({ row, investableCash, executableBudget, externalFundingRequired, onChange }: { row: DipAlertRow; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null; onChange: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void }) {
   return <article className={`dip-alert-item ${row.triggered ? 'triggered' : ''}`}>
     <div className="dip-alert-head">
       <div>
@@ -1009,6 +1041,7 @@ function DipAlertCard({ row, onChange }: { row: DipAlertRow; onChange: (symbol: 
       <p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p>
       <p><span>狀態</span><strong className={row.triggered ? 'warn' : ''}>{row.status}</strong></p>
     </div>
+    <DipFundingSummary row={row} investableCash={investableCash} executableBudget={executableBudget} externalFundingRequired={externalFundingRequired} />
   </article>;
 }
 function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { value: string | number; type?: string; min?: string; step?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; onCommit: (value: string) => void }) {
@@ -1447,7 +1480,10 @@ function App() {
   // V7.0B sub-PR 5a (UR-TODO-008): dip signal price-only computation moved to src/lib/dipAlertEngine.ts
   // (getDipAlertRows), mirroring the sub-PR 4a relocation of getOrderSuggestions. Pure relocation, no behavior
   // change — funding-eligibility gating (013 §14.2) is sub-PR 5b scope.
-  const dipAlertRows = useMemo<DipAlertRow[]>(() => getDipAlertRows(m.rows, quotes, state.dipAlerts), [m.rows, quotes, state.dipAlerts]);
+  // V7.0B sub-PR 5b: reuses householdLiquidityForRebalance (already computed above for Order Helper / Rebalance)
+  // for investableCash/dataCompleteness/safetyCashShortfall, so dip funding status shares the exact same household
+  // liquidity read as the rest of the app — no second, parallel calculation.
+  const dipAlertRows = useMemo<DipAlertRow[]>(() => getDipAlertRows(m.rows, quotes, state.dipAlerts, { investableCash: householdLiquidityForRebalance.investableCash, dataCompleteness: householdLiquidityForRebalance.dataCompleteness, safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall }), [m.rows, quotes, state.dipAlerts, householdLiquidityForRebalance]);
   const decisionSummary = useMemo(() => getDecisionSummary(rb, orderHelper, dipAlertRows), [rb, orderHelper, dipAlertRows]);
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
   const currentWeights = useMemo(() => Object.fromEntries(m.rows.map(row => [row.symbol, m.totalAssets > 0 ? num(row.marketValue) / num(m.totalAssets) * 100 : 0])), [m.rows, m.totalAssets]);
@@ -1989,7 +2025,7 @@ function App() {
         </SectionCard>
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="dip-analysis-section" title="逢低加碼分析" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('dipAnalysis')} onToggle={() => toggleSection('dipAnalysis')} summary={decisionSummary.dipStatus}>
           <p className="note">此區只讀取目前持股的提醒設定與最新報價；波段最高價與門檻請在資產頁調整。</p>
-          <DipOpportunityAnalysis rows={dipAlertRows} onOpenAssets={() => navigate('/assets')} />
+          <DipOpportunityAnalysis rows={dipAlertRows} investableCash={householdLiquidityForRebalance.investableCash} executableBudget={householdLiquidityForRebalance.executableBudget} externalFundingRequired={householdLiquidityForRebalance.externalFundingRequired} onOpenAssets={() => navigate('/assets')} />
           <p className="warning-message">逢低加碼提醒僅作為觀察條件，不代表必須買進。若借款管理顯示還款安全存量不足，應優先保留現金。</p>
         </SectionCard>
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="analytics-details-section" title="分析說明" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('analyticsDetails')} onToggle={() => toggleSection('analyticsDetails')} summary="計算方式、風險提醒與詳細分析資料">
