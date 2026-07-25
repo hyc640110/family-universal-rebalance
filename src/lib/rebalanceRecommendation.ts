@@ -8,6 +8,8 @@ export type RecommendationHolding = {
 };
 export type RebalanceRecommendationInput = {
   totalAssets: number; liquidCash: number; buyOnlyBudget: number; rebalanceMode: RebalanceRecommendationMode;
+  /** V7.0B: household-liquidity-derived investable cash (013 §13.2), used only in buy-only mode. Standard mode still uses liquidCash. */
+  investableCash: number | null;
   rebalanceThreshold: number; allocationDeviation: number; targetTotal: number; cashTargetPct: number;
   holdings: RecommendationHolding[]; duplicateSymbols: string[]; otherAssetValue?: number;
   allocation: { growth: { currentValue: number; targetWeight: number }; defensive: { currentValue: number; targetWeight: number }; cash: { currentValue: number } };
@@ -33,6 +35,7 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
     !input.holdings.length ? '尚無持股資料，無法計算個別標的建議。' : '',
     !finite(input.totalAssets) || totalAssets <= 0 ? '總資產不是有效正數，無法計算目標市值。' : '',
     !finite(input.targetTotal) || targetTotal > 100 ? '持股目標比例總和超過 100%，請先修正目標比例。' : '',
+    mode === 'buy-only' && input.investableCash === null ? '家庭流動性資料不足，無法確認可投資現金，只買不賣模式暫停產生具體金額建議。' : '',
     input.duplicateSymbols.length ? `偵測到重複 symbol：${input.duplicateSymbols.join('、')}，請先合併或修正持股資料。` : '',
     number(input.otherAssetValue) > amountFloor ? '總資產含有未分類的非持股／非流動現金資產，無法可靠分配投資目標。' : '',
     ...input.holdings.flatMap(holding => [
@@ -64,7 +67,9 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
     };
   }
   const rankedBuys = baseRows.filter(row => row.difference > amountFloor).sort((a, b) => b.difference - a.difference || a.symbol.localeCompare(b.symbol));
-  const availableBuyBudget = mode === 'buy-only' ? Math.max(0, Math.min(number(input.buyOnlyBudget), liquidCash)) : liquidCash;
+  // Buy-only mode is limited by investableCash (013 §13.2: min(requestedInvestmentBudget, investableCash)), not the raw liquidCash used by standard mode.
+  const availableBuyBudget = mode === 'buy-only' ? Math.max(0, Math.min(number(input.buyOnlyBudget), number(input.investableCash))) : liquidCash;
+  const noInvestableCash = mode === 'buy-only' && input.investableCash === 0;
   const buyAmounts = new Map<string, number>();
   if (mode === 'buy-only') {
     let remaining = availableBuyBudget;
@@ -83,7 +88,9 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
       return { ...row, action: 'sell' as const, recommendedAmount: amount, unresolvedAmount: Math.max(0, Math.abs(row.difference) - amount), reason: '目前市值高於目標市值。', priority: ++rank };
     }
     const amount = mode === 'buy-only' ? buyAmounts.get(row.symbol) ?? 0 : row.difference;
-    return { ...row, action: 'buy' as const, recommendedAmount: amount, unresolvedAmount: Math.max(0, row.difference - amount), reason: mode === 'buy-only' ? '依低配缺口由大到小分配可投入預算。' : '目前市值低於目標市值。', priority: rankedBuys.findIndex(item => item.symbol === row.symbol) + 1 };
+    // Reuses the exact householdLiquidity.ts NO_INVESTABLE_CASH message so the two systems never diverge in wording.
+    const buyOnlyReason = noInvestableCash ? '扣除受保護安全存量後沒有可投資現金。' : '依低配缺口由大到小分配可投入預算。';
+    return { ...row, action: 'buy' as const, recommendedAmount: amount, unresolvedAmount: Math.max(0, row.difference - amount), reason: mode === 'buy-only' ? buyOnlyReason : '目前市值低於目標市值。', priority: rankedBuys.findIndex(item => item.symbol === row.symbol) + 1 };
   });
   const buyTotal = rows.reduce((sum, row) => sum + (row.action === 'buy' ? row.recommendedAmount ?? 0 : 0), 0);
   const sellTotal = rows.reduce((sum, row) => sum + (row.action === 'sell' ? row.recommendedAmount ?? 0 : 0), 0);

@@ -179,11 +179,20 @@ test('15. Adapter 與 plan input normalizer 對同一份來源均為 determinist
   assert.deepEqual(source, snapshot);
 });
 
-test('16. 正式 consumer、Rebalance、Execution Eligibility 與舊 order helper 都沒有接入 Adapter 或 Core', () => {
+test('16. V7.0B sub-PR 1 (UR-TODO-008): only the App.tsx buy-only wiring consumes Adapter/Core; Execution Eligibility and rebalanceRecommendation.ts itself stay unwired', () => {
+  // 2026-07-25 update: this test previously asserted App.tsx had zero references, matching Sprint 1/2's explicit
+  // "no consumer yet" scope (013 §29.1). V7.0B sub-PR 1 is the deliberate, user-authorized Sprint that crosses that
+  // exact boundary for App.tsx's buy-only budget only (see AI_CONTEXT/008_TODO_BACKLOG.md UR-TODO-008). The App.tsx
+  // assertion below has been flipped to assert-present to track this intentionally, not silently dropped.
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const rebalance = readFileSync(new URL('../src/lib/rebalanceRecommendation.ts', import.meta.url), 'utf8');
   const eligibility = readFileSync(new URL('../src/lib/rebalanceExecutionEligibility.ts', import.meta.url), 'utf8');
-  assert.doesNotMatch(app, /householdLiquidityInputAdapter|buildHouseholdLiquidityInput|deriveHouseholdLiquidity/);
+  assert.match(app, /householdLiquidityInputAdapter/);
+  assert.match(app, /buildHouseholdLiquidityInput/);
+  assert.match(app, /deriveHouseholdLiquidity/);
+  // rebalanceRecommendation.ts stays a pure function: it only receives investableCash as plain input, it never
+  // imports or calls the adapter/core itself.
   assert.doesNotMatch(rebalance, /householdLiquidityInputAdapter|deriveHouseholdLiquidity/);
+  // Execution Eligibility remains fully out of V7.0B sub-PR 1's scope (deferred to a later UR-TODO-008 sub-PR).
   assert.doesNotMatch(eligibility, /householdLiquidityInputAdapter|deriveHouseholdLiquidity/);
 });

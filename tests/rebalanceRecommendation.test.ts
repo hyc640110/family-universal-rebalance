@@ -6,6 +6,7 @@ const baseInput = (overrides: Partial<RebalanceRecommendationInput> = {}): Rebal
   totalAssets: 1_000,
   liquidCash: 200,
   buyOnlyBudget: 150,
+  investableCash: 200,
   rebalanceMode: 'standard',
   rebalanceThreshold: 5,
   allocationDeviation: 8,
@@ -48,13 +49,16 @@ test('standard mode shows a cash shortfall without treating theoretical sales as
   assert.equal(result.cashShortfall, 150);
 });
 
-test('buy-only mode allocates finite budget to largest deficits first and never recommends a sale', () => {
+const buyOnlyDeficitHoldings = [
+  { symbol: 'LOW', name: '小缺口', marketValue: 550, currentWeight: 55, targetWeight: 60, assetClass: 'growth' as const, price: 55, quoteStatus: 'today' as const, quoteSource: 'Price Worker' },
+  { symbol: 'HIGH', name: '大缺口', marketValue: 200, currentWeight: 20, targetWeight: 40, assetClass: 'growth' as const, price: 20, quoteStatus: 'today' as const, quoteSource: 'Price Worker' },
+];
+
+test('buy-only mode allocates finite budget to largest deficits first and never recommends a sale (V7.0B: budget is investableCash, not liquidCash)', () => {
   const result = deriveRebalanceRecommendation(baseInput({
-    rebalanceMode: 'buy-only', liquidCash: 100, buyOnlyBudget: 100,
-    holdings: [
-      { symbol: 'LOW', name: '小缺口', marketValue: 550, currentWeight: 55, targetWeight: 60, assetClass: 'growth', price: 55, quoteStatus: 'today', quoteSource: 'Price Worker' },
-      { symbol: 'HIGH', name: '大缺口', marketValue: 200, currentWeight: 20, targetWeight: 40, assetClass: 'growth', price: 20, quoteStatus: 'today', quoteSource: 'Price Worker' },
-    ],
+    // liquidCash is intentionally left far above the budget/investableCash to prove buy-only no longer reads it.
+    rebalanceMode: 'buy-only', liquidCash: 5_000, buyOnlyBudget: 100, investableCash: 100,
+    holdings: buyOnlyDeficitHoldings,
     targetTotal: 100,
   }));
   const low = result.rows.find(row => row.symbol === 'LOW')!;
@@ -62,7 +66,59 @@ test('buy-only mode allocates finite budget to largest deficits first and never 
   assert.equal(high.recommendedAmount, 100);
   assert.equal(low.recommendedAmount, 0);
   assert.equal(result.usedBuyBudget, 100);
+  assert.equal(result.availableBuyBudget, 100);
   assert.ok(result.rows.every(row => row.action !== 'sell'));
+});
+
+test('V7.0B: buy-only mode with investableCash of 0 produces no executable buy orders and states the household-liquidity reason', () => {
+  const result = deriveRebalanceRecommendation(baseInput({
+    rebalanceMode: 'buy-only', liquidCash: 5_000, buyOnlyBudget: 100, investableCash: 0,
+    holdings: buyOnlyDeficitHoldings,
+    targetTotal: 100,
+  }));
+  assert.equal(result.canRecommend, true);
+  assert.equal(result.availableBuyBudget, 0);
+  assert.equal(result.usedBuyBudget, 0);
+  const high = result.rows.find(row => row.symbol === 'HIGH')!;
+  assert.equal(high.recommendedAmount, 0);
+  assert.equal(high.reason, '扣除受保護安全存量後沒有可投資現金。');
+  assert.ok(result.rows.every(row => row.action !== 'sell'));
+});
+
+test('V7.0B: buy-only mode with investableCash below the requested budget clamps the executable amount to investableCash', () => {
+  const result = deriveRebalanceRecommendation(baseInput({
+    rebalanceMode: 'buy-only', liquidCash: 5_000, buyOnlyBudget: 100, investableCash: 60,
+    holdings: buyOnlyDeficitHoldings,
+    targetTotal: 100,
+  }));
+  assert.equal(result.availableBuyBudget, 60);
+  assert.equal(result.usedBuyBudget, 60);
+  const high = result.rows.find(row => row.symbol === 'HIGH')!;
+  const low = result.rows.find(row => row.symbol === 'LOW')!;
+  assert.equal(high.recommendedAmount, 60);
+  assert.equal(low.recommendedAmount, 0);
+  assert.ok(result.usedBuyBudget <= 60);
+});
+
+test('V7.0B: buy-only mode blocks all concrete amounts (instead of substituting 0) when investableCash itself is missing', () => {
+  const result = deriveRebalanceRecommendation(baseInput({
+    rebalanceMode: 'buy-only', investableCash: null,
+    holdings: buyOnlyDeficitHoldings,
+    targetTotal: 100,
+  }));
+  assert.equal(result.canRecommend, false);
+  assert.ok(result.blockingReasons.some(reason => reason.includes('家庭流動性資料不足')));
+  assert.ok(result.rows.every(row => row.recommendedAmount === null && row.unresolvedAmount === null));
+  assert.equal(result.availableBuyBudget, null);
+});
+
+test('V7.0B: standard mode is unaffected by investableCash and still uses liquidCash', () => {
+  const withHighInvestableCash = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 50, investableCash: 999_999 }));
+  const withNullInvestableCash = deriveRebalanceRecommendation(baseInput({ rebalanceMode: 'standard', liquidCash: 50, investableCash: null }));
+  assert.equal(withHighInvestableCash.canRecommend, true);
+  assert.equal(withNullInvestableCash.canRecommend, true);
+  assert.equal(withHighInvestableCash.cashShortfall, withNullInvestableCash.cashShortfall);
+  assert.equal(withHighInvestableCash.buyTotal, withNullInvestableCash.buyTotal);
 });
 
 test('data quality gates block all concrete amounts instead of substituting zero', () => {
