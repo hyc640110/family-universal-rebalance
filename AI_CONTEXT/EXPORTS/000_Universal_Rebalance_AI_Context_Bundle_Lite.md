@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-25T14:15:09.917185+00:00
+Generated UTC: 2026-07-25T14:56:19.438633+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `5dca6f804fa96b054a9802fd535cdbd4dc174a5985f3951e22a016507f69a330`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
 - `001_README.md` — SHA-256 `7f091455da51d7f2bd8bb2d6d9da746ba2be6fae06d7cb2e8b3a7415ffada6b0`
-- `003_CURRENT_STATUS.md` — SHA-256 `f7d397067375023066e4de7e36ea3487794b41a9d210de2f00f00f543518d3f7`
-- `008_TODO_BACKLOG.md` — SHA-256 `f297e4907dc531fdd2a2cb8d39326b1451dc3271e5bf3a8871e1f1a7c6d57afe`
+- `003_CURRENT_STATUS.md` — SHA-256 `652d8736c4d97f077f5699764f08a962bcaa8bc896b2685c576199e21102d801`
+- `008_TODO_BACKLOG.md` — SHA-256 `671b68593aa7002af26058a21f4e98cb91b337e72ba06b59a2bff72dcc2db3f3`
 - `012_AI_HANDOVER.md` — SHA-256 `809b2b3d61fdd8b98d92a5f14a83860fea539461b86b7a22eea9384aa6115220`
 
 ---
@@ -424,29 +424,29 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.21
+# Universal Rebalance Current Status v3.22
 
 最後更新：2026-07-25
 
-本次更新依據：2026-07-25 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #122**（`a06890d`），涵蓋 PR #121（治理文件同步，補齊 PR #119～#120 基線落差）、PR #122（產品版本 V7.0B 子 PR 4a／5，Order Helper characterization test 安全準備），本文件先前記載的基線（PR #120，`26b8a86`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #122 本身涉及 `src/`、`tests/`、`package.json`，已於 2026-07-25 由使用者手動 Merge 完成，本次同步僅為該 PR 之後的治理文件補登，不重複變更程式）。
+本次更新依據：2026-07-25 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #124**（`35859af`），涵蓋 PR #123（治理文件同步，補齊 PR #121～#122 基線落差）、PR #124（產品版本 V7.0B 子 PR 4b／5，investableCash 正式串接進 Order Helper），本文件先前記載的基線（PR #122，`a06890d`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #124 本身涉及 `src/`、`tests/`，已於 2026-07-25 由使用者手動 Merge 完成，本次同步僅為該 PR 之後的治理文件補登，不重複變更程式）。
 
 ## 1. 最新正式版本
 
-- 正式版本：**產品版本 V7.0B 子 PR 4a／5（Order Helper characterization test 安全準備）**
-- 名稱：Rebalance & Trade Execution Integration — Sub-PR 4a/5
-- PR：**#122**（MERGED）
-- 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）
+- 正式版本：**產品版本 V7.0B 子 PR 4b／5（investableCash 正式串接進 Order Helper）**
+- 名稱：Rebalance & Trade Execution Integration — Sub-PR 4b/5
+- PR：**#124**（MERGED）
+- 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）
 - 狀態：MERGED
 - merge commit：
-  `a06890da3b07d4e79b95f0c5ed65c883618480e5`
+  `35859afc0e21e5f995c8303e0b4286f77c283f86`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
 - Branch：`main`
 - HEAD／origin/main：
-  `a06890da3b07d4e79b95f0c5ed65c883618480e5`（PR #122 merge commit，2026-07-25 14:07:12Z）
-- 本次同步文件所用 branch（`docs/sync-pr-122-baseline`）已從最新 `origin/main`（`a06890d`）建立，非延用前一個功能開發 branch（`feat/v7-0b-orderhelper-characterization`）。
+  `35859afc0e21e5f995c8303e0b4286f77c283f86`（PR #124 merge commit，2026-07-25 14:37:17Z）
+- 本次同步文件所用 branch（`docs/sync-pr-124-baseline`）已從最新 `origin/main`（`35859af`）建立，非延用前一個功能開發 branch（`feat/v7-0b-orderhelper-investablecash`）。
 - `main...origin/main`：`0 / 0`（以 origin/main 為準）
 - Working tree：乾淨。`AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`、`tools/` 已於 PR #106（`chore/ai-context-governance-baseline`）正式進版控，不再是未追蹤內容；詳見第 12 節更正。
 - Open／Draft PR：無（`gh pr list --state open` 回傳空陣列，本次同步 PR 建立前確認）
@@ -656,8 +656,8 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 1. UR-TODO-001（Firebase Security Rules 到期）已於 2026-07-25 由使用者本人完成 Firebase Console 查證，狀態更新為「已盤點」，使用者決策為接受 2026-07-28 自然到期、不修改規則。正式解法（Firebase Auth 整合）待使用者未來另行排定為獨立 Development Sprint，目前不在待處理 P0 唯讀盤點清單中，但仍是待開發項目。
 2. UR-TODO-037 尚未完成範圍（GitHub Environment 人工核准、Branch Protection、預設分支修正）仍待另立獨立 Todo／Sprint。
-3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）目前進度：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）、子 PR 3／5（Execution Eligibility investableCash contract，PR #120）、子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）已完成並合併；子 PR 4b／5（Order Helper investableCash 串接）待啟動，子 PR 5（Dip Alert）尚未開始，下一步仍待使用者明確下達「開始開發」指示後才啟動子 PR 4b。
-4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`a06890d`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）目前進度：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）、子 PR 3／5（Execution Eligibility investableCash contract，PR #120）、子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）、子 PR 4b／5（Order Helper investableCash 串接，PR #124）已完成並合併；子 PR 5（Dip Alert 資金資格判斷）尚未開始，下一步仍待使用者明確下達「開始開發」指示後才啟動子 PR 5。
+4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`35859af`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
 5. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`；V7.0B 已透過子 PR 1／2 局部啟動（僅 Rebalance 預算計算範圍），其餘子項與 V7.0C～V7.0E **均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
 
 ## 12. AI 治理文件版控狀態（已更正）
@@ -743,15 +743,31 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - PR #122 未涉及 investableCash 契約串接，`getOrderSuggestions` 抽出後行為與抽出前保持一致（characterization test 目的），子 PR 4b／5 才會處理與 013 §12～14 investableCash 契約的實際串接。
 - UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
 
+## 12.5 PR #123～#124 Merge 與 Production 部署記錄（2026-07-25 本次同步）
+
+本次唯讀盤點確認 `main`／`origin/main`／HEAD 已由本文件先前記載的 PR #122（`a06890d`）推進至 **PR #124**（`35859af`），中間共 2 個 PR 皆已由使用者手動 Merge，對應 `Deploy GitHub Pages` workflow 全數 `conclusion: success`（`event: push`）：
+
+| PR | 標題 | merge commit | mergedAt | Deploy run（databaseId） | 摘要 |
+|---|---|---|---|---|---|
+| #123 | docs: sync PR #121-122 baseline into governance docs | `51b38ded7e9b53520c339ebe5e510f5ea8ff5380` | 2026-07-25T14:18:01Z | `30161367660` success | 純治理文件同步，補齊 PR #121～#122 基線落差（第 12.4 節）；變更檔案：`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md`、Full／Lite Bundle |
+| #124 | V7.0B 子 PR 4b/5: 將 investableCash 串接進 Order Helper | `35859afc0e21e5f995c8303e0b4286f77c283f86` | 2026-07-25T14:37:17Z | `30161990720` success | `src/lib/rebalanceOrderHelper.ts` 的 `getOrderSuggestions` 新增第 4 個參數 `investableCash: number \| null`，`buyOnlyLimit`／`remainingBudget`／`shortage`／`cashEnough`／`cashLimited` 全部改用 investableCash 為基準（`null` 時保守視為 0，輸出欄位本身仍維持 `null`，不偽裝成 0）；`src/App.tsx` 呼叫端改傳入 `householdLiquidityForRebalance.investableCash`，`getFundingSource` 改重用 `orderHelper.cashEnough`，交易建議清單卡片新增「可投資現金」欄位；`tests/getOrderSuggestions.test.ts` 原 13 個子 PR 4a characterization test 期望值不變，新增 6 個邊界案例（19/19 通過）；`npx tsc -b`、`npm run test:ci`（466/466＋18/18＋checks 全數 PASS）、Production／Preview build 皆成功；明確不包含 `RebalanceRecommendationPage.tsx` 呈現層文案、Dip Gate、CLEC `availableCash` 語意 |
+
+說明：
+
+- 本次為唯讀比對 git 歷史與各 PR 內容（`gh pr view`、`gh run list`），**未重新逐一實測 Production／Preview HTTP 狀態**，僅確認 workflow `conclusion` 皆為 `success`。
+- PR #124 為本階段唯一涉及 `src/`、`tests/` 的功能性 PR（對應 UR-TODO-008 子 PR 4b／5），PR #123 為純 `AI_CONTEXT/` 治理文件同步。
+- PR #124 完成後，UR-TODO-008 子 PR 1～4b／5 已全數完成，僅剩子 PR 5（Dip Alert 資金資格判斷）尚未開始。
+- UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-25 PR #121～#122 基線同步）：
+本次同步更新（2026-07-25 PR #123～#124 基線同步）：
 
-- Current Status v3.20→**v3.21**（本文件）：基線由 PR #120（`26b8a86`）更新為 **PR #122（`a06890d`）**；新增第 12.4 節記錄 PR #121～#122 的 Merge 與 Deploy 記錄；第 11 節現行下一步第 3、4 項更新為反映 UR-TODO-008 子 PR 4a／5 已完成、子 PR 4b／5 待啟動、子 PR 5 尚未開始
-- Todo Backlog（v1.13→v1.14）：UR-TODO-008 狀態說明更新為子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）已完成，子 PR 4b／5（investableCash 串接）待啟動，子 PR 5（Dip Alert）尚未開始
+- Current Status v3.21→**v3.22**（本文件）：基線由 PR #122（`a06890d`）更新為 **PR #124（`35859af`）**；新增第 12.5 節記錄 PR #123～#124 的 Merge 與 Deploy 記錄；第 11 節現行下一步第 3、4 項更新為反映 UR-TODO-008 子 PR 1～4b／5 已全數完成、子 PR 5 尚未開始
+- Todo Backlog（v1.14→v1.15）：UR-TODO-008 狀態說明更新為子 PR 1～4b／5 已完成，子 PR 5（Dip Alert 資金資格判斷）待啟動
 - AI Context Bundle（Full／Lite）：依上述文件變更重新產生
 
-歷史記錄：2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
+歷史記錄：2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
 
 歷史記錄：2026-07-24 PR #109 Merge 後治理狀態同步（基線改為 `4a95a8a`，記錄 Full／Lite Bundle 首次正式合併）已於前次同步完成；2026-07-24 PR #108 Merge 後治理文件收尾（UR-TODO-038、CI-01、CI-02 標記已完成、清除 PR #108 進行中狀態）已於更早一次同步完成，詳見上方各節歷史記錄段落。
 
@@ -763,7 +779,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.14
+# Universal Rebalance Todo Backlog v1.15
 
 最後更新：2026-07-25
 
@@ -808,6 +824,10 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 2026-07-25 PR #121（`docs: sync PR #119-120 baseline into governance docs`，merge commit `8fb33250f577b11895032fb84f5e612b676d183e`）為純治理文件同步，唯讀盤點確認未改動任何現行 UR-TODO 狀態。
 
 2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 4a／5（Order Helper characterization test 安全準備）已由使用者手動 Merge，PR #122，merge commit `a06890da3b07d4e79b95f0c5ed65c883618480e5`，對應 Production `Deploy GitHub Pages` workflow run `30161023942` 成功。範圍：將 `App.tsx` 內的 `getOrderSuggestions` 邏輯抽出為純函式 `src/lib/rebalanceOrderHelper.ts`，新增 `tests/getOrderSuggestions.test.ts` characterization test 覆蓋既有行為，`package.json` 新增對應測試腳本；本次為行為保留（characterization）性質的重構，**不涉及 investableCash 契約串接**，屬於子 PR 4a／5，子 PR 4b／5（investableCash 串接）另行處理。UR-TODO-008 狀態維持「開發中」，描述文字更新為子 PR 4a／5 已完成，子 PR 4b／5（Order Helper investableCash 串接）待啟動，子 PR 5（Dip Alert）尚未開始，其餘 Todo 狀態不受本次更新影響。
+
+2026-07-25 PR #123（`docs: sync PR #121-122 baseline into governance docs`，merge commit `51b38ded7e9b53520c339ebe5e510f5ea8ff5380`）為純治理文件同步，唯讀盤點確認未改動任何現行 UR-TODO 狀態。
+
+2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 4b／5（Order Helper investableCash 串接）已由使用者手動 Merge，PR #124，merge commit `35859afc0e21e5f995c8303e0b4286f77c283f86`，對應 Production `Deploy GitHub Pages` workflow run `30161990720` 成功。範圍：`src/lib/rebalanceOrderHelper.ts` 的 `getOrderSuggestions` 新增第 4 個參數 `investableCash: number | null`，`buyOnlyLimit`／`remainingBudget`／`shortage`／`cashEnough`／`cashLimited` 全部改用 investableCash 為基準（`null` 時保守視為 0，輸出欄位本身仍維持 `null`，不偽裝成 0）；`App.tsx` 呼叫端改傳入 `householdLiquidityForRebalance.investableCash`，`getFundingSource` 改重用 `orderHelper.cashEnough`，交易建議清單卡片新增「可投資現金」欄位；`tests/getOrderSuggestions.test.ts` 原 13 個子 PR 4a characterization test 期望值不變，新增 6 個邊界案例（19/19 通過）。UR-TODO-008 狀態由「開發中」更新為**「子 PR 1～4b／5 已完成，子 PR 5（Dip Alert 資金資格判斷）待啟動」**，其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -1085,18 +1105,18 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 12～14、23、30 節
 
 - 優先級：P1
-- 狀態：**開發中**
+- 狀態：**開發中**（子 PR 1～4b／5 已完成，子 PR 5 待啟動）
   - 子 PR 1／5（buy-only 模式改用 investableCash）已完成，PR #116（`feat/v7-0b-buyonly-investable-cash`）MERGED，merge commit `3882e713ebb03f5f4d14408a66f566c4fcf20848`，2026-07-25
   - 子 PR 2／5（standard 模式改用 investableCash）已完成，PR #118（`feat/v7-0b-standard-investable-cash`）MERGED，merge commit `ff08e0508190201ed2a0ed7a56f381228ca5c1ea`，2026-07-25。standard 模式的 `availableBuyBudget`／`cashShortfall`／`remainingBudget` 改用 investableCash；`investableCash === null` 阻擋條件由僅限 buy-only 擴大為兩種模式皆適用
   - 子 PR 3／5（Execution Eligibility investableCash contract）已完成，PR #120（`feat/v7-0b-execution-eligibility-contract`）MERGED，merge commit `26b8a864e51cd29e8e53405d52a15b8fdac94f8e`，2026-07-25。範圍僅限 `src/lib/rebalanceExecutionEligibility.ts` 與其測試檔：新增 013 §12.3 三個獨立欄位（`investableCash`／`executableAmount`／`externalFundingRequired`），移除舊版混用 CLEC `availableCash` 語意的死碼判斷；未觸碰 `App.tsx`、`RebalanceRecommendationPage.tsx`
   - 子 PR 4a／5（Order Helper characterization test 安全準備）已完成，PR #122（`feat/v7-0b-orderhelper-characterization`）MERGED，merge commit `a06890da3b07d4e79b95f0c5ed65c883618480e5`，2026-07-25。將 `App.tsx` 內的 `getOrderSuggestions` 邏輯抽出為純函式 `src/lib/rebalanceOrderHelper.ts`，新增 characterization test（`tests/getOrderSuggestions.test.ts`）覆蓋既有行為，**不涉及 investableCash 契約串接**，屬行為保留性質重構
-  - 子 PR 4b／5（Order Helper investableCash 串接）待啟動
-  - 子 PR 5（Dip Alert）尚未開始
+  - 子 PR 4b／5（Order Helper investableCash 串接）已完成，PR #124（`feat/v7-0b-orderhelper-investablecash`）MERGED，merge commit `35859afc0e21e5f995c8303e0b4286f77c283f86`，2026-07-25。`getOrderSuggestions` 新增第 4 個參數 `investableCash: number | null`，`buyOnlyLimit`／`remainingBudget`／`shortage`／`cashEnough`／`cashLimited` 全部改用 investableCash 為基準（`null` 時保守視為 0，輸出欄位本身仍維持 `null`）；`App.tsx` 呼叫端改傳入 `householdLiquidityForRebalance.investableCash`，`getFundingSource` 改重用 `orderHelper.cashEnough`，交易建議清單卡片新增「可投資現金」欄位；新增 6 個邊界案例測試（19/19 通過）
+  - 子 PR 5（Dip Alert 資金資格判斷）尚未開始
 - 涉及：
   - 再平衡與加碼建議
   - 交易建議清單
-  - Order Helper（子 PR 4a 已完成純函式抽出與 characterization test 保護，子 PR 4b 待處理實際 investableCash 契約串接；`src/lib/rebalanceOrderHelper.ts`，抽出前為 `App.tsx` 的 `getOrderSuggestions`）
-  - Execution Eligibility（子 PR 2 已新增整合測試驗證 standard 現金不足判斷，子 PR 3 已補齊 013 §12.3 三個獨立欄位契約；`App.tsx`、`RebalanceRecommendationPage.tsx` 呈現層整合仍待子 PR 4b～5）
+  - Order Helper（子 PR 4a／4b 已完成純函式抽出、characterization test 保護與 investableCash 契約串接；`src/lib/rebalanceOrderHelper.ts`，抽出前為 `App.tsx` 的 `getOrderSuggestions`）
+  - Execution Eligibility（子 PR 2 已新增整合測試驗證 standard 現金不足判斷，子 PR 3 已補齊 013 §12.3 三個獨立欄位契約；`App.tsx`、`RebalanceRecommendationPage.tsx` 呈現層整合仍待子 PR 5 之後評估）
   - standard（子 PR 2 已完成）
   - buy-only（子 PR 1 已完成）
   - Dip signal gate（子 PR 5 待處理，`App.tsx` 的 `dipAlertRows`）
