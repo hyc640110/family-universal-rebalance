@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-25T08:31:24.278398+00:00
+Generated UTC: 2026-07-25T09:30:25.383320+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-07-25T08:31:24.278398+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
 - `001_README.md` — SHA-256 `7f091455da51d7f2bd8bb2d6d9da746ba2be6fae06d7cb2e8b3a7415ffada6b0`
 - `002_MASTER_ROADMAP.md` — SHA-256 `318949955a01065843902d5c207969d6b799101f9af414709e8ca10b093dae77`
-- `003_CURRENT_STATUS.md` — SHA-256 `a670c1d29e9fe01e16e7eadf44c4d759c113de82ddbf6b5dbbb0184f6f60112c`
+- `003_CURRENT_STATUS.md` — SHA-256 `07990d51586283b5fad2d1ab01a506e4fc8a99b7345c4af424b0061f103868a1`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `37517b8714694240dfb3e80c2cd93351b3b3c0256bc1ed9f906eaa6597a823b4`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9d1c71d6761913f13469a6a7fc7e121d10c57f42a53e2c110053c653b8d29acf`
-- `008_TODO_BACKLOG.md` — SHA-256 `77b2967983406ef3408cc823c24fbcf44455c2d2e3723f829a202f8b556dbafb`
+- `008_TODO_BACKLOG.md` — SHA-256 `1c81d3797ff3790b16d1e28b5fe46170ce042c86df105e20c514c6a28c3f7b97`
 - `009_CHANGELOG.md` — SHA-256 `7ed138b1b95d0e24a1097d14579ec4d8c3cd5d021b62093c946b7ba89f45f72f`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
@@ -654,31 +654,31 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.18
+# Universal Rebalance Current Status v3.19
 
 最後更新：2026-07-25
 
-本次更新依據：2026-07-25 落地產品版本 **V7.0A（Foundation & Product Governance）**（產品版本代號，非本文件版號，命名區隔規則見 `016_Product_Decisions.md` 第 5 節）。使用者於 ChatGPT（Project Knowledge）規劃 V7 產品治理架構，經 Claude Code 唯讀核對現況後，使用者逐項拍板六項決定，本次由 Claude Code 在 Review Mode 下建立／升版對應治理文件。僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`，未開始任何 Development Mode 工作。
+本次更新依據：2026-07-25 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #118**（`ff08e05`），涵蓋 PR #111～#118 共 8 個 PR，本文件先前記載的基線（PR #110，`081bf91`）已過期。本次由 Claude Code 在 Review Mode 下唯讀比對 git 歷史與各 PR 內容後更新，**僅為文件同步，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**。
 
 ## 1. 最新正式版本
 
-- 正式版本：V6.17.3A
-- 名稱：Household Liquidity Plan Input Foundation（含 Plan Input UI Entry Point）
-- PR：#105（MERGED）
-- 前置同系列 PR：#102、#103、#104（皆 MERGED，與 #105 合計為家庭流動性主題目前已合併的四個 PR）
+- 正式版本：**V7.0B 子 PR 2／5（standard 模式改用 investableCash）**
+- 名稱：Rebalance & Trade Execution Integration — Sub-PR 2/5
+- PR：**#118**（MERGED）
+- 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）
 - 狀態：MERGED
 - merge commit：
-  `251016977fc63aca3221c0b383170a68cad89900`
+  `ff08e0508190201ed2a0ed7a56f381228ca5c1ea`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
 - Branch：`main`
 - HEAD／本機 main／origin/main：
-  `081bf91267d4a28c2c118266feb62379fa01fc64`（PR #110 merge commit，2026-07-24 16:38:48Z）
+  `ff08e0508190201ed2a0ed7a56f381228ca5c1ea`（PR #118 merge commit，2026-07-25 08:58:13Z）
 - `main...origin/main`：`0 / 0`
 - Working tree：乾淨。`AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`、`tools/` 已於 PR #106（`chore/ai-context-governance-baseline`）正式進版控，不再是未追蹤內容；詳見第 12 節更正。
-- Open／Draft PR：無（`gh pr list --state open` 回傳空陣列）
+- Open／Draft PR：無（`gh pr list --state open` 回傳空陣列，本次同步 PR 建立前確認）
 
 固定 stash：
 
@@ -885,9 +885,9 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 1. UR-TODO-001（Firebase Security Rules 到期）已於 2026-07-25 由使用者本人完成 Firebase Console 查證，狀態更新為「已盤點」，使用者決策為接受 2026-07-28 自然到期、不修改規則。正式解法（Firebase Auth 整合）待使用者未來另行排定為獨立 Development Sprint，目前不在待處理 P0 唯讀盤點清單中，但仍是待開發項目。
 2. UR-TODO-037 尚未完成範圍（GitHub Environment 人工核准、Branch Protection、預設分支修正）仍待另立獨立 Todo／Sprint。
-3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）等家庭流動性後續工作仍待使用者決定是否啟動；本次治理狀態同步**不自動開始**下一個 Sprint。
-4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`10ae692`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
-5. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`，**均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
+3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）目前進度：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）已完成並合併；子 PR 3～5（Order Helper／Dip Alert、Execution Eligibility 呈現層）尚未開始，下一步仍待使用者明確下達「開始開發」指示後才啟動子 PR 3。
+4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`ff08e05`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+5. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`；V7.0B 已透過子 PR 1／2 局部啟動（僅 Rebalance 預算計算範圍），其餘子項與 V7.0C～V7.0E **均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
 
 ## 12. AI 治理文件版控狀態（已更正）
 
@@ -920,21 +920,36 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - `tools/build_ai_context_bundle.py` 的 `LITE_FILENAMES` 本次不修改，`016_Product_Decisions.md` 暫不加入 Lite Bundle
 - V7.0B～V7.0E 皆**未核准啟動**，本次僅記錄規劃意圖
 
+## 12.2 PR #111～#118 Merge 與 Production 部署記錄（2026-07-25 本次同步）
+
+本次唯讀盤點確認 `main`／`origin/main`／HEAD 已由本文件先前記載的 PR #110（`081bf91`）推進至 **PR #118**（`ff08e05`），中間共 8 個 PR 皆已由使用者手動 Merge，對應 `Deploy GitHub Pages` workflow 全數 `conclusion: success`（`event: push`）：
+
+| PR | 標題 | merge commit | mergedAt | Deploy run（databaseId） | 摘要 |
+|---|---|---|---|---|---|
+| #111 | docs: sync PR #110 post-merge context | `59da9712a5dd5e4a456bb42c2446fe0324812a29` | 2026-07-24T17:12:43Z | `30112108247` success | 純治理文件同步，補齊 PR #110 Merge 後 `003`／`009`／`012` 與 Bundle 落差 |
+| #112 | docs: record UR-TODO-001 read-only findings | `72fa46cc7e24bb9cfe80df929d90dc5f5ab4898a` | 2026-07-24T17:30:56Z | `30113293420` success | UR-TODO-001 Repository 唯讀盤點結論補登，狀態維持「待盤點」 |
+| #113 | docs: record UR-TODO-001 Firebase Console confirmation | `d4ca47774bcecd52e339bad101bba68da8ae5609` | 2026-07-24T17:45:36Z | `30114262579` success | 使用者本人 Firebase Console 查證結果記錄，UR-TODO-001 狀態改為「已盤點」 |
+| #114 | docs: add language rule to AGENTS.md and CLAUDE.md | `10ae69207d86dc5c2e1513c969724c6f2f2b4344` | 2026-07-24T17:54:12Z | `30114823735` success | 新增繁體中文語言規則至兩份平台入口文件，不涉及 `AI_CONTEXT/` |
+| #115 | docs: land V7.0A Foundation & Product Governance | `5f2d8e8c14d5fda2ed723aff228154a16b12c5ac` | 2026-07-25T04:18:14Z | `30143789714` success | 新增 `016`～`019`，`013` 升版 v4.0，`000`／`002`／`008` 同步調整 |
+| #116 | V7.0B 子 PR 1/5：buy-only 改用 investableCash | `3882e713ebb03f5f4d14408a66f566c4fcf20848` | 2026-07-25T08:23:48Z | `30151027865` success | 首次將家庭流動性 investableCash 接入 Rebalance buy-only 模式預算計算 |
+| #117 | docs: update UR-TODO-008 status to in-progress | `aef8b5d88aca9fcdd4bc475308e341be896e12ee` | 2026-07-25T08:56:32Z | `30151975495` success | 同步 UR-TODO-008 狀態為「開發中」，記錄子 PR 1／5 已完成 |
+| #118 | V7.0B 子 PR 2/5：standard 模式改用 investableCash | `ff08e0508190201ed2a0ed7a56f381228ca5c1ea` | 2026-07-25T08:58:13Z | `30152021243` success | standard 模式現金缺口／可執行預算改用 investableCash，`investableCash === null` 阻擋條件擴大至兩種模式 |
+
+說明：
+
+- 本次為唯讀比對 git 歷史與各 PR 內容（`gh pr view`、`gh run list`），**未重新逐一實測每個 run 的 Production／Preview HTTP 狀態**（各 PR 內文已各自附驗證記錄），僅確認 workflow `conclusion` 皆為 `success`。
+- PR #116、#118 為本階段唯二涉及 `src/`、`tests/` 的功能性 PR（對應 UR-TODO-008 子 PR 1／2），其餘 6 個皆為純 `AI_CONTEXT/` 治理文件同步，詳見 `009_CHANGELOG.md` 與各 PR 內文。
+- UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-25 產品版本 V7.0A 治理文件落地）：
+本次同步更新（2026-07-25 PR #111～#118 基線同步）：
 
-- Current Status v3.18（本文件）：新增第 12.1 節記錄 V7.0A 落地內容；第 11 節現行下一步新增第 5 項
-- Todo Backlog（v1.9→v1.10）：新增 Idea Pool 指引，未改動既有 UR-TODO 狀態
-- 013_HOUSEHOLD_LIQUIDITY_SPEC（v3.0→v4.0）：新增與產品版本 V7.0B 對應說明、與 017／018 的分工邊界，核心內容未變
-- 000_AI_START_HERE（v2.1→v2.2）：必讀清單加入 016
-- 002_MASTER_ROADMAP（v7.4→v7.5）：新增產品版本 V7 規劃段落與命名區隔提醒
-- 新增：016_Product_Decisions.md、017_Design_System.md（骨架）、018_Dashboard_UX_Guideline.md（骨架）、019_Idea_Pool.md（空白骨架）
-- Changelog：本次為治理文件建立與升版，未涉及程式功能完成，不新增 Changelog 條目
-- AI Handover：不涉及 Sprint／Branch／PR 狀態變化，維持既有「無進行中工作」快照不變
-- AI Context Bundle（Full／Lite）：依上述變更重新產生；Lite 內容依決定 6 不變（016～019 暫不納入 Lite），manifest SHA-256 已與來源文件核對一致
+- Current Status v3.18→**v3.19**（本文件）：基線由 PR #110（`081bf91`）更新為 **PR #118（`ff08e05`）**；新增第 12.2 節記錄 PR #111～#118 的 Merge 與 Deploy 記錄；第 11 節現行下一步第 3、5 項更新為反映 UR-TODO-008 子 PR 1／2 已完成
+- Todo Backlog（v1.11→v1.12）：UR-TODO-008 狀態說明補齊子 PR 2／5（standard，PR #118）已完成，子 PR 3～5 尚未開始
+- AI Context Bundle（Full／Lite）：依上述文件變更重新產生
 
-歷史記錄：2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
+歷史記錄：2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
 
 歷史記錄：2026-07-24 PR #109 Merge 後治理狀態同步（基線改為 `4a95a8a`，記錄 Full／Lite Bundle 首次正式合併）已於前次同步完成；2026-07-24 PR #108 Merge 後治理文件收尾（UR-TODO-038、CI-01、CI-02 標記已完成、清除 PR #108 進行中狀態）已於更早一次同步完成，詳見上方各節歷史記錄段落。
 
@@ -2518,7 +2533,7 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.11
+# Universal Rebalance Todo Backlog v1.12
 
 最後更新：2026-07-25
 
@@ -2551,6 +2566,10 @@ Hotfix 仍需：
 2026-07-25 落地 V7.0A（Foundation & Product Governance）：新增 `016_Product_Decisions.md`（永久產品治理決策）、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`（骨架，內容待補完）、`019_Idea_Pool.md`（空白，含收錄規則）；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` 升版為 v4.0（新增與產品版本 V7.0B 的對應說明，核心內容未變）。本文件新增「新想法先進 Idea Pool」規則，未改動任何既有 UR-TODO 的優先級或狀態，不新增任何 UR-TODO 項目。
 
 2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 1／5（buy-only 模式改用 investableCash）已由使用者手動 Merge，PR #116，merge commit `3882e713ebb03f5f4d14408a66f566c4fcf20848`，對應 Production `Deploy GitHub Pages` workflow run `30151027865` 成功，`gh-pages` 已更新，Production／Preview HTTP 200。UR-TODO-008 狀態由「待開發」更新為**「開發中」**，詳細規格參照同步更正為 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0，取代過期的 `013_Household_Liquidity_Model_Spec_v3.0.md` 檔名參照）。子 PR 2～5 尚未開始，其餘 Todo 狀態不受本次更新影響。
+
+2026-07-25 PR #117（`docs: update UR-TODO-008 status to in-progress`，merge commit `aef8b5d88aca9fcdd4bc475308e341be896e12ee`）同步 UR-TODO-008 狀態為「開發中」並記錄子 PR 1／5 已完成，純文件變更，唯讀盤點確認未改動其餘 Todo 狀態。
+
+2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 2／5（standard 模式改用 investableCash）已由使用者手動 Merge，PR #118，merge commit `ff08e0508190201ed2a0ed7a56f381228ca5c1ea`，對應 Production `Deploy GitHub Pages` workflow run `30152021243` 成功。standard 模式的 `availableBuyBudget`／`cashShortfall`／`remainingBudget` 改用 `investableCash`，`investableCash === null` 阻擋條件由僅限 buy-only 擴大為兩種模式皆適用。UR-TODO-008 狀態維持「開發中」，本次更新描述文字反映子 PR 2／5 已完成、子 PR 3～5（Order Helper／Dip Alert、Execution Eligibility 呈現層）尚未開始，其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -2830,19 +2849,22 @@ Hotfix 仍需：
 - 優先級：P1
 - 狀態：**開發中**
   - 子 PR 1／5（buy-only 模式改用 investableCash）已完成，PR #116（`feat/v7-0b-buyonly-investable-cash`）MERGED，merge commit `3882e713ebb03f5f4d14408a66f566c4fcf20848`，2026-07-25
-  - 子 PR 2～5（standard 模式、Order Helper／Dip Alert、Execution Eligibility）尚未開始
+  - 子 PR 2／5（standard 模式改用 investableCash）已完成，PR #118（`feat/v7-0b-standard-investable-cash`）MERGED，merge commit `ff08e0508190201ed2a0ed7a56f381228ca5c1ea`，2026-07-25。standard 模式的 `availableBuyBudget`／`cashShortfall`／`remainingBudget` 改用 investableCash；`investableCash === null` 阻擋條件由僅限 buy-only 擴大為兩種模式皆適用
+  - 子 PR 3～5（Order Helper／Dip Alert、Execution Eligibility 呈現層整合）尚未開始
 - 涉及：
   - 再平衡與加碼建議
   - 交易建議清單
-  - Order Helper
-  - Execution Eligibility
-  - standard
+  - Order Helper（子 PR 3～5 待處理）
+  - Execution Eligibility（子 PR 2 已新增整合測試驗證 standard 現金不足判斷，呈現層仍待子 PR 3～5）
+  - standard（子 PR 2 已完成）
   - buy-only（子 PR 1 已完成）
-  - Dip signal gate
+  - Dip signal gate（子 PR 3～5 待處理）
 - 原則：
   - 理論缺口與可執行金額分離
   - 買入總額不得超過 executableBudget
   - 安全現金不足不得產生可執行買單
+- 已知限制（未修改，留待未來獨立項目）：
+  - `RebalanceRecommendationPage.tsx` 「設定預算」與「現金缺口」欄位的靜態說明文字（「已取預算與流動現金較小值」「以現有流動現金計算」）語意已略為過時，實際基準已改為 investableCash，但屬 UI 文案變更，PR #116、#118 皆刻意排除在範圍外
 
 ### UR-TODO-009 Risk & Decision Workflow Integration
 
