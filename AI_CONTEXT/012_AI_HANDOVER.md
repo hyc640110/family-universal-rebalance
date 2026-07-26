@@ -110,17 +110,16 @@
 
 # 目前交接快照
 
-> **2026-07-26 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #140 merge commit `389a4f48aa441947a32cc8ea56c60a029b94855e`；PR CI 與 Production Deploy 均成功，Production 已驗證。**
+> **2026-07-27 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #143 merge commit `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`；PR CI 與 Production Deploy 均成功，Production 已驗證。**
 
-## UR-TODO-009 子 PR4 結案快照
+## UR-TODO-009 子 PR5 結案快照
 
-- PR／基線：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) **MERGED**，merge commit `389a4f48aa441947a32cc8ea56c60a029b94855e`；PR CI run `30206336238`、Deploy GitHub Pages run `30206520018` 均成功，Production HTTP 200（`environment=production`）。
-- 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null`／「資料不足」語意。「目前／目標配置」表頭已與三個資料欄對齊。
-- 人工驗收：Windows 11 Edge、iPhone Safari 均通過；無橫向溢出、卡片重疊或文字裁切，Risk Center 與投資組合風險與配置中心可正常使用。
-- UR-TODO-029：已完成並 Merge（PR #139，merge commit `05a2088`）。
-- Remaining Boundaries：UR-TODO-041 不包含；Household Liquidity 核心公式不變；schema／localStorage／Firebase／JSON Backup 不變；Dashboard／Today Decision／AI Decision／交易功能不包含。
+- PR／基線：[PR #143](https://github.com/hyc640110/family-universal-rebalance/pull/143) **MERGED**，merge commit `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`；PR CI run `30209681509`、Deploy GitHub Pages run `30210343391` 均成功，Production HTTP 200（`environment=production`）。
+- 已完成範圍：`todayDecision` 已改為固定六層優先序，資料不足不顯示精確投資建議，安全存量不足優先於可投資現金、配置偏離與逢低訊號。首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」；資料同步提醒維持次要資訊，不覆蓋投資主決策。
+- 明確不包含：Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup、Dashboard、AI Decision、交易功能與分析頁完整 `todayDecision` UI。
+- Remaining Boundary：`showOn('assets', 'analytics')` 與 CSS 顯示條件的語意差異仍存在；分析頁是否承接完整決策，留待後續產品決策，不新增正式 UR-TODO。
 - 固定 stash：`e141af1`、`4a0ddb2` 未操作；原工作目錄 `dist/`／`.claude/` 未碰觸。
-- 下一主線／下一位 AI 的直接起點：UR-TODO-009 子 PR5（`todayDecision` 六層優先序）。先唯讀確認最新 `origin/main`、工作目錄與固定 stash；再依使用者明確授權建立全新隔離 branch/worktree，僅實作子 PR5。不得自行 Merge 或部署 Production。
+- 下一主線／下一位 AI 的直接起點：目前沒有已授權的下一主線。下一次明確授權前，先以最新 `origin/main` 唯讀確認工作目錄與固定 stash；不得自行建立 Sprint、Merge 或部署 Production。
 
 ## 3. 基本資訊
 
