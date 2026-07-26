@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T12:10:00.958050+00:00
+Generated UTC: 2026-07-26T14:09:30.055801+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `5dca6f804fa96b054a9802fd535cdbd4dc174a5985f3951e22a016507f69a330`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
 - `001_README.md` — SHA-256 `2ab7bca88cff068904a24418b878519941dec0558a15cffd0e49f4b9e710e582`
-- `003_CURRENT_STATUS.md` — SHA-256 `6c84739b78ad4dfb60d223a5cbe73fd47192f9e46ade4763eccd8c0bf4679fd5`
-- `008_TODO_BACKLOG.md` — SHA-256 `5ca823716d0b0f8ba9a5aebd67842d01922b85bfcd5df0e6e24c26c45954d500`
-- `012_AI_HANDOVER.md` — SHA-256 `06db83ea1e74d6f17d1f3feef322c58069ce7b467919a33e3e907d898c275f31`
+- `003_CURRENT_STATUS.md` — SHA-256 `56ec6a74f91c9b6259f1a0b5826b30fc45e7570905a16634e8b9e2785c703e8c`
+- `008_TODO_BACKLOG.md` — SHA-256 `0a6c244fd8b45edee352cfd8ab6b7f3d912345067d0e09b93fe701d584c6a611`
+- `012_AI_HANDOVER.md` — SHA-256 `052dd12e49c51b51ac2a697fba6a2c3bbcd259be3115ef28a0c992b27eba1a23`
 
 ---
 
@@ -425,34 +425,31 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.24
+# Universal Rebalance Current Status v3.25
 
 最後更新：2026-07-26
 
-本次更新依據：2026-07-26 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #130**（`3f82581`），涵蓋 PR #129（治理文件同步，補齊 PR #125～#128 基線落差）、PR #130（UR-TODO-039 修復：收支與現金流中心「額外投入資金」「預計提領資金」欄位改依附既有「儲存現金流設定」按鈕），本文件先前記載的基線（PR #128，`99ef6bf`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #130 本身涉及 `src/`、`tests/`，已於 2026-07-26 由使用者手動 Merge 完成；本次同步僅為 PR #130 之後的治理文件補登，不重複變更程式）。
+本次更新依據：2026-07-26 唯讀盤點確認，先前記載「PR #130／`3f82581` 為目前基線」已過期；Repository 已推進至 **PR #139** merge commit `05a2088dc7ad570364b2b3f191f6153401b0b638`，其中 UR-TODO-009 已有 PR #134（子 PR1／2）與 PR #137（子 PR3）合併。現正於 `feat/ur-todo-009-risk-center-presentation` 進行 **UR-TODO-009 子 PR4 Risk Center Presentation Layer**；此為尚未 Merge 的 Draft PR 工作，Production 正式基線仍以 PR #139 為準，不得以本分支或舊 Bundle 覆蓋正式事實。
 
 ## 1. 最新正式版本
 
 - 正式版本：**產品版本 V7.0B 子 PR 5b／5（investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）**；PR #130 為子 PR 5b 驗收時發現的 PR #105 既有缺口（UR-TODO-039）修復，非新 V7.0B 子 PR
 - 名稱：Rebalance & Trade Execution Integration — Sub-PR 5b/5（含後續 UR-TODO-039 修復）
-- PR：**#127**（MERGED，子 PR 5b／5 功能本體）；**#130**（MERGED，UR-TODO-039 修復：現金流 Plan Input 依附既有 Save 按鈕）為目前 `main` 最新 Merge
+- PR：**#139**（MERGED，UR-TODO-029 深色模式股息日期圖示修正）為目前 `main` 最新 Merge；UR-TODO-009 前置子 PR 為 **#134**（子 PR1／2）與 **#137**（子 PR3）
 - 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：MERGED（**UR-TODO-008 子 PR 1～5b／5 全數完成**；**UR-TODO-039 已完成**，詳見 `008_TODO_BACKLOG.md`）
-- 最新 merge commit（PR #130，UR-TODO-039 修復）：
-  `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`
+- 最新 merge commit（PR #139）：
+  `05a2088dc7ad570364b2b3f191f6153401b0b638`
 - 最新功能性子 PR merge commit（PR #127，子 PR 5b／5）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- Branch：`main`
-- HEAD／origin/main：
-  `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`（PR #130 merge commit，2026-07-26 01:43:27Z）
-- 本次同步文件所用 branch（`docs/sync-pr-130-baseline`）已從最新 `origin/main`（`3f82581`）建立，非延用前一個功能開發 branch（`fix/v7-cashflow-plan-input-save-attach`）。
-- `main...origin/main`：`0 / 0`（以 origin/main 為準）
-- Working tree：乾淨。`AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`、`tools/` 已於 PR #106（`chore/ai-context-governance-baseline`）正式進版控，不再是未追蹤內容；詳見第 12 節更正。
-- Open／Draft PR：無（`gh pr list --state open` 回傳空陣列，本次同步 PR 建立前確認）
+- 正式基線：`origin/main`＝`05a2088dc7ad570364b2b3f191f6153401b0b638`（PR #139 merge commit，2026-07-26 12:30:13Z）
+- 開發 worktree／Branch：`feat/ur-todo-009-risk-center-presentation`，從最新 `origin/main` 建立；HEAD＝`a4bd006`（子 PR4 實作 commit），worktree 已在建立 Draft PR 前完成驗證。
+- 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
+- Open／Draft PR：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（Draft，head `a4bd006`）；不得自行 Merge。
 
 固定 stash：
 
@@ -464,6 +461,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 ## 3. Production 狀態
 
 ### GitHub Pages
+
+- 最新正式成功部署 Workflow：`30202180930`（`Deploy GitHub Pages`，success，headSha `05a2088`，PR #139 Merge 後）；本次子 PR4 不部署 Production。
 
 - 最新成功部署 Workflow：`29935264176`（`Deploy GitHub Pages`，success，headSha `2510169`77fc63aca3221c0b383170a68cad89900）
 - 觸發機制：`.github/workflows/deploy.yml` 設定為 `on: push: branches: [main]`，**沒有 Draft／Ready／人工核准閘門**。PR #102～#105 每次 Merge 進 `main` 都各自自動觸發一次成功部署：
@@ -827,6 +826,8 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 **新想法請先進 `019_Idea_Pool.md`，經評估後才轉為正式 UR-TODO 項目**（2026-07-25 V7.0A 新增規則，見 `016_Product_Decisions.md` 第 9 節「模式切換」）。本次新增規則不改動既有任何 UR-TODO 的優先級或狀態，現行 P0～P4 五級制維持不變。
 
 家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
+
+2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，已建立 [Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（head `a4bd006`）。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。`npm audit --omit=dev --audit-level=high` 完成但回報 3 個既有 high 相依性通報，未在本子 PR 擴大處理。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
 
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
@@ -1699,6 +1700,17 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 ---
 
 # 目前交接快照
+
+> **2026-07-26 更新：本區下方舊快照的 PR #110 基線已過期，僅保留歷史交接脈絡，不得作為現況依據。現行開發快照為 UR-TODO-009 子 PR4，正式基線 `origin/main`＝PR #139／`05a2088`；本分支尚未 Merge，Production 未操作。**
+
+## UR-TODO-009 子 PR4 目前快照
+
+- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`，HEAD＝`a4bd006`；[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
+- 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null` 語意。
+- 驗證：`test:ci`（532＋3＋18）、TypeScript、Production／Preview build、stability、`git diff --check` 已通過；本機 Preview 390／1000／1600px 無橫向溢出、Console 無 error。`npm audit --omit=dev --audit-level=high` 已執行，回報 3 個既有 high 通報，未在本子 PR 處理。
+- Remaining Boundaries：負債資料過期警示仍屬 UR-TODO-041；AI Decision 六層優先序為子 PR5／6，Dashboard／homeDecision 一致性收斂為子 PR7；皆未在本次處理。
+- 固定 stash：`e141af1`、`4a0ddb2` 未操作；原工作目錄 `dist/`／`.claude/` 未碰觸。
+- 下一位 AI 的直接起點：先確認 PR #140 Draft／CI 狀態與最新 `origin/main`，再依使用者指示進行 Review；不得自行 Merge 或部署 Production。
 
 ## 3. 基本資訊
 

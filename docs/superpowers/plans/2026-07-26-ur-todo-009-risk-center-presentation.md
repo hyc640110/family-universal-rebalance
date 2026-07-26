@@ -109,7 +109,7 @@ Run: `npm run build:preview` 後，以 Preview 專用頁面檢查 390px、1000px
 
 Run: `python tools/build_ai_context_bundle.py`
 
-- [ ] **Step 4: Commit、push 並建立 Draft PR**
+- [x] **Step 4: Commit、push 並建立 Draft PR**
 
 Run: `git add <changed-files>; git commit -m "feat: present household liquidity in risk centers"; git push -u origin feat/ur-todo-009-risk-center-presentation; gh pr create --draft ...`
 

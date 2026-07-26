@@ -8,7 +8,7 @@
 
 家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
 
-2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，待建立／審查 Draft PR。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability、audit 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
+2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，已建立 [Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（head `a4bd006`）。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。`npm audit --omit=dev --audit-level=high` 完成但回報 3 個既有 high 相依性通報，未在本子 PR 擴大處理。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
 
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 

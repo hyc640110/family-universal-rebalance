@@ -13,9 +13,14 @@
 - `tests/riskPresentation.test.ts`：覆蓋完整資料、資料不足與重複來源警示。
 
 ### Changed
-- UR-TODO-009 子 PR4：`RiskCenterPage.tsx` 與 `PortfolioRiskPage.tsx` 顯示每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足不以零替代。
+- UR-TODO-009 子 PR4（[Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)）：`RiskCenterPage.tsx` 與 `PortfolioRiskPage.tsx` 顯示每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足不以零替代。
 - `riskMetrics` 僅透傳既有 Household Liquidity `confidence`／`blockingReasons`，`portfolioRisk` 僅傳遞呈現資料；未變更公式。
 - `scripts/stability-check.mjs`：同步現金安全狀態文案為「目前無必要支出壓力」。
+
+### Verification
+
+- `test:ci`：532 個 TypeScript、3 個 Risk Presentation、18 個 MJS 測試全數通過；TypeScript、Production／Preview build 與本機 Preview 390／1000／1600px 驗收均通過。
+- `npm audit --omit=dev --audit-level=high`：回報 3 個既有 high 相依性通報；本子 PR 未擴大相依性更新。
 
 ### Fixed
 
