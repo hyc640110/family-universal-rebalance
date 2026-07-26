@@ -129,6 +129,8 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 ### Sprint 4：Risk & Decision Workflow Integration
 
+狀態（2026-07-26）：UR-TODO-009 子 PR1／2（PR #134）、子 PR3（PR #137）與子 PR4 Risk Center Presentation Layer（PR #140）已完成並通過 Production 驗證；下一主線為子 PR5 `todayDecision` 六層優先序，需另行唯讀範圍確認與使用者明確授權後才可啟動。
+
 - Portfolio Risk
 - Dashboard
 - AI Decision

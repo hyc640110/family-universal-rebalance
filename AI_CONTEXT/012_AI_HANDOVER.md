@@ -110,16 +110,17 @@
 
 # 目前交接快照
 
-> **2026-07-26 更新：本區下方舊快照的 PR #110 基線已過期，僅保留歷史交接脈絡，不得作為現況依據。現行開發快照為 UR-TODO-009 子 PR4，正式基線 `origin/main`＝PR #139／`05a2088`；本分支尚未 Merge，Production 未操作。**
+> **2026-07-26 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #140 merge commit `389a4f48aa441947a32cc8ea56c60a029b94855e`；PR CI 與 Production Deploy 均成功，Production 已驗證。**
 
-## UR-TODO-009 子 PR4 目前快照
+## UR-TODO-009 子 PR4 結案快照
 
-- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`；子 PR4 實作 commit `a4bd006`， [PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
-- 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null` 語意。
-- 驗證：`test:ci`（532＋3＋18）、TypeScript、Production／Preview build、stability、`git diff --check` 已通過；本機 Preview 390／1000／1600px 無橫向溢出、Console 無 error。`npm audit --omit=dev --audit-level=high` 已執行，回報 3 個既有 high 通報，未在本子 PR 處理。
-- Remaining Boundaries：負債資料過期警示仍屬 UR-TODO-041；AI Decision 六層優先序為子 PR5／6，Dashboard／homeDecision 一致性收斂為子 PR7；皆未在本次處理。
+- PR／基線：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) **MERGED**，merge commit `389a4f48aa441947a32cc8ea56c60a029b94855e`；PR CI run `30206336238`、Deploy GitHub Pages run `30206520018` 均成功，Production HTTP 200（`environment=production`）。
+- 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null`／「資料不足」語意。「目前／目標配置」表頭已與三個資料欄對齊。
+- 人工驗收：Windows 11 Edge、iPhone Safari 均通過；無橫向溢出、卡片重疊或文字裁切，Risk Center 與投資組合風險與配置中心可正常使用。
+- UR-TODO-029：已完成並 Merge（PR #139，merge commit `05a2088`）。
+- Remaining Boundaries：UR-TODO-041 不包含；Household Liquidity 核心公式不變；schema／localStorage／Firebase／JSON Backup 不變；Dashboard／Today Decision／AI Decision／交易功能不包含。
 - 固定 stash：`e141af1`、`4a0ddb2` 未操作；原工作目錄 `dist/`／`.claude/` 未碰觸。
-- 下一位 AI 的直接起點：先確認 PR #140 Draft／CI 狀態與最新 `origin/main`，再依使用者指示進行 Review；不得自行 Merge 或部署 Production。
+- 下一主線／下一位 AI 的直接起點：UR-TODO-009 子 PR5（`todayDecision` 六層優先序）。先唯讀確認最新 `origin/main`、工作目錄與固定 stash；再依使用者明確授權建立全新隔離 branch/worktree，僅實作子 PR5。不得自行 Merge 或部署 Production。
 
 ## 3. 基本資訊
 
