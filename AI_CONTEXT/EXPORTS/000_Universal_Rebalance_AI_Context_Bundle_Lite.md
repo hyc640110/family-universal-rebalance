@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T14:13:02.549202+00:00
+Generated UTC: 2026-07-26T14:33:39.295491+00:00
 
 ## Manifest
 

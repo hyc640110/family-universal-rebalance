@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T14:13:02.549202+00:00
+Generated UTC: 2026-07-26T14:33:39.295491+00:00
 
 ## Manifest
 
@@ -17,7 +17,7 @@ Generated UTC: 2026-07-26T14:13:02.549202+00:00
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9ad8941b6fd7e6a25ffcd74b7be0b720ce4e1d2131d6de0c84af3738bcea104d`
 - `008_TODO_BACKLOG.md` — SHA-256 `525c75ea8db23b5cb3297f2ff9e86602cd8dfc4c8241be6ceb10febc6874db00`
-- `009_CHANGELOG.md` — SHA-256 `283f2bbee738a7fb87df785ab6b12006477718e4ed347f74cd15ecd0fb8461f3`
+- `009_CHANGELOG.md` — SHA-256 `4cfe42260a727388b41f1cffb65831e0e7d6ef0c9fae72f9953a90d392ba42f5`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
 - `012_AI_HANDOVER.md` — SHA-256 `c48aaee322f468a0bb409d2ad2cdf7de106a87e9730d6879078a570a532425f6`
@@ -3425,6 +3425,7 @@ Hotfix 仍需：
 - `tests/riskPresentation.test.ts`：覆蓋完整資料、資料不足與重複來源警示。
 
 ### Changed
+- UR-TODO-009 子 PR4 Preview 修正：Portfolio Risk「目前／目標配置」表頭改與資料列共用桌機三欄 grid，第一欄與數值欄設最小寬度，表頭維持橫向不逐字換行；手機既有隱藏表頭／列內標籤模式不變。
 - UR-TODO-009 子 PR4（[Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)）：`RiskCenterPage.tsx` 與 `PortfolioRiskPage.tsx` 顯示每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足不以零替代。
 - `riskMetrics` 僅透傳既有 Household Liquidity `confidence`／`blockingReasons`，`portfolioRisk` 僅傳遞呈現資料；未變更公式。
 - `scripts/stability-check.mjs`：同步現金安全狀態文案為「目前無必要支出壓力」。

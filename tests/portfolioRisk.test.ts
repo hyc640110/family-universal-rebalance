@@ -77,3 +77,11 @@ test('route, mobile single-column CSS and page wording exclude trade instruction
   assert.match(css, /@media \(max-width:700px\)\{\.portfolio-risk-summary,.portfolio-risk-two-column,.portfolio-risk-grid\{grid-template-columns:1fr/);
   assert.doesNotMatch(page, /<table|買入金額|賣出金額|下單步驟/);
 });
+
+test('目前／目標配置的桌機表頭與資料列共用三欄 grid，且表頭不可逐字換行', () => {
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /\.portfolio-risk-rows\{--portfolio-risk-columns:minmax\(5rem,1\.15fr\) repeat\(2,minmax\(3\.25rem,\.85fr\)\)/);
+  assert.match(css, /\.portfolio-risk-rows>div,\.portfolio-risk-rows \.head\{display:grid;grid-template-columns:var\(--portfolio-risk-columns\)/);
+  assert.match(css, /\.portfolio-risk-rows \.head span\{[^}]*white-space:nowrap;[^}]*word-break:keep-all;[^}]*overflow-wrap:normal/);
+});
