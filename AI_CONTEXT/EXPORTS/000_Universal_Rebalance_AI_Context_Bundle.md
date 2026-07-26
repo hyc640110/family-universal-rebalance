@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T11:19:24.410637+00:00
+Generated UTC: 2026-07-26T12:10:00.958050+00:00
 
 ## Manifest
 
@@ -16,18 +16,18 @@ Generated UTC: 2026-07-26T11:19:24.410637+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9ad8941b6fd7e6a25ffcd74b7be0b720ce4e1d2131d6de0c84af3738bcea104d`
-- `008_TODO_BACKLOG.md` — SHA-256 `6cd489e675369910f816896a113a919ea1a77e4e933f32eedd4e6168270f9514`
+- `008_TODO_BACKLOG.md` — SHA-256 `5ca823716d0b0f8ba9a5aebd67842d01922b85bfcd5df0e6e24c26c45954d500`
 - `009_CHANGELOG.md` — SHA-256 `7ed138b1b95d0e24a1097d14579ec4d8c3cd5d021b62093c946b7ba89f45f72f`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
-- `012_AI_HANDOVER.md` — SHA-256 `b555217aebec66801d06034de8893d1aa02e8c8fe198ec04007e607a6f72847d`
+- `012_AI_HANDOVER.md` — SHA-256 `06db83ea1e74d6f17d1f3feef322c58069ce7b467919a33e3e907d898c275f31`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `b48d51674cef1af7f3b8b7eb3581475963e1d00ddc9682900bf0b3e2e4d4d571`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3b09ed71952383c11e31a49788054aa854bc8c8af7c9fd4b54cc9f12bcacdb22`
 - `016_Product_Decisions.md` — SHA-256 `4fdf586d8ec6b4ddfbaf128f0f2305484a89fdfdbf4abf3becd9d4921580fbd9`
 - `017_Design_System.md` — SHA-256 `8266a04995d93cb83ba210e50697908764584e55dc74d290f4280a102d3f2585`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `cd9a2e520e6d3fa365902ef26c37032aa390b14ae5ce6bac731eec925cc36652`
-- `019_Idea_Pool.md` — SHA-256 `0b49d8664cdb13de3ca6121f2f4b0101ffa5210b95541464a97102fe968e5fc1`
+- `019_Idea_Pool.md` — SHA-256 `99b0af9ce03f5a618d8e59ed6c57f6d84cfd21666c112ecdc8237abbe8f75e5f`
 - `020_Architecture_Decisions.md` — SHA-256 `63500cac2fbedaa2376b555b765c5bd1d67d598dfc67d26bcc298ac7bc0e0894`
 
 ---
@@ -2639,7 +2639,7 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.20
+# Universal Rebalance Todo Backlog v1.21
 
 最後更新：2026-07-26
 
@@ -2708,6 +2708,8 @@ Hotfix 仍需：
 2026-07-26 於 **UR-TODO-027**（趨勢圖剩餘視覺與刻度問題）補充使用者提供的明確需求，取代原本模糊的「綠色漸層需求是否仍保留」：趨勢圖線下方應依走勢方向顯示漸層填色（區間內上漲＝紅色漸層、下跌＝綠色漸層，符合台股紅漲綠跌慣例，參考樣式為 Google 財經個股走勢圖）。本次已唯讀確認 `src/components/TrendChart.tsx`：目前僅繪製 `<path>` 折線（`stroke="currentColor"`）與資料點 `<circle>`，**完全沒有任何 `<linearGradient>`／填色區域**，`src/styles.css` 的 `.trend-chart` 相關規則也未定義漸層；因此本項為**新增需求，非既有功能的行為調整**。本次僅補充需求文字，**不進行程式開發**，UR-TODO-027 狀態維持「待盤點」，其餘 Todo 狀態不受本次更新影響。
 
 2026-07-26 **UR-TODO-009**（Risk & Decision Workflow Integration，Sprint 4）子 PR 1／2（安全準備 characterization test）已由使用者手動 Merge，PR #134 MERGED，`todayDecision`／`investmentHealth` 純搬移至 `src/lib/`，新增 25 個 characterization test，無邏輯變更。使用者本人針對唯讀盤點報告提出的兩項架構決策正式拍板：**決策一**，`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出（維持單一事實來源、下游只讀不重算原則），作為子 PR 3 正式範圍依據；**決策二**，「負債資料過期警示」延後處理、不納入本次 Sprint 4 子 PR 4 範圍（需擴充 013 §6 核心輸入契約，牽動核心模型，不符合一次只做一件事原則），改列為新增的 **UR-TODO-041**（狀態「待盤點」）。UR-TODO-009 狀態由「待開發」更新為**「開發中」**，子 PR 3、4 範圍說明已依兩項決策更新，子 PR 3 以後仍待使用者明確下達「開始開發」指示後才會啟動。
+
+2026-07-26 **UR-TODO-009** 子 PR 3／N（riskMetrics.ts 改讀 Household Liquidity 輸出，013 §22）已由使用者手動 Merge，PR #137 MERGED，`cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 改為讀取 `householdLiquidityForRebalance` 輸出，取代舊版 cash÷monthlyPayment 公式；新增 `tests/riskMetrics.test.ts` 14 個測試；`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx`／`AiDecisionCenterPage.tsx`／`DashboardDecisionPage.tsx` 皆未修改。同時調整 **UR-TODO-041** 優先級由 P1 改為**「待評估」**（優先級待正式盤點完成後再評定，避免提前膨脹），狀態維持「待盤點」；新增 **UR-TODO-042**（`PortfolioRiskPage.tsx`「槓桿暴露」卡片 React 重複 key console error，子 PR 3 驗收時發現的既有缺陷，與本次 riskMetrics 改動無關，狀態「待盤點」）。UR-TODO-009 其餘子 PR 狀態不受本次更新影響。
 
 狀態：
 
@@ -3151,7 +3153,7 @@ Hotfix 仍需：
 
 ### UR-TODO-041 負債資料過期警示
 
-- 優先級：P1
+- 優先級：**待評估**（2026-07-26 由 P1 調整；優先級待正式盤點完成後再評定，避免提前膨脹）
 - 狀態：**待盤點**
 - 提出日期：2026-07-26
 - 提出依據：UR-TODO-009（Risk & Decision Workflow Integration，Sprint 4）唯讀盤點過程中發現，對照 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（v4.0）§22 Risk Center 規格要求時比對出的缺口項目
@@ -3164,6 +3166,19 @@ Hotfix 仍需：
   - `HouseholdLoan` 輸入契約新增 `asOf`（或等義欄位）並完成 migration／向下相容評估。
   - 新增對應 blocking reason code，並更新 23 個既有 code 清單與 `013` §9 完整性／信賴度規則。
   - Risk Center（`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx`）依新契約顯示負債資料過期警示。
+
+### UR-TODO-042 PortfolioRiskPage「槓桿暴露」卡片 React 重複 key console error
+
+- 優先級：**待評估**
+- 狀態：**待盤點**
+- 提出日期：2026-07-26
+- 提出依據：UR-TODO-009 子 PR 3（PR #137，riskMetrics.ts 改讀 Household Liquidity 輸出）Preview 驗收時發現，與本次 riskMetrics 改動無關，唯讀盤點確認 `src/pages/PortfolioRiskPage.tsx`／`src/lib/portfolioRisk.ts` 在該次 PR 分支中零異動，純屬既有缺陷
+- 問題：`PortfolioRiskPage.tsx` 的「槓桿暴露」卡片（`Rows` 元件）第二列 `["占總資產", pct(view.leverage.totalPct), view.denominatorLabel]` 中，第一格固定文字「占總資產」與第三格 `view.denominatorLabel`（其值同樣為「占總資產」）相同，`Rows` 元件以 `key={item}` 作為同一列內每個儲存格的 React key，導致同一列兩個儲存格 key 重複，瀏覽器 console 出現「Encountered two children with the same key」錯誤。
+- 已確認：僅為 React key 警告，未觀察到實際資料錯誤、遺漏或畫面跑版；瀏覽器實測「/tools/portfolio-risk」頁面於全新分頁首次載入即可重現。
+- 依賴：無（獨立於 UR-TODO-009／013 家庭流動性系列）
+- 驗收條件（待正式排入時另訂）：
+  - `Rows` 元件或呼叫端改用不依賴儲存格文字內容的唯一 key（例如改用欄位索引或固定的欄位識別字串）。
+  - console 不再出現此重複 key 警告，畫面呈現內容不變。
 
 ## P1－舊待辦遺漏補登
 
@@ -3866,6 +3881,9 @@ interface ServiceResult<T> {
 
 ### Knowledge Delta
 （只記錄「相較上一版交接快照，真正新增」的重要知識或決策，不重複程式細節、不重複已經寫進 002／003／008／013／016／020 等正式文件的內容；目的是讓下一位 AI 一眼看出「這次跟上次比，多知道了什麼」，而不是重新讀一遍完整 Sprint 過程；若本次沒有相較上次的新增知識，寫「無，沿用上一版快照」）
+
+### Remaining Boundaries
+（條列目前尚未接上核心模型、或本 Sprint 尚未覆蓋的路徑或模組——例如某個頁面／函式仍讀取舊公式或平行計算、某個下游消費者尚未串接已完成的核心輸出——讓下一位 AI 不需重新唯讀盤點就能一眼看出目前的邊界在哪裡；每項建議附一句話說明「為什麼還沒接」與「預計由哪個未來子 PR／Sprint 處理」；若本次 Sprint 已完整收斂、沒有已知邊界，寫「無」）
 ```
 
 只有 Project Knowledge、沒有 Repository 存取權時，以聊天訊息輸出以上格式；有 Repository 存取權時，可直接寫入本節下方或第 3～14 節對應欄位。
@@ -6837,9 +6855,9 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Idea Pool
 
-版本：v0.1（骨架，目前為空）
+版本：v0.2
 
-最後更新：2026-07-25
+最後更新：2026-07-26
 
 ## 0. 文件定位
 
@@ -6850,7 +6868,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 - `008_TODO_BACKLOG.md` 的替代品：任何想法只要經評估、確認要做，必須轉為正式 `UR-TODO-XXX` 項目寫入 Todo Backlog，才算正式排入工作範圍
 - Roadmap 的替代品：本文件的想法不代表已規劃時程
 
-**本文件目前為空**——2026-07-25 建立時尚無任何待收錄的想法；本次 V7.0A 只是骨架與規則建立，不主動從既有討論中挖掘想法灌入本文件。
+2026-07-25 建立時尚無任何待收錄的想法；本次 V7.0A 只是骨架與規則建立，不主動從既有討論中挖掘想法灌入本文件。2026-07-26 收錄第一筆想法（IDEA-001，見第 3 節）。
 
 ---
 
@@ -6873,10 +6891,22 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 ## 3. 想法清單
 
-目前為空。格式範例（供未來收錄想法時參考，非既有項目）：
+### IDEA-001 Household Liquidity 全面盤點（待 UR-TODO-009／010／011 全部完成後）
+
+- 提出日期：2026-07-26
+- 提出脈絡：使用者與 ChatGPT 討論記錄，關於 Household Liquidity 模型跨 Sprint 完成後的收斂盤點構想
+- 狀態：尚未評估
+- 已檢討次數：0（每次版本迭代未被排入 Roadmap 則 +1，累積 3 次需重新檢討）
+- 構想內容：待 **UR-TODO-009**（Risk & Decision Workflow Integration）、**UR-TODO-010**（CLEC & Simulator Funding Semantics）、**UR-TODO-011**（Cross-Module Presentation Consistency）三個 Sprint 全部完成後，進行一次 Household Liquidity 全面盤點，重點包含：
+  1. Protected Safety Cash 是否完整反映必要生活費（至少六個月）與必要負債還款安全存量。
+  2. Investable Cash 是否建立在扣除 Protected Safety Cash 之後。
+  3. Dashboard、Home、Risk Center、Rebalance、CLEC、Investment Decision 等所有使用現金判斷的模組，是否全部使用同一套 Household Liquidity 定義，沒有各自重新計算。
+- 明確標註：**本項目目前僅為產品決策與後續盤點依據，不新增 UR-TODO、不擴大目前 Sprint 範圍**，待三個 Sprint（UR-TODO-009／010／011）全部完成後，再依實際盤點結果決定是否新增 Todo 或修改規格。
+
+格式範例（供未來收錄想法時參考）：
 
 ```text
-### IDEA-001 〈一句話描述〉
+### IDEA-002 〈一句話描述〉
 
 - 提出日期：YYYY-MM-DD
 - 提出脈絡：〈哪次討論、創意模式下的哪個構想〉
@@ -6888,6 +6918,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 ## 4. 版本歷史
 
+- v0.2（2026-07-26）：收錄第一筆想法 IDEA-001（Household Liquidity 全面盤點構想，待 UR-TODO-009／010／011 全部完成後執行）。
 - v0.1（2026-07-25）：建立骨架與收錄／週期檢討規則，落地 V7.0A Foundation & Product Governance 的一部分；目前無任何想法收錄。
 
 <!-- END FILE: 019_Idea_Pool.md -->
