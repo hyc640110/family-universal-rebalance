@@ -80,3 +80,23 @@ test('7. entry point 位於 Cash Flow 設定，具中文文案、inputMode、清
   assert.match(page, /未設定不會自動視為 0/);
   assert.doesNotMatch(page, /deriveHouseholdLiquidity|executableBudget|canExecuteBuy/);
 });
+
+/**
+ * UR-TODO-039：先前「家庭流動資金計畫」是獨立於「每月設定」卡片之外的另一張卡片，
+ * 只依附各自欄位的「清除」按鈕，沒有連到頁面唯一的持久化出口（「儲存現金流設定」
+ * 按鈕，其 onClick 才會呼叫 onSave 把 draft 寫回 state.cashFlowProfile）。使用者於是
+ * 誤以為設定後即已保存，實際上未點擊該按鈕時，重新整理頁面會遺失變更。
+ * 無 DOM 渲染測試工具可用，故以原始碼結構位置作為可重現的邊界特徵：
+ * 確認「家庭流動資金計畫」欄位已明確位於「每月設定」卡片內、「儲存現金流設定」
+ * 按鈕之前，且不再擁有獨立的 `card` class（不再是另一張獨立卡片）。
+ */
+test('8. 家庭流動資金計畫欄位已依附「每月設定」卡片的儲存按鈕，不再是獨立卡片', () => {
+  const page = readFileSync(new URL('../src/pages/CashFlowPage.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(page, /className="card household-liquidity-plan-input"/);
+  const formSectionStart = page.indexOf('<h2>每月設定</h2>');
+  const planInputIndex = page.indexOf('家庭流動資金計畫');
+  const saveButtonIndex = page.indexOf('儲存現金流設定');
+  assert.ok(formSectionStart >= 0, '應能定位「每月設定」卡片起點');
+  assert.ok(planInputIndex > formSectionStart, '家庭流動資金計畫欄位應位於「每月設定」卡片內');
+  assert.ok(saveButtonIndex > planInputIndex, '「儲存現金流設定」按鈕應緊接在家庭流動資金計畫欄位之後，兩者同屬一次儲存動作');
+});
