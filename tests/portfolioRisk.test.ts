@@ -3,11 +3,18 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats } from '../src/lib/investmentPerformanceHistory';
 import { derivePortfolioRisk, type PortfolioRiskInput } from '../src/lib/portfolioRisk';
-import { deriveRiskMetrics } from '../src/lib/riskMetrics';
+import { deriveRiskMetrics, type RiskLiquidityContext } from '../src/lib/riskMetrics';
+
+// UR-TODO-009 sub-PR 3 (013 §22): deriveRiskMetrics now requires a `liquidity` context sourced from the
+// Household Liquidity core model. This file tests derivePortfolioRisk's own selector behavior (concentration,
+// drawdown, quote quality), not the household-liquidity-driven cash-safety formula itself (that is covered by
+// the dedicated tests/riskMetrics.test.ts), so an "insufficient data" fixture is deliberate and sufficient here
+// — none of the assertions below depend on a specific cashSafetyMonths/minimumCashTarget/stableCashTarget value.
+const NO_LIQUIDITY_DATA: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient' };
 
 const history = [{ date: '2026-07-10', totalAssets: 1000, netWorth: 900, investmentValue: 900, cash: 100, debt: 100 }, { date: '2026-07-11', totalAssets: 900, netWorth: 800, investmentValue: 800, cash: 100, debt: 100 }];
 const makeInput = (): PortfolioRiskInput => {
-  const risk = deriveRiskMetrics({ assets: [{ symbol: '00631L', name: '台灣正2', assetClass: 'growth', marketValue: 600 }, { symbol: '00865B', name: '公債', assetClass: 'defensive', marketValue: 200 }], loans: [{ id: 'loan', name: '貸款', principal: 100, annualRate: 1, monthlyPayment: 25 }], cash: 200, totalAssets: 1000, growthRatio: 60, defensiveRatio: 40, growthTargetPct: 60, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true });
+  const risk = deriveRiskMetrics({ assets: [{ symbol: '00631L', name: '台灣正2', assetClass: 'growth', marketValue: 600 }, { symbol: '00865B', name: '公債', assetClass: 'defensive', marketValue: 200 }], loans: [{ id: 'loan', name: '貸款', principal: 100, annualRate: 1, monthlyPayment: 25 }], cash: 200, totalAssets: 1000, growthRatio: 60, defensiveRatio: 40, growthTargetPct: 60, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true, liquidity: NO_LIQUIDITY_DATA });
   const quality = deriveInvestmentPerformanceQuality(history);
   return { totalAssets: 1000, investmentValue: 800, growthValue: 600, defensiveValue: 200, cash: 200, growthTargetPct: 60, defensiveTargetPct: 20, cashTargetPct: 20, targetTotalPct: 80, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true, risk, performance: { stats: deriveInvestmentPerformanceStats(history, 'investmentValue'), canCalculateMaxDrawdown: quality.canCalculateMaxDrawdown, snapshotCount: quality.snapshotCount }, quotes: [{ symbol: '00631L', marketValue: 600, assetClass: 'growth', quote: { quoteDate: '2026-07-14', quoteTime: '13:30:00', source: 'Price Worker' } }, { symbol: '00865B', marketValue: 200, assetClass: 'defensive', quote: { quoteDate: '2026-07-10', quoteTime: '13:30:00', source: 'Price Worker' } }], rawSymbols: ['00631L', '00865B'] };
 };
