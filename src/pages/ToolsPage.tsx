@@ -4,12 +4,12 @@ import { TOOL_DEFINITIONS } from '../lib/toolNavigation';
 import PageFrame from './PageFrame';
 
 export default function ToolsPage() {
-  return <PageFrame page="tools" title="工具" description="進階投資工具將在後續版本逐步提供。">
+  return <PageFrame page="tools" title="工具" description="多數投資工具已上線、可直接使用；標示「規劃中」的項目尚未提供功能。">
   <section className="tool-grid">{TOOL_DEFINITIONS.map(({ id, name, description, icon: Icon, to, actionLabel }) => to ? <article className="tool-card tool-card-active" key={id}>
       <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><Link to={to} aria-label={name} title={name}>{actionLabel} <ArrowRight size={15} aria-hidden="true" /></Link>
     </article> : <article className="tool-card" key={id} aria-disabled="true">
       <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}</h2><p>{description}</p></div><span>規劃中</span>
     </article>)}</section>
-    <p className="note tool-note">這些入口目前不會產生模擬結果；完整功能將於後續版本提供。</p>
+    <p className="note tool-note">標示「規劃中」的入口尚未提供功能；其餘入口皆為目前已上線、可直接使用的工具。</p>
   </PageFrame>;
 }
