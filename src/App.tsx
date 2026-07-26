@@ -70,6 +70,8 @@ import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUpload
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
+import { deriveTodayDecision } from './lib/todayDecision';
+import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -651,62 +653,6 @@ function getDecisionSummary(rb: ReturnType<typeof rebalance>, orderHelper: Order
     triggeredDipAlerts
   };
 }
-function investmentHealth(m: ReturnType<typeof calculateMetrics>, rb: ReturnType<typeof rebalance>) {
-  const absDeviation = Math.abs(rb.deviation);
-  const overTarget = rb.deviation > 0;
-  const underTarget = rb.deviation < 0;
-  const stockDiff = m.totalAssets * (m.growthTargetPct / 100) - m.growth;
-  const defensiveGap = Math.max(0, rb.defensiveTarget - rb.defensiveCurrent);
-  
-  let status = '正常';
-  let tone: 'good' | 'warn' | 'bad' = 'good';
-  let reason = '目前配置尚未達再平衡門檻。';
-  let suggestion = '維持目前配置。';
-
-  if (!rb.thresholdReached) {
-    status = '正常';
-    tone = 'good';
-    reason = '目前配置尚未達再平衡門檻。';
-    suggestion = '維持目前配置。';
-  } else if (rb.deviation >= 10) {
-    status = '槓桿風險提高';
-    tone = 'bad';
-    reason = `成長資產高於目標 ${pct(rb.deviation)}，已超過 10%。`;
-    suggestion = '暫停加碼成長資產，優先累積現金或防守標的。';
-  } else if (absDeviation >= 10) {
-    status = '偏離過大';
-    tone = 'bad';
-    reason = `成長資產${underTarget ? '低於' : '高於'}目標 ${pct(absDeviation)}，偏離幅度已達 10%。`;
-    suggestion = underTarget ? '依目前再平衡模式分批補足成長資產。' : '優先補強現金或防守標的，降低配置偏離。';
-  } else if (stockDiff > 0 && m.cash < stockDiff && rb.thresholdReached) {
-    status = '現金不足';
-    tone = 'warn';
-    reason = `成長資產低於目標 ${pct(absDeviation)}，可用現金不足以補足目標差額。`;
-    suggestion = '先累積現金，再分批買入成長資產。';
-  } else if (overTarget && defensiveGap > 0) {
-    status = '注意';
-    tone = 'warn';
-    reason = `成長資產高於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
-    suggestion = rb.mode === 'buy-only' ? '暫停加碼成長資產，優先累積現金或防守標的。' : '可依標準再平衡增加現金或防守標的。';
-  } else {
-    status = '注意';
-    tone = 'warn';
-    reason = `成長資產低於目標 ${pct(absDeviation)}，已超過再平衡門檻 ${pct(rb.threshold)}。`;
-    suggestion = '可依目前再平衡模式分批補足成長資產。';
-  }
-
-  // 流動性風險覆蓋邏輯：可用現金可支應還款月數低於 3 個月且月付金 > 0
-  if (m.monthlyPayment > 0 && m.repaymentSafetyMonths < 3) {
-    if (tone !== 'bad') {
-      status = '現金不足';
-      tone = 'warn';
-      reason = `目前防守現金僅夠支應未來 ${m.repaymentSafetyMonths.toFixed(1)} 個月的信貸還款，還款準備金偏低，請注意流動性風險。`;
-      suggestion = '暫停任何投資性加碼，優先累積防守現金準備金。';
-    }
-  }
-
-  return { status, tone, reason, suggestion };
-}
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的成長資產部位，避免一次打滿；目前目標為成長資產 ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
 const ALLOCATION_COLORS = ['#5b8def', '#58c7a5', '#f3b75f', '#d783c7', '#7ec8e3', '#a9c46c', '#e77c75', '#a98ee8', '#e6a36d', '#67b6a8'];
@@ -1011,7 +957,7 @@ function DipOpportunityAnalysis({ rows, investableCash, executableBudget, extern
     </article>)}
   </div>;
 }
-function AnalyticsDetails({ m, rb, health, quoteSummaryText, latestQuoteTime, onCopy, copyStatus }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance>; health: ReturnType<typeof investmentHealth>; quoteSummaryText: string; latestQuoteTime: string; onCopy: () => void; copyStatus: string }) {
+function AnalyticsDetails({ m, rb, health, quoteSummaryText, latestQuoteTime, onCopy, copyStatus }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance>; health: InvestmentHealth; quoteSummaryText: string; latestQuoteTime: string; onCopy: () => void; copyStatus: string }) {
   return <div className="analytics-details-list">
     <details><summary>計算方式</summary><p>目前比例、目標比例與偏離幅度皆直接使用共用再平衡資料。成長資產目前 {pct(rb.stockRow.currentWeight)}，目標 {rb.stockRow.targetText}；防守資產目前 {pct(rb.defensiveRow.currentWeight)}，目標 {rb.defensiveRow.targetText}。</p></details>
     <details><summary>風險提醒</summary><p><strong className={health.tone}>{health.status}</strong>：{health.reason}</p><p>{health.suggestion}</p></details>
@@ -1422,7 +1368,12 @@ function App() {
     cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
   })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
-  const health = useMemo(() => investmentHealth(m, rb), [m, rb]);
+  const health = useMemo(() => deriveInvestmentHealth({
+    totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
+    monthlyPayment: m.monthlyPayment, repaymentSafetyMonths: m.repaymentSafetyMonths,
+    deviation: rb.deviation, defensiveTarget: rb.defensiveTarget, defensiveCurrent: rb.defensiveCurrent,
+    thresholdReached: rb.thresholdReached, threshold: rb.threshold, mode: rb.mode
+  }), [m, rb]);
   const riskInput = useMemo(() => ({
     assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
     loans: state.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
@@ -1487,19 +1438,11 @@ function App() {
   const decisionSummary = useMemo(() => getDecisionSummary(rb, orderHelper, dipAlertRows), [rb, orderHelper, dipAlertRows]);
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
   const currentWeights = useMemo(() => Object.fromEntries(m.rows.map(row => [row.symbol, m.totalAssets > 0 ? num(row.marketValue) / num(m.totalAssets) * 100 : 0])), [m.rows, m.totalAssets]);
-  const todayDecision = useMemo(() => {
-    const dipTriggered = decisionSummary.triggeredDipAlerts.length > 0;
-    const lowCashSafety = m.monthlyPayment > 0 && m.repaymentSafetyMonths < 3;
-    const defensiveUnder = orderHelper.defensiveReminder.status === 'under';
-    const conclusion = !m.totalAssets ? '資料不足，暫時無法產生建議'
-      : lowCashSafety ? '現金安全存量不足'
-      : rb.thresholdReached ? '已達再平衡門檻'
-      : dipTriggered ? '建議分批加碼觀察'
-      : defensiveUnder ? '防守資產不足'
-      : orderHelper.totalBuyAmount > 0 ? '建議分批加碼'
-      : '維持持有，暫不需要操作';
-    return { conclusion, dipTriggered, lowCashSafety };
-  }, [decisionSummary.triggeredDipAlerts.length, m.totalAssets, m.monthlyPayment, m.repaymentSafetyMonths, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
+  const todayDecision = useMemo(() => deriveTodayDecision({
+    totalAssets: m.totalAssets, monthlyPayment: m.monthlyPayment, repaymentSafetyMonths: m.repaymentSafetyMonths,
+    thresholdReached: rb.thresholdReached, triggeredDipAlertCount: decisionSummary.triggeredDipAlerts.length,
+    defensiveReminderStatus: orderHelper.defensiveReminder.status, totalBuyAmount: orderHelper.totalBuyAmount
+  }), [decisionSummary.triggeredDipAlerts.length, m.totalAssets, m.monthlyPayment, m.repaymentSafetyMonths, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
   const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
   const homeDecision = useMemo(() => deriveHomeDecision({ riskLevel:riskMetrics.overallLevel, cashUnsafe:riskMetrics.cashSafetyMonths !== null && riskMetrics.cashSafetyMonths < 6, rebalance:rb.thresholdReached, dip:decisionSummary.triggeredDipAlerts.length>0, wealthBehind:state.wealthGoal.targetYear !== undefined && wealthProjection.targetYearValue !== null && wealthProjection.targetYearValue < state.wealthGoal.targetAmount, quotesMissing:quoteSummaryText !== '報價正常', targetInvalid:Boolean(targetWarning) }), [riskMetrics,rb.thresholdReached,decisionSummary.triggeredDipAlerts.length,state.wealthGoal,wealthProjection,quoteSummaryText,targetWarning]);
   const targetCheck = useMemo(() => {
