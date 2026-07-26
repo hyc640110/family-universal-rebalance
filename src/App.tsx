@@ -1452,10 +1452,12 @@ function App() {
   const tradeSteps = useMemo(() => getTradePlan(orderHelper), [orderHelper]);
   const currentWeights = useMemo(() => Object.fromEntries(m.rows.map(row => [row.symbol, m.totalAssets > 0 ? num(row.marketValue) / num(m.totalAssets) * 100 : 0])), [m.rows, m.totalAssets]);
   const todayDecision = useMemo(() => deriveTodayDecision({
-    totalAssets: m.totalAssets, monthlyPayment: m.monthlyPayment, repaymentSafetyMonths: m.repaymentSafetyMonths,
+    dataCompleteness: householdLiquidityForRebalance.dataCompleteness,
+    safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
+    investableCash: householdLiquidityForRebalance.investableCash,
     thresholdReached: rb.thresholdReached, triggeredDipAlertCount: decisionSummary.triggeredDipAlerts.length,
     defensiveReminderStatus: orderHelper.defensiveReminder.status, totalBuyAmount: orderHelper.totalBuyAmount
-  }), [decisionSummary.triggeredDipAlerts.length, m.totalAssets, m.monthlyPayment, m.repaymentSafetyMonths, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
+  }), [decisionSummary.triggeredDipAlerts.length, householdLiquidityForRebalance, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
   const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
   const homeDecision = useMemo(() => deriveHomeDecision({ riskLevel:riskMetrics.overallLevel, cashUnsafe:riskMetrics.cashSafetyMonths !== null && riskMetrics.cashSafetyMonths < 6, rebalance:rb.thresholdReached, dip:decisionSummary.triggeredDipAlerts.length>0, wealthBehind:state.wealthGoal.targetYear !== undefined && wealthProjection.targetYearValue !== null && wealthProjection.targetYearValue < state.wealthGoal.targetAmount, quotesMissing:quoteSummaryText !== '報價正常', targetInvalid:Boolean(targetWarning) }), [riskMetrics,rb.thresholdReached,decisionSummary.triggeredDipAlerts.length,state.wealthGoal,wealthProjection,quoteSummaryText,targetWarning]);
   const targetCheck = useMemo(() => {
@@ -1885,7 +1887,7 @@ function App() {
           </section>
         </SectionCard>
         <SectionCard className="page-card for-home" title="今日決策" isMobile={isMobile} collapsible open={sectionOpen('today')} onToggle={() => toggleSection('today')} summary={todayDecision.conclusion}>
-          <div className={`health-status ${todayDecision.lowCashSafety ? 'bad' : rb.thresholdReached || todayDecision.dipTriggered ? 'warn' : 'good'}`}>
+          <div className={`health-status ${todayDecision.lowCashSafety ? 'bad' : todayDecision.dataInsufficient || rb.thresholdReached || todayDecision.dipTriggered ? 'warn' : 'good'}`}>
             <div className="health-light" />
             <div>
               <small>今日建議結論</small>
