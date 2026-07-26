@@ -1,4 +1,4 @@
-# Universal Rebalance Todo Backlog v1.19
+# Universal Rebalance Todo Backlog v1.20
 
 最後更新：2026-07-26
 
@@ -63,6 +63,8 @@
 2026-07-26 修正 `src/pages/ToolsPage.tsx` 過時文案（頁面說明「進階投資工具將在後續版本逐步提供」與底部提示「這些入口目前不會產生模擬結果；完整功能將於後續版本提供」，與現況不符——`TOOL_DEFINITIONS` 16 個工具已有 12 個為完整可用功能），改為明確區分「已上線」與「規劃中」兩類工具的文案，不涉及任何 Todo 狀態變更。同時新增 **UR-TODO-040**（工具分頁扁平版面與重複導覽路徑，狀態「待盤點」，僅記錄發現，作為 UR-TODO-011 的前置輸入，不在本次處理）。
 
 2026-07-26 於 **UR-TODO-030**（首頁「重要提醒」重複性盤點）補充使用者與 ChatGPT 討論記錄（2026-07-26）：首頁改版方向建議重新定位為「30 秒決策中心」，只回答「今天需不需要做什麼」，並列出建議保留的三項內容（今日是否需操作、資產總覽、更新狀態）與「今日投資狀態」處理方向的兩個未拍板選項。**不新增獨立 Todo 條目**，僅補充於既有 UR-TODO-030 內，避免與該條目本身要解決的「重複」問題自相矛盾；明確標註此為 Sprint 6／UR-TODO-011 階段的呈現層輸入，非本次或 UR-TODO-009 範圍。UR-TODO-030 狀態維持「待盤點」，其餘 Todo 狀態不受本次更新影響。
+
+2026-07-26 於 **UR-TODO-027**（趨勢圖剩餘視覺與刻度問題）補充使用者提供的明確需求，取代原本模糊的「綠色漸層需求是否仍保留」：趨勢圖線下方應依走勢方向顯示漸層填色（區間內上漲＝紅色漸層、下跌＝綠色漸層，符合台股紅漲綠跌慣例，參考樣式為 Google 財經個股走勢圖）。本次已唯讀確認 `src/components/TrendChart.tsx`：目前僅繪製 `<path>` 折線（`stroke="currentColor"`）與資料點 `<circle>`，**完全沒有任何 `<linearGradient>`／填色區域**，`src/styles.css` 的 `.trend-chart` 相關規則也未定義漸層；因此本項為**新增需求，非既有功能的行為調整**。本次僅補充需求文字，**不進行程式開發**，UR-TODO-027 狀態維持「待盤點」，其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -368,10 +370,10 @@
 
 ### UR-TODO-009 Risk & Decision Workflow Integration
 
-- 詳細規格：`013_Household_Liquidity_Model_Spec_v3.0.md` 第 11、19～25、30 節
+- 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）§11、§19～25、§30（Sprint 4）
 
 - 優先級：P1
-- 狀態：待開發
+- 狀態：**開發中**（子 PR 1／2 已完成並合併，子 PR 3 以後待使用者明確下達「開始開發」指示後才啟動）
 - 涉及：
   - Portfolio Risk
   - Dashboard
@@ -380,13 +382,37 @@
   - Daily Decision Workflow
   - Investment Opportunities
   - Investment Action Center
-- 優先順序：
+- 優先順序（§11.2／§24.2 六層優先序）：
   1. 資料完整性
   2. 安全存量
   3. 可投資現金
   4. 配置偏離
   5. 逢低訊號
   6. 其他機會
+
+**2026-07-26 唯讀盤點結論摘要**（完整報告見對話記錄，本節僅記錄正式狀態）：
+
+- 確認 `m.repaymentSafetyMonths`／`m.monthlyPayment`（`calculateMetrics`）與 `riskMetrics.ts` 的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 為**兩套互相獨立、皆未讀取生活費的舊現金安全公式**，同時被 `investmentHealth`（Analytics 風險提醒）、`todayDecision`（首頁今日決策）、`RiskCenterPage`／`PortfolioRiskPage`、`aiDecisionItems`、`homeDecision`／首頁「投資決策首頁」的 `cashSafety`／`cashStatus` 共用，完全獨立於 `householdLiquidityForRebalance`（Sprint 1～3 已完成的核心模型）之外。
+- Risk Center 現況對照 §22 八項要求：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示、負債資料過期警示六項**缺失**；六／十二個月安全存量**公式不符**（只算月付，不含生活費）。
+- AI Decision 現況對照 §24：`cash` 決策項引用來源正確標註但引用**錯誤的核心**（`deriveRiskMetrics` 而非 Household Liquidity 輸出）；無六層優先序覆蓋邏輯；資料不足文案與 §24.3 規定文字不符。
+- 首頁 `homeDecision`（6 個月門檻）與 Analytics `todayDecision`（3 個月門檻）目前用兩套不同門檻判斷現金安全，結論可能互相矛盾，違反 §20.3「結論必須一致」。
+- 子 PR 1／2（安全準備 characterization test）已依授權完成，**PR #134 MERGED**：`todayDecision`／`investmentHealth` 純搬移至 `src/lib/todayDecision.ts`／`src/lib/investmentHealth.ts`，新增 25 個 characterization test（`test:ci:unit-ts` 491→516/516），無任何邏輯或輸出變更。
+
+**2026-07-26 架構決策拍板記錄（使用者本人拍板，非 AI 建議代為決定）：**
+
+- **決策一（riskMetrics.ts 定位）**：確定為「`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出」，而非讓 `RiskCenterPage`／`PortfolioRiskPage` 繞過 `riskMetrics.ts` 直接改接 household liquidity。理由：維持 V7.0B 全程採用的「單一事實來源、下游只讀不重算」原則；`riskMetrics.ts` 是 `RiskCenterPage`、`PortfolioRiskPage`、AI Decision、`homeDecision` 共用的中樞，修正它本身即可讓下游自動一併修正；`riskMetrics.ts` 保留集中度、槓桿、資產回撤、報價品質等非現金指標的既有獨立計算，僅現金安全相關欄位（`cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget`）改吃 household liquidity 輸出（`monthlyEssentialExpenses`／`minimumSafetyCash`／`stableSafetyCash`／`safetyCashShortfall`／`investableCash`／`dataCompleteness`）。此決策作為**子 PR 3 的正式範圍依據**。
+- **決策二（負債資料過期警示）**：確定延後處理，**不納入本次 Sprint 4 子 PR 4 範圍**，改列為獨立項目 **UR-TODO-041**（狀態「待盤點」，見下方條目）。理由：這是 §22 八項要求中唯一需要擴充 `013` §6 核心輸入契約（`HouseholdLoan` 新增 `asOf` 欄位＋新 blocking reason code）的項目，牽動核心模型，不符合「一次只做一件事、避免核心契約隨手擴充」原則。
+
+**子 PR 拆分計畫（依上述兩項決策更新範圍說明）：**
+
+1. 子 PR 1／2（安全準備）：**已完成**，PR #134 MERGED。
+2. 子 PR 3（Risk Center §22 契約，依**決策一**）：`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出的現金安全相關欄位，取代自行重算的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 舊公式；集中度、槓桿、資產回撤、報價品質等既有獨立計算維持不變；下游（`RiskCenterPage`、`PortfolioRiskPage`、AI Decision、`homeDecision`）不需各自另行串接 household liquidity，繼續讀取 `riskMetrics` 輸出即可自動一併修正。
+3. 子 PR 4（Risk Center 呈現，依**決策二**）：`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 改用子 PR 3 的新契約，補齊安全存量缺口、可投資現金、資料可信度、重複來源警示四項顯示；**明確不包含負債資料過期警示**（已改列 UR-TODO-041，延後處理，不在本子 PR 範圍）。
+4. 子 PR 5（`todayDecision` 六層改寫）：套用子 PR 1 抽出的純函式，改寫為六層優先序，讀取 `safetyCashShortfall`／`investableCash`／`dataCompleteness`，取代 `m.repaymentSafetyMonths<3` 舊公式。
+5. 子 PR 6（AI Decision §24 契約）：`aiDecision.ts` 的 `cash` 決策項改為直接引用 household liquidity 輸出，補上 §24.3 規定文案，實作六層優先序覆蓋邏輯。
+6. 子 PR 7（一致性收斂）：`deriveHomeDecision`／`DashboardDecisionPage` 的現金安全判斷改用同一份 `safetyCashShortfall`，消除首頁與 Analytics 目前互相矛盾的兩套門檻。
+
+子 PR 3 以後仍待使用者明確下達「開始開發」指示後才會依序啟動，不自行接續。
 
 ### UR-TODO-010 CLEC & Simulator Funding Semantics
 
@@ -506,11 +532,18 @@
   - Y 軸是否使用易讀整數刻度。
   - 手機左側文字是否裁切。
   - Y 軸位置是否需調整。
-  - 綠色漸層需求是否仍保留。
+  - 走勢方向漸層填色需求（2026-07-26 補充明確規格，取代原本模糊的「綠色漸層需求是否仍保留」，見下方）。
+- 明確需求（2026-07-26 使用者提供，參考樣式為 Google 財經個股走勢圖）：
+  - 趨勢圖線下方應依走勢方向顯示漸層填色，由線條顏色向下漸淡至透明：
+    - 區間內上漲（終點高於起點）：紅色漸層（符合台股慣例，紅漲）。
+    - 區間內下跌（終點低於起點）：綠色漸層（符合台股慣例，綠跌）。
+  - 2026-07-26 唯讀確認：`src/components/TrendChart.tsx` 目前只繪製 `<path>` 折線與資料點 `<circle>`，未使用任何 `<linearGradient>`／填色區域；`src/styles.css` 的 `.trend-chart` 相關規則亦未定義漸層。**目前完全沒有既有的固定單色漸層**，本項為**新增需求，不是既有功能的方向切換調整**。
+  - 若未來開發時發現螢幕上仍殘留其他既有漸層樣式（例如非 TrendChart 本身、由其他共用元件或 CSS 疊加造成），需另行唯讀盤點確認來源，不得假設本項已涵蓋該情況。
 - 驗收條件：
   - 真實資料無日期斷裂。
   - 手機 Safari 約 390px 無裁切。
   - 桌機 1000px／1600px 正常。
+  - 走勢圖依區間漲跌動態顯示紅／綠漸層填色，且與現有「紅漲綠跌」台股顏色慣例一致，不與既有 `currentColor` 折線顏色邏輯衝突。
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
