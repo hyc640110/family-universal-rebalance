@@ -1,28 +1,28 @@
-# Universal Rebalance Current Status v3.27
+# Universal Rebalance Current Status v3.28
 
 最後更新：2026-07-27
 
-本次更新依據：2026-07-26 Merge 後 Production 驗證。**PR #143**（UR-TODO-009 子 PR5 — Today Decision 六層優先序）已由使用者手動 Merge，merge commit `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`；PR CI run `30209681509` 與 `Deploy GitHub Pages` run `30210343391` 均為 success。Production HTTP 200、環境標記為 `production`，首頁正式顯示唯一「今日建議結論」，資料同步提醒維持次要資訊。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+本次更新依據：2026-07-26 Merge 後 Production 驗證。**PR #145**（UR-TODO-009 子 PR6 — AI Decision §24 契約）已由使用者手動 Merge，merge commit `5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`；PR CI run `30211956784` 與 `Deploy GitHub Pages` run `30212166683` 均為 success。Production HTTP 200、環境標記為 `production`，正式 bundle 已包含 AI Decision 的 Household Liquidity 契約。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
 ## 1. 最新正式版本
 
-- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）已完成；Sprint 4（UR-TODO-009）已完成子 PR1／2、子 PR3、子 PR4、子 PR5，子 PR6／7 尚未啟動。
-- 名稱：Risk & Decision Workflow Integration — 子 PR5 Today Decision 六層優先序結案。
-- PR：**#143**（MERGED，UR-TODO-009 子 PR5）為目前 `main` 最新 Merge；**#140**（MERGED，子 PR4）與 **#139**（MERGED，UR-TODO-029 深色模式股息收款日期圖示修正）已完成。
+- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）已完成；Sprint 4（UR-TODO-009）已完成子 PR1／2、子 PR3、子 PR4、子 PR5、子 PR6，下一個未完成項目為子 PR7。
+- 名稱：Risk & Decision Workflow Integration — 子 PR6 AI Decision §24 契約結案。
+- PR：**#145**（MERGED，UR-TODO-009 子 PR6）為目前 `main` 最新 Merge；**#143**（MERGED，子 PR5）與 **#140**（MERGED，子 PR4）已完成。
 - 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：**UR-TODO-009 子 PR5 已完成並已完成 Production 驗證**；目前沒有已授權的下一主線。UR-TODO-041 與子 PR6／7 不在本次範圍。
-- 最新 merge commit（PR #143）：
-  `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`
+- 狀態：**UR-TODO-009 子 PR6 已完成並已完成 Production 驗證**；下一個未完成項目為子 PR7，目前沒有已授權的下一主線。
+- 最新 merge commit（PR #145）：
+  `5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`
 - 最新功能性子 PR merge commit（PR #127，子 PR 5b／5）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`（PR #143 merge commit，2026-07-26 16:24:09Z）。
-- 已合併子 PR5 分支：`feat/ur-todo-009-today-decision-pr5`；其變更已納入 PR #143 merge commit。
+- 正式基線：`origin/main`＝`5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`（PR #145 merge commit，2026-07-26 17:14:42Z）。
+- 已合併子 PR6 分支：`feat/ur-todo-009-ai-decision-contract-pr6`；其變更已納入 PR #145 merge commit。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- PR #143：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/143)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
+- PR #145：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/145)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
 
 固定 stash：
 
@@ -35,7 +35,7 @@
 
 ### GitHub Pages
 
-- 最新正式成功部署 Workflow：`30210343391`（`Deploy GitHub Pages`，success，headSha `d2c2c1e`，PR #143 Merge 後）。
+- 最新正式成功部署 Workflow：`30212166683`（`Deploy GitHub Pages`，success，headSha `5aa1d9e`，PR #145 Merge 後）。
 - Production：`https://hyc640110.github.io/family-universal-rebalance/` HTTP 200，`environment=production`；首頁「今日投資狀態」中的「每日投資判斷流程」正式顯示唯一「今日建議結論」，資料同步提醒僅為次要資訊。分析頁不顯示完整 `todayDecision`；是否承接完整決策保留為後續產品決策。
 
 - 最新成功部署 Workflow：`29935264176`（`Deploy GitHub Pages`，success，headSha `2510169`77fc63aca3221c0b383170a68cad89900）

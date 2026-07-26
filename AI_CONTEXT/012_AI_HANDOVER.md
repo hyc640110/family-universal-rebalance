@@ -110,16 +110,16 @@
 
 # 目前交接快照
 
-> **2026-07-27 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #143 merge commit `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`；PR CI 與 Production Deploy 均成功，Production 已驗證。**
+> **2026-07-27 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #145 merge commit `5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`；PR CI 與 Production Deploy 均成功，Production 已驗證。**
 
-## UR-TODO-009 子 PR5 結案快照
+## UR-TODO-009 子 PR6 結案快照
 
-- PR／基線：[PR #143](https://github.com/hyc640110/family-universal-rebalance/pull/143) **MERGED**，merge commit `d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`；PR CI run `30209681509`、Deploy GitHub Pages run `30210343391` 均成功，Production HTTP 200（`environment=production`）。
-- 已完成範圍：`todayDecision` 已改為固定六層優先序，資料不足不顯示精確投資建議，安全存量不足優先於可投資現金、配置偏離與逢低訊號。首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」；資料同步提醒維持次要資訊，不覆蓋投資主決策。
-- 明確不包含：Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup、Dashboard、AI Decision、交易功能與分析頁完整 `todayDecision` UI。
-- Remaining Boundary：`showOn('assets', 'analytics')` 與 CSS 顯示條件的語意差異仍存在；分析頁是否承接完整決策，留待後續產品決策，不新增正式 UR-TODO。
+- PR／基線：[PR #145](https://github.com/hyc640110/family-universal-rebalance/pull/145) **MERGED**，merge commit `5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`；PR CI run `30211956784`、Deploy GitHub Pages run `30212166683` 均成功，Production HTTP 200（`environment=production`）。
+- 已完成範圍：AI Decision 的 `cash` 決策直接使用既有 Household Liquidity 的 `dataCompleteness`、`safetyCashShortfall`、`investableCash`、`protectedSafetyCash`。資料不足或必要值為 `null` 時不顯示精確投資金額或明確買入建議；安全存量不足優先阻擋投資建議；`investableCash === 0` 維持保留現金語意；`protectedSafetyCash` 僅作受保護證據，不列為可投資資金。
+- 明確不包含：AI Decision UI／CSS、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup、Dashboard、交易功能與分析頁完整 `todayDecision` UI。
+- Remaining Boundaries：UR-TODO-009 子 PR7（`deriveHomeDecision`／Dashboard 一致性）、UR-TODO-010、UR-TODO-011、分析頁完整 `todayDecision` UI（是否承接完整決策留待產品決策，不新增正式 UR-TODO）。
 - 固定 stash：`e141af1`、`4a0ddb2` 未操作；原工作目錄 `dist/`／`.claude/` 未碰觸。
-- 下一主線／下一位 AI 的直接起點：目前沒有已授權的下一主線。下一次明確授權前，先以最新 `origin/main` 唯讀確認工作目錄與固定 stash；不得自行建立 Sprint、Merge 或部署 Production。
+- 下一主線／下一位 AI 的直接起點：下一個未完成項目為 UR-TODO-009 子 PR7，但目前沒有已授權的下一主線。下一次明確授權前，先以最新 `origin/main` 唯讀確認工作目錄與固定 stash；不得自行建立 Sprint、Merge 或部署 Production。
 
 ## 3. 基本資訊
 
