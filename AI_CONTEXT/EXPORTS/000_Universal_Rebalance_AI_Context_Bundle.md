@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T10:56:37.855494+00:00
+Generated UTC: 2026-07-26T11:19:24.410637+00:00
 
 ## Manifest
 
@@ -16,7 +16,7 @@ Generated UTC: 2026-07-26T10:56:37.855494+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9ad8941b6fd7e6a25ffcd74b7be0b720ce4e1d2131d6de0c84af3738bcea104d`
-- `008_TODO_BACKLOG.md` — SHA-256 `7666d98462e3a5ba61842cea9257b99260f70f051e178ecdf58167fe82c6acec`
+- `008_TODO_BACKLOG.md` — SHA-256 `6cd489e675369910f816896a113a919ea1a77e4e933f32eedd4e6168270f9514`
 - `009_CHANGELOG.md` — SHA-256 `7ed138b1b95d0e24a1097d14579ec4d8c3cd5d021b62093c946b7ba89f45f72f`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
@@ -2707,6 +2707,8 @@ Hotfix 仍需：
 
 2026-07-26 於 **UR-TODO-027**（趨勢圖剩餘視覺與刻度問題）補充使用者提供的明確需求，取代原本模糊的「綠色漸層需求是否仍保留」：趨勢圖線下方應依走勢方向顯示漸層填色（區間內上漲＝紅色漸層、下跌＝綠色漸層，符合台股紅漲綠跌慣例，參考樣式為 Google 財經個股走勢圖）。本次已唯讀確認 `src/components/TrendChart.tsx`：目前僅繪製 `<path>` 折線（`stroke="currentColor"`）與資料點 `<circle>`，**完全沒有任何 `<linearGradient>`／填色區域**，`src/styles.css` 的 `.trend-chart` 相關規則也未定義漸層；因此本項為**新增需求，非既有功能的行為調整**。本次僅補充需求文字，**不進行程式開發**，UR-TODO-027 狀態維持「待盤點」，其餘 Todo 狀態不受本次更新影響。
 
+2026-07-26 **UR-TODO-009**（Risk & Decision Workflow Integration，Sprint 4）子 PR 1／2（安全準備 characterization test）已由使用者手動 Merge，PR #134 MERGED，`todayDecision`／`investmentHealth` 純搬移至 `src/lib/`，新增 25 個 characterization test，無邏輯變更。使用者本人針對唯讀盤點報告提出的兩項架構決策正式拍板：**決策一**，`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出（維持單一事實來源、下游只讀不重算原則），作為子 PR 3 正式範圍依據；**決策二**，「負債資料過期警示」延後處理、不納入本次 Sprint 4 子 PR 4 範圍（需擴充 013 §6 核心輸入契約，牽動核心模型，不符合一次只做一件事原則），改列為新增的 **UR-TODO-041**（狀態「待盤點」）。UR-TODO-009 狀態由「待開發」更新為**「開發中」**，子 PR 3、4 範圍說明已依兩項決策更新，子 PR 3 以後仍待使用者明確下達「開始開發」指示後才會啟動。
+
 狀態：
 
 - 未盤點
@@ -3011,10 +3013,10 @@ Hotfix 仍需：
 
 ### UR-TODO-009 Risk & Decision Workflow Integration
 
-- 詳細規格：`013_Household_Liquidity_Model_Spec_v3.0.md` 第 11、19～25、30 節
+- 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）§11、§19～25、§30（Sprint 4）
 
 - 優先級：P1
-- 狀態：待開發
+- 狀態：**開發中**（子 PR 1／2 已完成並合併，子 PR 3 以後待使用者明確下達「開始開發」指示後才啟動）
 - 涉及：
   - Portfolio Risk
   - Dashboard
@@ -3023,13 +3025,37 @@ Hotfix 仍需：
   - Daily Decision Workflow
   - Investment Opportunities
   - Investment Action Center
-- 優先順序：
+- 優先順序（§11.2／§24.2 六層優先序）：
   1. 資料完整性
   2. 安全存量
   3. 可投資現金
   4. 配置偏離
   5. 逢低訊號
   6. 其他機會
+
+**2026-07-26 唯讀盤點結論摘要**（完整報告見對話記錄，本節僅記錄正式狀態）：
+
+- 確認 `m.repaymentSafetyMonths`／`m.monthlyPayment`（`calculateMetrics`）與 `riskMetrics.ts` 的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 為**兩套互相獨立、皆未讀取生活費的舊現金安全公式**，同時被 `investmentHealth`（Analytics 風險提醒）、`todayDecision`（首頁今日決策）、`RiskCenterPage`／`PortfolioRiskPage`、`aiDecisionItems`、`homeDecision`／首頁「投資決策首頁」的 `cashSafety`／`cashStatus` 共用，完全獨立於 `householdLiquidityForRebalance`（Sprint 1～3 已完成的核心模型）之外。
+- Risk Center 現況對照 §22 八項要求：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示、負債資料過期警示六項**缺失**；六／十二個月安全存量**公式不符**（只算月付，不含生活費）。
+- AI Decision 現況對照 §24：`cash` 決策項引用來源正確標註但引用**錯誤的核心**（`deriveRiskMetrics` 而非 Household Liquidity 輸出）；無六層優先序覆蓋邏輯；資料不足文案與 §24.3 規定文字不符。
+- 首頁 `homeDecision`（6 個月門檻）與 Analytics `todayDecision`（3 個月門檻）目前用兩套不同門檻判斷現金安全，結論可能互相矛盾，違反 §20.3「結論必須一致」。
+- 子 PR 1／2（安全準備 characterization test）已依授權完成，**PR #134 MERGED**：`todayDecision`／`investmentHealth` 純搬移至 `src/lib/todayDecision.ts`／`src/lib/investmentHealth.ts`，新增 25 個 characterization test（`test:ci:unit-ts` 491→516/516），無任何邏輯或輸出變更。
+
+**2026-07-26 架構決策拍板記錄（使用者本人拍板，非 AI 建議代為決定）：**
+
+- **決策一（riskMetrics.ts 定位）**：確定為「`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出」，而非讓 `RiskCenterPage`／`PortfolioRiskPage` 繞過 `riskMetrics.ts` 直接改接 household liquidity。理由：維持 V7.0B 全程採用的「單一事實來源、下游只讀不重算」原則；`riskMetrics.ts` 是 `RiskCenterPage`、`PortfolioRiskPage`、AI Decision、`homeDecision` 共用的中樞，修正它本身即可讓下游自動一併修正；`riskMetrics.ts` 保留集中度、槓桿、資產回撤、報價品質等非現金指標的既有獨立計算，僅現金安全相關欄位（`cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget`）改吃 household liquidity 輸出（`monthlyEssentialExpenses`／`minimumSafetyCash`／`stableSafetyCash`／`safetyCashShortfall`／`investableCash`／`dataCompleteness`）。此決策作為**子 PR 3 的正式範圍依據**。
+- **決策二（負債資料過期警示）**：確定延後處理，**不納入本次 Sprint 4 子 PR 4 範圍**，改列為獨立項目 **UR-TODO-041**（狀態「待盤點」，見下方條目）。理由：這是 §22 八項要求中唯一需要擴充 `013` §6 核心輸入契約（`HouseholdLoan` 新增 `asOf` 欄位＋新 blocking reason code）的項目，牽動核心模型，不符合「一次只做一件事、避免核心契約隨手擴充」原則。
+
+**子 PR 拆分計畫（依上述兩項決策更新範圍說明）：**
+
+1. 子 PR 1／2（安全準備）：**已完成**，PR #134 MERGED。
+2. 子 PR 3（Risk Center §22 契約，依**決策一**）：`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出的現金安全相關欄位，取代自行重算的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 舊公式；集中度、槓桿、資產回撤、報價品質等既有獨立計算維持不變；下游（`RiskCenterPage`、`PortfolioRiskPage`、AI Decision、`homeDecision`）不需各自另行串接 household liquidity，繼續讀取 `riskMetrics` 輸出即可自動一併修正。
+3. 子 PR 4（Risk Center 呈現，依**決策二**）：`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 改用子 PR 3 的新契約，補齊安全存量缺口、可投資現金、資料可信度、重複來源警示四項顯示；**明確不包含負債資料過期警示**（已改列 UR-TODO-041，延後處理，不在本子 PR 範圍）。
+4. 子 PR 5（`todayDecision` 六層改寫）：套用子 PR 1 抽出的純函式，改寫為六層優先序，讀取 `safetyCashShortfall`／`investableCash`／`dataCompleteness`，取代 `m.repaymentSafetyMonths<3` 舊公式。
+5. 子 PR 6（AI Decision §24 契約）：`aiDecision.ts` 的 `cash` 決策項改為直接引用 household liquidity 輸出，補上 §24.3 規定文案，實作六層優先序覆蓋邏輯。
+6. 子 PR 7（一致性收斂）：`deriveHomeDecision`／`DashboardDecisionPage` 的現金安全判斷改用同一份 `safetyCashShortfall`，消除首頁與 Analytics 目前互相矛盾的兩套門檻。
+
+子 PR 3 以後仍待使用者明確下達「開始開發」指示後才會依序啟動，不自行接續。
 
 ### UR-TODO-010 CLEC & Simulator Funding Semantics
 
@@ -3122,6 +3148,22 @@ Hotfix 仍需：
 - 驗收條件（待 Sprint 6 正式排入時另訂）：
   - 「工具」分頁能清楚區分已上線核心功能與規劃中項目的視覺優先序。
   - 子頁面 `ToolQuickNavigation` 與工具首頁卡片列表的導覽路徑分工明確，不重複造成使用者困惑。
+
+### UR-TODO-041 負債資料過期警示
+
+- 優先級：P1
+- 狀態：**待盤點**
+- 提出日期：2026-07-26
+- 提出依據：UR-TODO-009（Risk & Decision Workflow Integration，Sprint 4）唯讀盤點過程中發現，對照 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（v4.0）§22 Risk Center 規格要求時比對出的缺口項目
+- 需求：§22 明列 Risk Center 必須新增或統一的八項目中包含「負債資料過期警示」，目前完全缺失，且**底層核心模型本身也未定義**這個概念——`HouseholdLoan` 型別（`src/lib/householdLiquidity.ts`）只有 `{ loanId, monthlyPayment }`，無任何 `asOf`／更新時間欄位；現行 23 個 blocking reason code（`HouseholdLiquidityReasonCode`）中沒有「過期」相關 code。
+- 明確標註：本項目**需擴充 013 §6 核心輸入契約**（`HouseholdLoan` 新增 `asOf` 欄位＋新增對應 blocking reason code），非單純消費端接線可解決；**本次 Sprint 4（UR-TODO-009）不處理**，已由使用者於 2026-07-26 拍板延後（決策二，理由：一次只做一件事、避免核心契約隨手擴充，牽動核心模型的變更需獨立評估），不納入 UR-TODO-009 子 PR 4（Risk Center 呈現）範圍。
+- 依賴：
+  - UR-TODO-009（Risk & Decision Workflow Integration，子 PR 4 明確排除本項目，兩者共用同一組 Risk Center UI，未來若啟動需確認與子 PR 4 呈現層的整合順序）
+  - UR-TODO-006（Household Liquidity Core Model Foundation，本項目需擴充其核心輸出契約）
+- 驗收條件（待正式排入時另訂）：
+  - `HouseholdLoan` 輸入契約新增 `asOf`（或等義欄位）並完成 migration／向下相容評估。
+  - 新增對應 blocking reason code，並更新 23 個既有 code 清單與 `013` §9 完整性／信賴度規則。
+  - Risk Center（`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx`）依新契約顯示負債資料過期警示。
 
 ## P1－舊待辦遺漏補登
 
