@@ -8,7 +8,7 @@
 
 家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
 
-2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，已建立 [Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。`npm audit --omit=dev --audit-level=high` 完成但回報 3 個既有 high 相依性通報，未在本子 PR 擴大處理。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
+2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已由使用者手動 Merge，[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 **MERGED**（merge commit `389a4f48aa441947a32cc8ea56c60a029b94855e`）；PR CI run `30206336238` 與 Deploy GitHub Pages workflow run `30206520018` 皆成功。Production HTTP 200、`environment=production`，Risk Center 與「投資組合風險與配置中心」均通過桌機與手機人工驗收。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup、Dashboard、Today Decision、AI Decision 與交易功能。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
 
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
@@ -379,7 +379,7 @@
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）§11、§19～25、§30（Sprint 4）
 
 - 優先級：P1
-- 狀態：**開發中**（子 PR 1／2 已完成並合併，子 PR 3 以後待使用者明確下達「開始開發」指示後才啟動）
+- 狀態：**開發中**（子 PR 1／2：PR #134、子 PR 3：PR #137、子 PR 4：PR #140 均已完成；子 PR 5～7 尚未啟動，須使用者明確指示後才可開始）
 - 涉及：
   - Portfolio Risk
   - Dashboard
@@ -412,13 +412,13 @@
 **子 PR 拆分計畫（依上述兩項決策更新範圍說明）：**
 
 1. 子 PR 1／2（安全準備）：**已完成**，PR #134 MERGED。
-2. 子 PR 3（Risk Center §22 契約，依**決策一**）：`riskMetrics.ts` 改為讀取 `householdLiquidityForRebalance` 輸出的現金安全相關欄位，取代自行重算的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 舊公式；集中度、槓桿、資產回撤、報價品質等既有獨立計算維持不變；下游（`RiskCenterPage`、`PortfolioRiskPage`、AI Decision、`homeDecision`）不需各自另行串接 household liquidity，繼續讀取 `riskMetrics` 輸出即可自動一併修正。
-3. 子 PR 4（Risk Center 呈現，依**決策二**）：`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 改用子 PR 3 的新契約，補齊安全存量缺口、可投資現金、資料可信度、重複來源警示四項顯示；**明確不包含負債資料過期警示**（已改列 UR-TODO-041，延後處理，不在本子 PR 範圍）。
+2. 子 PR 3（Risk Center §22 契約，依**決策一**）：**已完成**，PR #137 MERGED；`riskMetrics.ts` 已改讀 `householdLiquidityForRebalance` 輸出的現金安全相關欄位，取代自行重算的 `cashSafetyMonths`／`minimumCashTarget`／`stableCashTarget` 舊公式；集中度、槓桿、資產回撤、報價品質等既有獨立計算維持不變。
+3. 子 PR 4（Risk Center 呈現，依**決策二**）：**已完成**，PR #140 MERGED 並通過 Production 驗證；`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 已使用子 PR 3 新契約，顯示每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足維持「資料不足」語意。**明確不包含負債資料過期警示**（UR-TODO-041）、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup、Dashboard、Today Decision、AI Decision 與交易功能。
 4. 子 PR 5（`todayDecision` 六層改寫）：套用子 PR 1 抽出的純函式，改寫為六層優先序，讀取 `safetyCashShortfall`／`investableCash`／`dataCompleteness`，取代 `m.repaymentSafetyMonths<3` 舊公式。
 5. 子 PR 6（AI Decision §24 契約）：`aiDecision.ts` 的 `cash` 決策項改為直接引用 household liquidity 輸出，補上 §24.3 規定文案，實作六層優先序覆蓋邏輯。
 6. 子 PR 7（一致性收斂）：`deriveHomeDecision`／`DashboardDecisionPage` 的現金安全判斷改用同一份 `safetyCashShortfall`，消除首頁與 Analytics 目前互相矛盾的兩套門檻。
 
-子 PR 3 以後仍待使用者明確下達「開始開發」指示後才會依序啟動，不自行接續。
+子 PR 5～7 仍待使用者明確下達「開始開發」指示後才會依序啟動，不自行接續；下一主線為子 PR 5（`todayDecision` 六層優先序）。
 
 ### UR-TODO-010 CLEC & Simulator Funding Semantics
 
@@ -595,7 +595,9 @@
 
 ### UR-TODO-029 股息收款日期圖示顏色
 - 優先級：P2
-- 狀態：待盤點
+- 狀態：**已完成**
+- 完成日期：2026-07-26
+- 完成依據：PR #139 已 Merge（merge commit `05a2088`）；本項僅修正 Deep mode 股息收款日期圖示顏色與可讀性，未擴大為其他畫面或功能調整。
 - 提出日期：2026-07-19
 - 修改方向：
   - 日期圖示改為白色或符合深色模式對比的顏色。
