@@ -1869,6 +1869,8 @@ function App() {
         intelligence: investmentIntelligence,
         workflow: dailyDecisionWorkflow,
         opportunities: investmentOpportunities,
+        todayConclusion: todayDecision.conclusion,
+        syncReminder: syncBaselineDiagnostics.dirty ? syncStatusText : null,
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
