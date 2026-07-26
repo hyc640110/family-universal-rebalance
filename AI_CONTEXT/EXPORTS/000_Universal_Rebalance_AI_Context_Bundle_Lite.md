@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T01:02:28.820421+00:00
+Generated UTC: 2026-07-26T05:49:21.238705+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `5dca6f804fa96b054a9802fd535cdbd4dc174a5985f3951e22a016507f69a330`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
 - `001_README.md` — SHA-256 `2ab7bca88cff068904a24418b878519941dec0558a15cffd0e49f4b9e710e582`
-- `003_CURRENT_STATUS.md` — SHA-256 `79803d17a9e6234b3fce7fb833d0c52574c290def733d099b8af476ef58800be`
-- `008_TODO_BACKLOG.md` — SHA-256 `876a25c7397cb10b47e3fe7880a05bbe60e671bb85beed759ffb88900b5fa208`
+- `003_CURRENT_STATUS.md` — SHA-256 `6c84739b78ad4dfb60d223a5cbe73fd47192f9e46ade4763eccd8c0bf4679fd5`
+- `008_TODO_BACKLOG.md` — SHA-256 `eebe44eddf35163a0ee80c7ac4efae546c7582dbaad4f0d418da7a5f4eab10f1`
 - `012_AI_HANDOVER.md` — SHA-256 `b555217aebec66801d06034de8893d1aa02e8c8fe198ec04007e607a6f72847d`
 
 ---
@@ -425,22 +425,22 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.23
+# Universal Rebalance Current Status v3.24
 
 最後更新：2026-07-26
 
-本次更新依據：2026-07-26 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #128**（`99ef6bf`），涵蓋 PR #125（治理文件同步，補齊 PR #123～#124 基線落差）、PR #126（產品版本 V7.0B 子 PR 5a／5，`dipAlertRows` characterization test 安全準備）、PR #127（產品版本 V7.0B 子 PR 5b／5，investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）、PR #128（新增 Sprint Summary 回報格式、ADR 記錄檔 `020_Architecture_Decisions.md`、`012_AI_HANDOVER.md` Knowledge Delta 欄位與治理文件同步時機規則），本文件先前記載的基線（PR #124，`35859af`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #126、#127 本身涉及 `src/`、`tests/`，已於 2026-07-25 由使用者手動 Merge 完成；PR #128 為純治理文件 PR，已於 2026-07-26 由使用者手動 Merge 完成；本次同步僅為 PR #128 之後的治理文件補登，不重複變更程式）。
+本次更新依據：2026-07-26 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #130**（`3f82581`），涵蓋 PR #129（治理文件同步，補齊 PR #125～#128 基線落差）、PR #130（UR-TODO-039 修復：收支與現金流中心「額外投入資金」「預計提領資金」欄位改依附既有「儲存現金流設定」按鈕），本文件先前記載的基線（PR #128，`99ef6bf`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #130 本身涉及 `src/`、`tests/`，已於 2026-07-26 由使用者手動 Merge 完成；本次同步僅為 PR #130 之後的治理文件補登，不重複變更程式）。
 
 ## 1. 最新正式版本
 
-- 正式版本：**產品版本 V7.0B 子 PR 5b／5（investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）**
-- 名稱：Rebalance & Trade Execution Integration — Sub-PR 5b/5
-- PR：**#127**（MERGED，子 PR 5b／5 功能本體）；後續 **#128**（MERGED，純治理文件 PR，新增 Sprint Summary／ADR／Knowledge Delta 制度）為目前 `main` 最新 Merge
+- 正式版本：**產品版本 V7.0B 子 PR 5b／5（investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）**；PR #130 為子 PR 5b 驗收時發現的 PR #105 既有缺口（UR-TODO-039）修復，非新 V7.0B 子 PR
+- 名稱：Rebalance & Trade Execution Integration — Sub-PR 5b/5（含後續 UR-TODO-039 修復）
+- PR：**#127**（MERGED，子 PR 5b／5 功能本體）；**#130**（MERGED，UR-TODO-039 修復：現金流 Plan Input 依附既有 Save 按鈕）為目前 `main` 最新 Merge
 - 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：MERGED（**UR-TODO-008 子 PR 1～5b／5 全數完成**，詳見 `008_TODO_BACKLOG.md`）
-- 最新 merge commit（PR #128，治理文件）：
-  `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41`
-- 最新功能性 merge commit（PR #127，子 PR 5b／5）：
+- 狀態：MERGED（**UR-TODO-008 子 PR 1～5b／5 全數完成**；**UR-TODO-039 已完成**，詳見 `008_TODO_BACKLOG.md`）
+- 最新 merge commit（PR #130，UR-TODO-039 修復）：
+  `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`
+- 最新功能性子 PR merge commit（PR #127，子 PR 5b／5）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
@@ -448,8 +448,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 - Repository：`hyc640110/family-universal-rebalance`
 - Branch：`main`
 - HEAD／origin/main：
-  `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41`（PR #128 merge commit，2026-07-26 00:49:24Z）
-- 本次同步文件所用 branch（`docs/sync-pr-128-baseline`）已從最新 `origin/main`（`99ef6bf`）建立，非延用前一個功能開發 branch（`docs/governance-sprint-summary-adr-handover`）。
+  `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`（PR #130 merge commit，2026-07-26 01:43:27Z）
+- 本次同步文件所用 branch（`docs/sync-pr-130-baseline`）已從最新 `origin/main`（`3f82581`）建立，非延用前一個功能開發 branch（`fix/v7-cashflow-plan-input-save-attach`）。
 - `main...origin/main`：`0 / 0`（以 origin/main 為準）
 - Working tree：乾淨。`AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`、`tools/` 已於 PR #106（`chore/ai-context-governance-baseline`）正式進版控，不再是未追蹤內容；詳見第 12 節更正。
 - Open／Draft PR：無（`gh pr list --state open` 回傳空陣列，本次同步 PR 建立前確認）
@@ -660,8 +660,8 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 1. UR-TODO-001（Firebase Security Rules 到期）已於 2026-07-25 由使用者本人完成 Firebase Console 查證，狀態更新為「已盤點」，使用者決策為接受 2026-07-28 自然到期、不修改規則。正式解法（Firebase Auth 整合）待使用者未來另行排定為獨立 Development Sprint，目前不在待處理 P0 唯讀盤點清單中，但仍是待開發項目。
 2. UR-TODO-037 尚未完成範圍（GitHub Environment 人工核准、Branch Protection、預設分支修正）仍待另立獨立 Todo／Sprint。
 3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）、子 PR 3／5（Execution Eligibility investableCash contract，PR #120）、子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）、子 PR 4b／5（Order Helper investableCash 串接，PR #124）、子 PR 5a／5（Dip Alert characterization test 安全準備，PR #126）、子 PR 5b／5（investableCash 資金資格判斷串接進 Dip Alert，PR #127）**已全數完成並合併，UR-TODO-008 正式標記為已完成**。下一個建議 Sprint 為 Sprint 4（Risk & Decision Workflow Integration，UR-TODO-009）或 Sprint 5（CLEC & Simulator Funding Semantics，UR-TODO-010），待使用者明確下達「開始開發」指示後才依序評估啟動順序。
-4. 新增待盤點項目 **UR-TODO-039**（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`），為子 PR 5b 驗收時發現的 PR #105 既有功能缺口，與 V7.0B 本身無關，詳見 `008_TODO_BACKLOG.md`。
-5. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`99ef6bf`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+4. **UR-TODO-039**（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`）已於 2026-07-26 由使用者手動 Merge **PR #130** 修復並正式標記為**已完成**，詳見下方第 12.7 節與 `008_TODO_BACKLOG.md`。
+5. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`3f82581`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
 6. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`；**V7.0B（Household Liquidity Sprint 3，UR-TODO-008）已全數完成**（子 PR 1～5b／5），其餘子項（Sprint 4～6，UR-TODO-009～011）與 V7.0C～V7.0E **均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
 
 ## 12. AI 治理文件版控狀態（已更正）
@@ -782,15 +782,31 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - PR #127 完成後，UR-TODO-008 子 PR 1～5b／5 已全數完成；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` Sprint 3（Rebalance & Trade Execution Integration）依此正式標記為已完成，Sprint 4～6（UR-TODO-009～011）尚未啟動。
 - UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
 
+## 12.7 PR #129～#130 Merge 與 Production 部署記錄（2026-07-26 本次同步）
+
+本次唯讀盤點確認 `main`／`origin/main`／HEAD 已由本文件先前記載的 PR #128（`99ef6bf`）推進至 **PR #130**（`3f82581`），中間共 2 個 PR 皆已由使用者手動 Merge，對應 `Deploy GitHub Pages` workflow 全數 `conclusion: success`（`event: push`）：
+
+| PR | 標題 | merge commit | mergedAt | Deploy run（databaseId） | 摘要 |
+|---|---|---|---|---|---|
+| #129 | docs: sync PR #125-128 baseline into governance docs | `2ad28f33d23de4ec053078578eaee8c8730a078c` | 2026-07-26T01:06:15Z | `30182325511` success | 純治理文件同步，補齊 PR #125～#128 基線落差（第 12.6 節）；變更檔案：`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md`、Full／Lite Bundle（Full 21/21、Lite 6/6） |
+| #130 | fix: attach cash flow plan input fields to save button（UR-TODO-039） | `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26` | 2026-07-26T01:43:27Z | `30183361782` success | 修復 UR-TODO-039：`src/pages/CashFlowPage.tsx` 將「家庭流動資金計畫」區塊（額外投入資金／預計提領資金）從獨立卡片移入「每月設定」卡片內、緊接在「儲存現金流設定」按鈕之前，不再是獨立卡片，並補充一句提示文字；`src/styles.css` 同步調整 `.cashflow-form` grid-column 規則與新增分隔線樣式；`tests/householdLiquidityPlanInputEntryPoint.test.ts` 新增測試 8（原始碼結構位置驗證），`test:ci:unit-ts` 491/491；純 UI／CSS 調整，未變更任何函式邏輯、資料契約或 `localStorage` schema；明確不包含 `householdLiquidityInputAdapter.ts`、`cashFlow.ts`、`householdLiquidityPlanInputUi.ts` 邏輯 |
+
+說明：
+
+- 本次為唯讀比對 git 歷史與各 PR 內容（`gh pr view`、`gh run list`），**未重新逐一實測 Production／Preview HTTP 狀態**，僅確認 workflow `conclusion` 皆為 `success`。
+- PR #130 為本階段唯一涉及 `src/`、`tests/` 的功能性 PR（UR-TODO-039 修復），PR #129 為純 `AI_CONTEXT/` 治理文件同步。
+- PR #130 內文附本機 dev server 唯讀驗收記錄（設定金額 → 儲存 → `window.location.reload()` → 確認數值未遺失，390px 無橫向溢出，console 無錯誤）。
+- UR-TODO-039 依此正式標記為**已完成**，詳見 `008_TODO_BACKLOG.md`。
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-26 PR #125～#128 基線同步）：
+本次同步更新（2026-07-26 PR #129～#130 基線同步）：
 
-- Current Status v3.22→**v3.23**（本文件）：基線由 PR #124（`35859af`）更新為 **PR #128（`99ef6bf`）**；新增第 12.6 節記錄 PR #125～#128 的 Merge 與 Deploy 記錄；第 1 節最新正式版本更新為子 PR 5b／5；第 11 節現行下一步更新為反映 UR-TODO-008 子 PR 1～5b／5 已全數完成，並新增待盤點項目 UR-TODO-039
-- Todo Backlog（v1.15→v1.16）：UR-TODO-008 狀態由「開發中」更新為**「已完成」**，子 PR 1～5b／5 完成記錄逐項列出；新增 UR-TODO-039（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`，狀態「待盤點」）
+- Current Status v3.23→**v3.24**（本文件）：基線由 PR #128（`99ef6bf`）更新為 **PR #130（`3f82581`）**；新增第 12.7 節記錄 PR #129～#130 的 Merge 與 Deploy 記錄；第 1 節最新正式版本說明新增 PR #130（UR-TODO-039 修復）；第 11 節現行下一步更新為反映 UR-TODO-039 已完成
+- Todo Backlog（v1.16→v1.17）：UR-TODO-039 狀態由「待盤點」更新為**「已完成」**，記錄 PR #130 修復內容摘要
 - AI Context Bundle（Full／Lite）：依上述文件變更重新產生
 
-歷史記錄：2026-07-25 PR #123～#124 基線同步（Current Status v3.21→v3.22，第 12.5 節）、2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
+歷史記錄：2026-07-26 PR #125～#128 基線同步（Current Status v3.22→v3.23，第 12.6 節）、2026-07-25 PR #123～#124 基線同步（Current Status v3.21→v3.22，第 12.5 節）、2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
 
 歷史記錄：2026-07-24 PR #109 Merge 後治理狀態同步（基線改為 `4a95a8a`，記錄 Full／Lite Bundle 首次正式合併）已於前次同步完成；2026-07-24 PR #108 Merge 後治理文件收尾（UR-TODO-038、CI-01、CI-02 標記已完成、清除 PR #108 進行中狀態）已於更早一次同步完成，詳見上方各節歷史記錄段落。
 
@@ -802,7 +818,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.16
+# Universal Rebalance Todo Backlog v1.17
 
 最後更新：2026-07-26
 
@@ -859,6 +875,10 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 2026-07-25 產品版本 V7.0B（Financial Liquidity Core）子 PR 5b／5（investableCash 資金資格判斷串接進 Dip Alert，013 §14.2）已由使用者手動 Merge，PR #127（`feat/v7-0b-dipalert-investablecash`）MERGED，merge commit `83431910a7948d32f52deb0b98715080286f3fb3`，對應 Production `Deploy GitHub Pages` workflow run `30164426224` 成功。範圍：新增 `DipFundingStatus`（`no-signal`／`data-insufficient`／`safety-cash-priority`／`observe-only`／`executable`）與純函式 `deriveDipFundingStatus`，落實 013 §14.2 五列狀態矩陣；`getDipAlertRows` 新增第 4 參數 `liquidity`，重用 `householdLiquidityForRebalance` 既有 `investableCash`／`dataCompleteness`／`safetyCashShortfall`，不另建計算；`triggered`／純價格 `status` 判斷邏輯完全未變，與 `fundingStatus` 明確分離；UI 依 013 §14.3 於 `executable` 狀態顯示可投資現金／本次可執行加碼／未滿足理論需求三行金額，其餘三種狀態顯示對應限制說明；`tests/dipAlertRows.test.ts` 擴充至 24 個測試（5a 既有 17 個 `triggered`／`status` 斷言逐字未變＋新增 7 個涵蓋五列矩陣與防禦性邊界案例）。驗收時發現使用者於「收支與現金流中心」設定「額外投入資金」「預計提領資金」以驗證三種資金情境時，這兩個欄位 UI 顯示「已設定」但實際未寫回 `cashFlowProfile`／localStorage（重新整理後消失），屬 PR #105（V6.17.3A Plan Input Foundation）既有功能缺口，與本次子 PR 5b 無關，已補登為 UR-TODO-039（狀態「待盤點」）。**UR-TODO-008 狀態由「開發中」更新為「已完成」**，子 PR 1～5b／5 全數完成，其餘 Todo 狀態不受本次更新影響。
 
 2026-07-26 PR #128（`docs: add Sprint Summary format, ADR record (020), and handover Knowledge Delta`，merge commit `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41`）為純治理文件同步，新增 `007_GIT_WORKFLOW.md` §7.4 Sprint Summary 回報格式、`012_AI_HANDOVER.md` Knowledge Delta／ADR 欄位與治理文件同步時機規則、`020_Architecture_Decisions.md` ADR 記錄檔（ADR-001、ADR-002），唯讀盤點確認未改動任何現行 UR-TODO 狀態。
+
+2026-07-26 PR #129（`docs: sync PR #125-128 baseline into governance docs`，merge commit `2ad28f33d23de4ec053078578eaee8c8730a078c`）為純治理文件同步，唯讀盤點確認未改動任何現行 UR-TODO 狀態。
+
+2026-07-26 **UR-TODO-039**（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`）已由使用者手動 Merge，PR #130（`fix/v7-cashflow-plan-input-save-attach`）MERGED，merge commit `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`，對應 Production `Deploy GitHub Pages` workflow run `30183361782` 成功。修復方向：`src/pages/CashFlowPage.tsx` 將「家庭流動資金計畫」區塊（額外投入資金／預計提領資金）從獨立於「每月設定」卡片之外的另一張卡片，移入「每月設定」卡片內、緊接在唯一的持久化出口「儲存現金流設定」按鈕之前，不再是獨立卡片，並補充一句提示文字；`src/styles.css` 同步調整 `.cashflow-form` grid-column 規則與新增分隔線樣式；`tests/householdLiquidityPlanInputEntryPoint.test.ts` 新增測試 8（以原始碼結構位置驗證欄位已移入卡片內、按鈕之前），`test:ci:unit-ts` 491/491；純 UI／CSS 調整，未變更任何函式邏輯、資料契約或 `localStorage` schema；明確不包含 `householdLiquidityInputAdapter.ts`、`cashFlow.ts`、`householdLiquidityPlanInputUi.ts` 邏輯。PR 內文附本機 dev server 唯讀驗收記錄：設定金額 → 點擊儲存 → `localStorage` 確認已寫入 → `window.location.reload()` → 確認數值未遺失，390px 無橫向溢出，console 無錯誤。**UR-TODO-039 狀態由「待盤點」更新為「已完成」**，其餘 Todo 狀態不受本次更新影響。
 
 狀態：
 
@@ -1237,25 +1257,25 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 ### UR-TODO-039 收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回
 
 - 優先級：P1
-- 狀態：待盤點
+- 狀態：**已完成**
+- 完成日期：2026-07-26（PR #130，本次唯讀盤點確認）
+- 完成 PR：#130 `fix: attach cash flow plan input fields to save button (UR-TODO-039)`（merge commit `3f8258168ddbeb5e28ae2a5e312a26b7e055fe26`）
 - 提出日期：2026-07-25
 - 提出依據：PR #127（V7.0B 子 PR 5b／5，Dip Alert investableCash 資金資格判斷串接）驗收時發現，PR 內文「Preview」段落「已知限制」明確記錄
-- 問題：
-  - 使用者於「收支與現金流中心」（`CashFlowPage.tsx`）「家庭流動資金計畫」區塊（PR #105 新增，見 UR-TODO-036）設定「額外投入資金」（`externalContribution`）與「預計提領資金」（`plannedWithdrawal`）後，UI 顯示為「已設定」，但重新整理頁面後數值消失，代表**實際未寫回 `cashFlowProfile`／localStorage**。
-  - 此為 PR #105（V6.17.3A Plan Input Foundation）既有功能缺口，**與 V7.0B（UR-TODO-008）或子 PR 5b 本身無關**，是驗收 5b 時順帶發現的既有 bug，不是本次子 PR 5b 的迴歸。
-- 背景與已知影響：
-  - 因此缺口，PR #127 驗收時「額外投入資金」「預計提領資金」驅動的三種資金情境（`executable`／`observe-only`／`safety-cash-priority`）**未能以即時畫面重現**，改以 24 個單元測試（`tests/dipAlertRows.test.ts`）逐列驗證 013 §14.2 矩陣邏輯正確性，單元測試覆蓋已足夠但畫面尚未實測。
-  - 若此缺口不修復，未來任何依賴這兩個欄位的功能（Dip Alert 資金資格判斷、UR-TODO-009 Risk & Decision Workflow、UR-TODO-010 Simulator）皆無法以真實資料在畫面上驗證，只能依賴單元測試。
-- 必須確認：
-  - `CashFlowPage.tsx` 「家庭流動資金計畫」區塊的儲存邏輯，是否有呼叫對應的 state 更新／持久化函式。
-  - 是否為 UI 層級的顯示狀態與實際 state 未綁定（純前端 bug），或是持久化層（localStorage／Firebase／Backup）本身未接上。
-  - 是否影響其餘欄位（`CashFlowItem`、`liquidityRole`、`linkedLoanId`）的持久化，或僅限這兩個新增欄位。
+- 問題（修復前）：
+  - 使用者於「收支與現金流中心」（`CashFlowPage.tsx`）「家庭流動資金計畫」區塊（PR #105 新增，見 UR-TODO-036）設定「額外投入資金」（`externalContribution`）與「預計提領資金」（`plannedWithdrawal`）後，UI 顯示為「已設定」，但重新整理頁面後數值消失，實際未寫回 `cashFlowProfile`／localStorage。
+  - 根因確認為**方向 B 問題**（非持久化層／schema 問題）：該區塊先前是獨立於「每月設定」卡片之外的另一張卡片，只依附各自欄位的「清除」按鈕，未連到頁面唯一的持久化出口（「儲存現金流設定」按鈕，其 `onClick` 才會呼叫 `onSave` 把 draft 寫回 `state.cashFlowProfile`）；`householdLiquidityInputAdapter.ts`、`cashFlow.ts`、`householdLiquidityPlanInputUi.ts` 三個檔案的底層邏輯本身無誤。
+  - 此為 PR #105（V6.17.3A Plan Input Foundation）既有功能缺口，與 V7.0B（UR-TODO-008）或子 PR 5b 本身無關。
+- 修復內容（PR #130，方向 B：維持單一 Save 按鈕模式）：
+  - `src/pages/CashFlowPage.tsx`：將「家庭流動資金計畫」區塊（`<h2>` + 說明文字 + 兩個 `PlanInputField`）從獨立的 `<section className="card household-liquidity-plan-input">` 移入「每月設定」卡片（`<section className="card cashflow-form">`）內、`<div className="actions">`（儲存／清空按鈕）之前，改用不帶 `card` class 的 `<div className="household-liquidity-plan-input">` 包裹；既有說明文字逐字保留，新增一句「填寫後請於下方按下『儲存現金流設定』按鈕，此頁僅有這一個儲存動作。」
+  - `src/styles.css`：`.cashflow-form` grid-column 規則新增 `.household-liquidity-plan-input` 選擇器維持全寬版面；新增 `padding-top`／`border-top` 作為卡片內分隔線（取代原本的獨立卡片邊框）。
+  - `tests/householdLiquidityPlanInputEntryPoint.test.ts`：新增測試 8，以原始碼結構位置驗證欄位已位於「每月設定」卡片內、儲存按鈕之前，且不再擁有獨立 `card` class；`test:ci:unit-ts` 491/491（含新增測試）。
+  - 明確不包含：`householdLiquidityInputAdapter.ts`、`cashFlow.ts`、`householdLiquidityPlanInputUi.ts` 邏輯（唯讀盤點已確認正確）；`localStorage` schema／`state.cashFlowProfile` 結構未變更。
+- Preview 驗收（PR #130 內文記錄）：本機 dev server 設定「額外投入資金」5 萬、「預計提領資金」3 萬 → 點擊「儲存現金流設定」→ `localStorage` 確認已寫入 `externalContribution: 50000`／`plannedWithdrawal: 30000` → `window.location.reload()` → 兩欄位仍顯示「已設定」，確認修復前會遺失、修復後不會遺失；390px 版面無橫向溢出；console 無錯誤。
 - 依賴：
-  - UR-TODO-036（Household Liquidity Plan Input UI Entry Point，同一 UI 區塊，狀態「待盤點」）
-  - UR-TODO-007（部分完成，本缺口屬於其「Plan Input 持久化」範疇的既有功能落差）
-- 驗收條件：
-  - 「額外投入資金」「預計提領資金」設定後，重新整理頁面／切換頁籤／關閉重開瀏覽器，數值仍正確保留。
-  - localStorage／Firebase／Backup round-trip 一致，不遺失既有 PR #105 已宣稱通過的 27／23 個測試涵蓋範圍。
+  - UR-TODO-036（Household Liquidity Plan Input UI Entry Point，同一 UI 區塊，狀態「待盤點」，本次修復未變更其待確認事項）
+  - UR-TODO-007（部分完成，本缺口屬於其「Plan Input 持久化」範疇的既有功能落差，本次已修復其中的 UI 依附問題）
+- 完成標準對照：程式碼完成（PR #130 已合併）、自動測試通過（`test:ci:unit-ts` 491/491）、Preview 驗收通過（本機 dev server 設定→儲存→reload 驗證記錄）、PR Merge（#130 已由使用者手動 Merge）、Production 唯讀驗證通過（`Deploy GitHub Pages` workflow run `30183361782` `conclusion: success`）——**五項完成標準全數達成，正式標記為已完成**。
 
 ## P1－舊待辦遺漏補登
 
