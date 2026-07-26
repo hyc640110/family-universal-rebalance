@@ -110,6 +110,17 @@
 
 # 目前交接快照
 
+> **2026-07-26 更新：本區下方舊快照的 PR #110 基線已過期。現行開發快照為 UR-TODO-009 子 PR4，正式基線 `origin/main`＝PR #139／`05a2088`；本分支尚未 Merge，Production 未操作。**
+
+## UR-TODO-009 子 PR4 目前快照
+
+- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／隔離 worktree，HEAD＝`05a2088`。
+- 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null` 語意。
+- 驗證：`test:ci`、TypeScript、Production／Preview build、stability、audit、`git diff --check` 已通過；本機 Preview 390／1000／1600px 無橫向溢出、Console 無 error。
+- Remaining Boundaries：負債資料過期警示仍屬 UR-TODO-041；AI Decision 六層優先序為子 PR5／6，Dashboard／homeDecision 一致性收斂為子 PR7；皆未在本次處理。
+- 固定 stash：`e141af1`、`4a0ddb2` 未操作；原工作目錄 `dist/`／`.claude/` 未碰觸。
+- 下一位 AI 的直接起點：先確認本子 PR Draft／CI 狀態與最新 `origin/main`，再依使用者指示進行 Review；不得自行 Merge 或部署 Production。
+
 ## 3. 基本資訊
 
 - 最後更新時間：2026-07-24

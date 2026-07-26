@@ -10,7 +10,7 @@ import { deriveRiskMetrics, type RiskLiquidityContext } from '../src/lib/riskMet
 // drawdown, quote quality), not the household-liquidity-driven cash-safety formula itself (that is covered by
 // the dedicated tests/riskMetrics.test.ts), so an "insufficient data" fixture is deliberate and sufficient here
 // — none of the assertions below depend on a specific cashSafetyMonths/minimumCashTarget/stableCashTarget value.
-const NO_LIQUIDITY_DATA: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient' };
+const NO_LIQUIDITY_DATA: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient', confidence: 'low', blockingReasons: [] };
 
 const history = [{ date: '2026-07-10', totalAssets: 1000, netWorth: 900, investmentValue: 900, cash: 100, debt: 100 }, { date: '2026-07-11', totalAssets: 900, netWorth: 800, investmentValue: 800, cash: 100, debt: 100 }];
 const makeInput = (): PortfolioRiskInput => {
@@ -49,6 +49,24 @@ test('does not substitute zero for insufficient drawdown or cash safety data', (
   assert.equal(view.drawdown.canCalculate, false); assert.equal(view.drawdown.maxDrawdown, null);
   assert.equal(view.cashLoan.safetyMonths, null); assert.equal(view.target.status, '未分配比例由現金承擔');
   assert.ok(view.quality.items.some(item => item.includes('無法計算最大回撤')));
+});
+
+test('帶出 Risk Metrics 的家庭流動性呈現資料，不由 Portfolio Risk 重算', () => {
+  const input = makeInput();
+  input.risk.monthlyEssentialExpenses = 30_000;
+  input.risk.safetyCashShortfall = 10_000;
+  input.risk.investableCash = 0;
+  input.risk.dataCompleteness = 'partial';
+  input.risk.confidence = 'medium';
+  input.risk.blockingReasons = [{ code: 'DUPLICATE_LIQUID_ACCOUNT_ID', message: '流動現金輸入包含重複 accountId。', sourceIds: ['cash-1'] }];
+
+  const view = derivePortfolioRisk(input);
+
+  assert.equal(view.cashLoan.monthlyEssentialExpenses, 30_000);
+  assert.equal(view.cashLoan.safetyCashShortfall, 10_000);
+  assert.equal(view.cashLoan.investableCash, 0);
+  assert.equal(view.cashLoan.confidence, 'medium');
+  assert.deepEqual(view.cashLoan.duplicateSourceWarnings, ['流動現金輸入包含重複 accountId。']);
 });
 
 test('route, mobile single-column CSS and page wording exclude trade instructions', () => {

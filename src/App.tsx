@@ -1388,7 +1388,9 @@ function App() {
       stableSafetyCash: householdLiquidityForRebalance.stableSafetyCash,
       safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
       investableCash: householdLiquidityForRebalance.investableCash,
-      dataCompleteness: householdLiquidityForRebalance.dataCompleteness
+      dataCompleteness: householdLiquidityForRebalance.dataCompleteness,
+      confidence: householdLiquidityForRebalance.confidence,
+      blockingReasons: householdLiquidityForRebalance.blockingReasons
     }
   }), [m, rb, state.loans, householdLiquidityForRebalance]);
   const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);

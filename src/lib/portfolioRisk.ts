@@ -1,12 +1,14 @@
 import { quoteDateStatus, type QuoteDateStatus } from './quoteMath';
 import type { SeriesStats } from './investmentPerformanceHistory';
+import { deriveRiskPresentation } from './riskPresentation';
+import type { RiskMetrics } from './riskMetrics';
 
 export type PortfolioRiskQuote = { symbol: string; marketValue: number; assetClass: 'growth' | 'defensive'; quote: { quoteDate?: string; quoteTime?: string; source: string; error?: string } };
 export type PortfolioRiskInput = {
   totalAssets: number; investmentValue: number; growthValue: number; defensiveValue: number; cash: number;
   growthTargetPct: number; defensiveTargetPct: number; cashTargetPct: number; targetTotalPct: number;
   allocationDeviation: number; rebalanceThreshold: number; thresholdReached: boolean;
-  risk: { overallLabel: string; primaryRisk: { title: string; status: string; reason: string }; largestHoldingRatio: number; topTwoRatio: number; topThreeRatio: number; leveragedValue: number; leveragedRatio: number; leveragedGrowthRatio: number; leveragedAssets: Array<{ symbol: string }>; debt: number; monthlyPayment: number; cashSafetyMonths: number | null };
+  risk: Pick<RiskMetrics, 'overallLabel' | 'primaryRisk' | 'largestHoldingRatio' | 'topTwoRatio' | 'topThreeRatio' | 'leveragedValue' | 'leveragedRatio' | 'leveragedGrowthRatio' | 'leveragedAssets' | 'debt' | 'monthlyPayment' | 'cashSafetyMonths' | 'monthlyEssentialExpenses' | 'safetyCashShortfall' | 'investableCash' | 'dataCompleteness' | 'confidence' | 'blockingReasons'>;
   performance: { stats: SeriesStats; canCalculateMaxDrawdown: boolean; snapshotCount: number };
   quotes: PortfolioRiskQuote[]; rawSymbols: string[];
 };
@@ -32,6 +34,7 @@ export function derivePortfolioRisk(input: PortfolioRiskInput) {
     !input.performance.canCalculateMaxDrawdown ? '投資資產歷史不足，無法計算最大回撤' : ''
   ].filter(Boolean);
   const denominatorLabel = '占總資產';
+  const riskPresentation = deriveRiskPresentation(input.risk);
   return {
     risk: input.risk, totalAssets, investmentValue: Math.max(0, n(input.investmentValue)), denominatorLabel,
     current: { growth: n(input.growthValue), defensive: n(input.defensiveValue), cash: Math.max(0, n(input.cash)), growthPct: totalAssets ? n(input.growthValue) / totalAssets * 100 : 0, defensivePct: totalAssets ? n(input.defensiveValue) / totalAssets * 100 : 0, cashPct: totalAssets ? Math.max(0, n(input.cash)) / totalAssets * 100 : 0 },
@@ -39,7 +42,7 @@ export function derivePortfolioRisk(input: PortfolioRiskInput) {
     allocation: { deviation: n(input.allocationDeviation), threshold: n(input.rebalanceThreshold), thresholdReached: input.thresholdReached },
     concentration: { largestPct: n(input.risk.largestHoldingRatio), topTwoPct: n(input.risk.topTwoRatio), topThreePct: n(input.risk.topThreeRatio) },
     leverage: { value: n(input.risk.leveragedValue), totalPct: n(input.risk.leveragedRatio), growthPct: n(input.risk.leveragedGrowthRatio), symbols: input.risk.leveragedAssets.map(asset => asset.symbol) },
-    cashLoan: { cash: Math.max(0, n(input.cash)), debt: n(input.risk.debt), monthlyPayment: n(input.risk.monthlyPayment), safetyMonths: input.risk.cashSafetyMonths },
+    cashLoan: { cash: Math.max(0, n(input.cash)), debt: n(input.risk.debt), monthlyPayment: n(input.risk.monthlyPayment), safetyMonths: input.risk.cashSafetyMonths, ...riskPresentation },
     drawdown: { canCalculate: input.performance.canCalculateMaxDrawdown, snapshotCount: input.performance.snapshotCount, maxDrawdown: input.performance.stats.maxDrawdown, distanceFromHigh: input.performance.stats.distanceFromHighRate },
     quality: { items: quality, quoteStatuses, duplicateSymbols, backupCount: quotes.filter(row => backup(row.quote.source)).length }
   };

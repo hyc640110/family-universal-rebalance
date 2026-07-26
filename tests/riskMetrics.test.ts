@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveRiskMetrics, type RiskInput, type RiskLiquidityContext } from '../src/lib/riskMetrics';
+import type { HouseholdLiquidityBlockingReason } from '../src/lib/householdLiquidity';
 
 // UR-TODO-009 sub-PR 3 (013 §22): deriveRiskMetrics's cash-safety fields (cashSafetyMonths／minimumCashTarget／
 // stableCashTarget) must now come from the Household Liquidity core model (`input.liquidity`, matching
@@ -10,8 +11,8 @@ import { deriveRiskMetrics, type RiskInput, type RiskLiquidityContext } from '..
 // test coverage; the tests below lock in the new formula's behavior across dataCompleteness states,
 // safetyCashShortfall presence, and investableCash being zero vs. sufficient, per the sub-PR 3 test plan.
 
-const COMPLETE: RiskLiquidityContext = { monthlyEssentialExpenses: 20000, minimumSafetyCash: 120000, stableSafetyCash: 240000, safetyCashShortfall: 0, investableCash: 30000, dataCompleteness: 'complete' };
-const INSUFFICIENT: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient' };
+const COMPLETE: RiskLiquidityContext = { monthlyEssentialExpenses: 20000, minimumSafetyCash: 120000, stableSafetyCash: 240000, safetyCashShortfall: 0, investableCash: 30000, dataCompleteness: 'complete', confidence: 'high', blockingReasons: [] };
+const INSUFFICIENT: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient', confidence: 'low', blockingReasons: [] };
 
 const BASE: RiskInput = {
   assets: [{ symbol: '00631L', name: '台灣正2', assetClass: 'growth', marketValue: 400000 }],
@@ -122,6 +123,14 @@ test('輸出物件透傳 monthlyEssentialExpenses／safetyCashShortfall／invest
   assert.equal(risk.safetyCashShortfall, 0);
   assert.equal(risk.investableCash, 30000);
   assert.equal(risk.dataCompleteness, 'complete');
+});
+
+test('透傳 Household Liquidity 的資料可信度與重複來源原因，供 Risk Center 呈現層消費', () => {
+  const blockingReasons: HouseholdLiquidityBlockingReason[] = [{ code: 'DUPLICATE_LIQUID_ACCOUNT_ID', message: '流動現金輸入包含重複 accountId。', sourceIds: ['cash-1'] }];
+  const risk = run({ liquidity: { ...COMPLETE, confidence: 'medium', blockingReasons } });
+
+  assert.equal(risk.confidence, 'medium');
+  assert.deepEqual(risk.blockingReasons, blockingReasons);
 });
 
 test('非現金相關指標（集中度、槓桿、配置偏離）不受本次修正影響', () => {
