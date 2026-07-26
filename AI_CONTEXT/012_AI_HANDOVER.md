@@ -114,7 +114,7 @@
 
 ## UR-TODO-009 子 PR4 目前快照
 
-- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`，HEAD＝`a4bd006`；[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
+- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`；子 PR4 實作 commit `a4bd006`， [PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
 - 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null` 語意。
 - 驗證：`test:ci`（532＋3＋18）、TypeScript、Production／Preview build、stability、`git diff --check` 已通過；本機 Preview 390／1000／1600px 無橫向溢出、Console 無 error。`npm audit --omit=dev --audit-level=high` 已執行，回報 3 個既有 high 通報，未在本子 PR 處理。
 - Remaining Boundaries：負債資料過期警示仍屬 UR-TODO-041；AI Decision 六層優先序為子 PR5／6，Dashboard／homeDecision 一致性收斂為子 PR7；皆未在本次處理。

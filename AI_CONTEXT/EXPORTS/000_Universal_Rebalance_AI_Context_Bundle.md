@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-26T14:09:30.055801+00:00
+Generated UTC: 2026-07-26T14:13:02.549202+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-07-26T14:09:30.055801+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
 - `001_README.md` — SHA-256 `2ab7bca88cff068904a24418b878519941dec0558a15cffd0e49f4b9e710e582`
 - `002_MASTER_ROADMAP.md` — SHA-256 `318949955a01065843902d5c207969d6b799101f9af414709e8ca10b093dae77`
-- `003_CURRENT_STATUS.md` — SHA-256 `56ec6a74f91c9b6259f1a0b5826b30fc45e7570905a16634e8b9e2785c703e8c`
+- `003_CURRENT_STATUS.md` — SHA-256 `947735b85f3a4214069d31887a67c6ec96bfd4f621c38023aa1811aeae0b5b6f`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `37517b8714694240dfb3e80c2cd93351b3b3c0256bc1ed9f906eaa6597a823b4`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `2bae5b7db9f2b2ec1a015fd8f434a92c753cfc4e6bb3caad957e3c9565853381`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `3f766e9c02dc710d5eb6acc406b2afec6f8bff42b2a88690695afcc0894b01ae`
 - `007_GIT_WORKFLOW.md` — SHA-256 `9ad8941b6fd7e6a25ffcd74b7be0b720ce4e1d2131d6de0c84af3738bcea104d`
-- `008_TODO_BACKLOG.md` — SHA-256 `0a6c244fd8b45edee352cfd8ab6b7f3d912345067d0e09b93fe701d584c6a611`
+- `008_TODO_BACKLOG.md` — SHA-256 `525c75ea8db23b5cb3297f2ff9e86602cd8dfc4c8241be6ceb10febc6874db00`
 - `009_CHANGELOG.md` — SHA-256 `283f2bbee738a7fb87df785ab6b12006477718e4ed347f74cd15ecd0fb8461f3`
 - `010_CODING_STANDARDS.md` — SHA-256 `a77ff100ec95157b449a503f7ff3760e9bcb949f6b4014e27c84a17d6e40c6b7`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `022f10729dedfe5ff950f84a84fd7458ac057c0aabdc4e3d3c39581bfde26da1`
-- `012_AI_HANDOVER.md` — SHA-256 `052dd12e49c51b51ac2a697fba6a2c3bbcd259be3115ef28a0c992b27eba1a23`
+- `012_AI_HANDOVER.md` — SHA-256 `c48aaee322f468a0bb409d2ad2cdf7de106a87e9730d6879078a570a532425f6`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `b48d51674cef1af7f3b8b7eb3581475963e1d00ddc9682900bf0b3e2e4d4d571`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `d18561019ca73c9fe32794194eee5cf4d1a101d8f73c8979f6f9a6b47ec43732`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `3b09ed71952383c11e31a49788054aa854bc8c8af7c9fd4b54cc9f12bcacdb22`
@@ -678,9 +678,9 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 - Repository：`hyc640110/family-universal-rebalance`
 - 正式基線：`origin/main`＝`05a2088dc7ad570364b2b3f191f6153401b0b638`（PR #139 merge commit，2026-07-26 12:30:13Z）
-- 開發 worktree／Branch：`feat/ur-todo-009-risk-center-presentation`，從最新 `origin/main` 建立；HEAD＝`a4bd006`（子 PR4 實作 commit），worktree 已在建立 Draft PR 前完成驗證。
+- 開發 worktree／Branch：`feat/ur-todo-009-risk-center-presentation`，從最新 `origin/main` 建立；子 PR4 實作 commit 為 `a4bd006`，worktree 已在建立 Draft PR 前完成驗證。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- Open／Draft PR：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（Draft，head `a4bd006`）；不得自行 Merge。
+- Open／Draft PR：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（Draft）；不得自行 Merge。
 
 固定 stash：
 
@@ -2648,7 +2648,7 @@ Hotfix 仍需：
 
 家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
 
-2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，已建立 [Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（head `a4bd006`）。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。`npm audit --omit=dev --audit-level=high` 完成但回報 3 個既有 high 相依性通報，未在本子 PR 擴大處理。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
+2026-07-26 **UR-TODO-009 子 PR4 — Risk Center Presentation Layer** 已在 `feat/ur-todo-009-risk-center-presentation` 完成實作與本機驗證，已建立 [Draft PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)。範圍僅限 `RiskCenterPage.tsx`／`PortfolioRiskPage.tsx` 對子 PR3 `riskMetrics` 契約的呈現：每月必要支出、安全存量缺口、可投資現金、資料可信度、重複來源警示；透過共用 `riskPresentation` adapter，未重算 Household Liquidity。**明確不包含**負債資料過期警示（UR-TODO-041）、核心公式或輸入契約、AI Decision、Dashboard、todayDecision、localStorage／Firebase／JSON Backup、Production。自動驗證：`test:ci`、TypeScript、Production／Preview build、stability 與 `git diff --check`；本機 Preview 390／1000／1600px 無橫向溢出且 Console 無 error。`npm audit --omit=dev --audit-level=high` 完成但回報 3 個既有 high 相依性通報，未在本子 PR 擴大處理。UR-TODO-009 整體狀態維持**開發中**，後續子 PR5～7 仍未處理。
 
 2026-07-23 已完成舊對話待辦遺漏比對，補登 UR-TODO-026～035。以上項目仍須以最新 main 唯讀盤點後確認實際狀態。
 
@@ -3936,7 +3936,7 @@ interface ServiceResult<T> {
 
 ## UR-TODO-009 子 PR4 目前快照
 
-- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`，HEAD＝`a4bd006`；[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
+- Branch／worktree：`feat/ur-todo-009-risk-center-presentation`／`E:\2026_CodeX\專案\family-universal-rebalance-risk-center-presentation`；子 PR4 實作 commit `a4bd006`， [PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140) 為 Draft。
 - 已完成範圍：兩個 Risk 頁面共用 `riskPresentation` adapter，呈現每月必要支出、安全存量缺口、可投資現金、資料可信度與重複來源警示；資料不足保留 `null` 語意。
 - 驗證：`test:ci`（532＋3＋18）、TypeScript、Production／Preview build、stability、`git diff --check` 已通過；本機 Preview 390／1000／1600px 無橫向溢出、Console 無 error。`npm audit --omit=dev --audit-level=high` 已執行，回報 3 個既有 high 通報，未在本子 PR 處理。
 - Remaining Boundaries：負債資料過期警示仍屬 UR-TODO-041；AI Decision 六層優先序為子 PR5／6，Dashboard／homeDecision 一致性收斂為子 PR7；皆未在本次處理。

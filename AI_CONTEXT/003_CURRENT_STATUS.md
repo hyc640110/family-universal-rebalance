@@ -20,9 +20,9 @@
 
 - Repository：`hyc640110/family-universal-rebalance`
 - 正式基線：`origin/main`＝`05a2088dc7ad570364b2b3f191f6153401b0b638`（PR #139 merge commit，2026-07-26 12:30:13Z）
-- 開發 worktree／Branch：`feat/ur-todo-009-risk-center-presentation`，從最新 `origin/main` 建立；HEAD＝`a4bd006`（子 PR4 實作 commit），worktree 已在建立 Draft PR 前完成驗證。
+- 開發 worktree／Branch：`feat/ur-todo-009-risk-center-presentation`，從最新 `origin/main` 建立；子 PR4 實作 commit 為 `a4bd006`，worktree 已在建立 Draft PR 前完成驗證。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- Open／Draft PR：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（Draft，head `a4bd006`）；不得自行 Merge。
+- Open／Draft PR：[PR #140](https://github.com/hyc640110/family-universal-rebalance/pull/140)（Draft）；不得自行 Merge。
 
 固定 stash：
 
