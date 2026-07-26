@@ -3,13 +3,21 @@ import test from 'node:test';
 import { deriveAiDecisions, deriveMarketFreshness, type AiDecisionInput } from '../src/lib/aiDecision';
 import { dividendSources, dividendSummary } from '../src/lib/dividends';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats } from '../src/lib/investmentPerformanceHistory';
-import { deriveRiskMetrics } from '../src/lib/riskMetrics';
+import { deriveRiskMetrics, type RiskLiquidityContext } from '../src/lib/riskMetrics';
 import { quoteDateStatus } from '../src/lib/quoteMath';
+
+// UR-TODO-009 sub-PR 3 (013 §22): deriveRiskMetrics now requires a `liquidity` context sourced from the
+// Household Liquidity core model. This file tests deriveAiDecisions' own selector behavior (severity, evidence,
+// text branches), not the household-liquidity-driven cash-safety formula itself (that is covered by the
+// dedicated tests/riskMetrics.test.ts). An "insufficient data" fixture keeps `risk.cashSafetyMonths` null —
+// the same value this fixture's `loans: []` already produced under the old cash ÷ monthlyPayment formula — so
+// every existing assertion below (including the 'cash' conclusion text match) is unchanged.
+const NO_LIQUIDITY_DATA: RiskLiquidityContext = { monthlyEssentialExpenses: null, minimumSafetyCash: null, stableSafetyCash: null, safetyCashShortfall: null, investableCash: null, dataCompleteness: 'insufficient' };
 
 const today = '2026-07-14';
 const input = (): AiDecisionInput => {
   const history = [{ date: '2026-07-12', totalAssets: 1000, netWorth: 1000, investmentValue: 1000, cash: 100, debt: 0 }, { date: '2026-07-13', totalAssets: 800, netWorth: 800, investmentValue: 800, cash: 100, debt: 0 }];
-  const risk = deriveRiskMetrics({ assets: [{ symbol: '00670L', name: '正2', assetClass: 'growth', marketValue: 700 }, { symbol: '00865B', name: '公債', assetClass: 'defensive', marketValue: 200 }], loans: [], cash: 100, totalAssets: 1000, growthRatio: 70, defensiveRatio: 20, growthTargetPct: 70, allocationDeviation: 0, rebalanceThreshold: 5, thresholdReached: false });
+  const risk = deriveRiskMetrics({ assets: [{ symbol: '00670L', name: '正2', assetClass: 'growth', marketValue: 700 }, { symbol: '00865B', name: '公債', assetClass: 'defensive', marketValue: 200 }], loans: [], cash: 100, totalAssets: 1000, growthRatio: 70, defensiveRatio: 20, growthTargetPct: 70, allocationDeviation: 0, rebalanceThreshold: 5, thresholdReached: false, liquidity: NO_LIQUIDITY_DATA });
   const transactions: any[] = [{ id: 'd1', type: 'income', categoryId: 'income-dividend', status: 'posted', excluded: false, occurredAt: '2026-07-01T00:00:00.000Z', amount: 50, assetSymbol: '00865B', assetName: '公債' }];
   return { today, dashboard: { investmentValue: 900, dayPnl: 10, dayPnlRate: 1.1, cashRatio: 10, quoteStatus: '報價正常', holdingsCount: 2 }, risk, performance: { stats: deriveInvestmentPerformanceStats(history, 'investmentValue'), canCalculateMaxDrawdown: deriveInvestmentPerformanceQuality(history).canCalculateMaxDrawdown, snapshotCount: history.length }, dividend: { summary: dividendSummary(transactions, today), sources: dividendSources(transactions, { today }) }, market: { fetchedAt: '2026-07-14T02:00:00.000Z', status: 'closed', items: [{ id: 'taiex', name: '台股', group: 'taiwan', value: 1, change: 1, changePct: 1, asOf: '2026-07-14T00:00:00.000Z', fetchedAt: '2026-07-14T02:00:00.000Z', source: '官方', status: 'closed' }] }, quoteStatuses: ['today'], quoteErrors: 0, backupQuoteCount: 0, targetOverLimit: false, holdingMarketValue: 900 };
 };

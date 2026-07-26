@@ -1378,8 +1378,19 @@ function App() {
     assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
     loans: state.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
     cash: m.cash, totalAssets: m.totalAssets, growthRatio: m.totalAssets ? m.growth / m.totalAssets * 100 : 0, defensiveRatio: m.defensiveRatio,
-    growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached
-  }), [m, rb, state.loans]);
+    growthTargetPct: m.growthTargetPct, allocationDeviation: rb.deviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
+    // UR-TODO-009 sub-PR 3 (013 §22): reuses householdLiquidityForRebalance (already computed above for Order
+    // Helper / Rebalance / Dip Alert), so riskMetrics reads the exact same household liquidity output as the
+    // rest of the app — no second, parallel calculation.
+    liquidity: {
+      monthlyEssentialExpenses: householdLiquidityForRebalance.monthlyEssentialExpenses,
+      minimumSafetyCash: householdLiquidityForRebalance.minimumSafetyCash,
+      stableSafetyCash: householdLiquidityForRebalance.stableSafetyCash,
+      safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
+      investableCash: householdLiquidityForRebalance.investableCash,
+      dataCompleteness: householdLiquidityForRebalance.dataCompleteness
+    }
+  }), [m, rb, state.loans, householdLiquidityForRebalance]);
   const riskMetrics = useMemo(() => deriveRiskMetrics(riskInput), [riskInput]);
   const investmentStats = useMemo(() => deriveInvestmentPerformanceStats(netWorthHistory, 'investmentValue'), [netWorthHistory]);
   const performanceQuality = useMemo(() => deriveInvestmentPerformanceQuality(netWorthHistory), [netWorthHistory]);
