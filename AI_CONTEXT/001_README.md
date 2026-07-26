@@ -63,3 +63,4 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 | `017_Design_System.md` | 全站 UI 元件視覺規範（骨架，內容待補完） |
 | `018_Dashboard_UX_Guideline.md` | 首頁版面與互動規範（骨架，內容待補完） |
 | `019_Idea_Pool.md` | 創意模式新想法收錄區（尚未評估） |
+| `020_Architecture_Decisions.md` | 架構決策記錄（ADR） |
