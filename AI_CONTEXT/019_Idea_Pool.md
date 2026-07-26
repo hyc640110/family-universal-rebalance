@@ -1,8 +1,8 @@
 # Universal Rebalance Idea Pool
 
-版本：v0.1（骨架，目前為空）
+版本：v0.2
 
-最後更新：2026-07-25
+最後更新：2026-07-26
 
 ## 0. 文件定位
 
@@ -13,7 +13,7 @@
 - `008_TODO_BACKLOG.md` 的替代品：任何想法只要經評估、確認要做，必須轉為正式 `UR-TODO-XXX` 項目寫入 Todo Backlog，才算正式排入工作範圍
 - Roadmap 的替代品：本文件的想法不代表已規劃時程
 
-**本文件目前為空**——2026-07-25 建立時尚無任何待收錄的想法；本次 V7.0A 只是骨架與規則建立，不主動從既有討論中挖掘想法灌入本文件。
+2026-07-25 建立時尚無任何待收錄的想法；本次 V7.0A 只是骨架與規則建立，不主動從既有討論中挖掘想法灌入本文件。2026-07-26 收錄第一筆想法（IDEA-001，見第 3 節）。
 
 ---
 
@@ -36,10 +36,22 @@
 
 ## 3. 想法清單
 
-目前為空。格式範例（供未來收錄想法時參考，非既有項目）：
+### IDEA-001 Household Liquidity 全面盤點（待 UR-TODO-009／010／011 全部完成後）
+
+- 提出日期：2026-07-26
+- 提出脈絡：使用者與 ChatGPT 討論記錄，關於 Household Liquidity 模型跨 Sprint 完成後的收斂盤點構想
+- 狀態：尚未評估
+- 已檢討次數：0（每次版本迭代未被排入 Roadmap 則 +1，累積 3 次需重新檢討）
+- 構想內容：待 **UR-TODO-009**（Risk & Decision Workflow Integration）、**UR-TODO-010**（CLEC & Simulator Funding Semantics）、**UR-TODO-011**（Cross-Module Presentation Consistency）三個 Sprint 全部完成後，進行一次 Household Liquidity 全面盤點，重點包含：
+  1. Protected Safety Cash 是否完整反映必要生活費（至少六個月）與必要負債還款安全存量。
+  2. Investable Cash 是否建立在扣除 Protected Safety Cash 之後。
+  3. Dashboard、Home、Risk Center、Rebalance、CLEC、Investment Decision 等所有使用現金判斷的模組，是否全部使用同一套 Household Liquidity 定義，沒有各自重新計算。
+- 明確標註：**本項目目前僅為產品決策與後續盤點依據，不新增 UR-TODO、不擴大目前 Sprint 範圍**，待三個 Sprint（UR-TODO-009／010／011）全部完成後，再依實際盤點結果決定是否新增 Todo 或修改規格。
+
+格式範例（供未來收錄想法時參考）：
 
 ```text
-### IDEA-001 〈一句話描述〉
+### IDEA-002 〈一句話描述〉
 
 - 提出日期：YYYY-MM-DD
 - 提出脈絡：〈哪次討論、創意模式下的哪個構想〉
@@ -51,4 +63,5 @@
 
 ## 4. 版本歷史
 
+- v0.2（2026-07-26）：收錄第一筆想法 IDEA-001（Household Liquidity 全面盤點構想，待 UR-TODO-009／010／011 全部完成後執行）。
 - v0.1（2026-07-25）：建立骨架與收錄／週期檢討規則，落地 V7.0A Foundation & Product Governance 的一部分；目前無任何想法收錄。
