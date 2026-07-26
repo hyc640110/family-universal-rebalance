@@ -35,7 +35,7 @@ const checks = [
   ['Allocation simulator handles missing current prices', /缺少有效股價/.test(simulator) && /hasValidPrice/.test(simulator)],
   ['Risk center uses a centralized pure calculation helper', /export function deriveRiskMetrics/.test(riskMetrics) && /isLeveragedAsset/.test(riskMetrics)],
   ['Risk center uses an independent route and read-only analysis', /isRiskCenter = routeLocation\.pathname === '\/tools\/risk-center'/.test(app) && !/localStorage\.setItem|writeState\(|uploadFirebase\(|downloadFirebase\(/.test(riskCenter)],
-  ['Risk metrics avoid unsafe no-loan values', /cashDataAvailable && monthlyEssentialExpenses! > 0 \? cash \/ monthlyEssentialExpenses! : null/.test(riskMetrics) && /目前無借款月付壓力/.test(riskCenter)]
+  ['Risk metrics avoid unsafe no-loan values', /cashDataAvailable && monthlyEssentialExpenses! > 0 \? cash \/ monthlyEssentialExpenses! : null/.test(riskMetrics) && /目前無必要支出壓力/.test(riskCenter)]
   ,['Wealth goal has normalized defaults and monthly compound projection', /normalizeWealthGoalSettings/.test(wealth) && /Math\.pow\(1 \+ s\.annualReturnRate \/ 100, 1 \/ 12\) - 1/.test(wealth) && /month <= 1200/.test(wealth)]
   ,['Wealth goal target input uses ten-thousand-yuan display while state stays in yuan', /目標資產（萬元）/.test(wealthPage) && /draft\.targetAmount \/ 10000/.test(wealthPage) && /Number\(value\)\*10000/.test(wealthPage)]
   ,['Dashboard decision uses a centralized priority helper', /deriveHomeDecision/.test(homeDecision)]

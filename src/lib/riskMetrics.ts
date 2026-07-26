@@ -5,7 +5,7 @@ export type RiskAsset = { symbol: string; name: string; assetClass: 'growth' | '
 export type RiskLoan = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; remainingMonths?: number; paidMonths?: number; totalMonths?: number };
 // UR-TODO-009 sub-PR 3 (013 §22): the cash-safety fields below must come from the Household Liquidity core model
 // (monthlyEssentialExpenses already includes living expenses, not just loan payments), never be recomputed locally.
-export type RiskLiquidityContext = Pick<HouseholdLiquidityOutput, 'monthlyEssentialExpenses' | 'minimumSafetyCash' | 'stableSafetyCash' | 'safetyCashShortfall' | 'investableCash' | 'dataCompleteness'>;
+export type RiskLiquidityContext = Pick<HouseholdLiquidityOutput, 'monthlyEssentialExpenses' | 'minimumSafetyCash' | 'stableSafetyCash' | 'safetyCashShortfall' | 'investableCash' | 'dataCompleteness' | 'confidence' | 'blockingReasons'>;
 export type RiskInput = { assets: RiskAsset[]; loans: RiskLoan[]; cash: number; totalAssets: number; growthRatio: number; defensiveRatio: number; growthTargetPct: number; allocationDeviation: number; rebalanceThreshold: number; thresholdReached: boolean; liquidity: RiskLiquidityContext };
 export type RiskItem = { key: string; level: RiskLevel; title: string; status: string; reason: string; suggestion: string };
 
@@ -29,7 +29,7 @@ export function deriveRiskMetrics(input: RiskInput) {
   // monthlyEssentialExpenses／safetyCashShortfall／investableCash 皆可能為 null（核心模型的完整性不變式），
   // 此時一律視為資料不足，不得偽裝月數或已達標；minimumSafetyCash／stableSafetyCash 為 null 時以 0 呈現既有
   // number 型別欄位（不新增 UI 顯示，僅維持既有呼叫端的型別相容）。
-  const { monthlyEssentialExpenses, minimumSafetyCash, stableSafetyCash, safetyCashShortfall, investableCash, dataCompleteness } = input.liquidity;
+  const { monthlyEssentialExpenses, minimumSafetyCash, stableSafetyCash, safetyCashShortfall, investableCash, dataCompleteness, confidence, blockingReasons } = input.liquidity;
   const cashDataAvailable = dataCompleteness === 'complete' && monthlyEssentialExpenses !== null;
   const cashSafetyMonths = cashDataAvailable && monthlyEssentialExpenses! > 0 ? cash / monthlyEssentialExpenses! : null;
   const minimumCashTarget = minimumSafetyCash ?? 0;
@@ -77,5 +77,7 @@ export function deriveRiskMetrics(input: RiskInput) {
   const overallLevel = items.reduce<RiskLevel>((highest, item) => Math.max(highest, item.level) as RiskLevel, 0);
   const priorityActions = items.filter(item => item.level > 0).sort((a, b) => b.level - a.level);
   if (!priorityActions.length) priorityActions.push({ key: 'maintain', level: 0, title: '維持監測', status: '目前未出現核心高風險訊號', reason: '核心風險指標均在目前門檻內。', suggestion: '維持定期更新股價與檢視資產配置。' });
-  return { totalAssets, cash, loans, debt, monthlyPayment, cashSafetyMonths, minimumCashTarget, stableCashTarget, monthlyEssentialExpenses, safetyCashShortfall, investableCash, dataCompleteness, largest, largestHoldingRatio, topTwoRatio, topThreeRatio, leveragedAssets, leveragedValue, leveragedRatio, leveragedGrowthRatio, growthRatio: n(input.growthRatio), defensiveRatio: n(input.defensiveRatio), cashRatio: ratioOf(cash), allocationDeviation: n(input.allocationDeviation), rebalanceThreshold: n(input.rebalanceThreshold), thresholdReached: input.thresholdReached, items, overallLevel, overallLabel: levelLabel(overallLevel), primaryRisk: priorityActions[0], priorityActions };
+  return { totalAssets, cash, loans, debt, monthlyPayment, cashSafetyMonths, minimumCashTarget, stableCashTarget, monthlyEssentialExpenses, safetyCashShortfall, investableCash, dataCompleteness, confidence, blockingReasons, largest, largestHoldingRatio, topTwoRatio, topThreeRatio, leveragedAssets, leveragedValue, leveragedRatio, leveragedGrowthRatio, growthRatio: n(input.growthRatio), defensiveRatio: n(input.defensiveRatio), cashRatio: ratioOf(cash), allocationDeviation: n(input.allocationDeviation), rebalanceThreshold: n(input.rebalanceThreshold), thresholdReached: input.thresholdReached, items, overallLevel, overallLabel: levelLabel(overallLevel), primaryRisk: priorityActions[0], priorityActions };
 }
+
+export type RiskMetrics = ReturnType<typeof deriveRiskMetrics>;
