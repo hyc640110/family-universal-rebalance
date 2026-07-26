@@ -1,26 +1,28 @@
-# Universal Rebalance Current Status v3.22
+# Universal Rebalance Current Status v3.23
 
-最後更新：2026-07-25
+最後更新：2026-07-26
 
-本次更新依據：2026-07-25 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #124**（`35859af`），涵蓋 PR #123（治理文件同步，補齊 PR #121～#122 基線落差）、PR #124（產品版本 V7.0B 子 PR 4b／5，investableCash 正式串接進 Order Helper），本文件先前記載的基線（PR #122，`a06890d`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #124 本身涉及 `src/`、`tests/`，已於 2026-07-25 由使用者手動 Merge 完成，本次同步僅為該 PR 之後的治理文件補登，不重複變更程式）。
+本次更新依據：2026-07-26 唯讀盤點確認，`main`／`origin/main`／HEAD 已推進至 **PR #128**（`99ef6bf`），涵蓋 PR #125（治理文件同步，補齊 PR #123～#124 基線落差）、PR #126（產品版本 V7.0B 子 PR 5a／5，`dipAlertRows` characterization test 安全準備）、PR #127（產品版本 V7.0B 子 PR 5b／5，investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）、PR #128（新增 Sprint Summary 回報格式、ADR 記錄檔 `020_Architecture_Decisions.md`、`012_AI_HANDOVER.md` Knowledge Delta 欄位與治理文件同步時機規則），本文件先前記載的基線（PR #124，`35859af`）已過期。本次由 Claude Code 依「開始開發」固定流程執行純文件同步，**僅修改 `AI_CONTEXT/` 治理文件，未修改 `src/`、`tests/`、依賴、CI workflow、`tools/`**（PR #126、#127 本身涉及 `src/`、`tests/`，已於 2026-07-25 由使用者手動 Merge 完成；PR #128 為純治理文件 PR，已於 2026-07-26 由使用者手動 Merge 完成；本次同步僅為 PR #128 之後的治理文件補登，不重複變更程式）。
 
 ## 1. 最新正式版本
 
-- 正式版本：**產品版本 V7.0B 子 PR 4b／5（investableCash 正式串接進 Order Helper）**
-- 名稱：Rebalance & Trade Execution Integration — Sub-PR 4b/5
-- PR：**#124**（MERGED）
-- 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）
-- 狀態：MERGED
-- merge commit：
-  `35859afc0e21e5f995c8303e0b4286f77c283f86`
+- 正式版本：**產品版本 V7.0B 子 PR 5b／5（investableCash 資金資格判斷正式串接進 Dip Alert，013 §14.2）**
+- 名稱：Rebalance & Trade Execution Integration — Sub-PR 5b/5
+- PR：**#127**（MERGED，子 PR 5b／5 功能本體）；後續 **#128**（MERGED，純治理文件 PR，新增 Sprint Summary／ADR／Knowledge Delta 制度）為目前 `main` 最新 Merge
+- 前置同系列 PR：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
+- 狀態：MERGED（**UR-TODO-008 子 PR 1～5b／5 全數完成**，詳見 `008_TODO_BACKLOG.md`）
+- 最新 merge commit（PR #128，治理文件）：
+  `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41`
+- 最新功能性 merge commit（PR #127，子 PR 5b／5）：
+  `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
 - Branch：`main`
 - HEAD／origin/main：
-  `35859afc0e21e5f995c8303e0b4286f77c283f86`（PR #124 merge commit，2026-07-25 14:37:17Z）
-- 本次同步文件所用 branch（`docs/sync-pr-124-baseline`）已從最新 `origin/main`（`35859af`）建立，非延用前一個功能開發 branch（`feat/v7-0b-orderhelper-investablecash`）。
+  `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41`（PR #128 merge commit，2026-07-26 00:49:24Z）
+- 本次同步文件所用 branch（`docs/sync-pr-128-baseline`）已從最新 `origin/main`（`99ef6bf`）建立，非延用前一個功能開發 branch（`docs/governance-sprint-summary-adr-handover`）。
 - `main...origin/main`：`0 / 0`（以 origin/main 為準）
 - Working tree：乾淨。`AGENTS.md`、`CLAUDE.md`、`AI_CONTEXT/`、`tools/` 已於 PR #106（`chore/ai-context-governance-baseline`）正式進版控，不再是未追蹤內容；詳見第 12 節更正。
 - Open／Draft PR：無（`gh pr list --state open` 回傳空陣列，本次同步 PR 建立前確認）
@@ -230,9 +232,10 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 1. UR-TODO-001（Firebase Security Rules 到期）已於 2026-07-25 由使用者本人完成 Firebase Console 查證，狀態更新為「已盤點」，使用者決策為接受 2026-07-28 自然到期、不修改規則。正式解法（Firebase Auth 整合）待使用者未來另行排定為獨立 Development Sprint，目前不在待處理 P0 唯讀盤點清單中，但仍是待開發項目。
 2. UR-TODO-037 尚未完成範圍（GitHub Environment 人工核准、Branch Protection、預設分支修正）仍待另立獨立 Todo／Sprint。
-3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）目前進度：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）、子 PR 3／5（Execution Eligibility investableCash contract，PR #120）、子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）、子 PR 4b／5（Order Helper investableCash 串接，PR #124）已完成並合併；子 PR 5（Dip Alert 資金資格判斷）尚未開始，下一步仍待使用者明確下達「開始開發」指示後才啟動子 PR 5。
-4. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`35859af`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
-5. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`；V7.0B 已透過子 PR 1／2 局部啟動（僅 Rebalance 預算計算範圍），其餘子項與 V7.0C～V7.0E **均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
+3. Household Liquidity Sprint 3（Rebalance & Trade Execution Integration，UR-TODO-008）：子 PR 1／5（buy-only，PR #116）、子 PR 2／5（standard，PR #118）、子 PR 3／5（Execution Eligibility investableCash contract，PR #120）、子 PR 4a／5（Order Helper characterization test 安全準備，PR #122）、子 PR 4b／5（Order Helper investableCash 串接，PR #124）、子 PR 5a／5（Dip Alert characterization test 安全準備，PR #126）、子 PR 5b／5（investableCash 資金資格判斷串接進 Dip Alert，PR #127）**已全數完成並合併，UR-TODO-008 正式標記為已完成**。下一個建議 Sprint 為 Sprint 4（Risk & Decision Workflow Integration，UR-TODO-009）或 Sprint 5（CLEC & Simulator Funding Semantics，UR-TODO-010），待使用者明確下達「開始開發」指示後才依序評估啟動順序。
+4. 新增待盤點項目 **UR-TODO-039**（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`），為子 PR 5b 驗收時發現的 PR #105 既有功能缺口，與 V7.0B 本身無關，詳見 `008_TODO_BACKLOG.md`。
+5. 下一個 Sprint 若啟動，仍須遵循固定流程：從最新 main（`99ef6bf`）建立全新 branch → 實作 → 驗證 → Draft PR → Preview／CI Verification 驗證通過 → Ready for review → 使用者手動 Merge → Production 唯讀驗證。
+6. 產品版本 V7.0B～V7.0E（Financial Liquidity Core／Dashboard UX／AI Decision／Design Polish）規劃已記錄於 `002_MASTER_ROADMAP.md` 第 5.1 節與 `016_Product_Decisions.md`；**V7.0B（Household Liquidity Sprint 3，UR-TODO-008）已全數完成**（子 PR 1～5b／5），其餘子項（Sprint 4～6，UR-TODO-009～011）與 V7.0C～V7.0E **均未核准啟動**，待使用者未來明確下達「開始開發」指示後才依序評估啟動順序。
 
 ## 12. AI 治理文件版控狀態（已更正）
 
@@ -333,15 +336,34 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - PR #124 完成後，UR-TODO-008 子 PR 1～4b／5 已全數完成，僅剩子 PR 5（Dip Alert 資金資格判斷）尚未開始。
 - UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
 
+## 12.6 PR #125～#128 Merge 與 Production 部署記錄（2026-07-26 本次同步）
+
+本次唯讀盤點確認 `main`／`origin/main`／HEAD 已由本文件先前記載的 PR #124（`35859af`）推進至 **PR #128**（`99ef6bf`），中間共 4 個 PR 皆已由使用者手動 Merge，對應 `Deploy GitHub Pages` workflow 全數 `conclusion: success`（`event: push`）：
+
+| PR | 標題 | merge commit | mergedAt | Deploy run（databaseId） | 摘要 |
+|---|---|---|---|---|---|
+| #125 | docs: sync PR #123-124 baseline into governance docs | `4c26d0037004fe0766e2498372de14fd479796e7` | 2026-07-25T14:58:42Z | `30162701943` success | 純治理文件同步，補齊 PR #123～#124 基線落差（第 12.5 節） |
+| #126 | V7.0B 子 PR 5a/5：抽出 `dipAlertRows` 為 characterization test 安全準備 | `122c9d12129078b5e0b90896275706f04bf579d7` | 2026-07-25T15:20:54Z | `30163433903` success | 將 `App.tsx` 內逢低加碼觀察清單的純價格判斷邏輯抽出為 `src/lib/dipAlertEngine.ts` 的 `getDipAlertRows` 純函式，`DipAlertSetting`／`DipAlertRow` 型別與共用函式一併移入；新增 `tests/dipAlertRows.test.ts` 17 個 characterization test；`test:ci:unit-ts` 483/483；行為保留性質重構，不涉及 investableCash 資金資格判斷（留給子 PR 5b） |
+| #127 | V7.0B 子 PR 5b/5：將 investableCash 資金資格判斷串接進 Dip Alert（013 §14.2） | `83431910a7948d32f52deb0b98715080286f3fb3` | 2026-07-25T15:50:37Z | `30164426224` success | 落實 013 §14.2 逢低加碼與機會訊號 Gate 五列狀態矩陣：新增 `DipFundingStatus`（`no-signal`／`data-insufficient`／`safety-cash-priority`／`observe-only`／`executable`）與純函式 `deriveDipFundingStatus`，`getDipAlertRows` 新增第 4 參數 `liquidity`（重用 `householdLiquidityForRebalance` 既有 `investableCash`／`dataCompleteness`／`safetyCashShortfall`，不另建計算）；`triggered`／純價格 `status` 判斷邏輯完全未變，明確與 `fundingStatus` 分離；UI 依 013 §14.3 於 `executable` 狀態顯示可投資現金／本次可執行加碼／未滿足理論需求三行金額，其餘三種狀態顯示對應限制說明；`tests/dipAlertRows.test.ts` 擴充至 24 個測試（5a 既有 17 個 `triggered`／`status` 斷言逐字未變＋新增 7 個涵蓋五列矩陣與防禦性邊界案例）；`test:ci:unit-ts` 490/490 |
+| #128 | docs: add Sprint Summary format, ADR record (020), and handover Knowledge Delta | `99ef6bf7d366f5dcd3c45573bf4d5edbd3f43f41` | 2026-07-26T00:49:24Z | `30181825647` success | 純治理文件同步：`007_GIT_WORKFLOW.md` 新增 §7.4 Sprint Summary 聊天回報固定格式；`012_AI_HANDOVER.md` §2.2 新增 `ADR`／`Knowledge Delta` 兩欄位，並新增子節明確規定 `003`／`008` 等狀態性文件應於每次 sub-PR／PR Merge 後立即同步、不得延後至 Sprint 結束；新增 `020_Architecture_Decisions.md`（ADR-001：V7.0B 漸進式整合／Strangler Pattern；ADR-002：Dip Alert 訊號與資金資格明確分離）；`001_README.md` Active 文件表新增 020 一列；Full／Lite Bundle 重新產生（Full manifest 21/21，新增 020；Lite manifest 6/6 維持不變，020 未收錄進 Lite） |
+
+說明：
+
+- 本次為唯讀比對 git 歷史與各 PR 內容（`gh pr view`、`gh run list`），**未重新逐一實測 Production／Preview HTTP 狀態**，僅確認 workflow `conclusion` 皆為 `success`。
+- PR #126、#127 為本階段涉及 `src/`、`tests/` 的功能性 PR（對應 UR-TODO-008 子 PR 5a／5b），PR #125、#128 為純 `AI_CONTEXT/` 治理文件同步。
+- **子 PR 5b（PR #127）驗收時發現既有功能缺口**：使用者於「收支與現金流中心」嘗試設定「額外投入資金」「預計提領資金」以驗證 `executable`／`observe-only`／`safety-cash-priority` 三種情境時，發現這兩個欄位 UI 顯示「已設定」但實際未寫回 `cashFlowProfile`／localStorage（重新整理後消失），屬於 PR #105（V6.17.3A Plan Input Foundation）既有功能缺口，與 V7.0B 本身無關；已補登為 `UR-TODO-039`，詳見 `008_TODO_BACKLOG.md`。
+- PR #127 完成後，UR-TODO-008 子 PR 1～5b／5 已全數完成；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` Sprint 3（Rebalance & Trade Execution Integration）依此正式標記為已完成，Sprint 4～6（UR-TODO-009～011）尚未啟動。
+- UR-TODO-008 最新進度詳見 `008_TODO_BACKLOG.md`。
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-25 PR #123～#124 基線同步）：
+本次同步更新（2026-07-26 PR #125～#128 基線同步）：
 
-- Current Status v3.21→**v3.22**（本文件）：基線由 PR #122（`a06890d`）更新為 **PR #124（`35859af`）**；新增第 12.5 節記錄 PR #123～#124 的 Merge 與 Deploy 記錄；第 11 節現行下一步第 3、4 項更新為反映 UR-TODO-008 子 PR 1～4b／5 已全數完成、子 PR 5 尚未開始
-- Todo Backlog（v1.14→v1.15）：UR-TODO-008 狀態說明更新為子 PR 1～4b／5 已完成，子 PR 5（Dip Alert 資金資格判斷）待啟動
+- Current Status v3.22→**v3.23**（本文件）：基線由 PR #124（`35859af`）更新為 **PR #128（`99ef6bf`）**；新增第 12.6 節記錄 PR #125～#128 的 Merge 與 Deploy 記錄；第 1 節最新正式版本更新為子 PR 5b／5；第 11 節現行下一步更新為反映 UR-TODO-008 子 PR 1～5b／5 已全數完成，並新增待盤點項目 UR-TODO-039
+- Todo Backlog（v1.15→v1.16）：UR-TODO-008 狀態由「開發中」更新為**「已完成」**，子 PR 1～5b／5 完成記錄逐項列出；新增 UR-TODO-039（收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回 `cashFlowProfile`，狀態「待盤點」）
 - AI Context Bundle（Full／Lite）：依上述文件變更重新產生
 
-歷史記錄：2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
+歷史記錄：2026-07-25 PR #123～#124 基線同步（Current Status v3.21→v3.22，第 12.5 節）、2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
 
 歷史記錄：2026-07-24 PR #109 Merge 後治理狀態同步（基線改為 `4a95a8a`，記錄 Full／Lite Bundle 首次正式合併）已於前次同步完成；2026-07-24 PR #108 Merge 後治理文件收尾（UR-TODO-038、CI-01、CI-02 標記已完成、清除 PR #108 進行中狀態）已於更早一次同步完成，詳見上方各節歷史記錄段落。
 
