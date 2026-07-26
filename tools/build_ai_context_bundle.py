@@ -25,6 +25,19 @@ lite_files = [p for p in all_files if p.name in LITE_FILENAMES]
 generated_at = datetime.now(timezone.utc).isoformat()
 
 
+def canonicalize_lf(text: str) -> str:
+    """Match Git's canonical text content before hashing or embedding it."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def canonical_sha256(text: str) -> str:
+    return hashlib.sha256(canonicalize_lf(text).encode("utf-8")).hexdigest()
+
+
+def read_canonical_text(path: Path) -> str:
+    return canonicalize_lf(path.read_bytes().decode("utf-8"))
+
+
 def build_bundle(title: str, files: list[Path]) -> str:
     parts = [
         f"# {title}",
@@ -39,11 +52,11 @@ def build_bundle(title: str, files: list[Path]) -> str:
     ]
 
     for p in files:
-        digest = hashlib.sha256(p.read_bytes()).hexdigest()
+        digest = canonical_sha256(read_canonical_text(p))
         parts.append(f"- `{p.name}` — SHA-256 `{digest}`")
 
     for p in files:
-        content = p.read_text(encoding="utf-8").rstrip()
+        content = read_canonical_text(p).rstrip()
         parts.extend([
             "",
             "---",
@@ -58,16 +71,20 @@ def build_bundle(title: str, files: list[Path]) -> str:
     return "\n".join(parts).rstrip() + "\n"
 
 
-full_out = export_dir / "000_Universal_Rebalance_AI_Context_Bundle.md"
-full_out.write_text(
-    build_bundle("Universal Rebalance AI Context Bundle", all_files),
-    encoding="utf-8",
-)
-print(full_out)
+def write_bundle(path: Path, content: str) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(content)
 
-lite_out = export_dir / "000_Universal_Rebalance_AI_Context_Bundle_Lite.md"
-lite_out.write_text(
-    build_bundle("Universal Rebalance AI Context Bundle (Lite)", lite_files),
-    encoding="utf-8",
-)
-print(lite_out)
+
+def main() -> None:
+    full_out = export_dir / "000_Universal_Rebalance_AI_Context_Bundle.md"
+    write_bundle(full_out, build_bundle("Universal Rebalance AI Context Bundle", all_files))
+    print(full_out)
+
+    lite_out = export_dir / "000_Universal_Rebalance_AI_Context_Bundle_Lite.md"
+    write_bundle(lite_out, build_bundle("Universal Rebalance AI Context Bundle (Lite)", lite_files))
+    print(lite_out)
+
+
+if __name__ == "__main__":
+    main()
