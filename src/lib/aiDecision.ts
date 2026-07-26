@@ -4,6 +4,7 @@ import type { SeriesStats } from './investmentPerformanceHistory';
 import type { PortfolioConcentration } from './performanceMetrics';
 import type { QuoteDateStatus } from './quoteMath';
 import type { RiskLevel } from './riskMetrics';
+import type { HouseholdLiquidityOutput } from './householdLiquidity';
 
 export type DecisionSeverity = 'critical' | 'warning' | 'info' | 'normal' | 'unavailable';
 export type DecisionCategory = 'today' | 'market' | 'concentration' | 'cash' | 'leverage' | 'drawdown' | 'dividend' | 'quote-freshness' | 'data-quality';
@@ -23,6 +24,8 @@ export type AiDecisionInput = {
   backupQuoteCount: number;
   targetOverLimit: boolean;
   holdingMarketValue: number;
+  liquidity: Pick<HouseholdLiquidityOutput, 'dataCompleteness' | 'safetyCashShortfall' | 'investableCash' | 'protectedSafetyCash'>;
+  todayConclusion: string;
 };
 
 const finite = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
@@ -58,10 +61,34 @@ export function deriveAiDecisions(input: AiDecisionInput): DecisionItem[] {
   const quoteUnavailable = input.quoteStatuses.filter(status => status === 'unavailable').length;
   const quoteToday = input.quoteStatuses.filter(status => status === 'today').length;
   const quoteRecent = input.quoteStatuses.filter(status => status === 'recent-trading-day').length;
+  const liquidityIncomplete = input.liquidity.dataCompleteness !== 'complete'
+    || input.liquidity.safetyCashShortfall === null
+    || input.liquidity.investableCash === null
+    || input.liquidity.protectedSafetyCash === null;
+  const liquidityEvidence = liquidityIncomplete
+    ? [
+      evidence('資料完整性', '資料不足', 'HouseholdLiquidityOutput'),
+      evidence('安全存量缺口', '資料不足', 'HouseholdLiquidityOutput'),
+      evidence('可投資現金', '資料不足', 'HouseholdLiquidityOutput'),
+      evidence('受保護安全現金', '資料不足', 'HouseholdLiquidityOutput')
+    ]
+    : [
+      evidence('資料完整性', input.liquidity.dataCompleteness, 'HouseholdLiquidityOutput'),
+      evidence('安全存量缺口', money(input.liquidity.safetyCashShortfall), 'HouseholdLiquidityOutput'),
+      evidence('可投資現金', money(input.liquidity.investableCash), 'HouseholdLiquidityOutput'),
+      evidence('受保護安全現金', money(input.liquidity.protectedSafetyCash), 'HouseholdLiquidityOutput')
+    ];
+  const cashDecision: DecisionItem = liquidityIncomplete
+    ? { id: 'cash', category: 'cash', severity: 'unavailable', title: '現金與流動性', conclusion: '目前缺少必要生活費或負債資料，無法安全計算可投資現金。', reason: '資料不完整，暫不將未知金額視為 0，也不產生投資建議。', evidence: liquidityEvidence, action: { label: '前往檢視', to: '/tools/risk-center' } }
+    : input.liquidity.safetyCashShortfall !== null && input.liquidity.safetyCashShortfall > 0
+      ? { id: 'cash', category: 'cash', severity: 'critical', title: '現金與流動性', conclusion: '現金安全存量不足，暫不產生可執行投資建議。', reason: '安全存量優先；受保護安全現金不列為可用投資資金。', evidence: liquidityEvidence, action: { label: '前往檢視', to: '/tools/risk-center' } }
+      : input.liquidity.investableCash === 0
+        ? { id: 'cash', category: 'cash', severity: 'info', title: '現金與流動性', conclusion: '目前沒有可投資現金，建議先保留現金。', reason: '受保護安全現金不列為可用投資資金。', evidence: liquidityEvidence, action: { label: '前往檢視', to: '/tools/risk-center' } }
+        : { id: 'cash', category: 'cash', severity: 'normal', title: '現金與流動性', conclusion: input.todayConclusion, reason: '資料完整、安全存量無缺口且存在可投資現金；後續結論沿用既有六層優先序。', evidence: liquidityEvidence, action: { label: '前往檢視', to: '/tools/risk-center' } };
   const common: DecisionItem[] = [
     { id: 'market', category: 'market' as const, severity: marketFreshness === 'today' ? 'normal' : marketFreshness === 'recent-effective' ? 'info' : marketFreshness === 'stale' ? 'warning' : 'unavailable', title: '市場資料狀態', conclusion: marketFreshness === 'today' ? '部分市場資料為今日資料。' : marketFreshness === 'recent-effective' ? '市場資料為最近有效交易日或收盤資料。' : marketFreshness === 'stale' ? '市場資料時間較舊，請先確認。' : '市場資料不足，暫不解讀市場方向。', reason: `可用 ${marketAvailable.length} 項；上漲 ${marketUp} 項、下跌 ${marketDown} 項。`, evidence: [evidence('資料時效', marketFreshness, 'MarketSnapshot'), evidence('可用項目', String(marketAvailable.length), 'MarketSnapshot'), evidence('取得時間', input.market.fetchedAt || '未提供', 'MarketSnapshot', input.market.fetchedAt)], action: { label: '前往檢視', to: '/market' } },
     { id: 'concentration', category: 'concentration' as const, severity: input.risk.largestHoldingRatio > 70 ? 'critical' : input.risk.largestHoldingRatio >= 50 ? 'warning' : input.risk.largestHoldingRatio >= 30 ? 'info' : 'normal', title: '持股集中度', conclusion: input.risk.largest ? `${input.risk.largest.symbol} 為最大單一持股。` : '尚無可計入市值的持股資料。', reason: `最大單一持股 ${pct(finite(input.risk.largestHoldingRatio))}；前二大 ${pct(finite(input.risk.topTwoRatio))}；前三大 ${pct(finite(input.risk.topThreeRatio))}。`, evidence: [evidence('最大單一持股', input.risk.largest?.symbol || '無', 'deriveRiskMetrics'), evidence('最大持股比例', pct(finite(input.risk.largestHoldingRatio)), 'deriveRiskMetrics')], action: { label: '前往檢視', to: '/tools/risk-center' } },
-    { id: 'cash', category: 'cash' as const, severity: input.risk.cashSafetyMonths !== null && input.risk.cashSafetyMonths < 3 ? 'critical' : input.risk.cashSafetyMonths !== null && input.risk.cashSafetyMonths < 6 ? 'warning' : 'normal', title: '現金與流動性', conclusion: input.risk.cashSafetyMonths === null ? '目前只顯示流動性；沒有借款月付資料可計算安全月數。' : `現金可支應約 ${input.risk.cashSafetyMonths.toFixed(1)} 個月借款還款。`, reason: `現金 ${money(nonNegative(input.risk.cash))}，占總資產 ${pct(finite(input.risk.cashRatio))}。`, evidence: [evidence('現金', money(nonNegative(input.risk.cash)), 'deriveRiskMetrics'), evidence('現金比例', pct(finite(input.risk.cashRatio)), 'deriveRiskMetrics'), evidence('安全月數', input.risk.cashSafetyMonths === null ? '資料不足' : `${input.risk.cashSafetyMonths.toFixed(1)} 個月`, 'deriveRiskMetrics')], action: { label: '前往檢視', to: '/tools/risk-center' } },
+    cashDecision,
     { id: 'leverage', category: 'leverage' as const, severity: input.risk.leveragedRatio >= 60 ? 'critical' : input.risk.leveragedRatio >= 40 ? 'warning' : input.risk.leveragedRatio >= 20 ? 'info' : 'normal', title: '槓桿資產', conclusion: input.risk.leveragedAssets.length ? `已辨識 ${input.risk.leveragedAssets.length} 項槓桿資產。` : '目前未辨識到槓桿資產。', reason: `槓桿資產市值 ${money(nonNegative(input.risk.leveragedValue))}，占總資產 ${pct(finite(input.risk.leveragedRatio))}、成長資產 ${pct(finite(input.risk.leveragedGrowthRatio))}。辨識僅依名稱／代號規則。`, evidence: [evidence('已辨識項目', String(input.risk.leveragedAssets.length), 'deriveRiskMetrics'), evidence('占總資產', pct(finite(input.risk.leveragedRatio)), 'deriveRiskMetrics')], action: { label: '前往檢視', to: '/tools/risk-center' } },
     { id: 'drawdown', category: 'drawdown' as const, severity: !input.performance.canCalculateMaxDrawdown ? 'unavailable' : (input.performance.stats.maxDrawdown ?? 0) <= -0.2 ? 'warning' : 'normal', title: '投資資產最大回撤', conclusion: !input.performance.canCalculateMaxDrawdown ? '有效投資績效快照不足，暫無法計算最大回撤。' : `目前歷史最大回撤為 ${pct((input.performance.stats.maxDrawdown ?? 0) * 100)}。`, reason: '只使用每日投資資產快照；不混用淨資產回撤。', evidence: [evidence('有效快照', String(input.performance.snapshotCount), 'deriveInvestmentPerformanceQuality'), evidence('最大回撤', input.performance.canCalculateMaxDrawdown ? pct((input.performance.stats.maxDrawdown ?? 0) * 100) : '資料不足', 'deriveInvestmentPerformanceStats')], action: { label: '前往檢視', to: '/analytics' } },
     { id: 'dividend', category: 'dividend' as const, severity: input.dividend.summary.yearCount ? 'normal' : 'unavailable', title: '股息摘要', conclusion: input.dividend.summary.yearCount ? `本年已入帳 ${input.dividend.summary.yearCount} 筆有效股息。` : '尚無本年有效已入帳股息資料。', reason: `本月 ${money(nonNegative(input.dividend.summary.monthAmount))}；本年 ${money(nonNegative(input.dividend.summary.yearAmount))}；累計 ${money(nonNegative(input.dividend.summary.totalAmount))}。`, evidence: [evidence('最近一筆', input.dividend.summary.latest?.assetSymbol || '無', 'dividendSummary', input.dividend.summary.latest?.occurredAt), evidence('主要來源', input.dividend.sources[0]?.assetSymbol || input.dividend.sources[0]?.assetName || '無', 'dividendSources')], action: { label: '前往檢視', to: '/tools/dividend-center' } },
