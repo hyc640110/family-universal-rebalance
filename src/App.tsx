@@ -1492,9 +1492,16 @@ function App() {
         risk: riskMetrics, performance: { stats: investmentStats, canCalculateMaxDrawdown: performanceQuality.canCalculateMaxDrawdown, snapshotCount: performanceQuality.snapshotCount },
         dividend: { summary: dividendSummary(state.transactions), sources: dividendSources(state.transactions) }, market: marketSnapshot,
         quoteStatuses: quoteRows.map(quote => quoteDateStatus(quote.quoteDate, quote.quoteTime)), quoteErrors: quoteRows.filter(quote => Boolean(quote.error)).length, backupQuoteCount: quoteRows.filter(quote => isBackupQuoteSource(quote.source)).length,
-        targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0)
+        targetOverLimit: Boolean(targetWarning), holdingMarketValue: m.rows.reduce((sum, row) => sum + (Number.isFinite(row.marketValue) ? Math.max(0, row.marketValue) : 0), 0),
+        liquidity: {
+          dataCompleteness: householdLiquidityForRebalance.dataCompleteness,
+          safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
+          investableCash: householdLiquidityForRebalance.investableCash,
+          protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash
+        },
+        todayConclusion: todayDecision.conclusion
       });
-  }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality]);
+  }, [m, investmentDashboard, quoteSummaryText, riskMetrics, state.transactions, marketSnapshot, targetWarning, investmentStats, performanceQuality, householdLiquidityForRebalance, todayDecision.conclusion]);
   const investmentIntelligence = useMemo(() => deriveInvestmentIntelligence(adaptInvestmentIntelligenceInput({
     dashboard: { dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, quoteStatus: quoteSummaryText, holdingsCount: m.rows.filter(row => row.shares > 0).length },
     sync: { dirty: syncMeta.dirty, status: syncStatusText },
