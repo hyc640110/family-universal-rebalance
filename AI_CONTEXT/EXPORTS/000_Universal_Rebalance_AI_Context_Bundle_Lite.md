@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-25T14:56:19.438633+00:00
+Generated UTC: 2026-07-26T00:46:22.248510+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `5dca6f804fa96b054a9802fd535cdbd4dc174a5985f3951e22a016507f69a330`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `193a3ad6cb9d1c59880b5fd12f189d3bbe43d5725d692ee7896d7b6044795764`
-- `001_README.md` — SHA-256 `7f091455da51d7f2bd8bb2d6d9da746ba2be6fae06d7cb2e8b3a7415ffada6b0`
+- `001_README.md` — SHA-256 `2ab7bca88cff068904a24418b878519941dec0558a15cffd0e49f4b9e710e582`
 - `003_CURRENT_STATUS.md` — SHA-256 `652d8736c4d97f077f5699764f08a962bcaa8bc896b2685c576199e21102d801`
 - `008_TODO_BACKLOG.md` — SHA-256 `671b68593aa7002af26058a21f4e98cb91b337e72ba06b59a2bff72dcc2db3f3`
-- `012_AI_HANDOVER.md` — SHA-256 `809b2b3d61fdd8b98d92a5f14a83860fea539461b86b7a22eea9384aa6115220`
+- `012_AI_HANDOVER.md` — SHA-256 `b555217aebec66801d06034de8893d1aa02e8c8fe198ec04007e607a6f72847d`
 
 ---
 
@@ -417,6 +417,7 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 | `017_Design_System.md` | 全站 UI 元件視覺規範（骨架，內容待補完） |
 | `018_Dashboard_UX_Guideline.md` | 首頁版面與互動規範（骨架，內容待補完） |
 | `019_Idea_Pool.md` | 創意模式新想法收錄區（尚未評估） |
+| `020_Architecture_Decisions.md` | 架構決策記錄（ADR） |
 
 <!-- END FILE: 001_README.md -->
 
@@ -1474,6 +1475,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### 建議更新的 AI_CONTEXT 文件
 （本次結論預期會影響哪些正式文件，例如 002／003／008／013，由下一位有 Repository 存取權的 AI 實際執行更新）
+
+### ADR
+（本次 Sprint 是否有新增或修改的架構決策；若有，列出對應 `020_Architecture_Decisions.md` 的條目編號〔例如 ADR-003〕與一句話標題；若本次結論指向未來需要新增 ADR 但尚未正式寫入，標記「待補（建議編號 ADR-00X）」；若完全沒有架構決策層級的討論，寫「無」）
+
+### Knowledge Delta
+（只記錄「相較上一版交接快照，真正新增」的重要知識或決策，不重複程式細節、不重複已經寫進 002／003／008／013／016／020 等正式文件的內容；目的是讓下一位 AI 一眼看出「這次跟上次比，多知道了什麼」，而不是重新讀一遍完整 Sprint 過程；若本次沒有相較上次的新增知識，寫「無，沿用上一版快照」）
 ```
 
 只有 Project Knowledge、沒有 Repository 存取權時，以聊天訊息輸出以上格式；有 Repository 存取權時，可直接寫入本節下方或第 3～14 節對應欄位。
@@ -1492,6 +1499,20 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 4. 不將本文件當成新的 Todo SSOT。
 5. 交接完成或 Sprint Merge 後，應清除過期的工作中內容，重新建立最新快照。
 6. 若文件與 Repository 衝突，先停止修改並提出差異。
+
+### 狀態性文件同步時機（2026-07-25 新增）
+
+`003_CURRENT_STATUS.md`、`008_TODO_BACKLOG.md` 等記錄「目前正式基線與狀態」的文件，**應於每一個 sub-PR／PR Merge 後立即以獨立的小型純文件 PR 同步**，不得累積到整個 Sprint（多個 sub-PR）結束後才一次批次處理。理由：
+
+- 狀態性文件的正確性取決於「與最新 main 的落差是否夠小」；延後同步的落差期越長，越容易被下一個平行工作的 AI 或使用者依據過期基線做出錯誤判斷。
+- 每次同步的內容單純（記錄 PR 編號、merge commit、Deploy 結果），成本低，適合高頻率小批次處理，不需要等待「全局視角」才能下筆。
+
+相對地，以下內容**允許留到 Sprint 結束（或明確的階段性收尾點）才一次整理**，不需要每個 sub-PR 都更新：
+
+- Knowledge Delta（第 2.2 節）：需要綜合整個 Sprint 的多個 sub-PR 才能判斷「這次真正新增了什麼知識」，逐次 sub-PR 寫容易變成瑣碎程式細節的重複記錄，失去「Delta」的意義。
+- ADR（`020_Architecture_Decisions.md`）撰寫或修改：架構決策需要看到多個 sub-PR 的實際做法後才能沉澱出穩定的決策敘述與後果評估，過早寫入容易在 Sprint 中途被推翻、造成 ADR 頻繁改版。
+
+判斷原則：**「單純記錄已發生的事實」立即同步；「需要跨多個 PR 綜合判斷才能寫出的內容」留到收尾**。
 
 ---
 
