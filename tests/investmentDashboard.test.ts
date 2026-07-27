@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveInvestmentDashboard, type InvestmentDashboardInput } from '../src/lib/investmentDashboard';
+import { deriveHomeDecision } from '../src/lib/homeDecision';
 
 const base = (): InvestmentDashboardInput => ({ totalAssets: 1_000_000, investmentValue: 800_000, dayPnl: 8_000, todayPnlAvailable: true, monthChange: 20_000, yearChange: 60_000, growthRatio: 70, defensiveRatio: 30, cashRatio: 15, allocationDeviation: 6, rebalanceThreshold: 5, thresholdReached: true, decision: { title: '建議再平衡', reason: '目前配置已超過既有再平衡門檻。', to: '/analytics' }, quoteStatus: '報價正常', lastQuoteAt: '2026-07-13T01:00:00.000Z', hasUpdatedQuotes: true, syncDirty: false, syncStatus: '', targetInvalid: false, holdingsCount: 2 });
 
@@ -29,4 +30,12 @@ test('surfaces only genuine data reminders for empty holdings, stale quotes, inv
   const input = base(); input.holdingsCount = 0; input.quoteStatus = '部分股價資料缺失'; input.targetInvalid = true; input.syncDirty = true; input.syncStatus = '本機資料已變更';
   const keys = deriveInvestmentDashboard(input).reminders.map(item => item.key);
   assert.deepEqual(keys, ['holdings', 'quotes', 'targets', 'rebalance', 'sync']);
+});
+
+test('首頁決策在資料、現金安全與可投資現金 gate 通過前不進入再平衡或加碼', () => {
+  const base = { riskLevel: 0, rebalance: true, dip: true, wealthBehind: false, quotesMissing: false, targetInvalid: false };
+  assert.equal(deriveHomeDecision({ ...base, dataCompleteness: 'insufficient', safetyCashShortfall: null, investableCash: null }).primary.title, '資料不足');
+  assert.equal(deriveHomeDecision({ ...base, dataCompleteness: 'complete', safetyCashShortfall: 1, investableCash: 100 }).primary.title, '現金安全存量不足');
+  assert.equal(deriveHomeDecision({ ...base, dataCompleteness: 'complete', safetyCashShortfall: 0, investableCash: 0 }).primary.title, '保留現金');
+  assert.equal(deriveHomeDecision({ ...base, dataCompleteness: 'complete', safetyCashShortfall: 0, investableCash: 1 }).primary.title, '建議再平衡');
 });
