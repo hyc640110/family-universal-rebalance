@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildClecStrategyRuleInput } from '../src/lib/clecStrategyRuleAdapter';
+import { buildClecFundingSemantics, buildClecStrategyRuleInput } from '../src/lib/clecStrategyRuleAdapter';
 import { deriveClecStrategyRule } from '../src/lib/clecStrategyRules';
 
 const base = (overrides: Record<string, unknown> = {}) => ({
@@ -32,7 +32,31 @@ test('stale, leverage, reserve and debt are warnings and retain the portfolio ac
   assert.equal(result.recommendedAction, 'rebalance_with_cash'); assert.equal(result.severity, 'warning'); assert.ok(result.reasonCodes.includes('QUOTE_STALE')); assert.ok(result.reasonCodes.includes('LEVERAGE_ELEVATED')); assert.equal(result.confidenceBasis, 'data_and_rule_completeness');
 });
 test('adapter keeps unknown values missing instead of coercing them to zero', () => {
-  const input = buildClecStrategyRuleInput({ allocationPresetId: 'custom', rebalanceMode: 'standard', asOfDate: '2026-07-17', portfolioValue: null, holdings: [{ symbol: ' aaa ', currentWeight: null, targetWeight: null, quoteFreshness: 'missing' }], availableCash: null, debtBalance: null, leverageExposure: null, threshold: { drift: 5 }, dataQualityFlags: [] });
+  const input = buildClecStrategyRuleInput({ allocationPresetId: 'custom', rebalanceMode: 'standard', asOfDate: '2026-07-17', portfolioValue: null, holdings: [{ symbol: ' aaa ', currentWeight: null, targetWeight: null, quoteFreshness: 'missing' }], availableCash: null, plannedContribution: null, plannedWithdrawal: null, debtBalance: null, cashReserve: null, leverageExposure: null, threshold: { drift: 5 }, dataQualityFlags: [] });
   const result = deriveClecStrategyRule(input);
   assert.equal(input.investableAssets[0].symbol, 'AAA'); assert.equal(input.portfolioValue, null); assert.equal(result.decisionStatus, 'blocked'); assert.equal(result.financialSummary.availableCash, null);
+});
+
+test('CLEC funding semantics use investable cash, protected safety cash, and explicit plans without zero coercion', () => {
+  const configured = buildClecFundingSemantics({
+    householdLiquidity: { investableCash: 12_000, protectedSafetyCash: 48_000 },
+    cashFlowProfile: { externalContribution: 3_000, plannedWithdrawal: 1_000 }
+  });
+  assert.deepEqual(configured, {
+    availableCash: 12_000,
+    cashReserve: 48_000,
+    plannedContribution: 3_000,
+    plannedWithdrawal: 1_000
+  });
+
+  const unavailable = buildClecFundingSemantics({
+    householdLiquidity: { investableCash: null, protectedSafetyCash: null },
+    cashFlowProfile: undefined
+  });
+  assert.deepEqual(unavailable, {
+    availableCash: null,
+    cashReserve: null,
+    plannedContribution: null,
+    plannedWithdrawal: null
+  });
 });
