@@ -435,19 +435,22 @@
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 15、26、27、30 節
 
 - 優先級：P1
-- 狀態：**開發中／子 PR1、子 PR2A 已完成**（PR #152 已由使用者手動 Merge，merge commit `a42cf5a85ab635efc38b85686acf27cd87ab9f1f`；Deploy GitHub Pages run `30274021196` success，Production Pages HTTP 200，Production Market Worker `/health` 為 `environment=production`）。**整體 UR-TODO-010 尚未完成。**
+- 狀態：**開發中／子 PR1、子 PR2A、子 PR2B 已完成**（PR #154 已由使用者手動 Merge，merge commit `e7f72090401442bc1341bf414e552072f23934ae`；Deploy GitHub Pages run `30281445368` success，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`）。**整體 UR-TODO-010 尚未完成。**
 - CLEC：
   - **子 PR1 已完成**：`availableCash` → `householdLiquidityForRebalance.investableCash`；`cashReserve` → `householdLiquidityForRebalance.protectedSafetyCash`
   - **子 PR1 已完成**：`plannedContribution` → `state.cashFlowProfile.externalContribution`；`plannedWithdrawal` → `state.cashFlowProfile.plannedWithdrawal`
   - Preview 人工驗收：收支與現金流中心設定額外投入 `30,000` 元、預計提領 `50,000` 元後，CLEC 正確顯示計畫投入 `30,000` 元、計畫提領 `50,000` 元
   - 明確不包含：`clecStrategyRules.ts` 核心策略邏輯、`clecStrategy.ts` 文案、Simulator、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup
 - Simulator：
-  - **子 PR2A 已完成**：純 `deriveAllocationSimulatorFunding` selector 與 `tests/allocationSimulatorFunding.test.ts`；尚未接入 Simulator UI、AppState 或任何持久化。
+  - **子 PR2A 已完成**：純 `deriveAllocationSimulatorFunding` selector 與 `tests/allocationSimulatorFunding.test.ts`。
   - `existingInvestableCash = max(0, totalLiquidCash - protectedSafetyCash)`，僅在兩者皆為已知有效數值時推導；不得把已含 externalContribution／plannedWithdrawal 效果的 `investableCash` 當作 existingInvestableCash。
   - `externalContribution`／`plannedWithdrawal` 的 absent、`null`、`NaN`、`Infinity` 維持 unavailable，不以 0 替代；明確數值 `0` 保持已知。
   - 預設不納入受保護安全現金；僅明確啟用時才使用 `max(0, min(protectedSafetyCash, totalLiquidCash))`，不得使用安全現金目標或高於實際流動現金的數值。
   - plannedWithdrawal 超過所有已知來源時，simulationAvailableFunding 回傳 0 並附 blocking／warning；不得無提示截斷。
-  - 下一步為**子 PR2B 唯讀範圍確認**；子 PR2B／子 PR2C 均未授權。安全現金 checkbox 保留給獨立子 PR2C。
+  - **子 PR2B 已完成**：`App.tsx` 將 `totalLiquidCash`、`protectedSafetyCash`、`externalContribution`、`plannedWithdrawal` 四項正式來源傳入 Simulator；`AllocationSimulatorPage` 固定以 `allowSafetyCashUsage = false` 呼叫 selector，並唯讀顯示現有可投資現金、額外投入資金、受保護安全現金、預計提領資金、可用模擬資金五欄。受保護安全現金明確標示「預設不納入模擬」。
+  - **子 PR2B 已完成**：舊「模擬投入金額」與清除按鈕已移除；existingInvestableCash 不重複加進 totalAssets。明確 `0` 保持已知；unavailable 時保留比例編輯與比例視覺比較但隱藏具體 funding／交易金額；超額提領時 funding 為 0 並顯示 blocking／warning、阻擋交易呈現。
+  - Preview 人工驗收：五欄 funding breakdown、收支與現金流中心的投入／提領同步、安全現金不納入、舊輸入移除、比例調整、explicit zero、桌機與約 390px 手機版均通過。
+  - 下一步僅為**子 PR2C 唯讀範圍確認**；安全現金 checkbox 保留給獨立子 PR2C，未經使用者另行授權不得開始開發。
 
 ### UR-TODO-011 Cross-Module Presentation Consistency
 
