@@ -435,10 +435,14 @@
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 15、26、27、30 節
 
 - 優先級：P1
-- 狀態：待開發
+- 狀態：**開發中／子 PR1 已完成**（PR #150 已由使用者手動 Merge，merge commit `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`；Deploy GitHub Pages run `30266865442` success，Production／Preview HTTP 200 且環境隔離正常）
 - CLEC：
-  - availableCash 與 cashReserve 分離
+  - **子 PR1 已完成**：`availableCash` → `householdLiquidityForRebalance.investableCash`；`cashReserve` → `householdLiquidityForRebalance.protectedSafetyCash`
+  - **子 PR1 已完成**：`plannedContribution` → `state.cashFlowProfile.externalContribution`；`plannedWithdrawal` → `state.cashFlowProfile.plannedWithdrawal`
+  - Preview 人工驗收：收支與現金流中心設定額外投入 `30,000` 元、預計提領 `50,000` 元後，CLEC 正確顯示計畫投入 `30,000` 元、計畫提領 `50,000` 元
+  - 明確不包含：`clecStrategyRules.ts` 核心策略邏輯、`clecStrategy.ts` 文案、Simulator、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup
 - Simulator：
+  - **尚未開始／未授權子 PR2**
   - externalContribution
   - existingInvestableCash
   - protectedSafetyCash
@@ -451,6 +455,7 @@
 
 - 優先級：P1
 - 狀態：待開發
+- 後續輸入：收支與現金流中心使用「額外投入資金／預計提領資金」，CLEC 使用「計畫投入／計畫提領」；名稱不完全一致，為 UR-TODO-010 子 PR1 Preview 驗收發現的非阻擋呈現層差異。本項不回溯修改 PR #150，待 UR-TODO-011 獨立規劃。
 - 將「防守資產補足提醒」改為「防守配置狀態」
 - 顯示：
   - 防守總比例

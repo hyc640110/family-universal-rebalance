@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-27T11:58:48.520229+00:00
+Generated UTC: 2026-07-27T12:53:06.155278+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-07-27T11:58:48.520229+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2f52ff7caee1b3cf5e9ae61bb5d0a23a6234f12ab65f6d43ef9011fda3b7de3d`
-- `003_CURRENT_STATUS.md` — SHA-256 `a7a1232c0778a5d1043bb3ed62238bf61cec58237afb20f1024ad49430008bf3`
+- `003_CURRENT_STATUS.md` — SHA-256 `56804e15e3d81bb2da4b3b593efbe8681546a6e938a55e40ae3636b5063be8b2`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `eba598a6aec00eac2314800bf2ceb9ddb3f2cbdf19806dcc3c95c087e4115c68`
-- `008_TODO_BACKLOG.md` — SHA-256 `5f23eea26cf686cf5e9459c27a1556b5d8f5e2136a41ba7e108d6ae885c97f87`
-- `009_CHANGELOG.md` — SHA-256 `be7d8ca486d35f0bc0c606c8814f65d6b018e7dbf6a20817735da3e60b6efff1`
+- `008_TODO_BACKLOG.md` — SHA-256 `12ccf81b47d8975b997c0e8364b97cacd2205824314e0a2174b90a0de7112ab9`
+- `009_CHANGELOG.md` — SHA-256 `5b2833b659cdef7249e00873b26ce43a2c268f24e7cc16bad62c93d6cb29d626`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `4d717b0d7ad257c4b3dd9cba23262a2872ec0a2c612bfa1e71239b211a44f440`
+- `012_AI_HANDOVER.md` — SHA-256 `e4210354e8b6c53ac1e820503514be8d8ffe8926ffa9575c91c662852f0c9608`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -658,45 +658,45 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.29
+# Universal Rebalance Current Status v3.30
 
 最後更新：2026-07-27
 
-本次更新依據：**PR #147**（UR-TODO-009 子 PR7 — `deriveHomeDecision` 接回三層 liquidity 閘門，達成 §20.3 跨模組一致性）已由使用者手動 Merge，merge commit `226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`；PR CI run `30236461001` 與 `Deploy GitHub Pages` run `30241261199` 皆以 `gh run list --workflow="Deploy GitHub Pages"` 實際查詢確認為 `conclusion: success`（`event: push`、`headBranch: main`、`headSha: 226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`，與 PR #147 merge commit 完全一致）。以 `curl` 實測 Production 首頁回應 HTTP 200，頁面 `deployment-environment` meta 標記為 `production`。**UR-TODO-009（Risk & Decision Workflow Integration）子 PR 1～7 全數完成**，詳見 `008_TODO_BACKLOG.md`。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+本次更新依據：**PR #150**（UR-TODO-010 Sprint 5 子 PR1 — CLEC Funding Semantics 接線）已由使用者手動 Merge，merge commit `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`；`Deploy GitHub Pages` run `30266865442` 為 `success`（`event: push`、`headBranch: main`、`headSha` 與 merge commit 完全一致）。以 `curl` 實測 Production 與 Preview 皆回應 HTTP 200，環境 meta 分別為 `production`／`preview`，兩者資產路徑未混用。UR-TODO-010 現為**開發中／子 PR1 已完成**；Simulator 與後續子 PR 尚未授權。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
 ## 1. 最新正式版本
 
-- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）已完成；**Sprint 4（UR-TODO-009）子 PR 1～7 全數完成**。
-- 名稱：Risk & Decision Workflow Integration — UR-TODO-009 Sprint 收尾（子 PR7 `deriveHomeDecision` 一致性收斂）。
-- PR：**#147**（MERGED，UR-TODO-009 子 PR7）為目前 `main` 最新 Merge；**#145**（子 PR6）、**#143**（子 PR5）、**#140**（子 PR4）、**#137**（子 PR3）、**#134**（子 PR1／2）皆為前置同一 Sprint、已 MERGED 的子 PR，詳見 `008_TODO_BACKLOG.md` UR-TODO-009 逐條記錄。
+- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）與 Sprint 4（UR-TODO-009）已完成；**Sprint 5（UR-TODO-010）子 PR1 已完成**。
+- 名稱：CLEC & Simulator Funding Semantics — UR-TODO-010 子 PR1（CLEC Funding Semantics 接線）。
+- PR：**#150**（MERGED，UR-TODO-010 子 PR1）為目前 `main` 最新 Merge；其餘 UR-TODO-010 範圍仍未完成，詳見 `008_TODO_BACKLOG.md`。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：**UR-TODO-009 全數完成並已完成 Production 驗證**；下一主線（UR-TODO-010／UR-TODO-011）待評估，目前沒有已授權的下一主線。
-- 最新 merge commit（PR #147）：
-  `226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`
+- 狀態：**UR-TODO-010 開發中／子 PR1 已完成並已完成 Production 驗證**；Simulator 與後續子 PR 待使用者另行授權。
+- 最新 merge commit（PR #150）：
+  `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`（PR #147 merge commit，2026-07-27T05:58:21Z）。
-- 已合併子 PR7 分支：`feat/ur-todo-009-home-decision-consistency-pr7`；其變更已納入 PR #147 merge commit。
+- 正式基線：`origin/main`＝`c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`（PR #150 merge commit，2026-07-27T12:40:11Z）。
+- 已合併子 PR1 分支：`feat/ur-todo-010-clec-funding-semantics-pr1`；其變更已納入 PR #150 merge commit。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- PR #147：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/147)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
+- PR #150：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/150)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
 
 固定 stash：
 
-- `stash@{0}`：`e141af14273b76501c1b287ea018e8728099f1e5`
-- `stash@{1}`：`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`
+- `e141af14273b76501c1b287ea018e8728099f1e5`
+- `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`
 
-固定 stash 不得操作、套用、清除、重建或改寫。本次盤點未操作。
+固定 stash 以 hash 鎖定，不依可變的 stash index；不得操作、套用、清除、重建或改寫。本次盤點未操作。另有 `9e9aa0c999cf3b97d034db786e4307eaec35e6b2` 為既有其他工作階段的文件同步草稿，**不是固定 stash**，本次僅唯讀盤點、未操作。
 
 ## 3. Production 狀態
 
 ### GitHub Pages
 
-- 最新正式成功部署 Workflow：`30241261199`（`Deploy GitHub Pages`，success，`event: push`，headBranch `main`，headSha `226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`，即 PR #147 merge commit，本次以 `gh run list` 實際查詢確認）。
-- Production：`https://hyc640110.github.io/family-universal-rebalance/` 以 `curl` 實測 HTTP 200，頁面 `deployment-environment` meta 為 `production`。首頁「投資決策首頁」的現金安全判斷已改用與 Risk Center、AI Decision、`todayDecision` 相同的三層 liquidity 閘門（資料完整性→安全存量→可投資現金），達成 §20.3 跨模組結論一致性要求。
+- 最新正式成功部署 Workflow：`30266865442`（`Deploy GitHub Pages`，success，`event: push`，headBranch `main`，headSha `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`，即 PR #150 merge commit，本次以 `gh run list` 實際查詢確認）。
+- Production：`https://hyc640110.github.io/family-universal-rebalance/` 以 `curl` 實測 HTTP 200，頁面 `deployment-environment` meta 為 `production`；Preview 為 HTTP 200、meta 為 `preview`，且 Preview 使用 `/preview/assets/` 路徑，Production 未引用 `/preview/`。PR #150 將 CLEC `availableCash`／`cashReserve` 分別接到 Household Liquidity 的 `investableCash`／`protectedSafetyCash`，並接入已持久化的計畫投入／提款。
 - 前一筆記錄（PR #145 Merge 後）：Workflow `30212166683`（`Deploy GitHub Pages`，success，headSha `5aa1d9e`）。Production HTTP 200，`environment=production`；首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」，資料同步提醒僅為次要資訊。分析頁不顯示完整 `todayDecision`；是否承接完整決策保留為後續產品決策。
 
 - 最新成功部署 Workflow：`29935264176`（`Deploy GitHub Pages`，success，headSha `2510169`77fc63aca3221c0b383170a68cad89900）
@@ -818,7 +818,7 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 4. Cash Flow Center 的生活費／緊急預備金未接入投資決策 — **部分解決**：Core／Adapter／Provenance 已建立資料層基礎（PR #102～#105），尚未接入任何決策 consumer
 5. CashFlowProfile 缺失時沒有共用的買入阻擋 gate — **部分解決**：Core 已定義完整 blocking reason 架構（如 `LIVING_EXPENSE_MISSING`），尚未接到實際決策路徑
 6. derived account unavailable 可能被靜默當作 0 — **部分解決**：Core 明確以 `LIQUID_ACCOUNT_UNAVAILABLE` 阻擋、不轉為 0；實際 UI／Risk 路徑是否仍會靜默轉 0，待 Sprint 3／4 接線後才能驗證
-7. CLEC 同一現金同時作為 availableCash 與 cashReserve — **未解決**，待 Sprint 5（UR-TODO-010）
+7. CLEC 同一現金同時作為 availableCash 與 cashReserve — **部分解決**：UR-TODO-010 子 PR1（PR #150）已分別接到 `investableCash`／`protectedSafetyCash`；Simulator 資金語意與後續子 PR 仍待授權
 8. Allocation Simulator 未區分外部資金、現有可投資現金、安全現金與提款 — **未解決**，待 Sprint 5
 9. Dip Alert 是觀察訊號，但部分 UI 容易被理解為立即買入 — **未解決**，待 Sprint 3／6
 10. 防守總資產與防守型持股仍有語意混用 — **未解決**，待 Sprint 6（UR-TODO-011）
@@ -1032,12 +1032,20 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - PR #130 內文附本機 dev server 唯讀驗收記錄（設定金額 → 儲存 → `window.location.reload()` → 確認數值未遺失，390px 無橫向溢出，console 無錯誤）。
 - UR-TODO-039 依此正式標記為**已完成**，詳見 `008_TODO_BACKLOG.md`。
 
+## 12.8 PR #150 Merge 與 Production 部署記錄（2026-07-27 本次同步）
+
+| PR | 標題 | merge commit | mergedAt | Deploy run（databaseId） | 摘要 |
+|---|---|---|---|---|---|
+| #150 | feat: wire CLEC funding semantics | `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef` | 2026-07-27T12:40:11Z | `30266865442` success | UR-TODO-010 子 PR1：CLEC `availableCash`／`cashReserve` 分別接入 Household Liquidity 的 `investableCash`／`protectedSafetyCash`，`plannedContribution`／`plannedWithdrawal` 接入 `cashFlowProfile.externalContribution`／`plannedWithdrawal`；不修改核心規則、Simulator、schema 或同步契約 |
+
+人工 Preview 驗收確認：在收支與現金流中心設定額外投入 `30,000` 元、預計提領 `50,000` 元後，CLEC 分別正確顯示計畫投入 `30,000` 元、計畫提領 `50,000` 元。跨模組名稱「額外投入資金／預計提領資金」與「計畫投入／計畫提領」不完全一致，列為 UR-TODO-011 後續呈現層輸入，本子 PR 不修改文案。Production／Preview HTTP 200 且環境隔離正常。
+
 ## 13. 文件狀態
 
-本次同步更新（2026-07-26 PR #129～#130 基線同步）：
+本次同步更新（2026-07-27 PR #150 基線同步）：
 
-- Current Status v3.23→**v3.24**（本文件）：基線由 PR #128（`99ef6bf`）更新為 **PR #130（`3f82581`）**；新增第 12.7 節記錄 PR #129～#130 的 Merge 與 Deploy 記錄；第 1 節最新正式版本說明新增 PR #130（UR-TODO-039 修復）；第 11 節現行下一步更新為反映 UR-TODO-039 已完成
-- Todo Backlog（v1.16→v1.17）：UR-TODO-039 狀態由「待盤點」更新為**「已完成」**，記錄 PR #130 修復內容摘要
+- Current Status v3.29→**v3.30**（本文件）：基線更新為 **PR #150（`c6bde2d`）**；新增第 12.8 節記錄 Merge、Deploy、Production／Preview 驗證與 UR-TODO-010 子 PR1 範圍
+- Todo Backlog（v1.24）：UR-TODO-010 更新為**「開發中／子 PR1 已完成」**，記錄人工 Preview 驗收與 UR-TODO-011 命名一致性輸入
 - AI Context Bundle（Full／Lite）：依上述文件變更重新產生
 
 歷史記錄：2026-07-26 PR #125～#128 基線同步（Current Status v3.22→v3.23，第 12.6 節）、2026-07-25 PR #123～#124 基線同步（Current Status v3.21→v3.22，第 12.5 節）、2026-07-25 PR #121～#122 基線同步（Current Status v3.20→v3.21，第 12.4 節）、2026-07-25 PR #119～#120 基線同步（Current Status v3.19→v3.20，第 12.3 節）、2026-07-25 PR #111～#118 基線同步（Current Status v3.18→v3.19，第 12.2 節）、2026-07-25 落地產品版本 V7.0A（Foundation & Product Governance，第 12.1 節）、2026-07-25 UR-TODO-001 Firebase Console 唯讀查證結果與使用者決策記錄（狀態更新為「已盤點」）、2026-07-24 UR-TODO-001 Repository 唯讀盤點（第一階段）、2026-07-24 PR #110 Merge 後治理狀態同步（基線改為 `081bf91`）已於前次同步完成，詳見上方各節歷史記錄段落。
@@ -3079,10 +3087,14 @@ Hotfix 仍需：
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 15、26、27、30 節
 
 - 優先級：P1
-- 狀態：待開發
+- 狀態：**開發中／子 PR1 已完成**（PR #150 已由使用者手動 Merge，merge commit `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`；Deploy GitHub Pages run `30266865442` success，Production／Preview HTTP 200 且環境隔離正常）
 - CLEC：
-  - availableCash 與 cashReserve 分離
+  - **子 PR1 已完成**：`availableCash` → `householdLiquidityForRebalance.investableCash`；`cashReserve` → `householdLiquidityForRebalance.protectedSafetyCash`
+  - **子 PR1 已完成**：`plannedContribution` → `state.cashFlowProfile.externalContribution`；`plannedWithdrawal` → `state.cashFlowProfile.plannedWithdrawal`
+  - Preview 人工驗收：收支與現金流中心設定額外投入 `30,000` 元、預計提領 `50,000` 元後，CLEC 正確顯示計畫投入 `30,000` 元、計畫提領 `50,000` 元
+  - 明確不包含：`clecStrategyRules.ts` 核心策略邏輯、`clecStrategy.ts` 文案、Simulator、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup
 - Simulator：
+  - **尚未開始／未授權子 PR2**
   - externalContribution
   - existingInvestableCash
   - protectedSafetyCash
@@ -3095,6 +3107,7 @@ Hotfix 仍需：
 
 - 優先級：P1
 - 狀態：待開發
+- 後續輸入：收支與現金流中心使用「額外投入資金／預計提領資金」，CLEC 使用「計畫投入／計畫提領」；名稱不完全一致，為 UR-TODO-010 子 PR1 Preview 驗收發現的非阻擋呈現層差異。本項不回溯修改 PR #150，待 UR-TODO-011 獨立規劃。
 - 將「防守資產補足提醒」改為「防守配置狀態」
 - 顯示：
   - 防守總比例
@@ -3439,6 +3452,7 @@ Hotfix 仍需：
 **UR-TODO-009（Risk & Decision Workflow Integration）全數完成**：子 PR 1～7 皆已由使用者手動 Merge 並通過 Production 驗證，詳見 `008_TODO_BACKLOG.md` UR-TODO-009 逐條記錄。
 
 ### Added
+- `buildClecFundingSemantics`：UR-TODO-010 子 PR1（[PR #150](https://github.com/hyc640110/family-universal-rebalance/pull/150)，MERGED）將 CLEC `availableCash`／`cashReserve` 分別接到既有 Household Liquidity 的 `investableCash`／`protectedSafetyCash`，並將計畫投入／提款接到 `cashFlowProfile.externalContribution`／`plannedWithdrawal`；未知值維持 `null`，不轉為 0。
 - `deriveHomeDecision`：新增 liquidity 三層優先閘門（資料完整性→安全存量→可投資現金），首頁「投資決策首頁」改用與 Risk Center、AI Decision、`todayDecision` 相同的閘門判斷，取代原先獨立的 6 個月門檻。
 - `tests/homeDecision.test.ts`：新增，覆蓋三層 liquidity 閘門邏輯。
 - `tests/investmentDashboard.test.ts`：擴充覆蓋首頁決策接線後與其餘模組結論一致的行為。
@@ -3448,6 +3462,7 @@ Hotfix 仍需：
 - `tests/riskPresentation.test.ts`：覆蓋完整資料、資料不足與重複來源警示。
 
 ### Changed
+- UR-TODO-010 狀態改為「開發中／子 PR1 已完成」；Simulator 與後續子 PR 未開始、未授權。Preview 人工驗收確認額外投入 `30,000` 元、預計提領 `50,000` 元會在 CLEC 正確顯示為計畫投入／計畫提領。跨模組名稱不一致列為 UR-TODO-011 後續呈現層輸入，本 PR 未改文案。
 - Merge 結案：UR-TODO-009 子 PR7 [PR #147](https://github.com/hyc640110/family-universal-rebalance/pull/147) 已 MERGED（`226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`）。PR CI run `30236461001` 與 Deploy GitHub Pages run `30241261199` 均成功（本次以 `gh run list` 實際查詢確認，`headSha` 與 merge commit 一致），Production 以 `curl` 實測 HTTP 200（`environment=production`）。未修改 Household Liquidity 核心公式、schema、Firebase、Backup 或交易功能。
 - Merge 結案：UR-TODO-009 子 PR6 [PR #145](https://github.com/hyc640110/family-universal-rebalance/pull/145) 已 MERGED（`5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`）。安全存量不足時阻擋投資建議；`investableCash === 0` 維持保留現金語意；`protectedSafetyCash` 僅為受保護證據，不列為可投資資金。未修改 AI Decision UI／CSS、Household Liquidity 核心公式、schema、Firebase、Backup 或交易功能。
 - Merge 結案：UR-TODO-009 子 PR5 [PR #143](https://github.com/hyc640110/family-universal-rebalance/pull/143) 已 MERGED（`d2c2c1ecbac59357ffc5b84dca388ded61e34e5e`）；首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」，資料同步提醒維持次要資訊。分析頁完整 `todayDecision` 不包含；未來是否承接完整決策保留為產品決策，不新增正式 UR-TODO。
@@ -3459,6 +3474,8 @@ Hotfix 仍需：
 - `scripts/stability-check.mjs`：同步現金安全狀態文案為「目前無必要支出壓力」。
 
 ### Verification
+
+- PR #150：CI Verification run `30265997330` 成功；Deploy GitHub Pages run `30266865442` 成功，headSha `c6bde2d` 與 merge commit 一致。Production／Preview HTTP 200，meta 分別為 `production`／`preview` 且資產路徑隔離正常。
 
 - PR #145：CI Verification run `30211956784`、Deploy GitHub Pages run `30212166683` 均成功；Production HTTP 200（`environment=production`），正式 bundle 已包含 AI Decision Household Liquidity 契約。
 - PR #143：CI Verification run `30209681509`、Deploy GitHub Pages run `30210343391` 均成功；Production HTTP 200（`environment=production`）。
@@ -3965,7 +3982,15 @@ interface ServiceResult<T> {
 
 # 目前交接快照
 
-> **2026-07-27 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #147 merge commit `226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`；PR CI 與 Production Deploy 均成功（本次以 `gh run list` 實際查詢確認），Production 已驗證。**
+> **2026-07-27 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #150 merge commit `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`；CI 與 Production Deploy 均成功，Production／Preview 已驗證環境隔離。**
+
+## UR-TODO-010 Sprint 5 子 PR1 合併快照
+
+- PR／基線：[PR #150](https://github.com/hyc640110/family-universal-rebalance/pull/150) **MERGED**，merge commit `c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`，`mergedAt: 2026-07-27T12:40:11Z`；CI Verification run `30265997330` 與 Deploy GitHub Pages run `30266865442` 均成功，後者 `headSha` 與 merge commit 一致。
+- 已完成範圍：CLEC `availableCash`／`cashReserve` 分別接到 Household Liquidity 的 `investableCash`／`protectedSafetyCash`；`plannedContribution`／`plannedWithdrawal` 分別接到 `cashFlowProfile.externalContribution`／`plannedWithdrawal`。資料缺失維持 `null`，不轉 0；`threshold.minCashReserve` 維持 `null`，未啟用 `CASH_RESERVE_LOW`。
+- Preview 人工驗收：收支與現金流中心設定額外投入 `30,000` 元、預計提領 `50,000` 元後，CLEC 正確顯示計畫投入 `30,000` 元、計畫提領 `50,000` 元。
+- Remaining Boundaries：UR-TODO-010 仍為開發中。Simulator 的 `externalContribution`／`existingInvestableCash`／`protectedSafetyCash`／`plannedWithdrawal` 與 `allowSafetyCashUsage = false` 尚未開始；不得因本次合併自行啟動子 PR2。名稱「額外投入資金／預計提領資金」與「計畫投入／計畫提領」不一致，列為 UR-TODO-011 獨立呈現層輸入。
+- 明確不包含：`clecStrategyRules.ts` 核心策略、`clecStrategy.ts` 文案、Simulator、Household Liquidity 核心公式、schema／localStorage／Firebase／JSON Backup。
 
 ## UR-TODO-009 Sprint 收尾快照
 
@@ -3990,13 +4015,13 @@ interface ServiceResult<T> {
 
 ## 4. 正式基線
 
-- 正式版本：UR-TODO-009（Risk & Decision Workflow Integration）子 PR 7／7 — `deriveHomeDecision` 一致性收斂結案
-- 正式 PR：#147（MERGED）
-- merge commit：`226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`
-- Production Pages workflow：`30241261199`（success，本次以 `gh run list --workflow="Deploy GitHub Pages"` 實際查詢確認，`headSha` 與上述 merge commit 一致）
+- 正式版本：UR-TODO-010 Sprint 5 子 PR1 — CLEC Funding Semantics 接線
+- 正式 PR：#150（MERGED）
+- merge commit：`c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`
+- Production Pages workflow：`30266865442`（success，本次以 `gh run list --workflow="Deploy GitHub Pages"` 實際查詢確認，`headSha` 與上述 merge commit 一致）
 - Production Worker 版本：沿用 `003_CURRENT_STATUS.md` 既有記錄，本次未重新查詢
 - 正式基線是否已重新驗證：
-  - [x] 是（本次以 `gh run list`／`curl` 實際查詢 PR #147 對應 Deploy workflow 與 Production HTTP 狀態，詳見 `003_CURRENT_STATUS.md` §3）
+  - [x] 是（本次以 `gh run list`／`curl` 實際查詢 PR #150 對應 Deploy workflow、Production／Preview HTTP 與環境 meta，詳見 `003_CURRENT_STATUS.md` §3）
   - [ ] 否，沿用 `003_Current_Status` 已驗證結果
 
 ---
@@ -4006,7 +4031,7 @@ interface ServiceResult<T> {
 - Repository：`hyc640110/family-universal-rebalance`
 - Repository Root：目前 checkout 所在的 Repository 根目錄（依實際環境而定，不固定寫死本機絕對路徑）
 - 目前 Branch：`main`
-- HEAD：`226c6bee75fe4ce8db884c08e63ded1fe08bc7f7`
+- HEAD：`c6bde2df3b6b7cdda3fb069fbba522347efeb0ef`
 - origin/main：同上
 - main：同上
 - `main...origin/main`：`0 / 0`
@@ -4019,31 +4044,31 @@ interface ServiceResult<T> {
 
 ### 固定 stash
 
-以下固定 stash 不得操作：
+以下固定 stash 以 hash 鎖定（不依可變的 stash index），不得操作：
 
-- `stash@{0}`：`e141af14273b76501c1b287ea018e8728099f1e5`
-- `stash@{1}`：`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`
+- `e141af14273b76501c1b287ea018e8728099f1e5`
+- `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`
 
-不得 apply、pop、drop、clear、rename、recreate、overwrite。
+不得 apply、pop、drop、clear、rename、recreate、overwrite。`9e9aa0c999cf3b97d034db786e4307eaec35e6b2` 是既有其他工作階段的文件同步草稿，**不是固定 stash**；僅可唯讀盤點，未經使用者指示不得操作。
 
 ---
 
 ## 6. 目前 Sprint
 
-**目前無進行中的 Branch、Draft PR 或未完成開發工作。** UR-TODO-009（Risk & Decision Workflow Integration）子 PR 1～7 已於 2026-07-26～2026-07-27 全數 Merge 並通過 Production 驗證（PR #134、#137、#140、#143、#145、#147），詳見 `008_TODO_BACKLOG.md` UR-TODO-009 與本文件上方「UR-TODO-009 Sprint 收尾快照」。下一個 Sprint（例如 UR-TODO-010 CLEC & Simulator Funding Semantics、UR-TODO-011 Cross-Module Presentation Consistency，或 Firebase Security Rules P0 盤點／UR-TODO-001 正式解法）尚未啟動，需使用者明確指示才開始；本次同步為純文件 Review／Documentation Update，未建立新 Sprint。
+**UR-TODO-010 Sprint 5 已啟動，子 PR1 已合併並通過 Production 驗證；目前沒有進行中的產品開發 Branch 或 Draft PR。** 後續 Simulator 與子 PR2 未授權，下一位 AI 不得自行開始。UR-TODO-011 的名稱一致性輸入已記錄，但仍待獨立規劃。
 
-- Sprint／版本名稱：（無）
-- 對應 Todo ID：（無）
-- 目標：（無）
-- 開發範圍：（無）
-- 明確不包含：（無）
-- Branch：（無）
-- PR：（無）
+- Sprint／版本名稱：Sprint 5 — CLEC & Simulator Funding Semantics
+- 對應 Todo ID：UR-TODO-010
+- 目標：子 PR1 將 CLEC 四個 funding fields 接到既有 Household Liquidity／Cash Flow Profile。
+- 開發範圍：子 PR1 已完成；Simulator 與後續子 PR 未開始。
+- 明確不包含：核心策略／文案、Simulator、核心公式、schema、localStorage、Firebase、JSON Backup。
+- Branch：`feat/ur-todo-010-clec-funding-semantics-pr1`（已合併）
+- PR：#150（MERGED）
 - PR 狀態：
   - [ ] 尚未建立
   - [ ] Draft
   - [ ] Ready for review
-  - [ ] Merged
+  - [x] Merged
   - [ ] Closed
 
 ---
@@ -4056,6 +4081,7 @@ interface ServiceResult<T> {
 - PR #143：UR-TODO-009 子 PR 5，`todayDecision` 六層優先序改寫並接回首頁「今日決策」，MERGED，Production 驗證通過。
 - PR #145：UR-TODO-009 子 PR 6，AI Decision §24 契約、`cash` 決策項改引用 Household Liquidity，MERGED，Production 驗證通過。
 - PR #147：UR-TODO-009 子 PR 7，`deriveHomeDecision` 改用相同三層 liquidity 閘門，達成 §20.3 跨模組一致性，MERGED，Production 驗證通過（本次同步以 `gh run list`／`curl` 實際查詢確認）。
+- PR #150：UR-TODO-010 子 PR1，CLEC 四個 funding fields 接到 Household Liquidity／Cash Flow Profile，MERGED，Production 驗證通過。
 - **UR-TODO-009（Risk & Decision Workflow Integration）依此正式標記為已完成**，詳見 `008_TODO_BACKLOG.md`。
 
 歷史記錄（2026-07-24 及以前，僅供脈絡參考，詳見 `009_CHANGELOG.md`）：PR #108（Deploy Workflow Node Runtime／DevDependency Install Failure 修復）、PR #109（跨 AI 交接制度＋Full／Lite Bundle）、PR #110（PR #109 Merge 後治理文件補同步）。
@@ -4064,13 +4090,13 @@ interface ServiceResult<T> {
 
 ## 8. 尚未完成工作
 
-- 無進行中工作。UR-TODO-009 已全數完成；未完成事項請一律以 `008_TODO_BACKLOG.md` 為準（例如 UR-TODO-001 Firebase P0 正式解法、UR-TODO-010 CLEC & Simulator Funding Semantics、UR-TODO-011 Cross-Module Presentation Consistency、UR-TODO-037 延後範圍、UR-TODO-041／UR-TODO-042 待盤點項目）。下一主線待使用者評估後授權，目前無已授權的下一主線。
+- UR-TODO-010 的 Simulator funding semantics 與任何子 PR2 均未開始、未授權；未完成事項請以 `008_TODO_BACKLOG.md` 為準。UR-TODO-011 名稱一致性為已記錄的後續輸入，但不得因此自行啟動。
 
 ---
 
 ## 9. 已修改檔案
 
-- 不適用（本次僅為治理文件收尾，無進行中程式修改）
+- PR #150 已修改 `src/App.tsx`、`src/lib/clecStrategyRuleAdapter.ts`、`tests/clecStrategyRules.test.ts`；本次治理同步只修改 AI_CONTEXT 來源文件與重新產生的 Bundle。
 
 ---
 
