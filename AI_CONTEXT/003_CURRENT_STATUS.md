@@ -1,28 +1,28 @@
-# Universal Rebalance Current Status v3.31
+# Universal Rebalance Current Status v3.32
 
 最後更新：2026-07-27
 
-本次更新依據：**PR #152**（UR-TODO-010 Sprint 5 子 PR2A — Simulator Funding 純模型與 characterization tests）已由使用者手動 Merge，merge commit `a42cf5a85ab635efc38b85686acf27cd87ab9f1f`；`Deploy GitHub Pages` run `30274021196` 為 `success`（`event: push`、`headBranch: main`、`headSha` 與 merge commit 完全一致）。以 `curl` 實測 Production Pages HTTP 200，Production Market Worker `/health` 回傳 `environment=production`。UR-TODO-010 現為**開發中／子 PR1、子 PR2A 已完成**；子 PR2B／子 PR2C 尚未授權。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+本次更新依據：**PR #154**（UR-TODO-010 Sprint 5 子 PR2B — Simulator Funding 正式接線與唯讀呈現）已由使用者手動 Merge，merge commit `e7f72090401442bc1341bf414e552072f23934ae`，`mergedAt: 2026-07-27T15:44:39Z`；`Deploy GitHub Pages` run `30281445368` 為 `success`（`event: push`、`headSha` 與 merge commit 完全一致）。Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`；Preview 人工驗收已通過。UR-TODO-010 現為**開發中／子 PR1、子 PR2A、子 PR2B 已完成**；子 PR2C 尚未授權。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
 ## 1. 最新正式版本
 
-- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）與 Sprint 4（UR-TODO-009）已完成；**Sprint 5（UR-TODO-010）子 PR1、子 PR2A 已完成**。
-- 名稱：CLEC & Simulator Funding Semantics — UR-TODO-010 子 PR2A（Simulator Funding 純模型與 characterization tests）。
-- PR：**#152**（MERGED，UR-TODO-010 子 PR2A）為目前 `main` 最新 Merge；其餘 UR-TODO-010 範圍仍未完成，詳見 `008_TODO_BACKLOG.md`。
+- 正式版本：V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）與 Sprint 4（UR-TODO-009）已完成；**Sprint 5（UR-TODO-010）子 PR1、子 PR2A、子 PR2B 已完成**。
+- 名稱：CLEC & Simulator Funding Semantics — UR-TODO-010 子 PR2B（Simulator Funding 正式接線與唯讀呈現）。
+- PR：**#154**（MERGED，UR-TODO-010 子 PR2B）為目前 `main` 最新 Merge；其餘 UR-TODO-010 範圍仍未完成，詳見 `008_TODO_BACKLOG.md`。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：**UR-TODO-010 開發中／子 PR1、子 PR2A 已完成並已完成 Production 驗證**；子 PR2B／子 PR2C 待使用者另行授權。
-- 最新 merge commit（PR #152）：
-  `a42cf5a85ab635efc38b85686acf27cd87ab9f1f`
+- 狀態：**UR-TODO-010 開發中／子 PR1、子 PR2A、子 PR2B 已完成並已完成 Production 驗證**；子 PR2C 待使用者另行授權。
+- 最新 merge commit（PR #154）：
+  `e7f72090401442bc1341bf414e552072f23934ae`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`a42cf5a85ab635efc38b85686acf27cd87ab9f1f`（PR #152 merge commit，2026-07-27T14:13:17Z）。
-- 已合併子 PR：`feat/ur-todo-010-clec-funding-semantics-pr1`（PR #150）與 `feat/ur-todo-010-simulator-funding-pr2a`（PR #152）；其變更已納入正式基線。
+- 正式基線：`origin/main`＝`e7f72090401442bc1341bf414e552072f23934ae`（PR #154 merge commit，2026-07-27T15:44:39Z）。
+- 已合併子 PR：`feat/ur-todo-010-clec-funding-semantics-pr1`（PR #150）、`feat/ur-todo-010-simulator-funding-pr2a`（PR #152）與 `feat/ur-todo-010-simulator-funding-pr2b`（PR #154）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- PR #152：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/152)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
+- PR #154：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/154)；本文件同步工作須使用獨立 Draft PR，未經使用者確認不得自行 Merge。
 
 固定 stash：
 
@@ -35,8 +35,8 @@
 
 ### GitHub Pages
 
-- 最新正式成功部署 Workflow：`30274021196`（`Deploy GitHub Pages`，success，`event: push`，headBranch `main`，headSha `a42cf5a85ab635efc38b85686acf27cd87ab9f1f`，即 PR #152 merge commit，本次以 `gh run list` 實際查詢確認）。
-- Production：`https://hyc640110.github.io/family-universal-rebalance/` 以 `curl` 實測 HTTP 200；Production Market Worker `/health` 回傳 `environment=production`。PR #152 新增純 `deriveAllocationSimulatorFunding` selector 與專屬測試，尚未接入 Simulator UI、AppState 或持久化。
+- 最新正式成功部署 Workflow：`30281445368`（`Deploy GitHub Pages`，success，`event: push`，headSha `e7f72090401442bc1341bf414e552072f23934ae`，即 PR #154 merge commit，本次以 `gh run list` 實際查詢確認）。
+- Production：`https://hyc640110.github.io/family-universal-rebalance/` HTTP 200，HTML deployment metadata 為 `environment=production`。PR #154 已將正式 Household Liquidity／Cash Flow 四項來源接入 Simulator；Preview 人工驗收確認五欄 funding breakdown、安全現金預設不納入、舊本地 contribution 輸入移除、explicit zero、比例調整與桌機／約 390px 手機版行為正常。
 - 前一筆記錄（PR #145 Merge 後）：Workflow `30212166683`（`Deploy GitHub Pages`，success，headSha `5aa1d9e`）。Production HTTP 200，`environment=production`；首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」，資料同步提醒僅為次要資訊。分析頁不顯示完整 `todayDecision`；是否承接完整決策保留為後續產品決策。
 
 - 最新成功部署 Workflow：`29935264176`（`Deploy GitHub Pages`，success，headSha `2510169`77fc63aca3221c0b383170a68cad89900）
