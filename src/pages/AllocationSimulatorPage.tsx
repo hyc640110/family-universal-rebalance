@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
@@ -42,7 +42,7 @@ const fundingMessage = (reason: string) => ({
   PLANNED_WITHDRAWAL_UNAVAILABLE: '預計提領資金資料不足。',
   CALCULATION_OVERFLOW: '模擬資金計算超出可安全處理範圍。',
   PLANNED_WITHDRAWAL_EXCEEDS_ALL_KNOWN_SOURCES: '預計提領超過所有已知可用來源，已阻擋交易呈現。',
-  SAFETY_CASH_USAGE_ASSUMPTION: '目前未啟用安全現金假設。',
+  SAFETY_CASH_USAGE_ASSUMPTION: '此為模擬假設，不代表建議實際動用安全現金。',
   SIMULATION_FUNDING_DEPLETED_BY_WITHDRAWAL: '預計提領已耗盡可用模擬資金。'
 }[reason] ?? reason);
 
@@ -75,8 +75,13 @@ function Donut({ title, items, total, centerLabel = '總資產', centerValue = m
 
 export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundingInput }: Props) {
   const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
+  const [allowSafetyCashUsage, setAllowSafetyCashUsage] = useState(false);
   const resetTargets = () => setTargets(Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
-  const funding = useMemo(() => deriveAllocationSimulatorFunding({ ...fundingInput, allowSafetyCashUsage: false }), [fundingInput]);
+  const funding = useMemo(() => deriveAllocationSimulatorFunding({ ...fundingInput, allowSafetyCashUsage }), [fundingInput, allowSafetyCashUsage]);
+  const canUseSafetyCashAssumption = !funding.isUnavailable && funding.usableProtectedSafetyCash !== null && funding.usableProtectedSafetyCash > 0;
+  useEffect(() => {
+    if (!canUseSafetyCashAssumption && allowSafetyCashUsage) setAllowSafetyCashUsage(false);
+  }, [allowSafetyCashUsage, canUseSafetyCashAssumption]);
   const canShowSimulationAmounts = !funding.isUnavailable && funding.blockingReasons.length === 0;
   const simulatedTotal = !funding.isUnavailable && funding.externalContribution !== null && funding.plannedWithdrawal !== null
     ? Math.max(0, totalAssets + funding.externalContribution - funding.plannedWithdrawal)
@@ -101,14 +106,26 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
   const currentChart = [...rows.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: Math.max(0, row.marketValue) })), { symbol: 'CASH', name: '台幣現金', value: Math.max(0, cash) }];
   const targetChart = [...result.entries.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: canShowSimulationAmounts ? row.targetValue : row.targetPercent })), { symbol: 'CASH', name: '未配置現金', value: canShowSimulationAmounts ? Math.max(0, calculationTotal * Math.max(0, 100 - result.targetTotal) / 100) : Math.max(0, 100 - result.targetTotal) }];
   const fundingValue = (value: number | null) => funding.isUnavailable || value === null ? '資料不足' : money(value);
-  const fundingMessages = [...funding.blockingReasons, ...funding.warnings].map(fundingMessage);
+  const fundingMessages = [...funding.blockingReasons, ...funding.warnings]
+    .filter(reason => reason !== 'SAFETY_CASH_USAGE_ASSUMPTION')
+    .map(fundingMessage);
   const blockedAmountMessage = funding.isUnavailable ? '資料不足' : funding.blockingReasons.length > 0 ? '已阻擋交易呈現' : '等待比例符合 100%';
 
   const context = getAllocationContext('simulation');
   return <PageFrame page="tools" title={context.name} description={context.description}>
     <AllocationContextNotice context="simulation" showCta />
     <section className="card simulator-notice"><strong>不會自動套用</strong><span>以下結果不會修改正式持股、現金、借款、localStorage、Firebase 或同步資料。</span></section>
-    <section className="card"><h2>模擬資金來源</h2><p className="note">使用正式 Household Liquidity 與 Cash Flow 資料；受保護安全現金預設不納入模擬。</p><div className="sim-summary-grid" aria-label="模擬資金來源"><article><small>現有可投資現金</small><strong>{fundingValue(funding.existingInvestableCash)}</strong></article><article><small>額外投入資金</small><strong>{fundingValue(funding.externalContribution)}</strong></article><article><small>受保護安全現金</small><strong>{fundingValue(funding.protectedSafetyCash)}</strong><span className="note">預設不納入模擬</span></article><article><small>預計提領資金</small><strong>{fundingValue(funding.plannedWithdrawal)}</strong></article><article><small>可用模擬資金</small><strong>{fundingValue(funding.simulationAvailableFunding)}</strong></article></div>{fundingMessages.length > 0 && <div className="warning-message" role="status"><strong>{funding.isUnavailable ? '資料不足：' : '注意：'}</strong><ul>{fundingMessages.map(message => <li key={message}>{message}</li>)}</ul></div>}</section>
+    <section className="card">
+      <h2>模擬資金來源</h2>
+      <p className="note">使用正式 Household Liquidity 與 Cash Flow 資料；受保護安全現金預設不納入模擬。</p>
+      <label className="simulator-safety-cash-control">
+        <input type="checkbox" checked={allowSafetyCashUsage} disabled={!canUseSafetyCashAssumption} aria-describedby="safety-cash-assumption-description" onChange={event => setAllowSafetyCashUsage(event.currentTarget.checked)} />
+        <span>假設動用安全現金</span>
+      </label>
+      <p id="safety-cash-assumption-description" className="note">{funding.isUnavailable ? '資金資料不足，無法模擬動用安全現金。' : funding.usableProtectedSafetyCash === 0 ? '目前可納入的受保護安全現金為 0。' : '僅使用 selector 已計算、且不超過實際流動現金的可用安全現金。'}</p>
+      {allowSafetyCashUsage && canUseSafetyCashAssumption && <div className="simulator-safety-cash-warning" role="alert" aria-atomic="true"><strong>高風險模擬假設</strong><p>此為模擬假設，不代表建議實際動用安全現金。</p></div>}
+      <div className="sim-summary-grid" aria-label="模擬資金來源"><article><small>現有可投資現金</small><strong>{fundingValue(funding.existingInvestableCash)}</strong></article><article><small>額外投入資金</small><strong>{fundingValue(funding.externalContribution)}</strong></article><article><small>受保護安全現金</small><strong>{fundingValue(funding.protectedSafetyCash)}</strong><span className="note">預設不納入模擬</span></article><article><small>預計提領資金</small><strong>{fundingValue(funding.plannedWithdrawal)}</strong></article><article><small>可用模擬資金</small><strong>{fundingValue(funding.simulationAvailableFunding)}</strong></article></div>{fundingMessages.length > 0 && <div className="warning-message" role="status"><strong>{funding.isUnavailable ? '資料不足：' : '注意：'}</strong><ul>{fundingMessages.map(message => <li key={message}>{message}</li>)}</ul></div>}
+    </section>
     <section className="sim-summary-grid" aria-label="模擬摘要">
       <article><small>目前正式總資產</small><strong>{money(totalAssets)}</strong></article><article><small>模擬後總資產</small><strong>{simulatedTotal === null ? '資料不足' : money(simulatedTotal)}</strong></article><article><small>模擬目標比例合計</small><strong className={result.isExact ? 'good' : 'bad'}>{pct(result.targetTotal)}</strong></article><article><small>預估需調整總金額</small><strong>{canShowSimulationAmounts && result.isExact && calculationTotal > 0 ? money(result.buyTotal + result.sellTotal) : blockedAmountMessage}</strong></article><article><small>預估買進／賣出</small><strong>{canShowSimulationAmounts && result.isExact && calculationTotal > 0 ? `${money(result.buyTotal)}／${money(result.sellTotal)}` : '—'}</strong></article>
     </section>
