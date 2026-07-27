@@ -51,7 +51,7 @@ import { deriveInvestmentActionCenter } from './lib/investmentActionCenter';
 import { deriveInvestmentActionExplanations } from './lib/investmentActionExplainability';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
-import { buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
+import { buildClecFundingSemantics, buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
 import { deriveClecStrategyRule } from './lib/clecStrategyRules';
 import { deriveRebalanceExecutionEligibility } from './lib/rebalanceExecutionEligibility';
 import { deriveHouseholdLiquidity } from './lib/householdLiquidity';
@@ -1431,7 +1431,7 @@ function App() {
       targetWeight: getEffectiveTargetPercent(row, state.holdings),
       quoteFreshness: ['unknown', 'unavailable'].includes(quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime)) ? 'missing' : quoteDateStatus(row.quote.quoteDate, row.quote.quoteTime) === 'stale' ? 'stale' : 'fresh'
     })),
-    availableCash: Number.isFinite(m.cash) ? m.cash : null,
+    ...buildClecFundingSemantics({ householdLiquidity: householdLiquidityForRebalance, cashFlowProfile: state.cashFlowProfile }),
     debtBalance: Number.isFinite(m.debt) ? m.debt : null,
     leverageExposure: Number.isFinite(m.leverage) ? m.leverage : null,
     threshold: { drift: rb.threshold, minCashReserve: null, maxDebt: null, maxLeverageExposure: null },
