@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats, filterInvestmentPerformanceRange, normalizeInvestmentPerformanceHistory } from '../src/lib/investmentPerformanceHistory';
+import './urTodo043SnapshotCharacterization.test.ts';
 
 const row = (date: string, investmentValue: number, netWorth = investmentValue) => ({ date, totalAssets: netWorth + 100, netWorth, investmentValue, cash: 100, debt: 0 });
 
