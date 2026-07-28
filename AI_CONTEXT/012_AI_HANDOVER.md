@@ -110,7 +110,16 @@
 
 # 目前交接快照
 
-> **2026-07-28 UR-TODO-011 Sprint 6 正式結案：正式基線 `origin/main`＝PR #165 merge commit `ca0e8fa05c93aa32119079bc3ff205864daaea63`；CI Verification run `30351125022` 與 Deploy GitHub Pages run `30351370489` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 最新正式基線：`origin/main`＝PR #167 merge commit `9d6f5a0da53d213661796968622e7fc5ef7ebf50`；CI Verification run `30360615589` 與 Deploy GitHub Pages run `30360943936` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；PR #167 只新增家庭流動性資料診斷契約與測試，尚未接正式 consumer。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
+
+## 家庭流動性資料關聯與診斷子 PR 1 合併快照
+
+- PR／基線：[PR #167](https://github.com/hyc640110/family-universal-rebalance/pull/167) **MERGED**，merge commit `9d6f5a0da53d213661796968622e7fc5ef7ebf50`，`mergedAt: 2026-07-28T12:53:21Z`；CI Verification run `30360615589` 與 Deploy GitHub Pages run `30360943936` 均成功，後者 headSha 一致。Production／Preview HTTP 200，metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。
+- 已完成範圍：新增純 `deriveHouseholdLiquidityInputDiagnostics`，以不修改來源資料的方式回報 Cash Flow Profile 缺失、未宣告／ambiguous 的 Cash Flow role、未連結借款、Loan 來源不可用、有效 Loan 陣列下的失效連結，以及未設定的額外投入資金／預計提領資金。explicit `0` 維持已設定；`null`／`undefined` 不會被視為空白設定或 0。migration、normalizer、JSON 與 Firebase canonical round-trip 維持既有契約。
+- Remaining Boundaries：本 PR **未接正式 consumer**，未修改 Household Liquidity 核心公式、adapter 正式輸出、UI、schema、localStorage、Firebase、JSON Backup 或 Import／Export；不得由診斷層自行修正或補造來源資料。
+- 下一直接起點：若使用者另行授權本資料關聯串流，子 PR 2 只能先做 **Review Mode 唯讀範圍確認**，盤點 diagnostics 可接的正式 consumer、各頁既有資料來源與 unavailable 呈現邊界；不得自行開始接線、建立功能分支或改 UI。此記錄不改變 UR-TODO-043 維持 P2／待盤點及其既有優先序。
+- ADR：無。
+- Knowledge Delta：資料缺失、明確 0 與確定失效連結現在可由獨立純診斷契約區分；consumer 尚未存在，不能宣稱使用者介面已改善。
 
 ## UR-TODO-011 子 PR 011A 合併快照
 

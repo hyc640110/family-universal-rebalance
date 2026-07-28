@@ -1,12 +1,14 @@
-# Universal Rebalance Todo Backlog v1.24
+# Universal Rebalance Todo Backlog v1.25
 
-最後更新：2026-07-27
+最後更新：2026-07-28
 
 本文件是 Universal Rebalance 所有未完成事項的單一正式來源。
 
 **新想法請先進 `019_Idea_Pool.md`，經評估後才轉為正式 UR-TODO 項目**（2026-07-25 V7.0A 新增規則，見 `016_Product_Decisions.md` 第 9 節「模式切換」）。本次新增規則不改動既有任何 UR-TODO 的優先級或狀態，現行 P0～P4 五級制維持不變。
 
 家庭流動性、安全存量與可投資現金主題的詳細架構規格，以 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）為唯一正式來源；本文件只保存 Todo 狀態、Sprint 邊界與驗收摘要。
+
+2026-07-28 家庭流動性資料關聯與診斷子 PR 1 已由使用者手動 Merge，[PR #167](https://github.com/hyc640110/family-universal-rebalance/pull/167) 為 **MERGED**（merge commit `9d6f5a0da53d213661796968622e7fc5ef7ebf50`）；CI Verification run `30360615589` 與 Deploy GitHub Pages workflow run `30360943936` 均成功，後者 headSha 一致。Production／Preview HTTP 200，metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。範圍只新增 `deriveHouseholdLiquidityInputDiagnostics` 與 provenance characterization tests：明確區分 Cash Flow Profile 缺失、Loan 來源不可用、未連結借款與有效 Loan 陣列下的失效連結；未接任何正式 consumer，未修改 Household Liquidity 核心公式、adapter、UI、schema、Firebase、Backup 或 Import／Export。**此項不是新 UR-TODO，也不授權下一個開發 Sprint。** 若使用者另行授權，子 PR 2 的直接起點只能先以 Review Mode 唯讀盤點 diagnostics consumer、資料來源映射與呈現邊界；不得自行接線或開始實作。
 
 2026-07-27 **UR-TODO-009 子 PR6 — AI Decision §24 契約** 已由使用者手動 Merge，[PR #145](https://github.com/hyc640110/family-universal-rebalance/pull/145) 為 **MERGED**（merge commit `5aa1d9e3c4fc364059b4fd6ab4a4de6bc34a594e`）；PR CI run `30211956784` 與 Deploy GitHub Pages workflow run `30212166683` 皆成功。Production HTTP 200、`environment=production`；AI Decision 正式 bundle 已接入 Household Liquidity 契約，資料不足與安全存量不足均阻擋投資建議，`investableCash === 0` 維持保留現金語意。UR-TODO-009 整體狀態維持**開發中**，下一個未完成項目為子 PR7，目前沒有已授權的下一主線。分析頁完整 `todayDecision` 是否承接仍為產品決策，不新增正式 UR-TODO。
 
