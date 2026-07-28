@@ -19,13 +19,14 @@ export default function ClecStrategyCenterPage({ view, rule }: { view: ClecStrat
     <section className="clec-section clec-card clec-rule-card" aria-labelledby="clec-rule-title">
       <header><p className="eyebrow">Strategy Rule Foundation</p><h2 id="clec-rule-title">策略規則判定</h2></header>
       <p className="note">僅供決策輔助，非自動交易，不代表市場預測。信心指標只反映資料與規則完整度，並非統計機率。</p>
+      <p className="note">額外投入資金為本次計畫增加的資金；預計提領資金會先從可用資金扣除。</p>
       <dl className="clec-facts clec-rule-facts">
         <div><dt>Allocation Preset</dt><dd>{view.allocationSource.label}</dd></div><div><dt>rebalanceMode</dt><dd>{view.currentStrategy.rebalanceMode}</dd></div>
         <div><dt>decisionStatus</dt><dd>{clecRuleDecisionStatusLabel(rule.decisionStatus)}</dd></div><div><dt>recommendedAction</dt><dd>{clecRuleActionLabel(rule.recommendedAction)}</dd></div>
         <div><dt>severity</dt><dd>{rule.severity}</dd></div><div><dt>資料／規則完整度</dt><dd>{rule.confidence === 'high' ? '高' : rule.confidence === 'medium' ? '中' : '低'}</dd></div>
         <div><dt>asOfDate</dt><dd>{rule.calculatedAt}</dd></div><div><dt>calculatedAt</dt><dd>{rule.calculatedAt}（Asia/Taipei）</dd></div>
-        <div><dt>可用現金</dt><dd>{moneyOrUnavailable(rule.financialSummary.availableCash)}</dd></div><div><dt>計畫投入</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedContribution)}</dd></div>
-        <div><dt>計畫提款</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedWithdrawal)}</dd></div><div><dt>現金儲備</dt><dd>{moneyOrUnavailable(rule.financialSummary.cashReserve)}</dd></div>
+        <div><dt>可用現金</dt><dd>{moneyOrUnavailable(rule.financialSummary.availableCash)}</dd></div><div><dt>額外投入資金</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedContribution)}</dd></div>
+        <div><dt>預計提領資金</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedWithdrawal)}</dd></div><div><dt>現金儲備</dt><dd>{moneyOrUnavailable(rule.financialSummary.cashReserve)}</dd></div>
         <div><dt>負債</dt><dd>{moneyOrUnavailable(rule.financialSummary.debtBalance)}</dd></div><div><dt>槓桿曝險</dt><dd>{rule.financialSummary.leverageExposure === null ? '未提供' : rule.financialSummary.leverageExposure.toFixed(2)}</dd></div>
       </dl>
       <p className="clec-rule-summary">{rule.summary}</p>
