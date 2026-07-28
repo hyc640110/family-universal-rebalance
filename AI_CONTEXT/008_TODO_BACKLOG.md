@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.27
+# Universal Rebalance Todo Backlog v1.28
 
-最後更新：2026-07-28
+最後更新：2026-07-29
+
+2026-07-29 **UR-TODO-043-A Characterization Tests** 已由使用者手動 Merge，[PR #174](https://github.com/hyc640110/family-universal-rebalance/pull/174) 為 **MERGED**（merge commit `9ac2cef82bad3a0a793f0db971d604c2b3e79463`，`mergedAt: 2026-07-28T16:22:11Z`）；Deploy GitHub Pages workflow run `30377915466` 成功，headSha 一致。範圍只新增 characterization tests，未修改 Production 程式、日期契約、schema、migration、UI、Dashboard、Analytics、AI Decision、Rebalance、相依套件或 `package-lock.json`。測試鎖定三項現況風險：日期鍵受執行時區影響、同日快照依陣列最後一筆而非 timestamp 選取、淨資產歷史將無效值轉 0 而 Analytics 嚴格排除。**這些結果不代表理想契約，也不構成公式錯誤的結論。UR-TODO-043 整體維持 P2／待盤點。**建議下一步為 043-C Review Mode 的跨 consumer 正規化與相容性盤點，043-B 日期產品契約決策排在其後。
 
 本文件是 Universal Rebalance 所有未完成事項的單一正式來源。
 
@@ -755,6 +757,11 @@
   - 尚未證實為計算 Bug。
   - 尚未完成 UTC／台灣日期邊界、快照建立時機與來源貢獻的完整盤點。
 
+- 043-A 已完成（characterization only，PR #174）：
+  - 15 個測試鎖定目前時區日期鍵、月／年底邊界、同日陣列最後一筆、local／Firebase／Backup 順序、相鄰有效快照、週末／休市日、無效值正規化、外部資金可辨識性及 AI 回撤／Rebalance 邊界。
+  - 已重現：相同 timestamp 在不同執行時區可能產生不同日期鍵；同日快照結果跟隨陣列順序；淨資產歷史可能將無效值轉為 0，Analytics 則嚴格排除，形成跨頁分歧。
+  - 未修改任何 Production 行為；所有測試均標記為 Characterization only、Do not treat as desired contract、Pending product decision。
+
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
   2. 休市日快照的建立時機與觸發來源。
@@ -782,7 +789,8 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - 建議 UR-TODO-011 完整結案後再處理。
+  - **下一候選：043-C Review Mode**，唯讀界定跨 consumer 正規化、無效值語意、既有資料相容性與測試範圍；未經授權不得開始開發。
+  - **其後：043-B**，在 043-C 盤點結果可用後，再進行日期／時區產品契約決策；不得預先把 Asia/Taipei 寫為既定正式契約。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
 ### UR-TODO-012 Rebalance Scenario Simulator
