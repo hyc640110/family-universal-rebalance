@@ -110,7 +110,15 @@
 
 # 目前交接快照
 
-> **2026-07-28 Sprint 5 正式結案：本區下方舊子 PR 快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #157 merge commit `e6642326d1aaf286b1ac86796afc11495d112149`；Deploy GitHub Pages run `30321000360` 成功，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 已完成；下一候選為 UR-TODO-011，尚未授權。**
+> **2026-07-28 UR-TODO-011 子 PR 011A 已合併：正式基線 `origin/main`＝PR #160 merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`；Deploy GitHub Pages run `30343104980` 成功，Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A 已完成。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
+
+## UR-TODO-011 子 PR 011A 合併快照
+
+- PR／基線：[PR #160](https://github.com/hyc640110/family-universal-rebalance/pull/160) **MERGED**，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`，`mergedAt: 2026-07-28T08:36:58Z`；CI Verification run `30342857661` 與 Deploy GitHub Pages run `30343104980` 均成功，後者 headSha 一致。
+- 已完成範圍：新增純 `deriveDefensiveConfigurationPresentation`，只映射既有上游的防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因。明確 0 維持已知；`null`／`NaN`／`Infinity` 維持 unavailable；不重算或放寬財務／執行資格。
+- Remaining Boundaries：防守配置理論缺口目前沒有既有權威來源時必須維持 unavailable，不得在 011B UI 或其他消費端自行推算。011B 僅可在本治理 PR Merge 後、使用者明確指示下先進行唯讀範圍確認；UI、`App.tsx`、Household Liquidity／Rebalance 公式、持久化、Firebase、Backup 均未開始。
+- ADR：無。
+- Knowledge Delta：UR-TODO-011 已由「待開發」轉為「開發中／子 PR 011A 已完成」，並建立可保留 unavailable／explicit zero 與理論／執行分層的純呈現契約。
 
 ## UR-TODO-043 建立快照
 
