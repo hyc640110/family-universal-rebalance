@@ -6,6 +6,7 @@ import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DE
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
+import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -72,6 +73,7 @@ import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, get
 import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
 import { deriveTodayDecision } from './lib/todayDecision';
 import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
+import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1367,6 +1369,17 @@ function App() {
     loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
     cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
   })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
+  const defensiveConfigurationPresentation = useMemo(() => deriveDefensiveConfigurationPresentation({
+    defensiveTotalRatio: m.defensiveRatio,
+    protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash,
+    defensiveHoldingsRatio: m.totalAssets > 0 ? m.defensiveHoldingsValue / m.totalAssets * 100 : null,
+    investableCash: householdLiquidityForRebalance.investableCash,
+    theoreticalDefensiveConfigurationShortfall: null,
+    safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
+    executionMethod: rb.mode,
+    canExecute: householdLiquidityForRebalance.canExecuteBuy,
+    blockingReasons: householdLiquidityForRebalance.blockingReasons
+  }), [m, rb.mode, householdLiquidityForRebalance]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1883,6 +1896,7 @@ function App() {
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
@@ -1961,7 +1975,7 @@ function App() {
           {orderHelper.mode === 'buy-only' && orderHelper.investableCash !== null && orderHelper.investableCash < orderHelper.buyOnlyBudget && orderHelper.investableCash > 0 && <p className="note">目前可投資現金低於設定預算，系統將以可投資現金為上限。</p>}
           {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
           <TradeStepList steps={tradeSteps} currentWeights={currentWeights} />
-          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
+          {currentPage !== 'analytics' && <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />}
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small typography-copy-action" style={{ padding: '4px 8px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>
@@ -1987,7 +2001,6 @@ function App() {
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="analytics-trade-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           {tradeSteps.some(step => step.action !== '不需處理') ? <TradeStepList steps={tradeSteps} currentWeights={currentWeights} /> : <div className="analytics-empty"><p>目前沒有需要執行的交易建議。</p><span>配置已在門檻內，或目前模式下暫無可執行操作。</span></div>}
-          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
           <p className="note">建議金額以萬元呈現；股價與預估股數維持原本單位。只買不賣模式不會產生賣出交易。</p>
         </SectionCard>
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="dip-analysis-section" title="逢低加碼分析" isMobile={isMobile} collapsible collapsibleOnDesktop open={analyticsSectionOpen('dipAnalysis')} onToggle={() => toggleSection('dipAnalysis')} summary={decisionSummary.dipStatus}>
