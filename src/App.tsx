@@ -74,6 +74,8 @@ import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, n
 import { deriveTodayDecision } from './lib/todayDecision';
 import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
 import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
+import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
+import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1369,6 +1371,14 @@ function App() {
     loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
     cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
   })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
+  const householdLiquidityDiagnostics = useMemo(() => deriveHouseholdLiquidityInputDiagnostics({
+    cashFlowProfile: state.cashFlowProfile,
+    loans: state.loans.map(loan => ({ id: loan.id })),
+  }), [state.cashFlowProfile, state.loans]);
+  const householdLiquidityDiagnosticPresentation = useMemo(() => presentHouseholdLiquidityDiagnostics({
+    diagnostics: householdLiquidityDiagnostics,
+    cashFlowProfile: state.cashFlowProfile,
+  }), [householdLiquidityDiagnostics, state.cashFlowProfile]);
   const defensiveConfigurationPresentation = useMemo(() => deriveDefensiveConfigurationPresentation({
     defensiveTotalRatio: m.defensiveRatio,
     protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash,
@@ -1896,7 +1906,7 @@ function App() {
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
-        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} diagnostics={householdLiquidityDiagnosticPresentation} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
@@ -2041,12 +2051,12 @@ function App() {
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} fundingInput={{ totalLiquidCash: householdLiquidityForRebalance.totalLiquidCash, protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash, externalContribution: state.cashFlowProfile?.externalContribution, plannedWithdrawal: state.cashFlowProfile?.plannedWithdrawal }} />}
-      {isRiskCenter && <RiskCenterPage input={riskInput} />}
+      {isRiskCenter && <RiskCenterPage input={riskInput} diagnostics={householdLiquidityDiagnosticPresentation} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} loans={state.loans.map(({ id, name }) => ({ id, name }))} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={dividendCenterHoldings} transactions={dividendCenterTransactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
-        {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
+        {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} diagnostics={householdLiquidityDiagnosticPresentation} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
         {isRebalanceRecommendationCenter && <RebalanceRecommendationPage view={rebalanceRecommendationView} recommendations={recommendationModels} rule={clecStrategyRuleView} eligibility={rebalanceExecutionEligibility} />}
         {isClecStrategyCenter && <ClecStrategyCenterPage view={clecStrategyCenterView} rule={clecStrategyRuleView} />}

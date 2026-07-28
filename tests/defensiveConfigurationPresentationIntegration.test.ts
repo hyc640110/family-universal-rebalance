@@ -10,7 +10,7 @@ test('Analytics 防守配置狀態只接既有防守、Household Liquidity 與�
 
   assert.match(app, /import DefensiveConfigurationStatusCard from '.\/components\/DefensiveConfigurationStatusCard';/);
   assert.match(app, /deriveDefensiveConfigurationPresentation\(\{[\s\S]*defensiveTotalRatio: m\.defensiveRatio,[\s\S]*protectedSafetyCash: householdLiquidityForRebalance\.protectedSafetyCash,[\s\S]*defensiveHoldingsRatio: m\.totalAssets > 0 \? m\.defensiveHoldingsValue \/ m\.totalAssets \* 100 : null,[\s\S]*investableCash: householdLiquidityForRebalance\.investableCash,[\s\S]*theoreticalDefensiveConfigurationShortfall: null,[\s\S]*safetyCashShortfall: householdLiquidityForRebalance\.safetyCashShortfall,[\s\S]*executionMethod: rb\.mode,[\s\S]*canExecute: householdLiquidityForRebalance\.canExecuteBuy,[\s\S]*blockingReasons: householdLiquidityForRebalance\.blockingReasons[\s\S]*\}/);
-  assert.match(app, /<DefensiveConfigurationStatusCard presentation=\{defensiveConfigurationPresentation\} \/>/);
+  assert.match(app, /<DefensiveConfigurationStatusCard presentation=\{defensiveConfigurationPresentation\} diagnostics=\{householdLiquidityDiagnosticPresentation\} \/>/);
   assert.doesNotMatch(app, /theoreticalDefensiveConfigurationShortfall:\s*(?:m\.|rb\.|Math\.|[\d])/);
   const analyticsTradeSection = app.slice(app.indexOf('id="analytics-trade-section"'), app.indexOf('id="dip-analysis-section"'));
   assert.doesNotMatch(analyticsTradeSection, /<DefensiveReminderCard/);
@@ -63,4 +63,24 @@ test('防守配置狀態卡有可讀的 unavailable、blocking 與 390px 版面�
   assert.doesNotMatch(card, /setState|localStorage|firebase|saveState/i);
   assert.match(styles, /\.defensive-configuration-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media \(max-width: 768px\)\{[\s\S]*\.defensive-configuration-grid\{grid-template-columns:1fr/);
+});
+
+test('三個正式 consumer 共用同一份家庭流動性診斷呈現，不重算核心資料', () => {
+  const app = source('src/App.tsx');
+  const analytics = source('src/components/DefensiveConfigurationStatusCard.tsx');
+  const risk = source('src/pages/RiskCenterPage.tsx');
+  const ai = source('src/pages/AiDecisionCenterPage.tsx');
+  const list = source('src/components/HouseholdLiquidityDiagnosticList.tsx');
+
+  assert.match(app, /deriveHouseholdLiquidityInputDiagnostics\(/);
+  assert.match(app, /presentHouseholdLiquidityDiagnostics\(/);
+  assert.match(app, /<DefensiveConfigurationStatusCard presentation=\{defensiveConfigurationPresentation\} diagnostics=\{householdLiquidityDiagnosticPresentation\}/);
+  assert.match(app, /<RiskCenterPage input=\{riskInput\} diagnostics=\{householdLiquidityDiagnosticPresentation\}/);
+  assert.match(app, /<AiDecisionCenterPage items=\{aiDecisionItems\} asOf=\{localSnapshotDate\(\)\} diagnostics=\{householdLiquidityDiagnosticPresentation\}/);
+  assert.match(analytics, /HouseholdLiquidityDiagnosticList/);
+  assert.match(risk, /HouseholdLiquidityDiagnosticList/);
+  assert.match(ai, /HouseholdLiquidityDiagnosticList/);
+  assert.match(list, /slice\(0, 3\)/);
+  assert.match(list, /展開全部/);
+  assert.doesNotMatch(list, /diagnostic\.code/);
 });
