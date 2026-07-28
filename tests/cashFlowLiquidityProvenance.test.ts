@@ -9,6 +9,7 @@ import {
   type CashFlowProfile
 } from '../src/lib/cashFlow';
 import { buildHouseholdLiquidityInput } from '../src/lib/householdLiquidityInputAdapter';
+import { deriveHouseholdLiquidityInputDiagnostics } from '../src/lib/householdLiquidityInputDiagnostics';
 import { deriveHouseholdLiquidity } from '../src/lib/householdLiquidity';
 import { createSyncPayloadSnapshot } from '../src/lib/syncState';
 
@@ -216,4 +217,68 @@ test('27. duplicate linkedLoanId 交由 Core 保守阻擋，不以 Cash Flow 金
   const core = deriveHouseholdLiquidity(input);
   assert.equal(core.monthlyDebtPayments, null);
   assert.ok(core.blockingReasons.some(reason => reason.code === 'DUPLICATE_LOAN_LINK'));
+});
+
+test('28. legacy 未宣告 role、explicit ambiguous 與未設定 plan 會回報可行動診斷，但不修改資料', () => {
+  const cashFlowProfile = normalized({ fixedExpenses: [
+    { id: 'housing', name: '房貸', amount: 3_000, category: 'housing', enabled: true },
+    { id: 'ambiguous', name: '其他', amount: 1_000, category: 'other', enabled: true, liquidityRole: 'ambiguous' },
+    { id: 'utility', name: '水電', amount: 500, category: 'utilities', enabled: true }
+  ] });
+  const snapshot = structuredClone(cashFlowProfile);
+
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [{ id: 'loan-1' }] }), [
+    { code: 'CASH_FLOW_ROLE_UNASSIGNED', sourceId: 'cash-flow:housing' },
+    { code: 'CASH_FLOW_ROLE_AMBIGUOUS', sourceId: 'cash-flow:ambiguous' },
+    { code: 'EXTERNAL_CONTRIBUTION_UNSET' },
+    { code: 'PLANNED_WITHDRAWAL_UNSET' }
+  ]);
+  assert.deepEqual(cashFlowProfile, snapshot);
+});
+
+test('29. missing、orphan 與 valid debt linkage 可被區分，explicit zero 不會誤判為未設定', () => {
+  const cashFlowProfile = normalized({ fixedExpenses: [
+    { id: 'missing', name: '未連結', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment' },
+    { id: 'orphan', name: '失效連結', amount: 2_000, category: 'loan', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'missing-loan' },
+    { id: 'valid', name: '合法連結', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'loan-1' }
+  ], externalContribution: 0, plannedWithdrawal: 0 });
+
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [{ id: 'loan-1' }] }), [
+    { code: 'DEBT_PAYMENT_LINK_REQUIRED', sourceId: 'cash-flow:missing' },
+    { code: 'DEBT_PAYMENT_LINK_ORPHANED', sourceId: 'cash-flow:orphan', loanId: 'missing-loan' }
+  ]);
+});
+
+test('30. migration、JSON 與 Firebase canonical round-trip 不改變診斷，且診斷不會被持久化', () => {
+  const original = normalized({ fixedExpenses: [{ id: 'legacy', name: '房貸', amount: 3_000, category: 'housing', enabled: true }] });
+  const expected = deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: original, loans: [{ id: 'loan-1' }] });
+  const jsonRestored = normalized(JSON.parse(JSON.stringify(original)));
+  const firebaseRestored = normalized(JSON.parse(createSyncPayloadSnapshot({ cashFlowProfile: original }).canonicalJson).cashFlowProfile);
+
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: jsonRestored, loans: [{ id: 'loan-1' }] }), expected);
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: firebaseRestored, loans: [{ id: 'loan-1' }] }), expected);
+  assert.doesNotMatch(JSON.stringify(original), /CASH_FLOW_ROLE_UNASSIGNED|DEBT_PAYMENT_LINK_REQUIRED|DIAGNOSTIC/);
+});
+
+test('31. null 或 undefined Cash Flow Profile 會回報來源缺失，且不誤當作空白設定', () => {
+  for (const cashFlowProfile of [null, undefined]) {
+    assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [] }), [
+      { code: 'CASH_FLOW_PROFILE_MISSING' }
+    ]);
+  }
+});
+
+test('32. unavailable Loan source 與空 Loan 陣列的 orphan linkage 必須區分', () => {
+  const cashFlowProfile = normalized({ fixedExpenses: [
+    { id: 'debt', name: '房貸', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'loan-1' }
+  ], externalContribution: 0, plannedWithdrawal: 0 });
+
+  for (const loans of [null, undefined]) {
+    assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans }), [
+      { code: 'LOAN_SOURCE_UNAVAILABLE', sourceId: 'cash-flow:debt', loanId: 'loan-1' }
+    ]);
+  }
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [] }), [
+    { code: 'DEBT_PAYMENT_LINK_ORPHANED', sourceId: 'cash-flow:debt', loanId: 'loan-1' }
+  ]);
 });
