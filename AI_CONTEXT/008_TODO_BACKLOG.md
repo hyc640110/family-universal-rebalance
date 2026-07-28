@@ -461,10 +461,11 @@
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 19、28、30～32 節
 
 - 優先級：P1
-- 狀態：開發中／子 PR 011A 已完成
+- 狀態：開發中／子 PR 011A、011B 已完成
 - 完成子 PR：
   - **011A／PR #160**（MERGED，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`）：新增純 `deriveDefensiveConfigurationPresentation` presentation contract 與專屬測試，明確呈現防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因。此層只映射既有上游值，不重算財務公式、不將 `null`／`NaN`／`Infinity` 轉為 0；明確數值 0 維持已知。防守配置理論缺口缺少既有權威來源時維持 unavailable，不自行推算。
-- 後續直接起點：待本次 PR #160 Merge 後治理同步完成並由使用者明確授權，才可針對子 PR 011B 進行唯讀範圍確認；不得直接開始 UI 開發。
+  - **011B／PR #162**（MERGED，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`）：Analytics 風險頁新增單一唯讀「防守配置狀態」卡片，使用 011A 的既有 presentation contract 呈現防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因；Analytics 內重複的「防守資產補足提醒」已移除。明確 0、資料不足與 blocking reason 均維持可讀呈現；理論缺口仍維持 unavailable，不自行推算。Preview 桌機與約 390px 手機驗收通過。
+- 後續直接起點：待本次 PR #162 Merge 後治理同步完成，才可從最新 main 建立獨立工作區處理子 PR 011C「Cash Flow／CLEC 名稱一致」；不得擴大至 Dashboard、UR-TODO-043、DipFundingSummary 或財務核心。
 - 後續輸入：收支與現金流中心使用「額外投入資金／預計提領資金」，CLEC 使用「計畫投入／計畫提領」；名稱不完全一致，為 UR-TODO-010 子 PR1 Preview 驗收發現的非阻擋呈現層差異。本項不回溯修改 PR #150，待 UR-TODO-011 獨立規劃。
 - 將「防守資產補足提醒」改為「防守配置狀態」
 - 顯示：
