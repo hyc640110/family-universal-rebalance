@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T15:25:13.653094+00:00
+Generated UTC: 2026-07-28T15:39:59.945632+00:00
 
 ## Manifest
 
@@ -12,7 +12,7 @@ Generated UTC: 2026-07-28T15:25:13.653094+00:00
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `003_CURRENT_STATUS.md` — SHA-256 `d407d25de6efc8fc33bacbb5e9de545cd804b73ccf84857941e80084d7fafba2`
 - `008_TODO_BACKLOG.md` — SHA-256 `86fa64f10fc3cb420eb5366ff991e1bb66e816d18d38764a625d88e0b651b174`
-- `012_AI_HANDOVER.md` — SHA-256 `53b357dd0e67002f43b4f9d6310c817757f6cc897bb3328a94bf417f54044353`
+- `012_AI_HANDOVER.md` — SHA-256 `44e89b738f3bd814a6b0164ad22d94661323050b738766398139a6c203c9afda`
 
 ---
 
@@ -1811,7 +1811,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 # 目前交接快照
 
-> **2026-07-28 最新正式基線：`origin/main`＝PR #169 merge commit `fc1ca090661148ed057420fd9ad2386d9eec03fc`；Deploy GitHub Pages run `30367680077` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1、子 PR 2 均已完成，但整體修正尚未完成，正式 consumer／UI 診斷呈現仍屬子 PR 3。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 最新正式基線：`origin/main`＝PR #172 merge commit `c5c57d69ecd572b9a8568a9962a17d2695daffcf`；Deploy GitHub Pages run `30374115851` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1（#167）、子 PR 2（#169）與子 PR 3（#171）均已完成，三個正式 consumer 已接線。整體修正的唯一 Remaining Boundary 是 Production 代表性 diagnostics 資料互動驗收，狀態為待盤點；下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
 
 ## 家庭流動性資料關聯與診斷子 PR 1 合併快照
 

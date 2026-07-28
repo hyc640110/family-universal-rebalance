@@ -110,7 +110,7 @@
 
 # 目前交接快照
 
-> **2026-07-28 最新正式基線：`origin/main`＝PR #169 merge commit `fc1ca090661148ed057420fd9ad2386d9eec03fc`；Deploy GitHub Pages run `30367680077` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1、子 PR 2 均已完成，但整體修正尚未完成，正式 consumer／UI 診斷呈現仍屬子 PR 3。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 最新正式基線：`origin/main`＝PR #172 merge commit `c5c57d69ecd572b9a8568a9962a17d2695daffcf`；Deploy GitHub Pages run `30374115851` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1（#167）、子 PR 2（#169）與子 PR 3（#171）均已完成，三個正式 consumer 已接線。整體修正的唯一 Remaining Boundary 是 Production 代表性 diagnostics 資料互動驗收，狀態為待盤點；下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
 
 ## 家庭流動性資料關聯與診斷子 PR 1 合併快照
 

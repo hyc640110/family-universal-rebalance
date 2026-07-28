@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T15:25:13.653094+00:00
+Generated UTC: 2026-07-28T15:39:59.945632+00:00
 
 ## Manifest
 
@@ -20,7 +20,7 @@ Generated UTC: 2026-07-28T15:25:13.653094+00:00
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `53b357dd0e67002f43b4f9d6310c817757f6cc897bb3328a94bf417f54044353`
+- `012_AI_HANDOVER.md` — SHA-256 `44e89b738f3bd814a6b0164ad22d94661323050b738766398139a6c203c9afda`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -4097,7 +4097,7 @@ interface ServiceResult<T> {
 
 # 目前交接快照
 
-> **2026-07-28 最新正式基線：`origin/main`＝PR #169 merge commit `fc1ca090661148ed057420fd9ad2386d9eec03fc`；Deploy GitHub Pages run `30367680077` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1、子 PR 2 均已完成，但整體修正尚未完成，正式 consumer／UI 診斷呈現仍屬子 PR 3。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 最新正式基線：`origin/main`＝PR #172 merge commit `c5c57d69ecd572b9a8568a9962a17d2695daffcf`；Deploy GitHub Pages run `30374115851` 成功，headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成；家庭流動性資料關聯與診斷子 PR 1（#167）、子 PR 2（#169）與子 PR 3（#171）均已完成，三個正式 consumer 已接線。整體修正的唯一 Remaining Boundary 是 Production 代表性 diagnostics 資料互動驗收，狀態為待盤點；下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
 
 ## 家庭流動性資料關聯與診斷子 PR 1 合併快照
 
