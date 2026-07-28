@@ -1,30 +1,30 @@
-# Universal Rebalance Current Status v3.36
+# Universal Rebalance Current Status v3.37
 
 最後更新：2026-07-28
 
-本次更新依據：**PR #162**（UR-TODO-011B Analytics 防守配置狀態卡）已由使用者手動 Merge，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`，`mergedAt: 2026-07-28T09:35:49Z`；CI Verification run `30346082086` 與 `Deploy GitHub Pages` run `30347257970` 均為 `success`，後者為 `event: push` 且 `headSha` 與 merge commit 完全一致。Production 與 Preview Pages 均 HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-011 現為目前主線，已完成子 PR 011A、011B；下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+本次更新依據：**PR #164**（UR-TODO-011C Cash Flow／CLEC 名稱一致）已由使用者手動 Merge，merge commit `bbc60fe2889c98d7883763d5dae057b257975321`，`mergedAt: 2026-07-28T10:25:58Z`；CI Verification run `30349140005` 與 `Deploy GitHub Pages` run `30350731155` 均為 `success`，後者為 `event: push` 且 `headSha` 與 merge commit 完全一致。Production 與 Preview Pages 均 HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-011 現為目前主線，已完成子 PR 011A、011B、011C；整體仍待治理同步與完整收尾盤點，不得提前標記完成。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
-2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**；其子 PR 011A 已完成純防守配置呈現契約與測試，011B 已完成 Analytics 唯讀卡片與舊提醒替換。下一直接起點為 011C 的範圍確認與獨立開發，須先完成本治理 PR Merge。
+2026-07-28 治理文件同步：**UR-TODO-043** 維持 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**；011A 已完成純防守配置呈現契約與測試，011B 已完成 Analytics 唯讀卡片與舊提醒替換，011C 已完成 Cash Flow／CLEC 正式名稱一致與輔助說明。下一直接起點為本治理 PR Merge 後的完整收尾盤點；不得自行啟動其他 Todo。
 
 ## 1. 最新正式版本
 
-- 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）與 Sprint 5（UR-TODO-010）已完成；**Sprint 6（UR-TODO-011）進行中，子 PR 011A、011B 已完成**。
+- 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）與 Sprint 5（UR-TODO-010）已完成；**Sprint 6（UR-TODO-011）進行中，子 PR 011A、011B、011C 已完成，待治理同步與完整收尾盤點**。
 - 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6。
-- PR：**#162**（MERGED，UR-TODO-011B Analytics 防守配置狀態卡）為目前 `origin/main` 最新 Merge。
+- PR：**#164**（MERGED，UR-TODO-011C Cash Flow／CLEC 名稱一致）為目前 `origin/main` 最新 Merge。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 開發中／子 PR 011A、011B 已完成**。011B 已在 Analytics 風險頁呈現唯讀「防守配置狀態」卡片，移除重複舊提醒；未改財務公式、持久化或其他模組。下一步須待本治理 PR Merge 後進入 011C。
-- 最新 merge commit（PR #162）：
-  `f41592d9bf1139488af5c4fb3597d9283f5bd929`
+- 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 開發中／子 PR 011A、011B、011C 已完成**。011C 已將 CLEC 資金欄位統一為「額外投入資金／預計提領資金」，並補上不改公式或持久化的語意說明。下一步須待本治理 PR Merge 後進行完整收尾盤點。
+- 最新 merge commit（PR #164）：
+  `bbc60fe2889c98d7883763d5dae057b257975321`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`f41592d9bf1139488af5c4fb3597d9283f5bd929`（PR #162 merge commit，2026-07-28T09:35:49Z）。
-- 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）；其變更已納入正式基線。
+- 正式基線：`origin/main`＝`bbc60fe2889c98d7883763d5dae057b257975321`（PR #164 merge commit，2026-07-28T10:25:58Z）。
+- 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）、011C `feat/ur-todo-011c-cash-flow-clec-terminology`（PR #164）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- PR #162：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/162)；本次 Merge 後治理同步使用獨立純文件 Draft PR，未經使用者確認不得自行 Merge。
+- PR #164：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/164)；本次 Merge 後治理同步使用獨立純文件 Draft PR，未經使用者確認不得自行 Merge。
 
 固定 stash：
 
@@ -37,7 +37,7 @@
 
 ### GitHub Pages
 
-- 最新正式成功部署 Workflow：`30347257970`（`Deploy GitHub Pages`，success，`event: push`，headSha `f41592d9bf1139488af5c4fb3597d9283f5bd929`，即 PR #162 merge commit，本次以 `gh run list` 實際查詢確認）。
+- 最新正式成功部署 Workflow：`30350731155`（`Deploy GitHub Pages`，success，`event: push`，headSha `bbc60fe2889c98d7883763d5dae057b257975321`，即 PR #164 merge commit，本次以 `gh run list` 實際查詢確認）。
 - Production：`https://hyc640110.github.io/family-universal-rebalance/` HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 完整收尾盤點確認 PR #150、#152、#154、#156 與 #157 的功能、測試、Preview、Production 與治理條件均已閉環。
 - 前一筆記錄（PR #145 Merge 後）：Workflow `30212166683`（`Deploy GitHub Pages`，success，headSha `5aa1d9e`）。Production HTTP 200，`environment=production`；首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」，資料同步提醒僅為次要資訊。分析頁不顯示完整 `todayDecision`；是否承接完整決策保留為後續產品決策。
 
