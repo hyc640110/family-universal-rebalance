@@ -4,6 +4,8 @@
 
 本次更新依據：**PR #157**（UR-TODO-010 Sprint 5 子 PR2C Merge 後治理同步）已由使用者手動 Merge，merge commit `e6642326d1aaf286b1ac86796afc11495d112149`，`mergedAt: 2026-07-28T01:41:42Z`；`Deploy GitHub Pages` run `30321000360` 為 `success`（`event: push`、`headSha` 與 merge commit 完全一致）。Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 完整收尾盤點已通過，現正式標記為**已完成**；下一候選為 UR-TODO-011，但尚未授權啟動。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
+2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**，本項不改變其範圍或啟動順序。
+
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）與 **Sprint 5（UR-TODO-010）已完成**。
