@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T17:54:39.224034+00:00
+Generated UTC: 2026-07-28T18:02:39.912120+00:00
 
 ## Manifest
 
@@ -11,8 +11,8 @@ Generated UTC: 2026-07-28T17:54:39.224034+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `003_CURRENT_STATUS.md` — SHA-256 `3332815fc7719cce161ab42981c0bfc86a3b3874bab7d1779eddb02ad071e6dd`
-- `008_TODO_BACKLOG.md` — SHA-256 `9b8c6af9cbe520027a78e4f768585ac0a2f5fefb5aa582fefe9a80ef1ccb2eba`
-- `012_AI_HANDOVER.md` — SHA-256 `3b1024edfc87d1bac1e15c4e5b129395dafc250f0174216aa81928ca64d9a40a`
+- `008_TODO_BACKLOG.md` — SHA-256 `d2c526c1986ca4f431891035819d54147bff37da116e2b6781cd721b5c23a8fe`
+- `012_AI_HANDOVER.md` — SHA-256 `3d028910856fa72108419de789e5975048ffebf2a4d3df90b58a500a61f844a1`
 
 ---
 
@@ -863,9 +863,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.30
+# Universal Rebalance Todo Backlog v1.31
 
 最後更新：2026-07-29
+
+2026-07-29 補充確認：**UR-TODO-030 首頁「30 秒決策中心」改版方向為既有產品決策，本次唯讀再次確認仍完整保留**（詳見下方 UR-TODO-030 條目 2026-07-29 補充段落）——首頁未來應只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。本次**未修改任何首頁 UI**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍，**與 UR-TODO-043-C2 無關**，不得因 043-C2 而順便處理。
 
 2026-07-29 治理文件同步（PR #176／#177 基線同步，Review Mode／純治理文件同步，於隔離 worktree `family-universal-rebalance-bundle-sync` 執行）：**PR #176**（「docs: record UR-TODO-043-C1 normalization audit」）已由使用者手動 Merge，merge commit `272cd4a9ccff0c2def7bf0c73afbdbdf89363d58`，`mergedAt: 2026-07-28T16:49:20Z`，正式記錄下方 UR-TODO-043-C1 條目的唯讀盤點結論並重新產生 Bundle；下方原文「本治理同步 PR 待 Merge」已過期，更正為已合併，**UR-TODO-043-C1 結論內容本身不變**。**PR #177**（「fix: move cash flow save actions below expenses」）已由使用者手動 Merge，merge commit `c8b6c95a60a7d3c60e4eb85b7d9889427dc30d5d`，`mergedAt: 2026-07-28T17:21:20Z`，僅將收支與現金流中心「儲存現金流設定」「清空設定」移到固定支出清單下方，未修改 `cashFlowProfile` schema、`liquidityRole`、`linkedLoanId`、Household Liquidity 公式，與 UR-TODO-043 無耦合，唯讀盤點確認未改動任何現行 UR-TODO 狀態。**UR-TODO-043 整體維持 P2／待盤點，043-A、043-C1 已完成，下一候選仍為 043-C2**，未經使用者明確下達「開始開發」不得建立功能 Branch 或開始實作。
 
@@ -1528,16 +1530,18 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 **2026-07-26 補充（首頁改版方向討論記錄，僅記錄輸入，不在本次處理，狀態維持「待盤點」）：**
 
 - 補充來源：使用者與 ChatGPT 討論記錄（2026-07-26）。
-- 診斷：首頁目前較像資訊展示頁，而非使用者實際進入點（使用者主要使用「資產」「分析」頁）。
-- 建議方向：首頁重新定位為「30 秒決策中心」，只回答「今天需不需要做什麼」，若無事則只顯示單一狀態列（例如「今天無需任何操作」）。
+- 診斷：首頁目前較像資訊展示頁，而非使用者實際進入點（使用者主要使用「資產」「分析」頁）；**使用者已明確表示很少查看目前首頁的大量資訊**。
+- 建議方向：首頁重新定位為「**30 秒決策中心**」，只回答「今天是否需要做什麼」，若無事則只顯示單一狀態列（例如「今天無需任何操作」）。
 - 建議保留內容：
   1. 今日是否需操作（單一卡片，僅顯示需要處理的事項）
-  2. 資產總覽（總資產／今日增減／總報酬率，不含細節）
+  2. 精簡資產總覽（總資產／今日增減／總報酬率，不含細節）
   3. 更新狀態（最後更新時間、是否今日報價，佔用空間需精簡）
 - 「今日投資狀態」處理方向（兩個選項，尚未拍板）：
   - 方案 A（建議）：移到「分析」頁，首頁僅留一行摘要並可點擊查看。
   - 方案 B：預設收合，感興趣再展開。
 - 此為 Sprint 6／UR-TODO-011（Cross-Module Presentation Consistency）階段的呈現層輸入，**非本次或 UR-TODO-009 範圍**，UR-TODO-009 開發時不得因此擴大或美化「今日投資狀態」現有版面。
+
+**2026-07-29 再次確認（PR #176／#177 治理同步之後的既有產品決策保留確認，本次不修改首頁 UI）：** 上述「30 秒決策中心」方向、只回答「今天是否需要做什麼」、三項建議保留內容、使用者很少查看目前首頁大量資訊、以及「今日投資狀態」兩個未拍板處理選項，**均為既有結論，本次唯讀確認仍完整有效、原文未被覆蓋或稀釋**。此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍，狀態維持「待盤點」；**與同時期進行的 UR-TODO-043-C2（純 `netWorthSnapshotNormalization` 契約）完全無關，不得因 043-C2 開發而順便處理首頁簡化，也不得反過來因首頁簡化規劃而擴大 043-C2 範圍。**
 
 ### UR-TODO-031 投資健康度安全存量命名與說明
 - 優先級：P1
@@ -1769,6 +1773,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 - **Claude Code（有 Repository 存取權）角色**：先唯讀確認最新 Git 基線（`origin/main`、固定 stash、Open PR）；只依 Claude Home 核准的範圍執行 043-C2；**不得自行擴大到 043-C3、043-C4 或 043-B**，不得自行 Merge 或部署 Production。
 - 固定保護：不得操作固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；額外非固定 stash `9e9aa0c999cf3b97d034db786e4307eaec35e6b2`（其他工作階段草稿）僅可唯讀盤點，不得操作。原分支 `docs/ur-todo-010-011-spec-filename-fix` 所在的舊 dirty worktree（含未提交的 `CLAUDE.md`、Lite Bundle 差異與未追蹤 `Lite-1.md`）**完全保留、不得修改、刪除、reset、checkout、clean、stash、commit 或搬移**；本次治理同步全程於獨立隔離 worktree `family-universal-rebalance-bundle-sync` 進行，未帶入任何殘留修改。
 - 下一位 Claude／AI 的直接起點：先唯讀確認上述正式基線、working tree、Open PR 與固定 stash；待使用者明確說「開始開發」後，只建立 **043-C2** branch，先寫純契約測試再建立 helper。
+- **既有產品決策保留提醒（與 043-C2 無關，本次未修改）**：使用者已明確要求未來縮減首頁資訊，首頁應重新定位為「**30 秒決策中心**」，只回答「今天是否需要做什麼」；建議保留今日是否需操作、精簡資產總覽、更新狀態三項；使用者已明確表示很少查看目前首頁大量資訊；「今日投資狀態」未來可評估移到分析頁或首頁僅留一行摘要＋查看入口。完整內容見 `008_TODO_BACKLOG.md` UR-TODO-030。此項**仍屬 Dashboard UX／UR-TODO-030 待盤點範圍**，本次治理同步未修改任何首頁 UI，**不得因 043-C2 開發而順便處理，也不得反過來擴大 043-C2 範圍**。Claude Home 規劃時應知悉此既有決策方向，但不得未經使用者明確「開始開發」授權就自行啟動。
 
 ---
 
