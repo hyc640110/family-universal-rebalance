@@ -275,21 +275,14 @@
 
 ## 6. 目前 Sprint
 
-**UR-TODO-010 Sprint 5 已啟動，子 PR1、子 PR2A 已合併並通過 Production 驗證；目前沒有進行中的產品開發 Branch 或 Draft PR。** 下一直接起點僅為子 PR2B 唯讀範圍確認；PR2B／PR2C 均未授權，下一位 AI 不得自行開始。安全現金 checkbox 保留給獨立子 PR2C；UR-TODO-011 的名稱一致性輸入已記錄，但仍待獨立規劃。
+**目前沒有進行中的產品開發 Branch 或 Draft PR。** 家庭流動性資料關聯與診斷修正的子 PR 1（#167）、子 PR 2（#169）與子 PR 3（#171）均已合併；PR #171 merge commit 為 `778767036853bbbab0da7ba64f3df4887c6c0d70`，Deploy GitHub Pages run `30372749694` 為 success。整體 Sprint 的唯一 Remaining Boundary 是：在不修改使用者 Production 本機資料的前提下，仍未能以代表性 diagnostics 資料完成三個正式頁面的 Production 互動驗收，狀態為**待盤點**。不得因此自行啟動其他 Todo。
 
-- Sprint／版本名稱：Sprint 5 — CLEC & Simulator Funding Semantics
-- 對應 Todo ID：UR-TODO-010
-- 目標：子 PR1 完成 CLEC 四個 funding fields 接線；子 PR2A 完成 Simulator funding 純模型與契約測試。
-- 開發範圍：子 PR1、子 PR2A 已完成；子 PR2B 僅可進行唯讀範圍確認，子 PR2C（安全現金 checkbox）尚未授權。
-- 明確不包含：核心策略／文案、Simulator UI、核心公式、schema、localStorage、Firebase、JSON Backup。
-- Branch：`feat/ur-todo-010-simulator-funding-pr2a`（已合併）
-- PR：#152（MERGED）
-- PR 狀態：
-  - [ ] 尚未建立
-  - [ ] Draft
-  - [ ] Ready for review
-  - [x] Merged
-  - [ ] Closed
+- Sprint：家庭流動性資料關聯與診斷修正（子 PR 1～3）
+- 子 PR 1：#167（診斷契約與 characterization tests，已完成）
+- 子 PR 2：#169（Cash Flow `liquidityRole`／`linkedLoanId` UI 與持久化，已完成）
+- 子 PR 3：#171（Analytics／Risk Center／AI Decision diagnostics consumer 呈現，已完成）
+- 正式基線：`778767036853bbbab0da7ba64f3df4887c6c0d70`
+- 不得誤標完成：UR-TODO-043、首頁縮減、資產頁股價更新明細收合、淨資產歷史收合皆不屬本 Sprint，仍未完成。
 
 ---
 
@@ -311,7 +304,8 @@
 
 ## 8. 尚未完成工作
 
-- UR-TODO-010 子 PR2A 已完成；下一直接起點為子 PR2B 唯讀範圍確認，不得自行開始開發。安全現金 checkbox 保留給獨立子 PR2C，亦不得自行授權或啟動。未完成事項請以 `008_TODO_BACKLOG.md` 為準。UR-TODO-011 名稱一致性為已記錄的後續輸入，但不得因此自行啟動。
+- 家庭流動性資料關聯與診斷修正：唯一 Remaining Boundary 為 Production 代表性 diagnostics 資料的唯讀互動驗收，狀態待盤點；不得把此驗收缺口改寫為核心公式、adapter 或 UI 擴充工作。
+- 下一個建議 Todo：UR-TODO-043，僅可先進行 Review Mode 的快照資料流唯讀盤點。未經使用者明確指示，不得建立 Branch 或開始開發。
 
 ---
 
@@ -381,7 +375,7 @@
 
 ### 下一步
 
-- 無強制下一步。建議候選（依優先級）：UR-TODO-001 Firebase Security Rules 到期唯讀盤點（P0）、UR-TODO-037 延後範圍（GitHub Environment／Branch Protection／預設分支）、Household Liquidity Sprint 3（UR-TODO-008）。
+- 無強制下一步。先完成家庭流動性資料關聯與診斷修正的 Production 代表性 diagnostics 資料唯讀驗收；其後建議候選為 UR-TODO-043 的 Review Mode 快照資料流盤點。UR-TODO-043、首頁縮減與兩個收合 UI 均不得自行開始。
 - 一律先以 Review Mode 完成唯讀初始化，待使用者明確指示後才進入 Development Mode，不得自行選擇並開始下一個 Sprint。
 
 ---
