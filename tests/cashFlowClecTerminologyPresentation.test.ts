@@ -7,6 +7,7 @@ import CashFlowPage from '../src/pages/CashFlowPage';
 import ClecStrategyCenterPage from '../src/pages/ClecStrategyCenterPage';
 import type { ClecStrategyCenterResult } from '../src/lib/clecStrategy';
 import type { ClecRuleOutput } from '../src/lib/clecStrategyRules';
+import type { CashFlowProfile } from '../src/lib/cashFlow';
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -40,4 +41,40 @@ test('避免重新出現計畫投入或計畫提款：Cash Flow 與 CLEC 應以�
   assert.match(clec, /<dt>預計提領資金<\/dt>/);
   assert.match(clec, /額外投入資金為本次計畫增加的資金；預計提領資金會先從可用資金扣除。/);
   assert.doesNotMatch(clec, /計畫投入|計畫提款/);
+});
+
+test('固定支出角色欄位提供既有契約選項，並保留失效借款連結供使用者重新選擇', () => {
+  const profile: CashFlowProfile = {
+    schemaVersion: 3,
+    monthlyIncome: null,
+    fixedExpenses: [
+      { id: 'unassigned', name: '水電', amount: 500, category: 'utilities', enabled: true },
+      { id: 'missing-link', name: '房貸', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment' },
+      { id: 'orphan-link', name: '已失效房貸', amount: 2_000, category: 'loan', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'removed-loan' },
+      { id: 'ambiguous', name: '待確認支出', amount: 1_000, category: 'other', enabled: true, liquidityRole: 'ambiguous' }
+    ],
+    variableExpenseBudget: null,
+    monthlyInvestmentBudget: null,
+    emergencyFundTargetMonths: 6
+  };
+
+  const cashFlow = render(createElement(CashFlowPage, {
+    profile,
+    currentCash: null,
+    loans: [{ id: 'loan-1', name: '房屋貸款' }, { id: '  ', name: '不可選' }],
+    onSave: () => undefined
+  }));
+
+  assert.match(cashFlow, /家庭流動性角色/);
+  assert.match(cashFlow, /尚未指定／待確認/);
+  assert.match(cashFlow, /生活必要支出/);
+  assert.match(cashFlow, /借款還款/);
+  assert.match(cashFlow, /不納入家庭流動性/);
+  assert.doesNotMatch(cashFlow, />ambiguous</);
+  assert.match(cashFlow, /選擇借款/);
+  assert.match(cashFlow, /房屋貸款/);
+  assert.doesNotMatch(cashFlow, /不可選/);
+  assert.match(cashFlow, /尚未選擇借款，請先選擇對應的借款資料。/);
+  assert.match(cashFlow, /原連結借款已不存在／待重新選擇/);
+  assert.match(cashFlow, /removed-loan/);
 });

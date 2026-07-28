@@ -2043,7 +2043,7 @@ function App() {
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} fundingInput={{ totalLiquidCash: householdLiquidityForRebalance.totalLiquidCash, protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash, externalContribution: state.cashFlowProfile?.externalContribution, plannedWithdrawal: state.cashFlowProfile?.plannedWithdrawal }} />}
       {isRiskCenter && <RiskCenterPage input={riskInput} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
-      {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
+      {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} loans={state.loans.map(({ id, name }) => ({ id, name }))} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={dividendCenterHoldings} transactions={dividendCenterTransactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} />}
