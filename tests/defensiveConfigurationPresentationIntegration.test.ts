@@ -12,6 +12,8 @@ test('Analytics 防守配置狀態只接既有防守、Household Liquidity 與�
   assert.match(app, /deriveDefensiveConfigurationPresentation\(\{[\s\S]*defensiveTotalRatio: m\.defensiveRatio,[\s\S]*protectedSafetyCash: householdLiquidityForRebalance\.protectedSafetyCash,[\s\S]*defensiveHoldingsRatio: m\.totalAssets > 0 \? m\.defensiveHoldingsValue \/ m\.totalAssets \* 100 : null,[\s\S]*investableCash: householdLiquidityForRebalance\.investableCash,[\s\S]*theoreticalDefensiveConfigurationShortfall: null,[\s\S]*safetyCashShortfall: householdLiquidityForRebalance\.safetyCashShortfall,[\s\S]*executionMethod: rb\.mode,[\s\S]*canExecute: householdLiquidityForRebalance\.canExecuteBuy,[\s\S]*blockingReasons: householdLiquidityForRebalance\.blockingReasons[\s\S]*\}/);
   assert.match(app, /<DefensiveConfigurationStatusCard presentation=\{defensiveConfigurationPresentation\} \/>/);
   assert.doesNotMatch(app, /theoreticalDefensiveConfigurationShortfall:\s*(?:m\.|rb\.|Math\.|[\d])/);
+  const analyticsTradeSection = app.slice(app.indexOf('id="analytics-trade-section"'), app.indexOf('id="dip-analysis-section"'));
+  assert.doesNotMatch(analyticsTradeSection, /<DefensiveReminderCard/);
 });
 
 test('防守配置狀態保留 explicit zero、unavailable 與上游 blocking 原因', () => {
