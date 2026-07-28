@@ -1,7 +1,10 @@
 import type { DefensiveConfigurationPresentation, DefensiveConfigurationPresentationValue } from '../lib/defensiveConfigurationPresentation';
+import type { HouseholdLiquidityDiagnosticPresentation } from '../lib/householdLiquidityDiagnosticPresentation';
+import HouseholdLiquidityDiagnosticList from './HouseholdLiquidityDiagnosticList';
 
 type Props = {
   presentation: DefensiveConfigurationPresentation;
+  diagnostics: HouseholdLiquidityDiagnosticPresentation;
 };
 
 const money = (value: DefensiveConfigurationPresentationValue) => value.status === 'known' && value.value !== null
@@ -18,7 +21,7 @@ const methodLabel = (method: DefensiveConfigurationPresentation['execution']['me
   return '資料不足';
 };
 
-export default function DefensiveConfigurationStatusCard({ presentation }: Props) {
+export default function DefensiveConfigurationStatusCard({ presentation, diagnostics }: Props) {
   const { execution, theory } = presentation;
 
   return <section className="defensive-configuration-card" aria-label="防守配置狀態">
@@ -49,5 +52,6 @@ export default function DefensiveConfigurationStatusCard({ presentation }: Props
       <strong>阻擋原因</strong>
       <ul>{execution.blockingReasons.map(reason => <li key={reason.code}><b>{reason.code}</b><span>{reason.message}</span></li>)}</ul>
     </aside>}
+    <HouseholdLiquidityDiagnosticList title="待補齊的家庭流動性資料" presentation={diagnostics} />
   </section>;
 }
