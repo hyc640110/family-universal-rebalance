@@ -11,7 +11,8 @@ import { calculatePortfolioPerformance } from '../src/lib/performanceMetrics';
 import { canonicalSyncPayload } from '../src/lib/syncState';
 
 // Characterization only: these assertions preserve observed behavior for UR-TODO-043-A.
-// They do not declare the current local-timezone or numeric-coercion behavior as the desired contract.
+// Do not treat the current local-timezone or numeric-coercion behavior as the desired contract.
+// Pending product decision: the date and normalization contracts remain intentionally unresolved.
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const fields = ['totalAssets', 'netWorth', 'investmentValue', 'cash', 'debt'] as const;
 const snapshot = (date: string, values: Partial<Omit<NetWorthSnapshot, 'date'>> = {}): NetWorthSnapshot => ({
