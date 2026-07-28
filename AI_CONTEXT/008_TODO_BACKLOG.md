@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.28
+# Universal Rebalance Todo Backlog v1.29
 
 最後更新：2026-07-29
+
+2026-07-29 **UR-TODO-043-C1 快照無效值與跨 consumer 正規化契約唯讀盤點**已完成（本治理同步 PR 待 Merge）。已確認 `src/lib/netWorthHistory.ts` 的 `normalizeNetWorthHistory` 對 `totalAssets`、`netWorth`、`investmentValue`、`cash`、`debt` 使用寬鬆 `Number(...)` 轉換並將 undefined、null、空白、不可解析、NaN、Infinity、-Infinity 轉為 `0`；負數與明確 `0` 保留。`src/lib/investmentPerformanceHistory.ts` 的 `normalizeInvestmentPerformanceHistory` 只接受正確曆日格式與五個完整有限 number 欄位，否則排除整筆。AppState 在 localStorage 讀取／寫入、Firebase 下載、JSON Backup 匯入及 state 更新均先走前者，因此原始 missing／invalid 可在 consumer 前永久失去語意。C1 僅盤點與執行既有 15/15 characterization tests，未修改 Production 程式、日期、schema、migration、UI 或 expectation。**UR-TODO-043 整體維持 P2／待盤點，C1 不代表 Todo 完成。**
 
 2026-07-29 **UR-TODO-043-A Characterization Tests** 已由使用者手動 Merge，[PR #174](https://github.com/hyc640110/family-universal-rebalance/pull/174) 為 **MERGED**（merge commit `9ac2cef82bad3a0a793f0db971d604c2b3e79463`，`mergedAt: 2026-07-28T16:22:11Z`）；Deploy GitHub Pages workflow run `30377915466` 成功，headSha 一致。範圍只新增 characterization tests，未修改 Production 程式、日期契約、schema、migration、UI、Dashboard、Analytics、AI Decision、Rebalance、相依套件或 `package-lock.json`。測試鎖定三項現況風險：日期鍵受執行時區影響、同日快照依陣列最後一筆而非 timestamp 選取、淨資產歷史將無效值轉 0 而 Analytics 嚴格排除。**這些結果不代表理想契約，也不構成公式錯誤的結論。UR-TODO-043 整體維持 P2／待盤點。**建議下一步為 043-C Review Mode 的跨 consumer 正規化與相容性盤點，043-B 日期產品契約決策排在其後。
 
@@ -762,6 +764,13 @@
   - 已重現：相同 timestamp 在不同執行時區可能產生不同日期鍵；同日快照結果跟隨陣列順序；淨資產歷史可能將無效值轉為 0，Analytics 則嚴格排除，形成跨頁分歧。
   - 未修改任何 Production 行為；所有測試均標記為 Characterization only、Do not treat as desired contract、Pending product decision。
 
+- 043-C1 已完成（Review Mode，治理同步待 Merge）：
+  - 寬鬆入口：`normalizeState` 在 AppState 初始載入、`setState`、localStorage 回寫、Firebase download 與 JSON Backup import 呼叫 `normalizeNetWorthHistory`；Firebase canonical payload 本身只做 JSON canonicalization，未保存原始無效值語意。
+  - consumer：淨資產歷史與 Dashboard `deriveHistoryStats` 使用寬鬆歷史；Analytics 日曆、趨勢與月／年統計、AI 最大回撤使用 `normalizeInvestmentPerformanceHistory`，但接收的 App history 已先被寬鬆 normalizer 改寫；Rebalance 不接收 `netWorthHistory`。
+  - C2 候選：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；不接 App／storage／Firebase／Backup／UI 或正式 consumer，不改日期及同日規則。
+  - C3 候選：另行授權後才逐頁改由同一結果接線，涵蓋 AppState、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
+  - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。現況不應把既有 `0` 回推為 missing，故尚未證實 migration 必要。
+
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
   2. 休市日快照的建立時機與觸發來源。
@@ -789,8 +798,8 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **下一候選：043-C Review Mode**，唯讀界定跨 consumer 正規化、無效值語意、既有資料相容性與測試範圍；未經授權不得開始開發。
-  - **其後：043-B**，在 043-C 盤點結果可用後，再進行日期／時區產品契約決策；不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **下一候選：043-C2**，建立不接正式 consumer 的共用純正規化契約、型別與測試；未經「開始開發」不得建立功能 Branch 或實作。
+  - **其後：043-C3**，逐頁接線與跨 consumer 一致性；**043-C4** 僅在相容性實證需要時處理 migration／legacy。043-B 日期／時區產品契約決策排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
 ### UR-TODO-012 Rebalance Scenario Simulator
