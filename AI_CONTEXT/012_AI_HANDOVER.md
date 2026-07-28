@@ -110,15 +110,23 @@
 
 # 目前交接快照
 
-> **2026-07-28 UR-TODO-011 子 PR 011A 已合併：正式基線 `origin/main`＝PR #160 merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`；Deploy GitHub Pages run `30343104980` 成功，Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A 已完成。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 UR-TODO-011 子 PR 011B 已合併：正式基線 `origin/main`＝PR #162 merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`；CI Verification run `30346082086` 與 Deploy GitHub Pages run `30347257970` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A、011B 已完成。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
 
 ## UR-TODO-011 子 PR 011A 合併快照
 
 - PR／基線：[PR #160](https://github.com/hyc640110/family-universal-rebalance/pull/160) **MERGED**，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`，`mergedAt: 2026-07-28T08:36:58Z`；CI Verification run `30342857661` 與 Deploy GitHub Pages run `30343104980` 均成功，後者 headSha 一致。
 - 已完成範圍：新增純 `deriveDefensiveConfigurationPresentation`，只映射既有上游的防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因。明確 0 維持已知；`null`／`NaN`／`Infinity` 維持 unavailable；不重算或放寬財務／執行資格。
-- Remaining Boundaries：防守配置理論缺口目前沒有既有權威來源時必須維持 unavailable，不得在 011B UI 或其他消費端自行推算。011B 僅可在本治理 PR Merge 後、使用者明確指示下先進行唯讀範圍確認；UI、`App.tsx`、Household Liquidity／Rebalance 公式、持久化、Firebase、Backup 均未開始。
+- Remaining Boundaries：防守配置理論缺口目前沒有既有權威來源時必須維持 unavailable，不得在 011B UI 或其他消費端自行推算。011B 已承接 Analytics UI，但未改 Household Liquidity／Rebalance 公式、持久化、Firebase 或 Backup。
 - ADR：無。
 - Knowledge Delta：UR-TODO-011 已由「待開發」轉為「開發中／子 PR 011A 已完成」，並建立可保留 unavailable／explicit zero 與理論／執行分層的純呈現契約。
+
+## UR-TODO-011 子 PR 011B 合併快照
+
+- PR／基線：[PR #162](https://github.com/hyc640110/family-universal-rebalance/pull/162) **MERGED**，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`，`mergedAt: 2026-07-28T09:35:49Z`；CI Verification run `30346082086` 與 Deploy GitHub Pages run `30347257970` 均成功，後者 headSha 一致。
+- 已完成範圍：Analytics 風險頁新增單一唯讀「防守配置狀態」卡片，直接消費 011A 的 `deriveDefensiveConfigurationPresentation` 結果。卡片保留明確 0、資料不足、理論缺口 unavailable 與文字化 blocking reason；Analytics 中重複的「防守資產補足提醒」已移除。桌機與約 390px Preview 驗收通過，無水平溢出或文字截斷。
+- Remaining Boundaries：011C 才處理 Cash Flow／CLEC 的「額外投入資金／預計提領資金」名稱一致；不得修改 CLEC 核心策略、Cash Flow 儲存流程、Simulator、Dashboard、UR-TODO-043、DipFundingSummary、財務公式或任何持久化契約。
+- ADR：無。
+- Knowledge Delta：UR-TODO-011 已由「011A 純呈現契約完成」推進為「011A、011B 已完成；Analytics 使用單一防守配置狀態呈現」。
 
 ## UR-TODO-043 建立快照
 

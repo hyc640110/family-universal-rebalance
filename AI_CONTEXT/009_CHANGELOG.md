@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+**UR-TODO-011 子 PR 011B（Analytics 防守配置狀態卡）已完成**：PR #162 已 Merge，Analytics 風險頁改以 011A 的既有 presentation contract 顯示單一「防守配置狀態」卡片，涵蓋防守比例、安全現金、防守型持股、可投資現金、理論／安全現金缺口、可執行方式與阻擋原因；原本重複的「防守資產補足提醒」已從 Analytics 移除。未重算財務公式、未修改持久化，明確 0、unavailable 與 blocking reason 均維持既有契約。Preview 桌機與約 390px 手機驗收通過；Deploy GitHub Pages run `30347257970` 成功，Production／Preview 均完成唯讀驗證。
+
 **UR-TODO-011 子 PR 011A（防守配置呈現契約）已完成**：PR #160 已 Merge，新增純 `deriveDefensiveConfigurationPresentation` 與專屬測試，讓後續 UI 可使用一致的防守比例、受保護安全現金、防守型持股、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因呈現模型；不重算財務公式、不接 UI 或持久化。`null`／無效數值維持 unavailable，明確 0 保持已知，理論缺口未有既有權威來源時不自行推算。
 
 **UR-TODO-009（Risk & Decision Workflow Integration）全數完成**：子 PR 1～7 皆已由使用者手動 Merge 並通過 Production 驗證，詳見 `008_TODO_BACKLOG.md` UR-TODO-009 逐條記錄。

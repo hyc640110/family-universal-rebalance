@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T08:43:58.826410+00:00
+Generated UTC: 2026-07-28T09:42:30.757840+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-07-28T08:43:58.826410+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `2bc59977ff51d15fb92c539a662873a8046bb44937bb973dc2f8a451fd3b9d7d`
+- `003_CURRENT_STATUS.md` — SHA-256 `3b88e9700dbc7f728b3a75e62cebd5fe9d2f0a4579b85a8ef75b2333d18b5d56`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `eba598a6aec00eac2314800bf2ceb9ddb3f2cbdf19806dcc3c95c087e4115c68`
-- `008_TODO_BACKLOG.md` — SHA-256 `9948a070f5bd7843d431a4a2e0177922691db5debb5d3fea1375c8ebb3d7f486`
-- `009_CHANGELOG.md` — SHA-256 `656533dbc945143d12ebc298fedb94549c479817bcd26b9c27f36ac40727113e`
+- `008_TODO_BACKLOG.md` — SHA-256 `432c38542819d1e5022bd7b4fec86a683f9c76f1743d79092bac09a336e4a3db`
+- `009_CHANGELOG.md` — SHA-256 `ab0bb73c57f0343051747f10b18d5fee37722a87067feea0cd8e1f6904b74757`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `fe4745ca3496bb483bf121b245616e128381eb966b7bf1815e70614ade27541c`
+- `012_AI_HANDOVER.md` — SHA-256 `2c53986ec2a7c3392cdc063de1d09a34bb72eb9f9e23b2c1a4ce4acc715bf195`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -658,33 +658,33 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.35
+# Universal Rebalance Current Status v3.36
 
 最後更新：2026-07-28
 
-本次更新依據：**PR #160**（UR-TODO-011A 防守配置呈現契約）已由使用者手動 Merge，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`，`mergedAt: 2026-07-28T08:36:58Z`；`Deploy GitHub Pages` run `30343104980` 為 `success`（`event: push`、`headSha` 與 merge commit 完全一致）。Production 與 Preview Pages 均 HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-011 現為目前主線，已完成子 PR 011A；下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+本次更新依據：**PR #162**（UR-TODO-011B Analytics 防守配置狀態卡）已由使用者手動 Merge，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`，`mergedAt: 2026-07-28T09:35:49Z`；CI Verification run `30346082086` 與 `Deploy GitHub Pages` run `30347257970` 均為 `success`，後者為 `event: push` 且 `headSha` 與 merge commit 完全一致。Production 與 Preview Pages 均 HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-011 現為目前主線，已完成子 PR 011A、011B；下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
 
-2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**；其子 PR 011A 已完成純防守配置呈現契約與測試，尚未開始 UI 或後續子 PR。
+2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**；其子 PR 011A 已完成純防守配置呈現契約與測試，011B 已完成 Analytics 唯讀卡片與舊提醒替換。下一直接起點為 011C 的範圍確認與獨立開發，須先完成本治理 PR Merge。
 
 ## 1. 最新正式版本
 
-- 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）與 Sprint 5（UR-TODO-010）已完成；**Sprint 6（UR-TODO-011）進行中，子 PR 011A 已完成**。
+- 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）與 Sprint 5（UR-TODO-010）已完成；**Sprint 6（UR-TODO-011）進行中，子 PR 011A、011B 已完成**。
 - 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6。
-- PR：**#160**（MERGED，UR-TODO-011A 防守配置呈現契約）為目前 `origin/main` 最新 Merge。
+- PR：**#162**（MERGED，UR-TODO-011B Analytics 防守配置狀態卡）為目前 `origin/main` 最新 Merge。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
-- 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 開發中／子 PR 011A 已完成**。011A 僅新增純 presentation contract 與測試，未接 UI、未改財務公式或持久化；下一步須待本治理 PR Merge 後由使用者明確授權。
-- 最新 merge commit（PR #160）：
-  `47f01f81f484003fb9bfccc89de12d294071d1bb`
+- 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 開發中／子 PR 011A、011B 已完成**。011B 已在 Analytics 風險頁呈現唯讀「防守配置狀態」卡片，移除重複舊提醒；未改財務公式、持久化或其他模組。下一步須待本治理 PR Merge 後進入 011C。
+- 最新 merge commit（PR #162）：
+  `f41592d9bf1139488af5c4fb3597d9283f5bd929`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`47f01f81f484003fb9bfccc89de12d294071d1bb`（PR #160 merge commit，2026-07-28T08:36:58Z）。
-- 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）；其變更已納入正式基線。
+- 正式基線：`origin/main`＝`f41592d9bf1139488af5c4fb3597d9283f5bd929`（PR #162 merge commit，2026-07-28T09:35:49Z）。
+- 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
-- PR #160：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/160)；本次 Merge 後治理同步使用獨立純文件 Draft PR，未經使用者確認不得自行 Merge。
+- PR #162：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/162)；本次 Merge 後治理同步使用獨立純文件 Draft PR，未經使用者確認不得自行 Merge。
 
 固定 stash：
 
@@ -697,7 +697,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 ### GitHub Pages
 
-- 最新正式成功部署 Workflow：`30321000360`（`Deploy GitHub Pages`，success，`event: push`，headSha `e6642326d1aaf286b1ac86796afc11495d112149`，即 PR #157 merge commit，本次以 `gh run list` 實際查詢確認）。
+- 最新正式成功部署 Workflow：`30347257970`（`Deploy GitHub Pages`，success，`event: push`，headSha `f41592d9bf1139488af5c4fb3597d9283f5bd929`，即 PR #162 merge commit，本次以 `gh run list` 實際查詢確認）。
 - Production：`https://hyc640110.github.io/family-universal-rebalance/` HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 完整收尾盤點確認 PR #150、#152、#154、#156 與 #157 的功能、測試、Preview、Production 與治理條件均已閉環。
 - 前一筆記錄（PR #145 Merge 後）：Workflow `30212166683`（`Deploy GitHub Pages`，success，headSha `5aa1d9e`）。Production HTTP 200，`environment=production`；首頁「今日投資狀態」中的「每日投資判斷流程」顯示唯一「今日建議結論」，資料同步提醒僅為次要資訊。分析頁不顯示完整 `todayDecision`；是否承接完整決策保留為後續產品決策。
 
@@ -3125,10 +3125,11 @@ Hotfix 仍需：
 - 詳細規格：`013_HOUSEHOLD_LIQUIDITY_SPEC.md`（現行版本 v4.0）第 19、28、30～32 節
 
 - 優先級：P1
-- 狀態：開發中／子 PR 011A 已完成
+- 狀態：開發中／子 PR 011A、011B 已完成
 - 完成子 PR：
   - **011A／PR #160**（MERGED，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`）：新增純 `deriveDefensiveConfigurationPresentation` presentation contract 與專屬測試，明確呈現防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因。此層只映射既有上游值，不重算財務公式、不將 `null`／`NaN`／`Infinity` 轉為 0；明確數值 0 維持已知。防守配置理論缺口缺少既有權威來源時維持 unavailable，不自行推算。
-- 後續直接起點：待本次 PR #160 Merge 後治理同步完成並由使用者明確授權，才可針對子 PR 011B 進行唯讀範圍確認；不得直接開始 UI 開發。
+  - **011B／PR #162**（MERGED，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`）：Analytics 風險頁新增單一唯讀「防守配置狀態」卡片，使用 011A 的既有 presentation contract 呈現防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因；Analytics 內重複的「防守資產補足提醒」已移除。明確 0、資料不足與 blocking reason 均維持可讀呈現；理論缺口仍維持 unavailable，不自行推算。Preview 桌機與約 390px 手機驗收通過。
+- 後續直接起點：待本次 PR #162 Merge 後治理同步完成，才可從最新 main 建立獨立工作區處理子 PR 011C「Cash Flow／CLEC 名稱一致」；不得擴大至 Dashboard、UR-TODO-043、DipFundingSummary 或財務核心。
 - 後續輸入：收支與現金流中心使用「額外投入資金／預計提領資金」，CLEC 使用「計畫投入／計畫提領」；名稱不完全一致，為 UR-TODO-010 子 PR1 Preview 驗收發現的非阻擋呈現層差異。本項不回溯修改 PR #150，待 UR-TODO-011 獨立規劃。
 - 將「防守資產補足提醒」改為「防守配置狀態」
 - 顯示：
@@ -3518,6 +3519,8 @@ Hotfix 仍需：
 ---
 
 ## [Unreleased]
+
+**UR-TODO-011 子 PR 011B（Analytics 防守配置狀態卡）已完成**：PR #162 已 Merge，Analytics 風險頁改以 011A 的既有 presentation contract 顯示單一「防守配置狀態」卡片，涵蓋防守比例、安全現金、防守型持股、可投資現金、理論／安全現金缺口、可執行方式與阻擋原因；原本重複的「防守資產補足提醒」已從 Analytics 移除。未重算財務公式、未修改持久化，明確 0、unavailable 與 blocking reason 均維持既有契約。Preview 桌機與約 390px 手機驗收通過；Deploy GitHub Pages run `30347257970` 成功，Production／Preview 均完成唯讀驗證。
 
 **UR-TODO-011 子 PR 011A（防守配置呈現契約）已完成**：PR #160 已 Merge，新增純 `deriveDefensiveConfigurationPresentation` 與專屬測試，讓後續 UI 可使用一致的防守比例、受保護安全現金、防守型持股、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因呈現模型；不重算財務公式、不接 UI 或持久化。`null`／無效數值維持 unavailable，明確 0 保持已知，理論缺口未有既有權威來源時不自行推算。
 
@@ -4078,15 +4081,23 @@ interface ServiceResult<T> {
 
 # 目前交接快照
 
-> **2026-07-28 UR-TODO-011 子 PR 011A 已合併：正式基線 `origin/main`＝PR #160 merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`；Deploy GitHub Pages run `30343104980` 成功，Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A 已完成。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 UR-TODO-011 子 PR 011B 已合併：正式基線 `origin/main`＝PR #162 merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`；CI Verification run `30346082086` 與 Deploy GitHub Pages run `30347257970` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A、011B 已完成。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
 
 ## UR-TODO-011 子 PR 011A 合併快照
 
 - PR／基線：[PR #160](https://github.com/hyc640110/family-universal-rebalance/pull/160) **MERGED**，merge commit `47f01f81f484003fb9bfccc89de12d294071d1bb`，`mergedAt: 2026-07-28T08:36:58Z`；CI Verification run `30342857661` 與 Deploy GitHub Pages run `30343104980` 均成功，後者 headSha 一致。
 - 已完成範圍：新增純 `deriveDefensiveConfigurationPresentation`，只映射既有上游的防守總比例、受保護安全現金、防守型持股比例、可投資現金、理論缺口、安全現金缺口、可執行方式與阻擋原因。明確 0 維持已知；`null`／`NaN`／`Infinity` 維持 unavailable；不重算或放寬財務／執行資格。
-- Remaining Boundaries：防守配置理論缺口目前沒有既有權威來源時必須維持 unavailable，不得在 011B UI 或其他消費端自行推算。011B 僅可在本治理 PR Merge 後、使用者明確指示下先進行唯讀範圍確認；UI、`App.tsx`、Household Liquidity／Rebalance 公式、持久化、Firebase、Backup 均未開始。
+- Remaining Boundaries：防守配置理論缺口目前沒有既有權威來源時必須維持 unavailable，不得在 011B UI 或其他消費端自行推算。011B 已承接 Analytics UI，但未改 Household Liquidity／Rebalance 公式、持久化、Firebase 或 Backup。
 - ADR：無。
 - Knowledge Delta：UR-TODO-011 已由「待開發」轉為「開發中／子 PR 011A 已完成」，並建立可保留 unavailable／explicit zero 與理論／執行分層的純呈現契約。
+
+## UR-TODO-011 子 PR 011B 合併快照
+
+- PR／基線：[PR #162](https://github.com/hyc640110/family-universal-rebalance/pull/162) **MERGED**，merge commit `f41592d9bf1139488af5c4fb3597d9283f5bd929`，`mergedAt: 2026-07-28T09:35:49Z`；CI Verification run `30346082086` 與 Deploy GitHub Pages run `30347257970` 均成功，後者 headSha 一致。
+- 已完成範圍：Analytics 風險頁新增單一唯讀「防守配置狀態」卡片，直接消費 011A 的 `deriveDefensiveConfigurationPresentation` 結果。卡片保留明確 0、資料不足、理論缺口 unavailable 與文字化 blocking reason；Analytics 中重複的「防守資產補足提醒」已移除。桌機與約 390px Preview 驗收通過，無水平溢出或文字截斷。
+- Remaining Boundaries：011C 才處理 Cash Flow／CLEC 的「額外投入資金／預計提領資金」名稱一致；不得修改 CLEC 核心策略、Cash Flow 儲存流程、Simulator、Dashboard、UR-TODO-043、DipFundingSummary、財務公式或任何持久化契約。
+- ADR：無。
+- Knowledge Delta：UR-TODO-011 已由「011A 純呈現契約完成」推進為「011A、011B 已完成；Analytics 使用單一防守配置狀態呈現」。
 
 ## UR-TODO-043 建立快照
 
