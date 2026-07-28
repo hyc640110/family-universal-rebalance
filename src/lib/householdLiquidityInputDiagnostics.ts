@@ -1,9 +1,11 @@
 import type { CashFlowProfile } from './cashFlow';
 
 export type HouseholdLiquidityInputDiagnosticCode =
+  | 'CASH_FLOW_PROFILE_MISSING'
   | 'CASH_FLOW_ROLE_UNASSIGNED'
   | 'CASH_FLOW_ROLE_AMBIGUOUS'
   | 'DEBT_PAYMENT_LINK_REQUIRED'
+  | 'LOAN_SOURCE_UNAVAILABLE'
   | 'DEBT_PAYMENT_LINK_ORPHANED'
   | 'EXTERNAL_CONTRIBUTION_UNSET'
   | 'PLANNED_WITHDRAWAL_UNSET';
@@ -29,8 +31,9 @@ export function deriveHouseholdLiquidityInputDiagnostics(
   sources: HouseholdLiquidityInputDiagnosticSources
 ): HouseholdLiquidityInputDiagnostic[] {
   const profile = sources.cashFlowProfile;
-  if (!profile) return [];
+  if (!profile) return [{ code: 'CASH_FLOW_PROFILE_MISSING' }];
 
+  const loansAvailable = Array.isArray(sources.loans);
   const loanIds = new Set((sources.loans ?? []).map(loan => loan.id));
   const diagnostics: HouseholdLiquidityInputDiagnostic[] = [];
 
@@ -43,6 +46,7 @@ export function deriveHouseholdLiquidityInputDiagnostics(
       diagnostics.push({ code: 'CASH_FLOW_ROLE_AMBIGUOUS', sourceId });
     } else if (item.liquidityRole === 'debt-payment') {
       if (!item.linkedLoanId) diagnostics.push({ code: 'DEBT_PAYMENT_LINK_REQUIRED', sourceId });
+      else if (!loansAvailable) diagnostics.push({ code: 'LOAN_SOURCE_UNAVAILABLE', sourceId, loanId: item.linkedLoanId });
       else if (!loanIds.has(item.linkedLoanId)) diagnostics.push({ code: 'DEBT_PAYMENT_LINK_ORPHANED', sourceId, loanId: item.linkedLoanId });
     }
   }

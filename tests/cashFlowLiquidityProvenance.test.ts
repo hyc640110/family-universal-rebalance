@@ -259,3 +259,26 @@ test('30. migration、JSON 與 Firebase canonical round-trip 不改變診斷，�
   assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: firebaseRestored, loans: [{ id: 'loan-1' }] }), expected);
   assert.doesNotMatch(JSON.stringify(original), /CASH_FLOW_ROLE_UNASSIGNED|DEBT_PAYMENT_LINK_REQUIRED|DIAGNOSTIC/);
 });
+
+test('31. null 或 undefined Cash Flow Profile 會回報來源缺失，且不誤當作空白設定', () => {
+  for (const cashFlowProfile of [null, undefined]) {
+    assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [] }), [
+      { code: 'CASH_FLOW_PROFILE_MISSING' }
+    ]);
+  }
+});
+
+test('32. unavailable Loan source 與空 Loan 陣列的 orphan linkage 必須區分', () => {
+  const cashFlowProfile = normalized({ fixedExpenses: [
+    { id: 'debt', name: '房貸', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'loan-1' }
+  ], externalContribution: 0, plannedWithdrawal: 0 });
+
+  for (const loans of [null, undefined]) {
+    assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans }), [
+      { code: 'LOAN_SOURCE_UNAVAILABLE', sourceId: 'cash-flow:debt', loanId: 'loan-1' }
+    ]);
+  }
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [] }), [
+    { code: 'DEBT_PAYMENT_LINK_ORPHANED', sourceId: 'cash-flow:debt', loanId: 'loan-1' }
+  ]);
+});
