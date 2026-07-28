@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T05:25:09.952352+00:00
+Generated UTC: 2026-07-28T08:08:19.860618+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `ac11b6f399f650d579b9b12105f052692cfd2a09d571f9fec505a565ec612251`
-- `008_TODO_BACKLOG.md` — SHA-256 `7f0d0f56621d1dca7a583e68eef62b6419aa00034f1b245b5ec838e1a2db57ba`
-- `012_AI_HANDOVER.md` — SHA-256 `2fd84b0862105488965ac732231aab15e1a76e25ed1e3de16a07620171db30af`
+- `003_CURRENT_STATUS.md` — SHA-256 `828f3ec4faf574ac66108940f9a66fe76a4a7bc28cb099712e71222736b94e84`
+- `008_TODO_BACKLOG.md` — SHA-256 `cc3f63257f37737a9ffff36df80af25328f805acc0a7ada46e83274bb3d9910b`
+- `012_AI_HANDOVER.md` — SHA-256 `e08be6e3fc6273663a43864765a77523947c67316eb79eb0b916cad0ce6e314e`
 
 ---
 
@@ -430,6 +430,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 最後更新：2026-07-28
 
 本次更新依據：**PR #157**（UR-TODO-010 Sprint 5 子 PR2C Merge 後治理同步）已由使用者手動 Merge，merge commit `e6642326d1aaf286b1ac86796afc11495d112149`，`mergedAt: 2026-07-28T01:41:42Z`；`Deploy GitHub Pages` run `30321000360` 為 `success`（`event: push`、`headSha` 與 merge commit 完全一致）。Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 完整收尾盤點已通過，現正式標記為**已完成**；下一候選為 UR-TODO-011，但尚未授權啟動。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+
+2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**，本項不改變其範圍或啟動順序。
 
 ## 1. 最新正式版本
 
@@ -1562,6 +1564,54 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ## P2－新功能
 
+### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
+
+- 優先級：P2
+- 狀態：待盤點
+- 提出日期：2026-07-28
+
+- 問題：
+  分析頁「每日資產變動日曆」在台股休市日仍可能顯示正負變動。該數字為相鄰有效快照的總資產或投資資產變動，可能包含入金、提領、現金、負債、資料同步或快照建立造成的差異，不等同純市場損益。
+
+  現行畫面雖提示「不等同純投資損益」，並可查看前一筆快照日期，但日曆格狀摘要仍可能被誤認為當日市場漲跌；目前也缺乏比較基準與來源貢獻的清楚拆解。
+
+- 已知現況：
+  - 日曆以相鄰有效快照比較，不補日期、不插值。
+  - 同日多筆快照目前取最後一筆。
+  - UI 可切換「淨資產變動」與「投資資產變動」。
+  - 尚未證實為計算 Bug。
+  - 尚未完成 UTC／台灣日期邊界、快照建立時機與來源貢獻的完整盤點。
+
+- 待盤點：
+  1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
+  2. 休市日快照的建立時機與觸發來源。
+  3. 投資資產、現金、負債、入金、提領及同步事件對快照差異的貢獻。
+  4. 同日多筆快照的覆蓋順序與資料完整性。
+  5. UTC、瀏覽器本機時區與台灣日期是否可能偏移。
+  6. 月度、年度彙總是否使用相同正規化與比較算法。
+  7. 是否存在重複計算，或僅為呈現語意造成誤解。
+  8. 「淨資產變動／投資資產變動」切換是否足以避免誤解。
+
+- 驗收方向：
+  1. 明確標示為「總資產快照變動」或等效的非市場損益名稱。
+  2. 使用者可辨識比較基準日期及比較方式。
+  3. 可查看投資、現金、負債及外部資金等來源摘要；資料不足時須明確標示。
+  4. 明確區分數值 0、無快照、休市日、未來日期與資料不足。
+  5. 桌機及約 390px 手機版均可閱讀，不得只靠顏色傳達。
+  6. 未經唯讀盤點證實公式錯誤，不修改 Net Worth、Performance 或財務公式。
+
+- 明確不包含：
+  - 本次不修改日曆 UI。
+  - 不修改 Net Worth／Performance 計算。
+  - 不修改 Firebase、schema、localStorage、JSON Backup 或同步契約。
+  - 不修改 UR-TODO-011 的範圍。
+  - 不建立功能 Branch。
+  - 不將此問題提前宣稱為計算 Bug。
+
+- 排程：
+  - 建議 UR-TODO-011 完整結案後再處理。
+  - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
+
 ### UR-TODO-012 Rebalance Scenario Simulator
 
 - 優先級：P2
@@ -1746,6 +1796,13 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 # 目前交接快照
 
 > **2026-07-28 Sprint 5 正式結案：本區下方舊子 PR 快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #157 merge commit `e6642326d1aaf286b1ac86796afc11495d112149`；Deploy GitHub Pages run `30321000360` 成功，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 已完成；下一候選為 UR-TODO-011，尚未授權。**
+
+## UR-TODO-043 建立快照
+
+- 狀態：**P2／待盤點**；已建立「Analytics 每日資產快照休市日變動語意與來源明細」正式 Todo，尚未開始唯讀功能盤點或任何開發。
+- 已知邊界：日曆目前依相鄰有效快照比較、同日取最後一筆，並已有非純投資損益提示；尚未證實計算 Bug。後續只可先盤點比較規則、快照建立時機、來源貢獻、同日覆蓋與 UTC／台灣日期邊界。
+- 排程：UR-TODO-011 維持目前主線；建議待其完整結案後再處理 UR-TODO-043。除非證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，否則維持 P2，不插隊。
+- 明確不包含：不在本治理 PR 修改日曆 UI、Net Worth／Performance 計算、Firebase、schema、localStorage、JSON Backup 或同步契約。
 
 ## UR-TODO-010 Sprint 5 子 PR1 合併快照
 

@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-28T05:25:09.952352+00:00
+Generated UTC: 2026-07-28T08:08:19.860618+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-07-28T05:25:09.952352+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `ac11b6f399f650d579b9b12105f052692cfd2a09d571f9fec505a565ec612251`
+- `003_CURRENT_STATUS.md` — SHA-256 `828f3ec4faf574ac66108940f9a66fe76a4a7bc28cb099712e71222736b94e84`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `eba598a6aec00eac2314800bf2ceb9ddb3f2cbdf19806dcc3c95c087e4115c68`
-- `008_TODO_BACKLOG.md` — SHA-256 `7f0d0f56621d1dca7a583e68eef62b6419aa00034f1b245b5ec838e1a2db57ba`
-- `009_CHANGELOG.md` — SHA-256 `8b371d438c2cec5e9dcc97e0285b112a26e3432384b5130027e390b096ffb0d6`
+- `008_TODO_BACKLOG.md` — SHA-256 `cc3f63257f37737a9ffff36df80af25328f805acc0a7ada46e83274bb3d9910b`
+- `009_CHANGELOG.md` — SHA-256 `6517083d84f403025941817d303d3a8ab9660aab2134b87569b30490572a2342`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `2fd84b0862105488965ac732231aab15e1a76e25ed1e3de16a07620171db30af`
+- `012_AI_HANDOVER.md` — SHA-256 `e08be6e3fc6273663a43864765a77523947c67316eb79eb0b916cad0ce6e314e`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -663,6 +663,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 最後更新：2026-07-28
 
 本次更新依據：**PR #157**（UR-TODO-010 Sprint 5 子 PR2C Merge 後治理同步）已由使用者手動 Merge，merge commit `e6642326d1aaf286b1ac86796afc11495d112149`，`mergedAt: 2026-07-28T01:41:42Z`；`Deploy GitHub Pages` run `30321000360` 為 `success`（`event: push`、`headSha` 與 merge commit 完全一致）。Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 完整收尾盤點已通過，現正式標記為**已完成**；下一候選為 UR-TODO-011，但尚未授權啟動。下方早期事件記錄僅保留歷史脈絡；正式現況以本節 1～3 與最新 Repository／GitHub workflow 為準。
+
+2026-07-28 治理文件同步：**UR-TODO-043** 已列為 P2「待盤點」，追蹤 Analytics 每日資產快照在休市日的變動語意、比較基準與來源明細；尚未開始盤點或開發，且不宣稱為計算 Bug。**UR-TODO-011 仍為目前主線**，本項不改變其範圍或啟動順序。
 
 ## 1. 最新正式版本
 
@@ -3385,6 +3387,54 @@ Hotfix 仍需：
 
 ## P2－新功能
 
+### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
+
+- 優先級：P2
+- 狀態：待盤點
+- 提出日期：2026-07-28
+
+- 問題：
+  分析頁「每日資產變動日曆」在台股休市日仍可能顯示正負變動。該數字為相鄰有效快照的總資產或投資資產變動，可能包含入金、提領、現金、負債、資料同步或快照建立造成的差異，不等同純市場損益。
+
+  現行畫面雖提示「不等同純投資損益」，並可查看前一筆快照日期，但日曆格狀摘要仍可能被誤認為當日市場漲跌；目前也缺乏比較基準與來源貢獻的清楚拆解。
+
+- 已知現況：
+  - 日曆以相鄰有效快照比較，不補日期、不插值。
+  - 同日多筆快照目前取最後一筆。
+  - UI 可切換「淨資產變動」與「投資資產變動」。
+  - 尚未證實為計算 Bug。
+  - 尚未完成 UTC／台灣日期邊界、快照建立時機與來源貢獻的完整盤點。
+
+- 待盤點：
+  1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
+  2. 休市日快照的建立時機與觸發來源。
+  3. 投資資產、現金、負債、入金、提領及同步事件對快照差異的貢獻。
+  4. 同日多筆快照的覆蓋順序與資料完整性。
+  5. UTC、瀏覽器本機時區與台灣日期是否可能偏移。
+  6. 月度、年度彙總是否使用相同正規化與比較算法。
+  7. 是否存在重複計算，或僅為呈現語意造成誤解。
+  8. 「淨資產變動／投資資產變動」切換是否足以避免誤解。
+
+- 驗收方向：
+  1. 明確標示為「總資產快照變動」或等效的非市場損益名稱。
+  2. 使用者可辨識比較基準日期及比較方式。
+  3. 可查看投資、現金、負債及外部資金等來源摘要；資料不足時須明確標示。
+  4. 明確區分數值 0、無快照、休市日、未來日期與資料不足。
+  5. 桌機及約 390px 手機版均可閱讀，不得只靠顏色傳達。
+  6. 未經唯讀盤點證實公式錯誤，不修改 Net Worth、Performance 或財務公式。
+
+- 明確不包含：
+  - 本次不修改日曆 UI。
+  - 不修改 Net Worth／Performance 計算。
+  - 不修改 Firebase、schema、localStorage、JSON Backup 或同步契約。
+  - 不修改 UR-TODO-011 的範圍。
+  - 不建立功能 Branch。
+  - 不將此問題提前宣稱為計算 Bug。
+
+- 排程：
+  - 建議 UR-TODO-011 完整結案後再處理。
+  - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
+
 ### UR-TODO-012 Rebalance Scenario Simulator
 
 - 優先級：P2
@@ -3471,6 +3521,7 @@ Hotfix 仍需：
 **UR-TODO-010（CLEC & Simulator Funding Semantics）Sprint 5 正式結案**：PR #150、#152、#154、#156 與 Merge 後治理同步 PR #157 均已 Merge；完整收尾盤點確認功能、測試、Preview、Production 與治理條件已閉環。
 
 ### Added
+- 治理：新增 **UR-TODO-043**（P2／待盤點），追蹤 Analytics 每日資產快照休市日變動的呈現語意、比較基準與來源明細；尚未開始功能盤點或開發，不宣稱為計算 Bug，且不改變 UR-TODO-011 目前主線。
 - UR-TODO-010 子 PR2C（[PR #156](https://github.com/hyc640110/family-universal-rebalance/pull/156)，MERGED）：`AllocationSimulatorPage` 新增「假設動用安全現金」component-local checkbox，預設關閉、不持久化；只將 `allowSafetyCashUsage` 傳入既有 selector，勾選時僅使用 selector 回傳的 `usableProtectedSafetyCash`。
 - 子 PR2C：勾選後顯示「此為模擬假設，不代表建議實際動用安全現金。」高風險警示（`role="alert"`、`aria-atomic="true"`）；checkbox 以可點擊 label 與 `aria-describedby` 關聯說明，非僅依賴顏色傳達風險。
 - `tests/allocationSimulatorFundingIntegration.test.ts` 與 `scripts/stability-check.mjs`：新增／維護 PR2C 契約，涵蓋預設關閉、selector true／false 接線、usableProtectedSafetyCash 上限、資料不足／明確 0 disabled、超額提領 blocking、totalAssets／simulatedTotal 不重複計算，以及無 AppState／localStorage／Firebase／JSON Backup 回寫。
@@ -4021,6 +4072,13 @@ interface ServiceResult<T> {
 # 目前交接快照
 
 > **2026-07-28 Sprint 5 正式結案：本區下方舊子 PR 快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #157 merge commit `e6642326d1aaf286b1ac86796afc11495d112149`；Deploy GitHub Pages run `30321000360` 成功，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 已完成；下一候選為 UR-TODO-011，尚未授權。**
+
+## UR-TODO-043 建立快照
+
+- 狀態：**P2／待盤點**；已建立「Analytics 每日資產快照休市日變動語意與來源明細」正式 Todo，尚未開始唯讀功能盤點或任何開發。
+- 已知邊界：日曆目前依相鄰有效快照比較、同日取最後一筆，並已有非純投資損益提示；尚未證實計算 Bug。後續只可先盤點比較規則、快照建立時機、來源貢獻、同日覆蓋與 UTC／台灣日期邊界。
+- 排程：UR-TODO-011 維持目前主線；建議待其完整結案後再處理 UR-TODO-043。除非證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，否則維持 P2，不插隊。
+- 明確不包含：不在本治理 PR 修改日曆 UI、Net Worth／Performance 計算、Firebase、schema、localStorage、JSON Backup 或同步契約。
 
 ## UR-TODO-010 Sprint 5 子 PR1 合併快照
 
