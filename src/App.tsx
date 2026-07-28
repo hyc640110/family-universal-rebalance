@@ -1975,7 +1975,7 @@ function App() {
           {orderHelper.mode === 'buy-only' && orderHelper.investableCash !== null && orderHelper.investableCash < orderHelper.buyOnlyBudget && orderHelper.investableCash > 0 && <p className="note">目前可投資現金低於設定預算，系統將以可投資現金為上限。</p>}
           {orderHelper.hasInvalidBuyOnlyBudget && <p className="warning-message">請輸入有效的可用加碼預算。</p>}
           <TradeStepList steps={tradeSteps} currentWeights={currentWeights} />
-          <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />
+          {currentPage !== 'analytics' && <DefensiveReminderCard reminder={orderHelper.defensiveReminder} />}
           <p className="note">若不想賣出超標資產，可優先用新資金補足低配資產，讓比例逐步回到目標。</p>
         </SectionCard>
         <SectionCard className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} id="rebalance-section" title="再平衡與加碼建議" isMobile={isMobile} collapsible open={sectionOpen('rebalance')} onToggle={() => toggleSection('rebalance')} summary={`${rb.thresholdStatus}｜偏離 ${rebalanceDeviationText}`} action={<button className="small typography-copy-action" style={{ padding: '4px 8px', margin: 0, height: 'auto', minHeight: 'auto', display: 'inline-flex', alignItems: 'center' }} onClick={handleCopy}>{copyStatus}</button>}>

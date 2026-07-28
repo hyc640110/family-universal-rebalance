@@ -14,6 +14,7 @@ test('Analytics 防守配置狀態只接既有防守、Household Liquidity 與�
   assert.doesNotMatch(app, /theoreticalDefensiveConfigurationShortfall:\s*(?:m\.|rb\.|Math\.|[\d])/);
   const analyticsTradeSection = app.slice(app.indexOf('id="analytics-trade-section"'), app.indexOf('id="dip-analysis-section"'));
   assert.doesNotMatch(analyticsTradeSection, /<DefensiveReminderCard/);
+  assert.match(app, /currentPage !== 'analytics' && <DefensiveReminderCard reminder=\{orderHelper\.defensiveReminder\} \/>/);
 });
 
 test('防守配置狀態保留 explicit zero、unavailable 與上游 blocking 原因', () => {
