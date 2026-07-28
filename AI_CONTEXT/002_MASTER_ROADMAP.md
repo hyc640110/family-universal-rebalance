@@ -1,6 +1,6 @@
-# Universal Rebalance Master Roadmap v7.5
+# Universal Rebalance Master Roadmap v7.6
 
-最後更新：2026-07-25
+最後更新：2026-07-28
 
 > **命名提醒**：本文件標題的「v7.5」是**文件本身的版本號**（文件迭代次數），與第 5.1 節「產品版本 V7.0A／V7.0B……」的產品功能版本代號是兩套不同的編號系統，僅為巧合撞號，兩者無關。完整區隔規則見 [016_Product_Decisions.md](016_Product_Decisions.md) 第 5 節。
 
@@ -20,12 +20,12 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 
 ## 2. 最新正式基線
 
-- 正式版本：V6.17.3A
-- PR：#105（MERGED），前置同系列 PR：#102、#103、#104（皆 MERGED）
-- main／origin/main／本機 main／HEAD：
-  `251016977fc63aca3221c0b383170a68cad89900`
+- 正式版本：產品版本 V7.0B Financial Liquidity Core（Sprint 3～5 已完成；Sprint 6 尚未授權）
+- 最新 PR：#157（MERGED，UR-TODO-010 Sprint 5 結案治理同步）
+- `origin/main`：
+  `e6642326d1aaf286b1ac86796afc11495d112149`
 - Production Pages workflow：
-  `29935264176`（success）——`deploy.yml` 於 push to main 時自動觸發，PR #102～#105 合併時皆各自自動部署一次，詳見 `003_CURRENT_STATUS.md` 第 3 節
+  `30321000360`（success，headSha `e6642326d1aaf286b1ac86796afc11495d112149`）——`deploy.yml` 於 push to main 時自動觸發；Production HTTP 200、`environment=production`，且未混用 Preview assets，詳見 `003_CURRENT_STATUS.md` 第 3 節
 - Production Price Worker：
   `00631l-pro-price-proxy`
 - Worker version ID：
@@ -127,9 +127,9 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - Dip signal gate
 - 理論建議與可執行建議分離
 
-### Sprint 4：Risk & Decision Workflow Integration
+### Sprint 4：Risk & Decision Workflow Integration — 已完成（UR-TODO-009）
 
-狀態（2026-07-27）：UR-TODO-009 子 PR1／2（PR #134）、子 PR3（PR #137）、子 PR4 Risk Center Presentation Layer（PR #140）、子 PR5 Today Decision 六層優先序（PR #143）與子 PR6 AI Decision §24 契約（PR #145）均已完成並通過 Production 驗證。下一個未完成項目為子 PR7；目前沒有已授權的下一主線。分析頁是否承接完整 `todayDecision` 為後續產品決策，不新增正式 UR-TODO。
+UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Merge 並通過 Production 驗證；分析頁是否承接完整 `todayDecision` 仍為後續產品決策，不新增正式 UR-TODO。
 
 - Portfolio Risk
 - Dashboard
@@ -139,15 +139,15 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - Opportunities
 - Investment Action Center
 
-### Sprint 5：CLEC & Simulator Funding Semantics
+### Sprint 5：CLEC & Simulator Funding Semantics — 已完成（UR-TODO-010）
 
-- CLEC availableCash／cashReserve 分離
-- external contribution
-- existing investable cash
-- planned withdrawal
-- protected cash 預設不可用
+- PR #150：CLEC `availableCash`／`cashReserve` 與計畫投入／提領 funding semantics。
+- PR #152：Simulator funding 純模型與契約測試。
+- PR #154：Simulator 正式接線與五欄唯讀呈現。
+- PR #156：安全現金假設開關與高風險警示。
+- PR #157：Merge 後治理同步；完整收尾盤點已通過。
 
-### Sprint 6：Cross-Module Presentation Consistency
+### Sprint 6：Cross-Module Presentation Consistency — 下一候選（UR-TODO-011，尚未授權啟動）
 
 - 防守配置狀態
 - 安全現金
