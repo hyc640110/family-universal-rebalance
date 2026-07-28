@@ -110,7 +110,7 @@
 
 # 目前交接快照
 
-> **2026-07-28 UR-TODO-011 子 PR 011C 已合併：正式基線 `origin/main`＝PR #164 merge commit `bbc60fe2889c98d7883763d5dae057b257975321`；CI Verification run `30349140005` 與 Deploy GitHub Pages run `30350731155` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010 已完成；UR-TODO-011 為目前主線，子 PR 011A、011B、011C 已完成，整體仍待治理同步與完整收尾盤點。下方 UR-TODO-010 子 PR 快照均為歷史交接脈絡，不得作為現況依據。**
+> **2026-07-28 UR-TODO-011 Sprint 6 正式結案：正式基線 `origin/main`＝PR #165 merge commit `ca0e8fa05c93aa32119079bc3ff205864daaea63`；CI Verification run `30351125022` 與 Deploy GitHub Pages run `30351370489` 均成功，後者 headSha 一致。Production／Preview HTTP 200，HTML deployment metadata 分別為 `environment=production`／`environment=preview`，Assets 路徑未混用。UR-TODO-010、UR-TODO-011 均已完成。下方早期子 PR 快照僅為歷史交接脈絡，不得作為現況依據。**
 
 ## UR-TODO-011 子 PR 011A 合併快照
 
@@ -135,6 +135,15 @@
 - Remaining Boundaries：不修改 CLEC 核心策略、Cash Flow 儲存流程、Simulator、Dashboard、UR-TODO-043、DipFundingSummary、財務公式、schema、Firebase、Backup 或 migration。下一直接起點為本治理 PR Merge 後的 **UR-TODO-011 完整收尾盤點**；不得自行開始其他 Todo。
 - ADR：無。
 - Knowledge Delta：UR-TODO-011 已由「011A、011B 完成」推進為「011A、011B、011C 全部完成，待正式收尾」。
+
+## UR-TODO-011 Sprint 6 正式結案快照
+
+- 正式結案：011A／PR #160（純防守配置呈現契約）、011B／PR #162（Analytics 防守配置狀態卡）、011C／PR #164（Cash Flow／CLEC 名稱一致）及治理同步 PR #161、#163、#165 均已由使用者手動 Merge。
+- 完成標準：CI、Production build、Preview build、桌機與約 390px Preview 驗收、Production／Preview HTTP 200、environment 與資產隔離、Bundle 驗證與治理同步均已閉環；沒有未完成或越界範圍。
+- Remaining Boundaries：**UR-TODO-011 範圍內無未完成邊界**。Dashboard、UR-TODO-043、DipFundingSummary、Household Liquidity／財務核心、schema、Firebase、Backup 與 migration 均未納入本 Sprint。
+- 下一位 AI 的直接起點：UR-TODO-043 維持 **P2／待盤點**；若要處理，先以 Review Mode 進行唯讀盤點。未經使用者明確說「開始開發」，不得建立 Branch、開始實作或啟動任何下一個 Todo。
+- ADR：無。
+- Knowledge Delta：UR-TODO-011 已由「011A、011B、011C 全部完成，待正式收尾」轉為「完整正式結案」。
 
 ## UR-TODO-043 建立快照
 
