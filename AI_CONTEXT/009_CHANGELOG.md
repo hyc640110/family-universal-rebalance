@@ -10,6 +10,8 @@
 
 **UR-TODO-009（Risk & Decision Workflow Integration）全數完成**：子 PR 1～7 皆已由使用者手動 Merge 並通過 Production 驗證，詳見 `008_TODO_BACKLOG.md` UR-TODO-009 逐條記錄。
 
+**UR-TODO-010（CLEC & Simulator Funding Semantics）Sprint 5 正式結案**：PR #150、#152、#154、#156 與 Merge 後治理同步 PR #157 均已 Merge；完整收尾盤點確認功能、測試、Preview、Production 與治理條件已閉環。
+
 ### Added
 - UR-TODO-010 子 PR2C（[PR #156](https://github.com/hyc640110/family-universal-rebalance/pull/156)，MERGED）：`AllocationSimulatorPage` 新增「假設動用安全現金」component-local checkbox，預設關閉、不持久化；只將 `allowSafetyCashUsage` 傳入既有 selector，勾選時僅使用 selector 回傳的 `usableProtectedSafetyCash`。
 - 子 PR2C：勾選後顯示「此為模擬假設，不代表建議實際動用安全現金。」高風險警示（`role="alert"`、`aria-atomic="true"`）；checkbox 以可點擊 label 與 `aria-describedby` 關聯說明，非僅依賴顏色傳達風險。
@@ -29,6 +31,7 @@
 - `tests/riskPresentation.test.ts`：覆蓋完整資料、資料不足與重複來源警示。
 
 ### Changed
+- UR-TODO-010 正式標記為「已完成」：PR1 完成 CLEC funding semantics；PR2A 建立純 Simulator funding selector；PR2B 完成正式資料接線與五欄呈現；PR2C 完成預設關閉的安全現金假設與高風險警示。下一候選為 UR-TODO-011，尚未授權開發。
 - UR-TODO-010 維持「開發中」，更新為「子 PR1、子 PR2A、子 PR2B、子 PR2C 已完成」；下一直接起點改為完整收尾盤點，未在本次治理同步中自行標記整體 Todo 完成。
 - UR-TODO-010 維持「開發中」，更新為「子 PR1、子 PR2A、子 PR2B 已完成」；整體 Todo 未標記完成。舊「模擬投入金額」本地輸入與清除按鈕已移除，避免與正式 externalContribution 重複計算；模擬後總資產只反映已知外部淨流量。
 - UR-TODO-010 維持「開發中」，更新為「子 PR1、子 PR2A 已完成」；子 PR2B 僅可從唯讀範圍確認開始，安全現金 checkbox 保留給獨立子 PR2C，兩者均未授權開發。
@@ -44,6 +47,8 @@
 - `scripts/stability-check.mjs`：同步現金安全狀態文案為「目前無必要支出壓力」。
 
 ### Verification
+
+- UR-TODO-010 Sprint 5 結案：PR #157（merge commit `e6642326d1aaf286b1ac86796afc11495d112149`）已 Merge；Deploy GitHub Pages run `30321000360` 成功，headSha 與 merge commit 一致。Production HTTP 200、`environment=production`，正式 Assets 未混用 Preview；完整收尾盤點確認 PR #150、#152、#154、#156、#157 的程式碼、測試、Preview、Production 與治理條件全數閉環。
 
 - PR #156：CI Verification run `30285097798` 成功；Deploy GitHub Pages run `30320047900` 成功，headSha `86602a8` 與 merge commit 一致。Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。Preview 人工驗收確認 checkbox 預設關閉、勾選僅增加 usableProtectedSafetyCash、警示立即顯示、取消勾選恢復、totalAssets／simulatedTotal 不重複計算、重整／路由返回恢復關閉、unavailable／明確 0 disabled、超額提領仍遵循 selector blocking、無持久化回寫，以及桌機／約 390px 手機版正常。
 

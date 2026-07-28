@@ -110,7 +110,7 @@
 
 # 目前交接快照
 
-> **2026-07-28 Merge 後治理同步：本區下方舊快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #156 merge commit `86602a8b3f810b1bfa9bc4a6eef92b3d3e24ac3e`；CI 與 Production Deploy 均成功，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 維持開發中，子 PR1、子 PR2A、子 PR2B、子 PR2C 已完成，整體結案仍待完整收尾盤點。**
+> **2026-07-28 Sprint 5 正式結案：本區下方舊子 PR 快照均為歷史交接脈絡，不得作為現況依據。正式基線 `origin/main`＝PR #157 merge commit `e6642326d1aaf286b1ac86796afc11495d112149`；Deploy GitHub Pages run `30321000360` 成功，Production Pages HTTP 200，HTML deployment metadata 為 `environment=production`，正式 Assets 未混用 Preview。UR-TODO-010 已完成；下一候選為 UR-TODO-011，尚未授權。**
 
 ## UR-TODO-010 Sprint 5 子 PR1 合併快照
 
@@ -143,6 +143,16 @@
 - Preview 人工驗收：預設關閉、勾選／取消恢復、usableProtectedSafetyCash 上限、警示、unavailable／明確 0／超額提領 gate、重整或路由返回恢復關閉、無 AppState／localStorage／Firebase／JSON Backup 回寫，以及桌機／約 390px 手機版均通過。
 - 狀態：**UR-TODO-010 子 PR1、子 PR2A、子 PR2B、子 PR2C 均已完成，但整體 UR-TODO-010 仍為開發中。**
 - 下一直接起點：**UR-TODO-010 完整收尾盤點**。先唯讀確認剩餘範圍、完整驗收標準與治理文件一致性；未經使用者明確判定，不得自行宣告整體 Todo 已完成、建立後續功能分支或啟動新 Sprint。
+
+## UR-TODO-010 Sprint 5 正式結案快照
+
+- 正式結案：PR #150（CLEC Funding Semantics）、PR #152（Simulator Funding 純模型）、PR #154（Simulator Funding 正式接線與呈現）、PR #156（假設動用安全現金開關與高風險警示）與 PR #157（PR #156 Merge 後治理同步）均已由使用者手動 Merge。
+- 基線與驗證：PR #157 merge commit `e6642326d1aaf286b1ac86796afc11495d112149`，`mergedAt: 2026-07-28T01:41:42Z`；Deploy GitHub Pages run `30321000360` success，headSha 一致。Production HTTP 200、`environment=production`，正式 Assets 未混用 Preview。
+- 完成標準：程式碼、各子 PR 自動測試、Preview 人工驗收、PR Merge、Production 唯讀驗證與治理文件同步均已閉環；**UR-TODO-010 正式標記為已完成。**
+- Remaining Boundaries：UR-TODO-010 範圍內無未完成邊界。收支與現金流中心的「額外投入資金／預計提領資金」與 CLEC 的「計畫投入／計畫提領」名稱差異，屬 UR-TODO-011 的呈現一致性輸入，不回溯擴大本 Todo。
+- 下一位 AI 的直接起點：先針對 **UR-TODO-011** 以 Review Mode 進行唯讀盤點；未經使用者明確說「開始開發」，不得建立 Branch 或開始實作。
+- ADR：無。
+- Knowledge Delta：UR-TODO-010 已由「四個子 PR 完成但待收尾」轉為「完整正式結案」。
 
 ## UR-TODO-009 Sprint 收尾快照
 
