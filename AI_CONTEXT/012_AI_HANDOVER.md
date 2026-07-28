@@ -8,6 +8,29 @@
 
 ---
 
+## 最新交接快照：PR #178／#179 治理同步（下一直接起點仍為 043-C2）
+
+- 正式基線：`origin/main`＝**`94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`**（PR #179 merge commit，`mergedAt: 2026-07-28T18:15:50Z`，`mergedBy: hyc640110`）。Deploy GitHub Pages run `30386642108` success，headSha 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
+- **PR #178**（MERGED，merge commit `4280ac44e6dd814eb0054ed1cd2012e7c8242c1e`，`mergedAt: 2026-07-28T17:59:01Z`）：正式完成 PR #176／#177 後治理同步；純治理文件同步。
+- **PR #179**（MERGED，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`）：正式再次確認 UR-TODO-030 首頁「30 秒決策中心」產品方向為既有決策，完整保留；**未修改任何首頁 UI，未開始 UR-TODO-043-C2**；純治理文件同步。
+- UR-TODO-043 狀態：整體仍為 **P2／待盤點**。**043-A 已完成**（PR #174）；**043-C1 已完成**（PR #175 唯讀盤點內容，PR #176 正式記錄）。**下一直接起點仍為 043-C2**，未被本次治理同步變更。
+- **043-C2 精確邊界（與前一版快照完全一致，未變更）**：
+  - 只建立純 `netWorthSnapshotNormalization` helper（`src/lib/netWorthSnapshotNormalization.ts`）、對應型別，以及單元／契約測試。
+  - 合法明確 `0` 必須保留為 `0`；missing／invalid／non-finite 不得靜默轉成 `0`，須明確分類（valid／missing／invalid／non-finite）。
+  - **不接**任何正式 consumer（`App.tsx`、Analytics、淨資產歷史、Dashboard、AI Decision 一律不變動）。
+  - **不改**任何持久化路徑（localStorage、Firebase、JSON Backup、Import／Export）。
+  - **不改**日期／時區契約，不改同日快照排序規則。
+  - **不做** migration；043-C4 才在證實需要時評估。
+  - 043-C3（正式 consumer 接線）、043-C4（migration／legacy）、043-B（日期／時區產品契約）均排在 043-C2 之後，**不得一次做完 C2～C4**，不得預先把 043-B 視為已拍板。
+- 目前沒有 Production 真實資料被錯誤顯示或財務決策被污染的證據；不得因本次治理同步升級為 P1，也不得重做 043-A 或 043-C1。
+- **既有產品決策再次確認（與 043-C2 無關，本次未修改任何首頁 UI）**：使用者已明確要求未來縮減首頁資訊，首頁應重新定位為「**30 秒決策中心**」，只回答「今天是否需要做什麼」；建議保留今日是否需操作、精簡資產總覽、更新狀態三項；使用者已明確表示很少查看目前首頁大量資訊；「今日投資狀態」未來可評估移到分析頁或首頁僅留一行摘要＋查看入口。完整內容見 `008_TODO_BACKLOG.md` UR-TODO-030。此項**仍屬 Dashboard UX／UR-TODO-030 待盤點範圍**，**不得因 043-C2 開發而順便處理，也不得反過來擴大 043-C2 範圍**。
+- **Claude Home（無 Repository 存取權）角色**：讀取最新版 `000_Universal_Rebalance_AI_Context_Bundle_Lite.md`；先做規劃與範圍審查；再產生交給 Claude Code 的具體執行指令；**不得宣稱自己已操作 Repository、已建立 Branch、已 Commit 或已 Merge**。
+- **Claude Code（有 Repository 存取權）角色**：先唯讀確認最新 Git 基線（`origin/main`、固定 stash、Open PR）；只依 Claude Home 核准的範圍執行 043-C2；**不得自行擴大到 043-C3、043-C4 或 043-B**，不得自行 Merge 或部署 Production。
+- 固定保護：不得操作固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；額外非固定 stash `9e9aa0c999cf3b97d034db786e4307eaec35e6b2`（其他工作階段草稿）僅可唯讀盤點，不得操作。原分支 `docs/ur-todo-010-011-spec-filename-fix` 所在的舊 dirty worktree（含未提交的 `CLAUDE.md`、Lite Bundle 差異與未追蹤 `Lite-1.md`）**完全保留、不得修改、刪除、reset、checkout、clean、stash、commit 或搬移**；本次治理同步全程於獨立隔離 worktree `family-universal-rebalance-bundle-sync` 進行，未帶入任何殘留修改。
+- 下一位 Claude／AI 的直接起點：先唯讀確認上述正式基線、working tree、Open PR 與固定 stash；待使用者明確說「開始開發」後，只建立 **043-C2** branch，先寫純契約測試再建立 helper。
+
+---
+
 ## 最新交接快照：PR #176／#177 治理同步（下一直接起點 043-C2）
 
 - 正式基線：`origin/main`＝**`c8b6c95a60a7d3c60e4eb85b7d9889427dc30d5d`**（PR #177 merge commit，`mergedAt: 2026-07-28T17:21:20Z`）。Deploy GitHub Pages run `30382511752` success，headSha 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
