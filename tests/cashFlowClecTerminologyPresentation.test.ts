@@ -78,3 +78,16 @@ test('固定支出角色欄位提供既有契約選項，並保留失效借款�
   assert.match(cashFlow, /原連結借款已不存在／待重新選擇/);
   assert.match(cashFlow, /removed-loan/);
 });
+
+test('現金流設定動作只出現一次，並位於固定支出清單之後', () => {
+  const cashFlow = render(createElement(CashFlowPage, { currentCash: null, onSave: () => undefined }));
+  const fixedExpensesIndex = cashFlow.indexOf('固定支出清單');
+  const saveButtonIndex = cashFlow.indexOf('>儲存現金流設定</button>');
+  const clearButtonIndex = cashFlow.indexOf('>清空設定</button>');
+
+  assert.equal((cashFlow.match(/>儲存現金流設定<\/button>/g) ?? []).length, 1);
+  assert.equal((cashFlow.match(/>清空設定<\/button>/g) ?? []).length, 1);
+  assert.ok(fixedExpensesIndex >= 0, '應能定位固定支出清單');
+  assert.ok(saveButtonIndex > fixedExpensesIndex, '儲存按鈕應位於固定支出清單之後');
+  assert.ok(clearButtonIndex > fixedExpensesIndex, '清空按鈕應位於固定支出清單之後');
+});
