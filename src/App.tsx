@@ -6,6 +6,7 @@ import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DE
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
+import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -72,6 +73,7 @@ import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, get
 import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
 import { deriveTodayDecision } from './lib/todayDecision';
 import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
+import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1367,6 +1369,17 @@ function App() {
     loans: state.loans.map(loan => ({ id: loan.id, monthlyPayment: loan.monthlyPayment })),
     cashFlowProfile: state.cashFlowProfile, configuredBudget: normalizeBuyOnlyBudget(state.buyOnlyBudget)
   })), [state.accounts, state.transactions, state.loans, state.cashFlowProfile, state.buyOnlyBudget]);
+  const defensiveConfigurationPresentation = useMemo(() => deriveDefensiveConfigurationPresentation({
+    defensiveTotalRatio: m.defensiveRatio,
+    protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash,
+    defensiveHoldingsRatio: m.totalAssets > 0 ? m.defensiveHoldingsValue / m.totalAssets * 100 : null,
+    investableCash: householdLiquidityForRebalance.investableCash,
+    theoreticalDefensiveConfigurationShortfall: null,
+    safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall,
+    executionMethod: rb.mode,
+    canExecute: householdLiquidityForRebalance.canExecuteBuy,
+    blockingReasons: householdLiquidityForRebalance.blockingReasons
+  }), [m, rb.mode, householdLiquidityForRebalance]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1883,6 +1896,7 @@ function App() {
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
