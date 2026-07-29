@@ -70,6 +70,7 @@ import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quote
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
+import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
 import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
 import { deriveTodayDecision } from './lib/todayDecision';
 import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
@@ -104,7 +105,6 @@ const DEFAULT_HOLDINGS: Holding[] = [
   { symbol: '00865B', name: '國泰US短期公債', shares: 0, avgCost: 0, targetWeight: 20, assetClass: 'defensive' },
   { symbol: '00631L', name: '元大台灣50正2', shares: 0, avgCost: 0, targetWeight: 1, assetClass: 'growth' }
 ];
-const TAIWAN_SYMBOL_RE = /^\d{4,6}[A-Z]{0,3}(\.(TW|TWO))?$/;
 const DEFAULT_GROWTH_TARGET = 1;
 const MIN_GROWTH_TARGET = 0;
 const MAX_GROWTH_TARGET = 100;
@@ -126,36 +126,6 @@ const signedMoney = (n: number) => signedWan(n);
 const pct = (n: number) => `${num(n).toFixed(1)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
-const isTaiwanSymbol = (value: unknown) => TAIWAN_SYMBOL_RE.test(normalizeSymbol(value));
-const sanitizeName = (value: unknown) => String(value ?? '').trim();
-const pickName = (...values: unknown[]) => {
-  for (const value of values) {
-    const name = sanitizeName(value);
-    if (name) return name;
-  }
-  return '';
-};
-const quoteNameFields = (data: unknown) => {
-  const d = data && typeof data === 'object' ? data as Record<string, any> : {};
-  const meta = d.raw?.chart?.result?.[0]?.meta || {};
-  return [
-    d.name,
-    d.shortName,
-    d.longName,
-    d.displayName,
-    d.securityName,
-    d.stockName,
-    d.zhName,
-    d.raw?.name,
-    d.raw?.shortName,
-    d.raw?.longName,
-    d.raw?.displayName,
-    meta.shortName,
-    meta.longName,
-    meta.symbolName
-  ];
-};
-const resolveSymbolName = (symbol: SymbolCode, ...sources: unknown[]) => pickName(...sources, SYMBOL_NAMES[symbol], symbol) || symbol;
 const twShortTime = (iso: string) => {
   if (!iso) return '尚未更新';
   const d = new Date(iso);
