@@ -47,14 +47,14 @@ test('deviation >= 10 時回傳「槓桿風險提高」（bad）', () => {
   const result = run({ thresholdReached: true, deviation: 10 });
   assert.equal(result.status, '槓桿風險提高');
   assert.equal(result.tone, 'bad');
-  assert.equal(result.reason, '成長資產高於目標 10.00%，已超過 10%。');
+  assert.equal(result.reason, '成長資產高於目標 10.0%，已超過 10%。');
 });
 
 test('absDeviation >= 10 且 deviation 為負（低於目標）時回傳「偏離過大」，文案使用「低於」', () => {
   const result = run({ thresholdReached: true, deviation: -12 });
   assert.equal(result.status, '偏離過大');
   assert.equal(result.tone, 'bad');
-  assert.equal(result.reason, '成長資產低於目標 12.00%，偏離幅度已達 10%。');
+  assert.equal(result.reason, '成長資產低於目標 12.0%，偏離幅度已達 10%。');
   assert.equal(result.suggestion, '依目前再平衡模式分批補足成長資產。');
 });
 
@@ -71,7 +71,7 @@ test('stockDiff > 0 且現金不足以補足目標差額時回傳「現金不足
   const result = run({ thresholdReached: true, deviation: -6, growth: 400_000, growthTargetPct: 60, totalAssets: 1_000_000, cash: 100_000 });
   assert.equal(result.status, '現金不足');
   assert.equal(result.tone, 'warn');
-  assert.equal(result.reason, '成長資產低於目標 6.00%，可用現金不足以補足目標差額。');
+  assert.equal(result.reason, '成長資產低於目標 6.0%，可用現金不足以補足目標差額。');
   assert.equal(result.suggestion, '先累積現金，再分批買入成長資產。');
 });
 
