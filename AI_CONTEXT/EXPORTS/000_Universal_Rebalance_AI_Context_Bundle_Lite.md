@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-29T14:07:10.949421+00:00
+Generated UTC: 2026-07-29T15:02:55.596603+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `4c9a97f8ac59108081dab456edc95675c26b771bea97c05bd0f4a630fa879b08`
-- `008_TODO_BACKLOG.md` — SHA-256 `561105a0622db2f58cadeb2c00776e5d10d39e75804d3dd9f06aecf0182a2a10`
+- `003_CURRENT_STATUS.md` — SHA-256 `aa49f60cfbbe525889c0901729722981f51f437f999ff2df9297acecdbcd2197`
+- `008_TODO_BACKLOG.md` — SHA-256 `b1c48adf487a9530f39d32c4be11bebb95ca184ee889f435acf8ab205aaf57fa`
 - `012_AI_HANDOVER.md` — SHA-256 `d278c5b7223fc5aacc08918cbad157ac8a05281c7d81d6f157e38b15727ddfc2`
 
 ---
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.47
+# Universal Rebalance Current Status v3.48
 
 最後更新：2026-07-29
+
+本次更新依據：**PR #187**（「fix: 統一 investmentHealth 風險提醒文案小數位數為 1 位」）已由使用者手動 Merge，merge commit `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`，`mergedAt: 2026-07-29T14:55:34Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-004（同一畫面內成長／防守資產比例小數位數不一致，原標題「桌機／手機目前偏離目標一致性」）正式標記為已完成**：Phase 1 唯讀盤點證實原「桌機／手機顯示不同數字」假設不成立——`rebalance()`（`src/App.tsx`）為唯一計算來源，透過 `useMemo` 只計算一次，`isMobile` 從未介入計算或格式化路徑；實際問題為同一畫面內五處獨立格式化函式（`pct()`／`allocationPct()`／`formatCompactHoldingWeight()`／`RebalanceRecommendationPage.tsx` 區域 `pct()`／`investmentHealth.ts` 的 `pct()`）小數位數不一致（2 位 vs 1 位）。**PR #186**（merge commit `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`，`mergedAt: 2026-07-29T14:45:26Z`）統一 `App.tsx` 的 `pct()` 為 1 位小數；**PR #187**（本次）跟進統一 `investmentHealth.ts` 的第五處 `pct()`。兩支 PR 的 `CI Verification`（PR #186 run `30462239872`、PR #187 run `30463163409`）皆成功；`Deploy GitHub Pages`（PR #186 run `30462458497`、PR #187 run `30463317966`）皆成功，headSha 與各自 merge commit 一致；Production／Preview 兩次皆以 `curl` 實測 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-004 條目。
 
 本次更新依據：**PR #184**（「fix: UR-TODO-044 Phase 2a - 移除固定支出角色 fallback 的靜默分類分歧」）已由使用者手動 Merge，merge commit `498941ae46aeb5806904103c4513e25f87555999`，`mergedAt: 2026-07-29T13:42:57Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-044 Phase 1（唯讀盤點）與 Phase 2a（角色未設定 fallback 修正）均已完成**：Phase 1 由 Claude Home 於 Review Mode 發起唯讀盤點，確認 `src/lib/householdLiquidityInputAdapter.ts` 的 `cashFlowRole()` 在固定支出項目 `liquidityRole` 未設定時依分類分歧——`housing`／`loan`／`other` 三類回傳 `'ambiguous'`（正確阻擋），其餘五類（保險／水電瓦斯電信／交通／家庭支出／訂閱服務）靜默預設為 `'essential-living'`，違反 `013_HOUSEHOLD_LIQUIDITY_SPEC.md` §16.4「不得靜默猜測」；Phase 2a 修正為 8 個分類未設定角色時一律回傳 `'ambiguous'`，並同步修正 `src/lib/householdLiquidityInputDiagnostics.ts` 內一份未同步的重複邏輯（`requiresExplicitRole()`，同一組 3 類判斷的第二份拷貝，決定是否顯示「尚未指定家庭流動性用途」引導訊息），避免計算層已阻擋、診斷層仍靜默不提示的落差；`householdLiquidity.ts` 核心模型完全未修改，沿用既有通用的 `'ambiguous'` role 阻擋機制（`DEBT_PAYMENT_AMBIGUOUS`）。`CI Verification` run `30457065192` success（headSha `c39261d`）；`Deploy GitHub Pages` run `30457308734` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；並於隔離瀏覽器階段（Preview 環境，未使用使用者實際 Production 資料）建立涵蓋全部 8 個分類、角色皆未設定的固定支出項目後，於「風險與現金安全中心」展開「待補齊的資料來源」，確認 8 個分類皆一致顯示「尚未指定家庭流動性用途」引導訊息。**Phase 2b／2c（「每月生活費預算」欄位存廢與資料遷移）明確未處理，待使用者未來另行規劃**。詳見 `008_TODO_BACKLOG.md` UR-TODO-044 條目。
 
@@ -456,19 +458,19 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 Phase 1／Phase 2a 已完成**（Phase 2b／2c 待規劃）。
-- PR：**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）為目前 `origin/main` 最新 Merge；**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 Phase 1／Phase 2a 已完成**（Phase 2b／2c 待規劃）；**UR-TODO-004 已完成**。
+- PR：**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）為目前 `origin/main` 最新 Merge；**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
-- 最新 merge commit（PR #184）：
-  `498941ae46aeb5806904103c4513e25f87555999`
+- 最新 merge commit（PR #187）：
+  `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`498941ae46aeb5806904103c4513e25f87555999`（PR #184 merge commit，2026-07-29T13:42:57Z）。
+- 正式基線：`origin/main`＝`4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`（PR #187 merge commit，2026-07-29T14:55:34Z）。
 - 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011A 治理同步（PR #161）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）、011B 治理同步（PR #163）、011C `feat/ur-todo-011c-cash-flow-clec-terminology`（PR #164）、011C 治理同步（PR #165）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
 - PR #167：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/167)；只新增 `deriveHouseholdLiquidityInputDiagnostics` 與 provenance tests，明確區分 Cash Flow Profile 缺失、Loan 來源不可用、未連結借款與失效借款連結。
@@ -485,6 +487,9 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 - PR #182：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/182)；merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，`mergedBy: hyc640110`。**UR-TODO-045 已完成**：`NetWorthHistoryPage.tsx` 新增純顯示層收合機制，詳見 `008_TODO_BACKLOG.md` UR-TODO-045 條目。
 - PR #183：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/183)；merge commit `ba9ed80165a1c7854dbd936b682361ceb1b43af1`。純治理文件同步（UR-TODO-045 基線同步），未修改 `src/`、`tests/`，內容已完整反映於本文件先前版本。
 - PR #184：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/184)；merge commit `498941ae46aeb5806904103c4513e25f87555999`，`mergedAt: 2026-07-29T13:42:57Z`，`mergedBy: hyc640110`。**UR-TODO-044 Phase 2a 已完成**：`src/lib/householdLiquidityInputAdapter.ts` 的 `cashFlowRole()` fallback 由「3 類 ambiguous、5 類靜默 essential-living」改為 8 類一律 `'ambiguous'`；一併修正 `src/lib/householdLiquidityInputDiagnostics.ts` 內未同步的重複判斷邏輯 `requiresExplicitRole()`。詳見 `008_TODO_BACKLOG.md` UR-TODO-044 條目。
+- PR #185：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/185)；merge commit `a9abf4589ab65c6d1b6c4d514bf0360677814470`，`mergedAt: 2026-07-29T14:10:42Z`，`mergedBy: hyc640110`。純治理文件同步（UR-TODO-044 Phase 2a 基線同步），未修改 `src/`、`tests/`。
+- PR #186：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/186)；merge commit `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`，`mergedAt: 2026-07-29T14:45:26Z`，`mergedBy: hyc640110`。**UR-TODO-004 主修正已完成**：`src/App.tsx` 的共用 `pct()` 由 2 位小數統一為 1 位，對齊既有其餘三處格式化函式；未修改任何計算邏輯。詳見 `008_TODO_BACKLOG.md` UR-TODO-004 條目。
+- PR #187：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/187)；merge commit `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`，`mergedAt: 2026-07-29T14:55:34Z`，`mergedBy: hyc640110`。**UR-TODO-004 跟進修正已完成**：`src/lib/investmentHealth.ts` 的第五處獨立 `pct()` 同步統一為 1 位小數，用於「風險提醒」文案；未修改任何判斷邏輯。UR-TODO-004 至此全數完成。
 
 固定 stash：
 
@@ -853,6 +858,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ## 13. 文件狀態
 
+本次同步更新（2026-07-29 PR #186／#187 基線同步，UR-TODO-004 完成記錄）：
+
+- Current Status v3.47→**v3.48**（本文件）：基線由 PR #184（`498941ae`）更新為 **PR #187（`4e2975aa`）**；新增 PR #185（純治理文件同步）、PR #186（UR-TODO-004 主修正）、PR #187（UR-TODO-004 跟進修正）的 Merge／CI／Deploy／Production 唯讀驗證記錄。
+- Todo Backlog：**UR-TODO-004 條目正式更正並標記為已完成**——原「桌機／手機目前偏離目標一致性」標題與假設已排除（唯讀盤點證實架構上不存在跨裝置分歧），更正為「同一畫面內成長／防守資產比例小數位數不一致」，記錄五處格式化函式與 PR #186／#187 完成內容。
+- AI Context Bundle（Full／Lite）：依上述文件變更重新產生。
+
 本次同步更新（2026-07-29 PR #184 基線同步，UR-TODO-044 Phase 2a：固定支出角色 fallback 靜默分類分歧修正）：
 
 - Current Status v3.46→**v3.47**（本文件）：基線由 PR #182（`ee5595a3`）更新為 **PR #184（`498941ae`）**；新增 PR #183（純治理文件同步，內容已涵蓋於前一版本）、PR #184（UR-TODO-044 Phase 2a）的 Merge／Deploy／Production 唯讀驗證記錄；`Deploy GitHub Pages` workflow `30457308734` 以 `gh run list` 確認 `conclusion: success`，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`；另於隔離瀏覽器階段（Preview 環境）實測 8 個分類角色未設定時的引導訊息一致性。
@@ -893,9 +904,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.34
+# Universal Rebalance Todo Backlog v1.35
 
 最後更新：2026-07-29
+
+2026-07-29 **UR-TODO-004（同一畫面內成長／防守資產比例小數位數不一致，原標題「桌機／手機目前偏離目標一致性」）已完成**。Phase 1 唯讀盤點證實原「桌機／手機顯示不同數字」假設不成立（唯一計算來源 `rebalance()` 只計算一次，`isMobile` 不介入計算），實際問題為同畫面內五處獨立格式化函式小數位數不一致，已由使用者手動 Merge [PR #186](https://github.com/hyc640110/family-universal-rebalance/pull/186)（`src/App.tsx` 的 `pct()` 統一為 1 位）與 [PR #187](https://github.com/hyc640110/family-universal-rebalance/pull/187)（跟進 `investmentHealth.ts` 第五處）修正，merge commit 分別為 `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`、`4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`。兩支 PR 的 `Deploy GitHub Pages` workflow 皆成功，Production／Preview HTTP 200 且環境隔離正常。詳見下方更新後的 **UR-TODO-004** 正式條目。
 
 2026-07-29 **UR-TODO-044 Phase 2a（角色未設定 fallback 修正）已完成**。已由使用者手動 Merge，[PR #184](https://github.com/hyc640110/family-universal-rebalance/pull/184)（`feat/ur-todo-044-phase2a-role-fallback-consistency`）為 **MERGED**，merge commit `498941ae46aeb5806904103c4513e25f87555999`，`mergedAt: 2026-07-29T13:42:57Z`。範圍：`src/lib/householdLiquidityInputAdapter.ts` 的 `cashFlowRole()` fallback 由「3 類 ambiguous、5 類靜默 essential-living」改為 8 類一律 `'ambiguous'`；同步修正 `src/lib/householdLiquidityInputDiagnostics.ts` 內未同步的重複判斷邏輯 `requiresExplicitRole()`，避免診斷引導訊息與計算層行為不一致。`CI Verification` run `30457065192` success；`Deploy GitHub Pages` run `30457308734` success，headSha 與 merge commit 一致；Production／Preview HTTP 200 且環境隔離正常；隔離瀏覽器階段實測 8 個分類角色未設定時皆一致顯示「尚未指定家庭流動性用途」引導訊息。詳見下方新增的 **UR-TODO-044** 正式條目，含 Phase 1（唯讀盤點）結論與 Phase 2b／2c（生活費預算欄位存廢與資料遷移）範圍界定。
 
@@ -1122,16 +1135,15 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - SSOT
   - `cash-like` 與 `defensive` 的語意
 
-### UR-TODO-004 桌機／手機目前偏離目標一致性
+### UR-TODO-004 同一畫面內成長／防守資產比例小數位數不一致（原標題：桌機／手機目前偏離目標一致性）
 
 - 優先級：P0
-- 狀態：待盤點
-- 驗證：
-  - currentWeight
-  - targetWeight
-  - deviation
-  - rounding
-  - compact／desktop selector
+- 狀態：**已完成**
+- 完成日期：2026-07-29
+- 完成 PR：[#186](https://github.com/hyc640110/family-universal-rebalance/pull/186)（主修正，`src/App.tsx` 的 `pct()` 統一為 1 位小數）、[#187](https://github.com/hyc640110/family-universal-rebalance/pull/187)（跟進修正 `src/lib/investmentHealth.ts` 第五處風險提醒文案 `pct()`）
+- 完成依據：兩支 PR 的 `CI Verification` 皆成功（PR #186 run `30462239872`、PR #187 run `30463163409`，`conclusion: success`）；Merge 後 `Deploy GitHub Pages` run `30462458497`（PR #186）、`30463317966`（PR #187）皆成功，headSha 與各自 merge commit 一致；Production／Preview 兩次皆以 `curl` 實測 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用；並以 Node 直接驗證同一輸入值（`34.567`）在修正前後的實際輸出字串，確認「資產配置」卡片標頭摘要與內部甜甜圈圖摘要統一後產生完全相同字串。
+- 盤點結論：原「桌機／手機顯示不同數字」假設**未成立**——唯一計算來源為 `rebalance()`（`src/App.tsx`），透過 `useMemo` 只計算一次，`isMobile`（`App.tsx` 依 `window.innerWidth <= 768` 判定）僅控制卡片收合等版面行為，從未介入 `currentWeight`／`targetWeight`／`deviation` 的計算或格式化路徑，架構上不存在跨裝置一致性風險，不觸發升級條件。實際問題為**同一畫面內**、與裝置無關的格式化不一致：`pct()`（`App.tsx:126`）、`allocationPct()`（`AllocationDonut` 元件內）、`formatCompactHoldingWeight()`（`src/lib/compactAssetCard.ts`）、`RebalanceRecommendationPage.tsx` 區域 `pct()`、`investmentHealth.ts` 的 `pct()` 共五處獨立格式化函式，小數位數不一致（2 位 vs 1 位），最明顯處是「資產配置」卡片標頭摘要與內部甜甜圈圖摘要同時可見卻不同位數；PR #186 統一 `App.tsx` 的 `pct()` 為 1 位（對齊既有其餘三處），PR #187 跟進統一 `investmentHealth.ts` 的 `pct()`。
+- 明確不包含：未修改任何計算邏輯（`rebalance()`、`deriveRebalanceRecommendation()`、`calculateMetrics` 等完全未觸碰）；「再平衡建議中心」個股層級用詞（目前比例／目標比例，與資產類別權重為不同粒度概念）是否需要正名，本次列為獨立觀察、未處理，未來若要處理需另立 Todo。
 
 ### UR-TODO-005 00685L、00895 名稱持久化
 
