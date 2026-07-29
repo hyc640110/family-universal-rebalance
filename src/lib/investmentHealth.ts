@@ -1,6 +1,6 @@
 import { num, type RebalanceMode } from './rebalanceOrderHelper';
 
-const pct = (n: number) => `${num(n).toFixed(2)}%`;
+const pct = (n: number) => `${num(n).toFixed(1)}%`;
 
 // UR-TODO-009 sub-PR 2 (Sprint 4 safety prep, 013 §21/§30): pure relocation of the Analytics "風險提醒"
 // (investmentHealth) logic out of src/App.tsx into its own file, mirroring the sub-PR 1 relocation of
