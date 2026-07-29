@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-29T15:02:55.596603+00:00
+Generated UTC: 2026-07-29T15:47:10.815177+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-07-29T15:02:55.596603+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `aa49f60cfbbe525889c0901729722981f51f437f999ff2df9297acecdbcd2197`
+- `003_CURRENT_STATUS.md` — SHA-256 `e529fc67befeec2b634e90a837b0110626538f17ae2dea558ac31aaadb6bd4be`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `eba598a6aec00eac2314800bf2ceb9ddb3f2cbdf19806dcc3c95c087e4115c68`
-- `008_TODO_BACKLOG.md` — SHA-256 `b1c48adf487a9530f39d32c4be11bebb95ca184ee889f435acf8ab205aaf57fa`
+- `008_TODO_BACKLOG.md` — SHA-256 `5799a218254ac3d8ae9288c8d8f7645eb0043d1b3afeb22ce6e4eedb0a2b2390`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.48
+# Universal Rebalance Current Status v3.49
 
 最後更新：2026-07-29
+
+本次更新依據：**PR #189**（「test: 補充 sanitizeHolding 名稱解析邏輯單元測試（UR-TODO-005）」）已由使用者手動 Merge，merge commit `3b4549e2d868131a158772530aad16ee3145e415`，`mergedAt: 2026-07-29T15:39:16Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-005（00685L、00895 名稱持久化）正式標記為已完成**：Phase 1 唯讀盤點確認名稱解析有三層防護（既有名稱 > `SYMBOL_NAMES` 內建對照表 > 代碼本身），`pickName()` 明確跳過空字串，不會覆蓋既有名稱；更新股價、reload、localStorage、Firebase、Backup 四個持久化情境皆經同一條 `normalizeState()` → `sanitizeHolding()` → `resolveSymbolName()` 正規化路徑，封存／恢復不觸碰 `name` 欄位。PR #189 將名稱解析鏈（`TAIWAN_SYMBOL_RE`／`isTaiwanSymbol`／`sanitizeName`／`pickName`／`quoteNameFields`／`resolveSymbolName`）從 `src/App.tsx` 逐字搬移至新檔案 `src/lib/holdingNameResolution.ts`（零邏輯改動），新增 `tests/holdingNameResolution.test.ts` 12 個行為測試，以「00685L」（數字＋字母後綴）與「00895」（純數字）為主要案例。**明確不包含：`sanitizeHolding()` 本身未完整搬移或測試**——另外依賴 `DEPLOYMENT_ENVIRONMENT`／`PREVIEW_ARCHIVED_FIXTURE_SYMBOL`（`import.meta.env` 衍生）與 `REMOVED_SYMBOLS`（刻意隱晦處理的合規性封鎖清單），未經理解完整脈絡前不予搬動，保留原狀，列為未來待討論項目。`CI Verification` run `30466669879` success（headSha `9a79cc3`）；`Deploy GitHub Pages` run `30466920692` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-005 條目。
 
 本次更新依據：**PR #187**（「fix: 統一 investmentHealth 風險提醒文案小數位數為 1 位」）已由使用者手動 Merge，merge commit `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`，`mergedAt: 2026-07-29T14:55:34Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-004（同一畫面內成長／防守資產比例小數位數不一致，原標題「桌機／手機目前偏離目標一致性」）正式標記為已完成**：Phase 1 唯讀盤點證實原「桌機／手機顯示不同數字」假設不成立——`rebalance()`（`src/App.tsx`）為唯一計算來源，透過 `useMemo` 只計算一次，`isMobile` 從未介入計算或格式化路徑；實際問題為同一畫面內五處獨立格式化函式（`pct()`／`allocationPct()`／`formatCompactHoldingWeight()`／`RebalanceRecommendationPage.tsx` 區域 `pct()`／`investmentHealth.ts` 的 `pct()`）小數位數不一致（2 位 vs 1 位）。**PR #186**（merge commit `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`，`mergedAt: 2026-07-29T14:45:26Z`）統一 `App.tsx` 的 `pct()` 為 1 位小數；**PR #187**（本次）跟進統一 `investmentHealth.ts` 的第五處 `pct()`。兩支 PR 的 `CI Verification`（PR #186 run `30462239872`、PR #187 run `30463163409`）皆成功；`Deploy GitHub Pages`（PR #186 run `30462458497`、PR #187 run `30463317966`）皆成功，headSha 與各自 merge commit 一致；Production／Preview 兩次皆以 `curl` 實測 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-004 條目。
 
@@ -691,19 +693,19 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 Phase 1／Phase 2a 已完成**（Phase 2b／2c 待規劃）；**UR-TODO-004 已完成**。
-- PR：**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）為目前 `origin/main` 最新 Merge；**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 Phase 1／Phase 2a 已完成**（Phase 2b／2c 待規劃）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**。
+- PR：**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）為目前 `origin/main` 最新 Merge；**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
-- 最新 merge commit（PR #187）：
-  `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`
+- 最新 merge commit（PR #189）：
+  `3b4549e2d868131a158772530aad16ee3145e415`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`（PR #187 merge commit，2026-07-29T14:55:34Z）。
+- 正式基線：`origin/main`＝`3b4549e2d868131a158772530aad16ee3145e415`（PR #189 merge commit，2026-07-29T15:39:16Z）。
 - 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011A 治理同步（PR #161）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）、011B 治理同步（PR #163）、011C `feat/ur-todo-011c-cash-flow-clec-terminology`（PR #164）、011C 治理同步（PR #165）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
 - PR #167：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/167)；只新增 `deriveHouseholdLiquidityInputDiagnostics` 與 provenance tests，明確區分 Cash Flow Profile 缺失、Loan 來源不可用、未連結借款與失效借款連結。
@@ -723,6 +725,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 - PR #185：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/185)；merge commit `a9abf4589ab65c6d1b6c4d514bf0360677814470`，`mergedAt: 2026-07-29T14:10:42Z`，`mergedBy: hyc640110`。純治理文件同步（UR-TODO-044 Phase 2a 基線同步），未修改 `src/`、`tests/`。
 - PR #186：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/186)；merge commit `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`，`mergedAt: 2026-07-29T14:45:26Z`，`mergedBy: hyc640110`。**UR-TODO-004 主修正已完成**：`src/App.tsx` 的共用 `pct()` 由 2 位小數統一為 1 位，對齊既有其餘三處格式化函式；未修改任何計算邏輯。詳見 `008_TODO_BACKLOG.md` UR-TODO-004 條目。
 - PR #187：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/187)；merge commit `4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`，`mergedAt: 2026-07-29T14:55:34Z`，`mergedBy: hyc640110`。**UR-TODO-004 跟進修正已完成**：`src/lib/investmentHealth.ts` 的第五處獨立 `pct()` 同步統一為 1 位小數，用於「風險提醒」文案；未修改任何判斷邏輯。UR-TODO-004 至此全數完成。
+- PR #188：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/188)；merge commit `f906e24158566a2a3a61d6506061a11ebbccf390`，`mergedAt: 2026-07-29T15:17:19Z`，`mergedBy: hyc640110`。純治理文件同步（UR-TODO-004 完成記錄），未修改 `src/`、`tests/`。
+- PR #189：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/189)；merge commit `3b4549e2d868131a158772530aad16ee3145e415`，`mergedAt: 2026-07-29T15:39:16Z`，`mergedBy: hyc640110`。**UR-TODO-005 已完成**：將名稱解析鏈自 `src/App.tsx` 逐字搬移至 `src/lib/holdingNameResolution.ts`（零邏輯改動），新增 12 個行為測試涵蓋 `00685L`／`00895` 名稱解析情境；`sanitizeHolding()` 本身因牽動 `REMOVED_SYMBOLS`／環境變數耦合，未完整搬移或測試，保留原狀。詳見 `008_TODO_BACKLOG.md` UR-TODO-005 條目。
 
 固定 stash：
 
@@ -1090,6 +1094,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 `existingInvestableCash = max(0, totalLiquidCash - protectedSafetyCash)` 僅在兩者為已知有效數值時推導。`undefined`／`null`／`NaN`／`Infinity` 維持 unavailable，明確 `0` 保持已知；超額提領回傳 0 並附 blocking／warning；安全現金僅在明確啟用時納入，且上限為 `max(0, min(protectedSafetyCash, totalLiquidCash))`。Production Pages HTTP 200，Production Market Worker `/health` 回傳 `environment=production`。
 
 ## 13. 文件狀態
+
+本次同步更新（2026-07-29 PR #189 基線同步，UR-TODO-005 完成記錄）：
+
+- Current Status v3.48→**v3.49**（本文件）：基線由 PR #187（`4e2975aa`）更新為 **PR #189（`3b4549e2`）**；新增 PR #188（純治理文件同步）、PR #189（UR-TODO-005 補充單元測試）的 Merge／CI／Deploy／Production 唯讀驗證記錄。
+- Todo Backlog：**UR-TODO-005 條目正式標記為已完成**——記錄 Phase 1 唯讀盤點確認的三層防護、四個持久化情境正規化路徑，以及 PR #189 新增的 12 個行為測試；明確記錄 `sanitizeHolding()` 本身因牽動 `REMOVED_SYMBOLS`／環境變數耦合未完整測試、保留原狀。
+- AI Context Bundle（Full／Lite）：依上述文件變更重新產生。
 
 本次同步更新（2026-07-29 PR #186／#187 基線同步，UR-TODO-004 完成記錄）：
 
@@ -2727,9 +2737,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.35
+# Universal Rebalance Todo Backlog v1.36
 
 最後更新：2026-07-29
+
+2026-07-29 **UR-TODO-005（00685L、00895 名稱持久化）已完成**。Phase 1 唯讀盤點確認名稱解析有三層防護（既有名稱 > `SYMBOL_NAMES` 內建對照表 > 代碼本身），空字串不會覆蓋既有名稱，更新股價／reload／Firebase／Backup 四個持久化情境皆經同一正規化路徑，封存／恢復不觸碰名稱欄位。已由使用者手動 Merge [PR #189](https://github.com/hyc640110/family-universal-rebalance/pull/189)，merge commit `3b4549e2d868131a158772530aad16ee3145e415`，新增 12 個行為測試涵蓋此邏輯（`src/lib/holdingNameResolution.ts`，自 `App.tsx` 逐字搬移，零邏輯改動）。`sanitizeHolding()` 本身因牽動 `REMOVED_SYMBOLS`／環境變數耦合，未完整測試，保留原狀，列為未來待討論項目。詳見下方更新後的 **UR-TODO-005** 正式條目。
 
 2026-07-29 **UR-TODO-004（同一畫面內成長／防守資產比例小數位數不一致，原標題「桌機／手機目前偏離目標一致性」）已完成**。Phase 1 唯讀盤點證實原「桌機／手機顯示不同數字」假設不成立（唯一計算來源 `rebalance()` 只計算一次，`isMobile` 不介入計算），實際問題為同畫面內五處獨立格式化函式小數位數不一致，已由使用者手動 Merge [PR #186](https://github.com/hyc640110/family-universal-rebalance/pull/186)（`src/App.tsx` 的 `pct()` 統一為 1 位）與 [PR #187](https://github.com/hyc640110/family-universal-rebalance/pull/187)（跟進 `investmentHealth.ts` 第五處）修正，merge commit 分別為 `06f7f4c28bd6ee6cef9e947f4dbf371436cba04c`、`4e2975aa8686fe3ca8d0a4ba92af5a9709d1ce69`。兩支 PR 的 `Deploy GitHub Pages` workflow 皆成功，Production／Preview HTTP 200 且環境隔離正常。詳見下方更新後的 **UR-TODO-004** 正式條目。
 
@@ -2971,14 +2983,11 @@ Hotfix 仍需：
 ### UR-TODO-005 00685L、00895 名稱持久化
 
 - 優先級：P0
-- 狀態：待盤點
-- 驗證：
-  - 更新股價
-  - reload
-  - Firebase
-  - Backup
-  - 封存／恢復
-  - 自訂名稱優先權
+- 狀態：**已完成**
+- 完成日期：2026-07-29
+- 完成 PR：[#189](https://github.com/hyc640110/family-universal-rebalance/pull/189)（`test/ur-todo-005-holding-name-resolution-coverage`），merge commit `3b4549e2d868131a158772530aad16ee3145e415`，`mergedAt: 2026-07-29T15:39:16Z`
+- 完成依據：Phase 1 唯讀盤點確認名稱解析有三層防護（既有名稱 > `SYMBOL_NAMES` 內建對照表 > 代碼本身），`pickName()` 明確跳過空字串，不會讓空值覆蓋既有名稱；更新股價、reload、localStorage、Firebase、Backup 四個持久化情境皆經同一條 `normalizeState()` → `sanitizeHolding()` → `resolveSymbolName()` 正規化路徑；封存／恢復（`removeHoldingAsset`／`restoreHoldingAsset`）未觸碰 `name` 欄位。PR #189 新增 `tests/holdingNameResolution.test.ts` 12 個行為測試，涵蓋此邏輯與這兩檔標的的格式（數字＋字母後綴、純數字）；CI（`CI Verification` run `30466669879`，`conclusion: success`）與 `Deploy GitHub Pages`（run `30466920692`，`conclusion: success`，headSha 與 merge commit 一致）皆成功，Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。
+- 明確不包含：`sanitizeHolding()` 本身未完整搬移或測試——它另外依賴 `DEPLOYMENT_ENVIRONMENT`／`PREVIEW_ARCHIVED_FIXTURE_SYMBOL`（皆為 `import.meta.env` 衍生）與 `REMOVED_SYMBOLS`（看似刻意隱晦處理的合規性封鎖清單，與 `REMOVED_RECORD_KEY` 同一機制），未經理解其完整脈絡前不予搬動或曝光於測試中，保留原狀，由既有的字串比對式 characterization guard（`scripts/stability-check.mjs`）繼續守護。若未來要完整測試 `sanitizeHolding` 本身，列為未來待討論的獨立項目。
 
 ### UR-TODO-037 Deployment Workflow Approval & Status Accuracy
 
