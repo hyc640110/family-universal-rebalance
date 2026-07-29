@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { createFinancialAccount, type FinancialAccount } from '../src/lib/financialAccounts';
 import { deriveHouseholdLiquidity } from '../src/lib/householdLiquidity';
-import type { CashFlowProfile } from '../src/lib/cashFlow';
+import type { CashFlowCategory, CashFlowProfile } from '../src/lib/cashFlow';
 import {
   buildHouseholdLiquidityInput,
   type HouseholdLiquidityAdapterSources
@@ -67,7 +67,10 @@ test('7. legacy-only 使用穩定 legacy-cash sourceId', () => {
 
 test('8. legacy 與 FinancialAccount 混用保留兩種來源供 Core 阻擋', () => {
   const input = buildHouseholdLiquidityInput(sources({ legacyCash: [{ id: 'wallet', amount: 900 }] }));
-  assert.deepEqual(deriveHouseholdLiquidity(input).blockingReasons.map(reason => reason.code), ['MIXED_LIQUID_ACCOUNT_SOURCES']);
+  // UR-TODO-044 Phase 2a: the default profile()'s 'utilities-1' fixed expense has no liquidityRole set, so it is
+  // now also 'ambiguous' (previously silently 'essential-living'), adding DEBT_PAYMENT_AMBIGUOUS alongside the
+  // MIXED_LIQUID_ACCOUNT_SOURCES this test targets.
+  assert.deepEqual(deriveHouseholdLiquidity(input).blockingReasons.map(reason => reason.code), ['MIXED_LIQUID_ACCOUNT_SOURCES', 'DEBT_PAYMENT_AMBIGUOUS']);
 });
 
 test('9. duplicate FinancialAccount 與 legacy source ID 不自行去重', () => {
@@ -82,32 +85,42 @@ test('10. Loan 僅映射 id 與 monthlyPayment，無效值不轉 0', () => {
   assert.ok(Number.isNaN(input.loans[1].monthlyPayment));
 });
 
-test('11. housing、loan、other Cash Flow 都是 ambiguous，不依名稱或金額建立 linkage', () => {
+test('11. UR-TODO-044 Phase 2a：8 個分類未設定角色一律 ambiguous，不再依分類分歧，不依名稱或金額建立 linkage', () => {
+  const allCategories: CashFlowCategory[] = ['housing', 'loan', 'insurance', 'utilities', 'transportation', 'family', 'subscription', 'other'];
   const input = buildHouseholdLiquidityInput(sources({
     loans: [{ id: 'loan-1', monthlyPayment: 3_000 }],
-    cashFlowProfile: profile({ fixedExpenses: [
-      { id: 'housing', name: '房貸 loan-1', amount: 3_000, category: 'housing', enabled: true },
-      { id: 'loan-flow', name: '信貸', amount: 3_000, category: 'loan', enabled: true },
-      { id: 'other', name: 'loan-1', amount: 3_000, category: 'other', enabled: true }
-    ] })
+    cashFlowProfile: profile({ fixedExpenses: allCategories.map((category, index) => ({ id: `item-${index}`, name: `loan-1 ${category}`, amount: 3_000, category, enabled: true })) })
   }));
-  assert.ok(input.livingExpenses.slice(0, 3).every(item => item.role === 'ambiguous' && item.linkedLoanId === undefined));
+  assert.equal(input.livingExpenses.length, allCategories.length + 1);
+  assert.ok(input.livingExpenses.slice(0, allCategories.length).every(item => item.role === 'ambiguous' && item.linkedLoanId === undefined));
   assert.deepEqual(input.loans, [{ loanId: 'loan-1', monthlyPayment: 3_000 }]);
   const core = deriveHouseholdLiquidity(input);
+  assert.equal(core.monthlyLivingExpenses, null);
   assert.equal(core.monthlyDebtPayments, null);
   assert.equal(core.canExecuteBuy, false);
+  assert.equal(core.dataCompleteness, 'partial');
+  assert.equal(core.confidence, 'medium');
   assert.ok(core.blockingReasons.some(reason => reason.code === 'DEBT_PAYMENT_AMBIGUOUS'));
 });
 
-test('12. disabled Cash Flow excluded，其他一般固定支出 essential-living', () => {
+test('12. disabled Cash Flow 永遠 excluded；enabled 但未設定角色，不分類別一律 ambiguous（非 essential-living）；已明確設定 essential-living 者行為不變（回歸）', () => {
   const input = buildHouseholdLiquidityInput(sources({ cashFlowProfile: profile({ fixedExpenses: [
     { id: 'off', name: '關閉', amount: 999, category: 'utilities', enabled: false },
-    { id: 'utilities', name: '水電', amount: 500, category: 'utilities', enabled: true }
+    { id: 'utilities', name: '水電', amount: 500, category: 'utilities', enabled: true },
+    { id: 'explicit-living', name: '保險', amount: 300, category: 'insurance', enabled: true, liquidityRole: 'essential-living' }
   ] }) }));
-  assert.deepEqual(input.livingExpenses.slice(0, 2), [
+  assert.deepEqual(input.livingExpenses.slice(0, 3), [
     { sourceId: 'cash-flow:off', amount: 999, role: 'excluded' },
-    { sourceId: 'cash-flow:utilities', amount: 500, role: 'essential-living' }
+    { sourceId: 'cash-flow:utilities', amount: 500, role: 'ambiguous' },
+    { sourceId: 'cash-flow:explicit-living', amount: 300, role: 'essential-living' }
   ]);
+});
+
+test('12b. UR-TODO-044 Phase 2a：本次不處理「每月生活費預算」欄位的重複計算，屬 Phase 2b／2c 範圍，此測試僅標記邊界不變', () => {
+  const input = buildHouseholdLiquidityInput(sources());
+  const variableEntry = input.livingExpenses.at(-1);
+  assert.equal(variableEntry?.sourceId, 'cash-flow:variable-expense-budget');
+  assert.equal(variableEntry?.role, 'essential-living');
 });
 
 test('13. variable expense 使用固定 synthetic sourceId，缺失不轉 0', () => {
