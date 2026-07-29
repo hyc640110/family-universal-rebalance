@@ -49,7 +49,7 @@ const cashFlowRole = (item: CashFlowItem, loanIds: ReadonlySet<string>) => {
   if (item.liquidityRole === 'debt-payment') return typeof item.linkedLoanId === 'string' && item.linkedLoanId && loanIds.has(item.linkedLoanId)
     ? 'debt-payment' as const
     : 'ambiguous' as const;
-  return ['housing', 'loan', 'other'].includes(item.category) ? 'ambiguous' as const : 'essential-living' as const;
+  return 'ambiguous' as const;
 };
 
 /**

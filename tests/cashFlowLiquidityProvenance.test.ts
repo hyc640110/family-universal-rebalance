@@ -227,9 +227,14 @@ test('28. legacy 未宣告 role、explicit ambiguous 與未設定 plan 會回報
   ] });
   const snapshot = structuredClone(cashFlowProfile);
 
+  // UR-TODO-044 Phase 2a: CASH_FLOW_ROLE_UNASSIGNED no longer depends on category (housing/loan/other vs the
+  // other five) — an unset liquidityRole always surfaces this diagnostic, so 'utility' (category: 'utilities')
+  // now reports it too. deriveHouseholdLiquidityInputDiagnostics itself does not sort by priority (that only
+  // happens in presentHouseholdLiquidityDiagnostics), so diagnostics appear in fixedExpenses source order.
   assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile, loans: [{ id: 'loan-1' }] }), [
     { code: 'CASH_FLOW_ROLE_UNASSIGNED', sourceId: 'cash-flow:housing' },
     { code: 'CASH_FLOW_ROLE_AMBIGUOUS', sourceId: 'cash-flow:ambiguous' },
+    { code: 'CASH_FLOW_ROLE_UNASSIGNED', sourceId: 'cash-flow:utility' },
     { code: 'EXTERNAL_CONTRIBUTION_UNSET' },
     { code: 'PLANNED_WITHDRAWAL_UNSET' }
   ]);

@@ -21,8 +21,6 @@ export type HouseholdLiquidityInputDiagnosticSources = Readonly<{
   loans: ReadonlyArray<Readonly<{ id: string }>> | null | undefined;
 }>;
 
-const requiresExplicitRole = (category: string) => ['housing', 'loan', 'other'].includes(category);
-
 /**
  * Derives action-oriented data diagnostics without changing persisted Cash Flow or Loan data.
  * Explicit zero remains configured, while an absent plan value remains actionable.
@@ -40,7 +38,7 @@ export function deriveHouseholdLiquidityInputDiagnostics(
   for (const item of profile.fixedExpenses) {
     if (!item.enabled) continue;
     const sourceId = `cash-flow:${item.id}`;
-    if (item.liquidityRole === undefined && requiresExplicitRole(item.category)) {
+    if (item.liquidityRole === undefined) {
       diagnostics.push({ code: 'CASH_FLOW_ROLE_UNASSIGNED', sourceId });
     } else if (item.liquidityRole === 'ambiguous') {
       diagnostics.push({ code: 'CASH_FLOW_ROLE_AMBIGUOUS', sourceId });
