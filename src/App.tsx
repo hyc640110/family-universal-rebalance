@@ -123,7 +123,7 @@ const signedWan = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${formatWan(n
 const money = (n: number) => formatWan(n);
 const formatCurrency = (n: number) => formatWan(n);
 const signedMoney = (n: number) => signedWan(n);
-const pct = (n: number) => `${num(n).toFixed(2)}%`;
+const pct = (n: number) => `${num(n).toFixed(1)}%`;
 const signedPct = (n: number) => `${n > 0 ? '+' : ''}${pct(n)}`;
 const tw = (iso: string) => new Date(iso).toLocaleString('zh-TW');
 const isTaiwanSymbol = (value: unknown) => TAIWAN_SYMBOL_RE.test(normalizeSymbol(value));
