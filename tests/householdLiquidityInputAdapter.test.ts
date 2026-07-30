@@ -116,18 +116,20 @@ test('12. disabled Cash Flow 永遠 excluded；enabled 但未設定角色，不�
   ]);
 });
 
-test('12b. UR-TODO-044 Phase 2a：本次不處理「每月生活費預算」欄位的重複計算，屬 Phase 2b／2c 範圍，此測試僅標記邊界不變', () => {
+test('12b. UR-TODO-044 Phase 2b：variableExpenseBudget 仍有未遷移的舊值時，合成 essential-living 項目照舊注入', () => {
   const input = buildHouseholdLiquidityInput(sources());
   const variableEntry = input.livingExpenses.at(-1);
   assert.equal(variableEntry?.sourceId, 'cash-flow:variable-expense-budget');
   assert.equal(variableEntry?.role, 'essential-living');
+  assert.equal(variableEntry?.amount, 200);
 });
 
-test('13. variable expense 使用固定 synthetic sourceId，缺失不轉 0', () => {
+test('13. variableExpenseBudget 為 null（已遷移或本就未使用此欄位）時，完全省略合成項目，不再注入 amount: null', () => {
   const complete = buildHouseholdLiquidityInput(sources());
   assert.deepEqual(complete.livingExpenses.at(-1), { sourceId: 'cash-flow:variable-expense-budget', amount: 200, role: 'essential-living' });
-  const missing = buildHouseholdLiquidityInput(sources({ cashFlowProfile: profile({ variableExpenseBudget: null }) }));
-  assert.equal(missing.livingExpenses.at(-1)?.amount, null);
+  const migrated = buildHouseholdLiquidityInput(sources({ cashFlowProfile: profile({ variableExpenseBudget: null }) }));
+  assert.equal(migrated.livingExpenses.some(item => item.sourceId === 'cash-flow:variable-expense-budget'), false, 'UR-TODO-044 Phase 2b 前，null 會注入 amount: null 並永久阻擋計算；Phase 2b 後應直接省略此來源');
+  assert.deepEqual(migrated.livingExpenses, [{ sourceId: 'cash-flow:utilities-1', amount: 500, role: 'ambiguous' }]);
 });
 
 test('14. configuredBudget 缺失、無效與 0 的語意不同', () => {
