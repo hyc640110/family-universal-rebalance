@@ -7,7 +7,7 @@ export type HouseholdLiquidityPlanInput = Readonly<{
   externalContribution?: number;
   plannedWithdrawal?: number;
 }>;
-export type CashFlowProfile = { schemaVersion?: number; monthlyIncome: number | null; fixedExpenses: CashFlowItem[]; variableExpenseBudget: number | null; monthlyInvestmentBudget: number | null; emergencyFundTargetMonths: number; notes?: string } & HouseholdLiquidityPlanInput;
+export type CashFlowProfile = { schemaVersion?: number; monthlyIncome: number | null; fixedExpenses: CashFlowItem[]; variableExpenseBudget: number | null; variableExpenseBudgetMigratedAt?: string; monthlyInvestmentBudget: number | null; emergencyFundTargetMonths: number; notes?: string } & HouseholdLiquidityPlanInput;
 export type CashFlowStatus = '穩定' | '偏緊' | '赤字' | '資料不足';
 
 const n = (value: unknown): number => typeof value === 'number' && Number.isFinite(value) ? value : Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -20,6 +20,7 @@ const liquidityRole = (value: unknown): CashFlowLiquidityRole | undefined =>
 const linkedLoanId = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : undefined;
 const planMoney = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
+const migratedAt = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined;
 const schemaVersion = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value > CASH_FLOW_SCHEMA_VERSION
   ? value
   : CASH_FLOW_SCHEMA_VERSION;
@@ -49,7 +50,8 @@ export function normalizeCashFlowProfile(raw: unknown): CashFlowProfile {
     const loanId = role === 'debt-payment' ? linkedLoanId(row.linkedLoanId) : undefined;
     return { id: row.id || `cash-flow-${index}`, name: String(row.name ?? '').trim(), amount: Math.max(0, n(row.amount)), category, enabled: row.enabled !== false, ...(role ? { liquidityRole: role } : {}), ...(loanId ? { linkedLoanId: loanId } : {}) };
   }).filter(item => item.name) : [];
-  return { schemaVersion: schemaVersion(source.schemaVersion), monthlyIncome: nullableMoney(source.monthlyIncome), fixedExpenses: expenses, variableExpenseBudget: nullableMoney(source.variableExpenseBudget), monthlyInvestmentBudget: nullableMoney(source.monthlyInvestmentBudget), emergencyFundTargetMonths: Math.min(24, Math.max(1, Math.round(n(source.emergencyFundTargetMonths) || 6))), notes: typeof source.notes === 'string' ? source.notes : '', ...planInput };
+  const variableExpenseBudgetMigratedAt = migratedAt(source.variableExpenseBudgetMigratedAt);
+  return { schemaVersion: schemaVersion(source.schemaVersion), monthlyIncome: nullableMoney(source.monthlyIncome), fixedExpenses: expenses, variableExpenseBudget: nullableMoney(source.variableExpenseBudget), ...(variableExpenseBudgetMigratedAt ? { variableExpenseBudgetMigratedAt } : {}), monthlyInvestmentBudget: nullableMoney(source.monthlyInvestmentBudget), emergencyFundTargetMonths: Math.min(24, Math.max(1, Math.round(n(source.emergencyFundTargetMonths) || 6))), notes: typeof source.notes === 'string' ? source.notes : '', ...planInput };
 }
 
 /** The existing Cash Flow normalization boundary is the deterministic, idempotent provenance migration. */

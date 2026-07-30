@@ -80,11 +80,16 @@ export function buildHouseholdLiquidityInput(sources: HouseholdLiquidityAdapterS
           ...(role === 'debt-payment' && typeof item.linkedLoanId === 'string' && item.linkedLoanId && loanIds.has(item.linkedLoanId) ? { linkedLoanId: item.linkedLoanId } : {})
         };
       }),
-      {
-        sourceId: 'cash-flow:variable-expense-budget',
-        amount: finiteNonnegative(profile.variableExpenseBudget) ? profile.variableExpenseBudget : null,
+      // UR-TODO-044 Phase 2b: variableExpenseBudget is retired in favor of itemized fixed
+      // expenses. Only inject this synthetic entry while a legacy amount is still pending the
+      // one-time migration prompt (see cashFlowVariableExpenseBudgetMigration.ts) — once null,
+      // omit it entirely rather than injecting `amount: null`, which would otherwise permanently
+      // block monthlyLivingExpenses for every profile going forward.
+      ...(finiteNonnegative(profile.variableExpenseBudget) ? [{
+        sourceId: 'cash-flow:variable-expense-budget' as const,
+        amount: profile.variableExpenseBudget,
         role: 'essential-living' as const
-      }
+      }] : [])
     ],
     loans: loans.map(loan => ({ loanId: loan.id, monthlyPayment: unavailableMoney(loan.monthlyPayment) })),
     configuredBudget: sources.configuredBudget === null || sources.configuredBudget === undefined
