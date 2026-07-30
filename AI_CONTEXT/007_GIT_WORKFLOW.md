@@ -219,7 +219,15 @@ Sprint：（對應的產品版本／Sprint 名稱，例如「V7.0B 子 PR 5b／5
 - 2026-07-24 CI-01／CI-02 Sprint 起，`deploy.yml` 會先執行 `npm ci` 與 `npm run test:ci`，任一失敗會中止該次 workflow、不會產出部署；但這是「部署當下」的自動把關，不是「Merge 前」的人工核准，Merge 之前仍不得描述 Production 已部署或已發布。
 - PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」；只能敘述本機／Preview 驗證結果。
 - Merge 完成後，AI 或負責回報的人必須實際查詢該次 push 觸發的 `Deploy GitHub Pages` workflow run（run id、headSha、`status`、`conclusion`），並如實記錄為「成功」「失敗」或「待確認」，不得只憑「PR 已 Merge」就假設 Production 已成功更新。
-- GitHub Environment 人工核准、Branch Protection、預設分支（目前為 `gh-pages`）修正等強化措施，本次（CI-01／CI-02／UR-TODO-037 部分）**明確不處理**，需另立獨立 Todo／Sprint。
+- GitHub Environment 人工核准、Branch Protection、預設分支（目前為 `gh-pages`）修正等強化措施，本次（CI-01／CI-02／UR-TODO-037 部分）**明確不處理**，需另立獨立 Todo／Sprint。2026-07-30 更新：預設分支已修正為 `main`、`main` 已啟用 Branch Protection（詳見下方 8.1 與 `008_TODO_BACKLOG.md` UR-TODO-037 條目）；GitHub Environment 人工核准仍維持原狀未處理。
+
+### 8.1 Branch Protection 生效後的純治理文件同步 Merge 規則（2026-07-30 起）
+
+- `main` 已啟用 Branch Protection：`required_status_checks`（`strict: false`，必要檢查 `verify`）、`enforce_admins: false`、`required_pull_request_reviews.required_approving_review_count: 1`、`restrictions: null`。
+- 本 Repository 僅有一名 collaborator（Repository 擁有者本人），沒有第二人可提供必要的 PR 核准。`enforce_admins: false` 是刻意保留的繞過閥。
+- **純治理文件同步 PR**（變更範圍僅限 `AI_CONTEXT/**/*.md` 與 `AI_CONTEXT/EXPORTS/` Bundle）維持既有自動 Merge 政策：CI Verification 的 `verify` 檢查通過、機械式路徑檢查確認範圍相符後，AI 可自行將 PR 轉為 Ready for review 並完成 Merge，不需要等候使用者。
+- 由於必要核准無法被第二人滿足，實際執行 Merge 時可能需要使用 `gh pr merge <PR> --merge --admin` 以管理員權限繞過保護規則。**這已經過使用者明確授權（2026-07-30 確認「選項 A」），不需要每次重新請示**，但每一次實際使用 `--admin` 繞過保護規則，都必須在回報內容中明確告知使用者，不得靜默執行。
+- 一般功能／程式碼 PR **不適用**此自動 Merge 與 `--admin` 繞過安排，仍須依既有規則由使用者驗收後親自決定是否 Merge。
 
 ---
 

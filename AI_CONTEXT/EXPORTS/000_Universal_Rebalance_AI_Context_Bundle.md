@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-30T13:55:42.583140+00:00
+Generated UTC: 2026-07-30T14:25:47.696829+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-07-30T13:55:42.583140+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `67e981b7b691188c3872cd30bfc5af06ea3d45f95999bce543d0569c0ed989ad`
+- `003_CURRENT_STATUS.md` — SHA-256 `94f60cc7b168d3432d8494907184bf7710f626fb7b965f70fb214c046245b25e`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
-- `007_GIT_WORKFLOW.md` — SHA-256 `eba598a6aec00eac2314800bf2ceb9ddb3f2cbdf19806dcc3c95c087e4115c68`
-- `008_TODO_BACKLOG.md` — SHA-256 `fc7371c42218f85c907ea929dd4f9c5ecb1a28f1bcc7cd557df6f8647ce7fdcb`
+- `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
+- `008_TODO_BACKLOG.md` — SHA-256 `030c3d7ec34ac99cdbf97acf96b25338e4cca8208807f8bb1b6decd5535cb7be`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.50
+# Universal Rebalance Current Status v3.51
 
 最後更新：2026-07-30
+
+本次更新依據：**PR #194**（「docs: record UR-TODO-037 Phase 1 audit and default branch fix」）已由使用者手動 Merge，merge commit `67dab7552620e759d4381f22b6b44a2b3489c2f5`，`mergedAt: 2026-07-30T13:58:01Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-037 正式標記為已完成**：使用者確認選定「選項 2：中度保護」，`main` 已啟用 Branch Protection（`gh api repos/.../branches/main/protection` 實際查詢確認 `required_status_checks: {strict: false, checks: [{context: "verify"}]}`、`enforce_admins: false`、`required_pull_request_reviews.required_approving_review_count: 1`、`restrictions: null` 皆生效，`.protected` 回傳 `true`）；預設分支已於 PR #194 前一輪修正為 `main`（`gh api -X PATCH -f default_branch=main`）；GitHub Environments 人工核准經唯讀盤點確認唯一的 `github-pages` Environment 與實際部署流程無關（`deploy.yml` 未引用），使用者本次未要求授權修改 `deploy.yml` 使其生效，故此項**維持原狀**，不納入本次驗收範圍、不標記為已完成。因 Repository 僅一名 collaborator、無第二人可核准 PR，使用者確認「選項 A」：純治理文件同步 PR 既有自動 Merge 政策維持不變，可使用 `gh pr merge --admin` 繞過核准規則（預先授權，但每次使用須明確告知），已同步寫入 `007_GIT_WORKFLOW.md` §8.1。詳見 `008_TODO_BACKLOG.md` UR-TODO-037 條目。
+
+本次更新依據：**PR #193**（「docs: mark UR-TODO-044 complete after PR #192, sync baseline to PR #192」）已由使用者手動 Merge，merge commit `391795963e500e3da63b1136a274198803bb81b4`，`mergedAt: 2026-07-30T13:40:07Z`。純治理文件同步，正式將 UR-TODO-044 標記為已完成（唯讀核對原「Phase 2b／2c」為單一區塊、兩項驗收條件已由 PR #192 完整達成），並將本文件正式基線推進至 PR #192；未修改 `src/`、`tests/`。
 
 本次更新依據：**PR #192**（「feat: UR-TODO-044 Phase 2b - retire variableExpenseBudget via user-confirmed migration」）已由使用者手動 Merge，merge commit `2fc8ce1d071df5bd428d00dd72518747f7a5cf27`，`mergedAt: 2026-07-30T10:47:11Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-044 正式標記為已完成**（不再是「Phase 1／2a 已完成，Phase 2b／2c 待規劃」）：本次治理同步先唯讀核對原「Phase 2b／2c」文字自始為單一區塊、僅兩項驗收條件，PR #192 已完整達成兩項條件，全庫搜尋亦未發現殘留範圍，故整體標記已完成，不保留「Phase 2c」字樣。範圍：`src/lib/cashFlow.ts` 新增可選欄位 `variableExpenseBudgetMigratedAt`；新增 `src/lib/cashFlowVariableExpenseBudgetMigration.ts` 三個冪等純函式；`src/lib/householdLiquidityInputAdapter.ts` 的合成 living-expense 項目改為僅在欄位仍有待遷移正數時才注入（避免欄位清空後永久阻擋 `monthlyLivingExpenses`）；`src/pages/CashFlowPage.tsx` 移除手動輸入欄位、新增一次性使用者確認提示（方案 B）；新增 8 個測試並改寫 2 個既有測試反映新行為；`variableExpenseBudget` 型別保留為永久可為 `null` 的舊資料相容欄位。`CI Verification` run `30533633234` success，headSha 與 PR head `068deeb` 一致；`Deploy GitHub Pages` run `30536018542`（`event: push`）success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 與隔離瀏覽器實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；隔離瀏覽器階段（Preview 與 Production，未使用使用者實際資料）分別驗證確認／忽略兩條遷移路徑正確運作、重新整理不重複跳出、390px 手機寬度無橫向溢出、console 全程無錯誤。詳見 `008_TODO_BACKLOG.md` UR-TODO-044 條目。
 
@@ -699,19 +703,19 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程。
-- PR：**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）為目前 `origin/main` 最新 Merge；**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程。
+- PR：**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）為目前 `origin/main` 最新 Merge；**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
-- 最新 merge commit（PR #192）：
-  `2fc8ce1d071df5bd428d00dd72518747f7a5cf27`
+- 最新 merge commit（PR #194）：
+  `67dab7552620e759d4381f22b6b44a2b3489c2f5`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`2fc8ce1d071df5bd428d00dd72518747f7a5cf27`（PR #192 merge commit，2026-07-30T10:47:11Z）。
+- 正式基線：`origin/main`＝`67dab7552620e759d4381f22b6b44a2b3489c2f5`（PR #194 merge commit，2026-07-30T13:58:01Z）。
 - 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011A 治理同步（PR #161）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）、011B 治理同步（PR #163）、011C `feat/ur-todo-011c-cash-flow-clec-terminology`（PR #164）、011C 治理同步（PR #165）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
 - PR #167：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/167)；只新增 `deriveHouseholdLiquidityInputDiagnostics` 與 provenance tests，明確區分 Cash Flow Profile 缺失、Loan 來源不可用、未連結借款與失效借款連結。
@@ -736,6 +740,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 - PR #190：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/190)；merge commit `6f6a0c0216a7c1a5caaaf7a22c6cc0e4eb927af1`，`mergedAt: 2026-07-29T23:47:40Z`，`mergedBy: hyc640110`。純治理文件同步，補齊 PR #189（UR-TODO-005 已完成）落地後的治理文件與 Bundle 落差；未修改 `src/`、`tests/`。
 - PR #191：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/191)；merge commit `7ffcc34219d642bd1ba67ce42c61549702188b0c`，`mergedAt: 2026-07-30T09:19:28Z`，`mergedBy: hyc640110`。純治理文件同步，新增 **UR-TODO-046**（淨值成長來源歸因與記錄／實際落差核對）正式條目，Phase 1 唯讀盤點結論詳見 `008_TODO_BACKLOG.md`；狀態「待評估」，明確依賴 UR-TODO-043-B 定案後才排程，並與 UR-TODO-023 劃清邊界；未修改 `src/`、`tests/`。
 - PR #192：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/192)；merge commit `2fc8ce1d071df5bd428d00dd72518747f7a5cf27`，`mergedAt: 2026-07-30T10:47:11Z`，`mergedBy: hyc640110`。**UR-TODO-044 Phase 2b 已完成，UR-TODO-044 整體正式標記為已完成**：`src/lib/cashFlow.ts` 新增可選欄位 `variableExpenseBudgetMigratedAt`；新增 `src/lib/cashFlowVariableExpenseBudgetMigration.ts` 三個冪等純函式（方案 B，使用者確認遷移，非靜默自動遷移）；`src/lib/householdLiquidityInputAdapter.ts` 的合成 `cash-flow:variable-expense-budget` living-expense 項目改為僅在欄位仍有待遷移正數時才注入；`src/pages/CashFlowPage.tsx` 移除手動輸入欄位、新增一次性確認提示；新增 8 個測試並改寫 2 個既有測試（`tests/householdLiquidityInputAdapter.test.ts` 12b／13）反映新行為；`variableExpenseBudget` 型別保留、未從 schema 移除。詳見 `008_TODO_BACKLOG.md` UR-TODO-044 條目。
+- PR #193：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/193)；merge commit `391795963e500e3da63b1136a274198803bb81b4`，`mergedAt: 2026-07-30T13:40:07Z`，`mergedBy: hyc640110`。純治理文件同步：唯讀核對 UR-TODO-044 原「Phase 2b／2c」為單一區塊、僅兩項驗收條件，PR #192 已完整達成，正式標記 UR-TODO-044 為已完成；並將本文件正式基線推進至 PR #192。未修改 `src/`、`tests/`。
+- PR #194：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/194)；merge commit `67dab7552620e759d4381f22b6b44a2b3489c2f5`，`mergedAt: 2026-07-30T13:58:01Z`，`mergedBy: hyc640110`。純治理文件同步：記錄 GitHub Environments／Branch Protection／預設分支三項的 `gh api` 唯讀盤點結論，以及使用者授權後執行的預設分支修正（`gh api -X PATCH -f default_branch=main`）。Branch Protection 本身於 PR #194 Merge 後、本次治理同步 PR 之前，由使用者另行明確授權具體設定內容，以 `gh api -X PUT` 執行並雙重驗證生效；**UR-TODO-037 正式標記為已完成**，詳見 `008_TODO_BACKLOG.md` UR-TODO-037 條目與 `007_GIT_WORKFLOW.md` §8.1。
 
 固定 stash：
 
@@ -2696,7 +2702,15 @@ Sprint：（對應的產品版本／Sprint 名稱，例如「V7.0B 子 PR 5b／5
 - 2026-07-24 CI-01／CI-02 Sprint 起，`deploy.yml` 會先執行 `npm ci` 與 `npm run test:ci`，任一失敗會中止該次 workflow、不會產出部署；但這是「部署當下」的自動把關，不是「Merge 前」的人工核准，Merge 之前仍不得描述 Production 已部署或已發布。
 - PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」；只能敘述本機／Preview 驗證結果。
 - Merge 完成後，AI 或負責回報的人必須實際查詢該次 push 觸發的 `Deploy GitHub Pages` workflow run（run id、headSha、`status`、`conclusion`），並如實記錄為「成功」「失敗」或「待確認」，不得只憑「PR 已 Merge」就假設 Production 已成功更新。
-- GitHub Environment 人工核准、Branch Protection、預設分支（目前為 `gh-pages`）修正等強化措施，本次（CI-01／CI-02／UR-TODO-037 部分）**明確不處理**，需另立獨立 Todo／Sprint。
+- GitHub Environment 人工核准、Branch Protection、預設分支（目前為 `gh-pages`）修正等強化措施，本次（CI-01／CI-02／UR-TODO-037 部分）**明確不處理**，需另立獨立 Todo／Sprint。2026-07-30 更新：預設分支已修正為 `main`、`main` 已啟用 Branch Protection（詳見下方 8.1 與 `008_TODO_BACKLOG.md` UR-TODO-037 條目）；GitHub Environment 人工核准仍維持原狀未處理。
+
+### 8.1 Branch Protection 生效後的純治理文件同步 Merge 規則（2026-07-30 起）
+
+- `main` 已啟用 Branch Protection：`required_status_checks`（`strict: false`，必要檢查 `verify`）、`enforce_admins: false`、`required_pull_request_reviews.required_approving_review_count: 1`、`restrictions: null`。
+- 本 Repository 僅有一名 collaborator（Repository 擁有者本人），沒有第二人可提供必要的 PR 核准。`enforce_admins: false` 是刻意保留的繞過閥。
+- **純治理文件同步 PR**（變更範圍僅限 `AI_CONTEXT/**/*.md` 與 `AI_CONTEXT/EXPORTS/` Bundle）維持既有自動 Merge 政策：CI Verification 的 `verify` 檢查通過、機械式路徑檢查確認範圍相符後，AI 可自行將 PR 轉為 Ready for review 並完成 Merge，不需要等候使用者。
+- 由於必要核准無法被第二人滿足，實際執行 Merge 時可能需要使用 `gh pr merge <PR> --merge --admin` 以管理員權限繞過保護規則。**這已經過使用者明確授權（2026-07-30 確認「選項 A」），不需要每次重新請示**，但每一次實際使用 `--admin` 繞過保護規則，都必須在回報內容中明確告知使用者，不得靜默執行。
+- 一般功能／程式碼 PR **不適用**此自動 Merge 與 `--admin` 繞過安排，仍須依既有規則由使用者驗收後親自決定是否 Merge。
 
 ---
 
@@ -2746,9 +2760,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.39
+# Universal Rebalance Todo Backlog v1.40
 
 最後更新：2026-07-30
+
+2026-07-30 **UR-TODO-037 正式標記為已完成**。使用者確認選定「選項 2：中度保護」，`main` 已啟用 Branch Protection：`gh api repos/hyc640110/family-universal-rebalance/branches/main/protection` 實際查詢確認 `required_status_checks: {strict: false, checks: [{context: "verify"}]}`、`enforce_admins: false`、`required_pull_request_reviews.required_approving_review_count: 1`、`restrictions: null` 皆已生效，`gh api .../branches/main --jq '.protected'` 回傳 `true`。`verify` 為 `.github/workflows/ci.yml` 內唯一在 `pull_request` 事件觸發、可作為合併前必要檢查的 check name（以 `gh api .../check-runs` 實際查詢確認，非憑印象填寫；`deploy.yml` 的 `deploy` check 只在 push 後觸發，不適合作為合併前必要檢查，故排除）。GitHub Environments 人工核准**維持原狀，本次未處理**：確認 Repository 唯一的 `github-pages` Environment 是因啟用 legacy 分支部署模式而由 GitHub 自動建立，`deploy.yml` 未引用此 Environment，設定 reviewers 不會有實際效果，若要真正生效需另外授權修改 `deploy.yml`，使用者本次未要求執行，故此項不得標記為已完成，僅預設分支修正與 Branch Protection 兩項視為 UR-TODO-037 本次範圍內的完成項目。由於 Repository 僅有一名 collaborator、無第二人可核准 PR，`enforce_admins: false` 保留管理員繞過閥；使用者已確認「選項 A」：純治理文件同步 PR 的既有自動 Merge 政策維持不變，執行時可使用 `gh pr merge --admin` 繞過核准規則，但每次使用皆須在回報中明確告知，不得靜默執行，此規則已同步寫入 `007_GIT_WORKFLOW.md` §8.1。詳見下方更新後的 **UR-TODO-037** 正式條目。
 
 2026-07-30 **UR-TODO-037 完成第 3 項（GitHub 預設分支修正）**。使用者於 Review Mode 發起「UR-TODO-037 Phase 1（唯讀盤點）」指令後，以 `gh api repos/hyc640110/family-universal-rebalance/environments`、`gh api .../branches/main/protection`、`gh api .../{owner}/{repo} --jq '.default_branch'` 等指令實際查詢確認：(1) GitHub Environments 僅有一個自動建立的 `github-pages` Environment，只有 `branch_policy` 類型規則、無 `required_reviewers`，且 `deploy.yml` 未宣告 `environment:` 欄位，即使設定 reviewers 也不會實際生效；(2) `main` 分支確認為 `Branch not protected`（404）；(3) 預設分支確認仍為 `gh-pages`。三項判定皆不需要超出目前 Repo Admin 的權限（Repository 為個人帳號、非 Organization，`gh auth status` 確認 token 已具 `repo` 完整 scope），故未觸發升級條件。使用者隨後明確授權修正第 3 項，已以 `gh api repos/hyc640110/family-universal-rebalance -X PATCH -f default_branch=main` 執行並驗證生效（`gh api`／`gh repo view` 皆回傳 `main`），GitHub Pages 部署來源（`source.branch: gh-pages`）為獨立設定不受影響，Production 網站實測 HTTP 200 未受影響。**Branch Protection、Environment 人工核准兩項仍待使用者決定政策內容後另行處理**，UR-TODO-037 狀態維持「部分完成」。詳見下方更新後的 **UR-TODO-037** 正式條目。
 
@@ -3007,8 +3023,9 @@ Hotfix 仍需：
 ### UR-TODO-037 Deployment Workflow Approval & Status Accuracy
 
 - 優先級：P0
-- 狀態：**部分完成**（Sprint「Deployment CI Reproducibility & Test Gate」，2026-07-24；2026-07-30 完成第 3 項「預設分支修正」，Branch Protection、Environment 人工核准兩項仍待規劃）
+- 狀態：**已完成**（Sprint「Deployment CI Reproducibility & Test Gate」，2026-07-24 完成部署狀態敘述修正；2026-07-30 完成預設分支修正與 Branch Protection；GitHub Environment 人工核准維持原狀，未強制要求為驗收範圍，詳見下方判定）
 - 提出日期：2026-07-24
+- 完成日期：2026-07-30
 - 提出依據：2026-07-24「最新基線與 AI 治理文件唯讀差異盤點」
 - 問題：
   - `.github/workflows/deploy.yml` 觸發條件為 `on: push: branches: [main]`，沒有 Draft／Ready／人工核准閘門。
@@ -3019,9 +3036,9 @@ Hotfix 仍需：
   - 明確規定 PR 說明在使用者手動 Merge 完成前，一律不得寫「Production 已部署」。
   - 明確規定 Merge 完成後，必須依實際 `Deploy GitHub Pages` workflow run 結果（run id、headSha、status、conclusion）記錄成功、失敗或待確認，不得只憑「已 Merge」推定成功。
   - 部署 pipeline 本身新增測試與依賴可重現性把關（見 CI-01、CI-02），降低「品質不佳但仍自動上線」的風險，但這屬於部署當下的自動檢查，不是 Merge 前的人工核准。
-- 尚未完成範圍（明確延後，需另立 Todo／Sprint）：
-  - GitHub Environments 人工核准（required reviewers）
-  - Branch Protection Rule（`main` 目前仍是 `Branch not protected`）
+- 尚未完成範圍（2026-07-24 提出當時，明確延後）：
+  - GitHub Environments 人工核准（required reviewers）—— **2026-07-30 判定維持原狀，不納入本次 UR-TODO-037 驗收範圍，理由見下方 Phase 3**
+  - Branch Protection Rule（`main` 目前仍是 `Branch not protected`）—— **2026-07-30 已完成，見下方 Phase 3**
 
 **Phase 1（唯讀盤點，2026-07-30，已完成）**：
 - 使用者於 Review Mode 發起「UR-TODO-037 Phase 1（唯讀盤點）」指令，以 `gh api` 實際查詢（非憑印象判斷）三項殘留範圍現況：
@@ -3035,13 +3052,20 @@ Hotfix 仍需：
 - 確認未受影響：GitHub Pages 部署來源（`gh api repos/.../pages` 回傳 `source.branch: "gh-pages"`）為獨立設定，與 Repository 預設分支無關；`curl` 實測 Production（`https://hyc640110.github.io/family-universal-rebalance/`）HTTP 200，未受此設定變更影響。
 - **Branch Protection、GitHub Environments 人工核准兩項本次未處理**，待使用者決定政策內容（例如 required PR review 人數、是否要修改 `deploy.yml` 新增人工核准關卡）後另行授權處理；此為單一維護者 Repository（僅一名 collaborator），若貿然開啟「要求 PR review」而未同時設定 bypass／allow list，可能鎖死使用者自己的既有 Merge 流程，需先由使用者決定政策再排入開發。
 
+**Phase 3（Branch Protection，2026-07-30，已完成）**：
+- 使用者選定「選項 2：中度保護」，明確授權具體設定內容後執行 `gh api repos/hyc640110/family-universal-rebalance/branches/main/protection -X PUT` 並以完整 JSON payload 送出：`required_status_checks: {strict: false, checks: [{context: "verify"}]}`、`enforce_admins: false`、`required_pull_request_reviews.required_approving_review_count: 1`、`restrictions: null`。
+- `verify` check name 以 `gh api repos/.../commits/{sha}/check-runs` 實際查詢確認，為 `.github/workflows/ci.yml`（`on: pull_request`）內唯一 job 的顯示名稱；`deploy.yml` 的 `deploy` check 只在 push 到 `main` 後才觸發，邏輯上不可能作為「合併前必須通過」的必要檢查（會導致 PR 永遠無法合併），已排除，未發現其他候選，不存在需要使用者裁決的歧義。
+- 執行後以 `gh api .../branches/main/protection` 與 `gh api .../branches/main --jq '.protected'`（回傳 `true`）雙重驗證確認四項設定與送出內容完全一致。
+- **治理規則同步更新（2026-07-30）**：由於本 Repository 僅有一名 collaborator，`required_approving_review_count: 1` 無法被第二人滿足；使用者確認採用「選項 A」——純治理文件同步 PR 的既有自動 Merge 政策維持不變，執行時若需要繞過核准規則，可使用 `gh pr merge --admin`，此為預先授權、不需每次重新請示，**但每次實際使用 `--admin` 都必須在回報中明確告知使用者，不得靜默執行**。此規則已同步寫入 `007_GIT_WORKFLOW.md` §8.1，供未來所有治理同步指令沿用；一般功能／程式碼 PR 不適用此安排，仍須使用者本人驗收後決定是否 Merge。
+- **GitHub Environments 人工核准判定為維持原狀**：唯一的 `github-pages` Environment 與實際部署流程無關（見 Phase 1 唯讀盤點結論），使用者本次未要求授權修改 `deploy.yml` 使其生效，故不納入本次驗收範圍，也不得標記為已完成或已處理。
+
 - 禁止：
   - 不得未經使用者授權直接修改 `deploy.yml` 或其他 CI／CD 設定。
 - 驗收條件：
   - Production 部署觸發方式與治理文件描述一致，不再有「PR 稱未部署但實際已部署」的落差 —— **已透過 `007_GIT_WORKFLOW.md` 更新達成**。
   - 預設分支修正為 `main` —— **已完成（2026-07-30）**。
-  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **未完成，留待後續 Sprint**。
-  - Branch Protection 政策內容確定並落地 —— **未完成，待使用者決定政策內容**。
+  - Branch Protection 政策內容確定並落地 —— **已完成（2026-07-30，選項 2：中度保護）**。
+  - 若新增人工核准閘門，Preview／Production 部署行為需重新驗證 —— **明確不納入本次範圍**：使用者未要求開啟 Environment 人工核准，此驗收條件本身不適用，非「未完成」。
 
 ### UR-TODO-038 Deploy Workflow Node Runtime / DevDependency Install Failure
 
