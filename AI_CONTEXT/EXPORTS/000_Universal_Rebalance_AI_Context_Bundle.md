@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-07-31T10:18:43.876235+00:00
+Generated UTC: 2026-07-31T11:09:16.271482+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-07-31T10:18:43.876235+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `2aeb8c187061e631b5e8de85dfeadc467b0bbc6ebdcb5a15cfb5bd511ce08229`
+- `003_CURRENT_STATUS.md` — SHA-256 `ff86073b86b2fb98f70c61f04f940848f23f74d8c2b3b731abfa27b3d297024b`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `57e88eae6b4a76f3ceca4e504db075c47b0c0904cd86523f17dc8ec9f3b80c39`
+- `008_TODO_BACKLOG.md` — SHA-256 `3472427849764694eaae3714d674f765d0a9ba85526ba46e38bc93b2b34ee4ee`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.53
+# Universal Rebalance Current Status v3.54
 
 最後更新：2026-07-31
+
+本次更新依據：**PR #198**（「feat: UR-TODO-048 phase B - retire CLEC 433/442 as an official allocationPreset」）已由使用者手動 Merge，merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-048 子階段 B 正式標記為已完成**：狀態層於 `App.tsx:375`（`normalizeState` 內）固定回傳 `'custom'`，取代原本會放行 `clec-433`／`clec-442` 的正規化邏輯，`normalizeAllocationPreset` 本身未修改，保留供子階段 C 純預覽計算重用；UI 層同一 PR 移除資產頁互動式 `AllocationPresetPanel`（CLEC 433／442 下拉選單、角色指派、套用按鈕）與其唯一寫入路徑 `applyAllocationPreset`，改為唯讀 `AllocationPresetSummary`（「目前正式配置：自訂配置」），同步修正 `allocationContext.ts`／`ClecStrategyCenterPage.tsx` 文案並清除死 CSS。隔離 Preview 環境（非真實使用者資料）以模擬 legacy 資料（`allocationPreset:'clec-433'` ＋ `targetWeight` 40／40／20）驗證遷移後 `allocationPreset` 變為 `custom`、`targetWeight` 與 `allocationRoleBySymbol` 完全不變，二次重新整理狀態穩定；`test:ci` 641/641 通過，`npx tsc -b` 與 Production／Preview build 皆成功。`CI Verification`（PR #198 內）與 Merge 後 `Deploy GitHub Pages` workflow run `30625373714`（`conclusion: success`，headSha 與 merge commit 一致）皆成功；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用；Production 資產頁與 CLEC 策略中心畫面唯讀確認呈現正確，無殘留 CLEC 選項；**使用者已在自己的瀏覽器登入真實帳戶，確認 Production 上實際持股 `targetWeight` 未受影響**（此項超出 AI 可存取範圍的自動化驗證，由使用者本人確認）。**明確不包含**：子階段 C（CLEC 策略中心純模擬模板）尚未開始，需另行下達「開始開發」指示；`allocationRoleBySymbol` 欄位清理未評估，維持原狀。詳見 `008_TODO_BACKLOG.md` UR-TODO-048 條目。
 
 本次更新依據：**PR #196**（「docs: add UR-TODO-047/048 governance baseline」）已由使用者事先授權、Claude Code 自行執行 `gh pr merge --admin` 完成 Merge（純治理文件同步，變更檔案僅 `AI_CONTEXT/008_TODO_BACKLOG.md`、`AI_CONTEXT/003_CURRENT_STATUS.md` 與 Full／Lite Bundle 四個檔案，符合機械式路徑檢查條件；`CI Verification` run `30622759369` 於 Merge 前已 success；因 Repository 僅一名 collaborator、無第二人可核准 PR，依 `007_GIT_WORKFLOW.md` §8.1 既有政策使用 `--admin` 繞過必要審查，已於 Merge 當下明確告知使用者），merge commit `91a2b087634b1a6cfb7f28d34508201cdf7c4c09`，`mergedAt: 2026-07-31T10:14:32Z`，此為目前 `main`／`origin/main` 正式基線。**首次正式建檔 UR-TODO-047 與 UR-TODO-048**：UR-TODO-047（負債模組與現金流固定支出清單重複計算風險盤點）狀態**已完成**，結論為無實際重複計算、風險等級「低」，`Loan.monthlyPayment` 為安全存量核心計算唯一正式來源，固定支出清單借款還款欄位在核心計算中被忽略、僅作有效性檢查；UR-TODO-048（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）狀態**規劃中**，子階段 A 唯讀盤點已完成（基準 `origin/main` HEAD `54e64fb50fd998c192a326a3604b06e6714add8a`，即 PR #195 merge commit），確認 `allocationPreset` 唯一收斂點為 `App.tsx:375`（`normalizeState` 內，經 `setState` wrapper 每次更新皆重新呼叫），資產頁 `AllocationPresetPanel` 為唯一可寫入 legacy 值的 UI 入口；子階段 B／C 尚未開始，需另行下達「開始開發」指示。此前兩個編號僅存在於 Claude Home（無 Repository 存取權）對話規劃中，Repository 內完全無記錄，PR #196 為首次正式建檔。對應 `Deploy GitHub Pages` workflow run `30622870430` success，headSha `91a2b08` 與 merge commit 一致，Production 部署已同步更新（本次未另以 `curl` 唯讀重新驗證 HTTP 狀態，因本輪內容純為 Todo 文字新增、無 UI／功能變更）。詳見 `008_TODO_BACKLOG.md` UR-TODO-047、UR-TODO-048 條目。
 
@@ -705,19 +707,19 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）子階段 A 唯讀盤點已完成，狀態「規劃中」，子階段 B／C 待授權開發。
-- PR：**#196**（MERGED，首次正式建檔 UR-TODO-047／048，`gh pr merge --admin`）為目前 `origin/main` 最新 Merge；**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）、**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 B 已完成**（狀態層 `App.tsx:375` 固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`，PR #198），子階段 C（純模擬模板）待授權開發。
+- PR：**#198**（MERGED，UR-TODO-048 子階段 B，狀態層＋UI 層一併移除 CLEC 433／442 正式配置選項）為目前 `origin/main` 最新 Merge；**#197**（MERGED，PR #196 治理文件基線同步）、**#196**（MERGED，首次正式建檔 UR-TODO-047／048，`gh pr merge --admin`）、**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）、**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
-- 最新 merge commit（PR #196）：
-  `91a2b087634b1a6cfb7f28d34508201cdf7c4c09`
+- 最新 merge commit（PR #198）：
+  `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`
 - 最新功能性子 PR merge commit（PR #127，V7.0B 子 PR 5b／5，UR-TODO-008 系列歷史記錄）：
   `83431910a7948d32f52deb0b98715080286f3fb3`
 
 ## 2. Repository 狀態
 
 - Repository：`hyc640110/family-universal-rebalance`
-- 正式基線：`origin/main`＝`91a2b087634b1a6cfb7f28d34508201cdf7c4c09`（PR #196 merge commit，2026-07-31T10:14:32Z）。
+- 正式基線：`origin/main`＝`ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`（PR #198 merge commit，2026-07-31T10:58:16Z）。
 - 已合併子 PR：UR-TODO-010 的 PR #150、#152、#154、#156、#157，以及 UR-TODO-011 子 PR 011A `feat/ur-todo-011a-defensive-configuration-presentation`（PR #160）、011A 治理同步（PR #161）、011B `feat/ur-todo-011b-analytics-defensive-status`（PR #162）、011B 治理同步（PR #163）、011C `feat/ur-todo-011c-cash-flow-clec-terminology`（PR #164）、011C 治理同步（PR #165）；其變更已納入正式基線。
 - 原工作目錄的 `dist/` 變動與未追蹤 `.claude/` 不屬本 Sprint，未被清除、覆蓋或 stash；固定 stash 未受影響。
 - PR #167：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/167)；只新增 `deriveHouseholdLiquidityInputDiagnostics` 與 provenance tests，明確區分 Cash Flow Profile 缺失、Loan 來源不可用、未連結借款與失效借款連結。
@@ -746,6 +748,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 - PR #194：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/194)；merge commit `67dab7552620e759d4381f22b6b44a2b3489c2f5`，`mergedAt: 2026-07-30T13:58:01Z`，`mergedBy: hyc640110`。純治理文件同步：記錄 GitHub Environments／Branch Protection／預設分支三項的 `gh api` 唯讀盤點結論，以及使用者授權後執行的預設分支修正（`gh api -X PATCH -f default_branch=main`）。Branch Protection 本身於 PR #194 Merge 後、本次治理同步 PR 之前，由使用者另行明確授權具體設定內容，以 `gh api -X PUT` 執行並雙重驗證生效；**UR-TODO-037 正式標記為已完成**，詳見 `008_TODO_BACKLOG.md` UR-TODO-037 條目與 `007_GIT_WORKFLOW.md` §8.1。
 - **註：本節缺 PR #195 的獨立條目**（「Merge pull request #195」，將 UR-TODO-037 正式標記為已完成、把基線推進至 PR #194，即本次 PR #196 的分支基準）——本次唯讀比對 `git log` 與本節內容時發現此既有落差，非本次治理同步範圍造成，本次不逕行補登其完整內容，僅在此註記待未來治理同步一併處理。
 - PR #196：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/196)；merge commit `91a2b087634b1a6cfb7f28d34508201cdf7c4c09`，`mergedAt: 2026-07-31T10:14:32Z`，`mergedBy: hyc640110`（`gh pr merge --admin` 執行，依 `007_GIT_WORKFLOW.md` §8.1 既有授權，已於 Merge 當下明確告知使用者）。純治理文件同步：**首次正式建檔 UR-TODO-047**（負債模組與現金流固定支出清單重複計算風險盤點，狀態已完成，無實際重複計算）**與 UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板，狀態規劃中，子階段 A 唯讀盤點已完成，子階段 B／C 待授權開發）；此前兩個編號僅存在於 Claude Home（無 Repository 存取權）對話規劃中，Repository 內完全無記錄。`CI Verification` run `30622759369` success；`Deploy GitHub Pages` run `30622870430` success，headSha 與 merge commit 一致。變更檔案僅 `AI_CONTEXT/008_TODO_BACKLOG.md`、`AI_CONTEXT/003_CURRENT_STATUS.md`、Full／Lite Bundle 四個檔案，未修改 `src/`、`tests/`、schema、migration 或 UI。詳見 `008_TODO_BACKLOG.md` UR-TODO-047、UR-TODO-048 條目。
+- PR #197：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/197)；merge commit `ad1eade9ded08304ca32c2bdff500c1e4d100c01`，`mergedAt: 2026-07-31T10:20:27Z`，`mergedBy: hyc640110`（`gh pr merge --admin` 執行，依既有授權，已於 Merge 當下明確告知使用者）。純治理文件同步：將 PR #196 的實際合併結果（merge commit、`mergedAt`、`--admin` 揭露、CI／Deploy 成功佐證）記錄回 `003_CURRENT_STATUS.md` 作為新基線；一併唯讀記錄兩項觀察（§2 逐條清單缺 PR #195 獨立條目、`git stash list` 實際為 5 筆而非文件先前記載的 3 筆），皆未處理、僅加註待未來治理同步。變更檔案僅 `AI_CONTEXT/003_CURRENT_STATUS.md`、Full／Lite Bundle，未修改 `src/`、`tests/`。
+- PR #198：[MERGED](https://github.com/hyc640110/family-universal-rebalance/pull/198)；merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`，`mergedAt: 2026-07-31T10:58:16Z`，`mergedBy: 使用者手動 Merge`。**UR-TODO-048 子階段 B 已完成**：狀態層 `App.tsx:375` 固定回傳 `'custom'`；UI 層同一 PR 移除資產頁 `AllocationPresetPanel` 互動元件與唯一寫入路徑 `applyAllocationPreset`，改為唯讀 `AllocationPresetSummary`；同步修正 `allocationContext.ts`／`ClecStrategyCenterPage.tsx` 文案並清除死 CSS。隔離 Preview 環境驗證遷移前後 `targetWeight` 完全不變；`test:ci` 641/641 通過。Merge 後 `Deploy GitHub Pages` run `30625373714` success，headSha 與 merge commit 一致；Production／Preview `curl` 實測皆 HTTP 200，環境隔離正常；Production 資產頁與 CLEC 策略中心畫面唯讀確認正確；使用者已在自己瀏覽器登入真實帳戶確認 Production 實際持股 `targetWeight` 未受影響。子階段 C 與 `allocationRoleBySymbol` 清理均未處理。詳見 `008_TODO_BACKLOG.md` UR-TODO-048 條目。
 
 固定 stash：
 
@@ -2764,9 +2768,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.41
+# Universal Rebalance Todo Backlog v1.42
 
 最後更新：2026-07-31
+
+2026-07-31 **UR-TODO-048 子階段 B 正式標記為已完成**，已由使用者手動 Merge [PR #198](https://github.com/hyc640110/family-universal-rebalance/pull/198)（`feat/ur-todo-048-phaseb-allocation-preset-custom-only`），merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`。狀態層於 `App.tsx:375` 單一收斂點固定回傳 `'custom'`；UI 層同一 PR 移除資產頁 `AllocationPresetPanel` 互動元件與其唯一寫入路徑，改為唯讀 `AllocationPresetSummary`。隔離 Preview 環境以模擬 legacy 資料驗證遷移前後 `targetWeight` 完全不變；`test:ci` 641/641 通過；`Deploy GitHub Pages` workflow run `30625373714` success，headSha 與 merge commit 一致，Production／Preview HTTP 200 且環境隔離正常；使用者已在自己的瀏覽器登入真實帳戶確認 Production 上實際持股 `targetWeight` 未受影響。**UR-TODO-048 狀態由「規劃中」更新為「子階段 B 已完成，子階段 C 待開發」**，子階段 C（CLEC 策略中心純模擬模板）尚未開始，需另行下達「開始開發」指示；`allocationRoleBySymbol` 欄位清理仍未評估。詳見下方更新後的 **UR-TODO-048** 正式條目。
 
 2026-07-31 首次正式建檔 **UR-TODO-047**（負債模組與現金流固定支出清單重複計算風險盤點，狀態**已完成**，結論：無實際重複計算，風險等級「低」）與 **UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板，優先級待評估，狀態**規劃中**，子階段 A 唯讀盤點已完成）。此前兩個編號僅存在於 Claude Home（無 Repository 存取權）對話規劃中，Repository 內完全無記錄；本次為純治理文件同步，首次由具 Repository 存取權的 AI（Claude Code，Review Mode／唯讀盤點延伸）正式建檔，未修改任何 `src/`、`tests/`、schema、migration 或 UI 程式碼。UR-TODO-047 已完成、不需後續開發；UR-TODO-048 子階段 B／C 尚未開始，未經使用者明確下達「開始開發」不得建立功能 Branch 或實作。詳見下方新增的 **UR-TODO-047**、**UR-TODO-048** 正式條目。
 
@@ -3705,8 +3711,10 @@ Hotfix 仍需：
 ### UR-TODO-048 CLEC 433／442 移轉為 CLEC 策略中心純模擬模板
 
 - 優先級：待評估
-- 狀態：**規劃中**（子階段 A 唯讀盤點已完成，子階段 B／C 待開發，未經「開始開發」不得建立功能 Branch 或實作）
+- 狀態：**子階段 B 已完成，子階段 C 待開發**（未經「開始開發」不得建立功能 Branch 或實作）
 - 提出日期：2026-07-31（子階段 A 唯讀盤點完成日）
+- 子階段 B 完成日期：2026-07-31
+- 子階段 B 完成 PR：[#198](https://github.com/hyc640110/family-universal-rebalance/pull/198)（`feat/ur-todo-048-phaseb-allocation-preset-custom-only`），merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`
 
 - 背景：CLEC 433／442 目前作為資產頁正式配置選項，導致正式配置、策略模板與再平衡語意混在一起。已確認產品方向：資產頁未來只保留「自訂正式配置」；CLEC 433／442 移至 CLEC 策略中心，作為純模擬模板。
 
@@ -3724,7 +3732,13 @@ Hotfix 仍需：
   - 子階段 C 建議最小範圍：重用既有 `AllocationSimulatorPage`（`src/pages/AllocationSimulatorPage.tsx`，已符合 session-only／不持久化邊界）、`deriveAllocationPresetPreview`（`src/lib/allocationPresets.ts`，純函式，可安全以 `'clec-433'`／`'clec-442'` 為暫時計算參數）、`deriveAllocationSimulatorFunding`（`src/lib/allocationSimulatorFunding.ts`，已預設排除受保護安全現金），僅在 CLEC 策略中心新增連結入口與選擇性的樣板套用按鈕，不新建路由或頁面元件。
   - 待盤點事項：`allocationRoleBySymbol` 欄位在 B 完成後失去實際計算用途（僅剩裝飾性顯示），是否清理未評估；`AllocationPreset` 型別將長期保留 `clec-433`／`clec-442` 合法值供 C 階段重用，此為刻意設計，非疏漏。
 
-- 明確不包含：子階段 A 僅唯讀盤點，未修改任何檔案；子階段 B／C 尚未開始開發，需另行下達「開始開發」指示。
+- 子階段 B（PR #198）已完成結論：
+  - **狀態層**：`App.tsx:375`（`normalizeState` 內）改為固定回傳 `'custom'`（新增 `coerceAllocationPresetToCustom()`），取代原本會放行 `clec-433`／`clec-442` 的 `normalizeAllocationPreset(s.allocationPreset)`；`normalizeAllocationPreset` 本身未修改，保留供子階段 C 純預覽計算重用。App 唯一的 `setState` wrapper 每次更新皆重新呼叫 `normalizeState()`，此單一收斂點同時涵蓋 localStorage、Firebase download、JSON Backup 與原本的 UI 套用路徑。
+  - **UI 層**（同一 PR 一併完成，落實子階段 A 點名的「重要修正」）：移除整個互動式 `AllocationPresetPanel`（CLEC 433／442 下拉選單、角色指派、套用預覽與按鈕）與其唯一寫入路徑 `applyAllocationPreset`；`keepCustomAllocation` 因失去唯一呼叫端一併移除；改為唯讀 `AllocationPresetSummary` 單行文字「目前正式配置：自訂配置」。同步修正 `allocationContext.ts` 的 `official-target` 說明文字與 `ClecStrategyCenterPage.tsx` 文案／CTA 連結，不再宣稱 CLEC 433／442 為正式配置選項；清除 `styles.css` 內對應的死 CSS。
+  - **驗證**：隔離 Preview 環境（非真實使用者資料，`--mode preview-deploy` 手動啟動）以模擬 legacy 資料（`allocationPreset:'clec-433'` ＋ 3 檔持股 `targetWeight` 40／40／20）驗證遷移後 `allocationPreset` 變為 `'custom'`、`targetWeight` 與 `allocationRoleBySymbol` 完全不變，二次重新整理狀態穩定（冪等）；`test:ci` 641/641 全數通過；`npx tsc -b` 與 Production／Preview build 皆成功。Merge 後 Production 唯讀驗證：`Deploy GitHub Pages` workflow run `30625373714`（`conclusion: success`，headSha 與 merge commit 一致）；Production／Preview 以 `curl` 實測皆 HTTP 200，環境隔離與資源路徑正常；Production 資產頁與 CLEC 策略中心畫面確認唯讀文字與更新文案皆正確呈現，無殘留 CLEC 選項。**使用者已在自己的瀏覽器登入真實帳戶，確認 Production 上實際持股 `targetWeight` 未受影響**（此項超出 AI 可存取範圍的自動化驗證，由使用者本人確認）。
+  - **明確不包含**：子階段 C（CLEC 策略中心純模擬模板）尚未開始，需另行下達「開始開發」指示；`allocationRoleBySymbol` 欄位清理未評估，維持原狀，保留原有型別與資料，僅失去實際計算用途（子階段 A 已列為待盤點）。
+
+- 明確不包含：子階段 C 尚未開始開發，需另行下達「開始開發」指示。
 
 ### UR-TODO-012 Rebalance Scenario Simulator
 
