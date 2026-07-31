@@ -50,7 +50,7 @@ import { deriveDailyDecisionWorkflow } from './lib/dailyDecisionWorkflow';
 import { deriveInvestmentOpportunities } from './lib/investmentOpportunities';
 import { deriveInvestmentActionCenter } from './lib/investmentActionCenter';
 import { deriveInvestmentActionExplanations } from './lib/investmentActionExplainability';
-import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, roleLabel, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
+import { allocationPresetLabel, normalizeAllocationPreset, normalizeAllocationRoleBySymbol, type AllocationPreset, type AllocationRole } from './lib/allocationPresets';
 import { deriveClecStrategyCenter } from './lib/clecStrategy';
 import { buildClecFundingSemantics, buildClecStrategyRuleInput } from './lib/clecStrategyRuleAdapter';
 import { deriveClecStrategyRule } from './lib/clecStrategyRules';
@@ -357,6 +357,8 @@ function loanPeriodSummary(loan: LoanItem) {
   const remaining = paid === undefined || loan.totalMonths === undefined ? undefined : Math.max(0, Math.floor(loan.totalMonths) - paid);
   return { paid, remaining };
 }
+/** UR-TODO-048 phase B: allocationPreset is state-only 'custom' now; legacy clec-433/442 values self-heal here. normalizeAllocationPreset itself is untouched for phase C's read-only preview reuse. */
+function coerceAllocationPresetToCustom(): AllocationPreset { return 'custom'; }
 function normalizeState(raw: unknown): AppState {
   const r = raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>) } : {};
   STALE_KEYS.forEach((key) => delete r[key]);
@@ -372,7 +374,7 @@ function normalizeState(raw: unknown): AppState {
   const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const importSessions = Array.isArray(r.importSessions) ? r.importSessions.filter(value => value && typeof value === 'object').slice(-50) as ImportSession[] : [];
   const importPresets = normalizeMappingPresets(r.importPresets);
-  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: normalizeAllocationPreset(s.allocationPreset), allocationRoleBySymbol: normalizeAllocationRoleBySymbol(s.allocationRoleBySymbol, normalizedHoldings), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), allocationRoleBySymbol: normalizeAllocationRoleBySymbol(s.allocationRoleBySymbol, normalizedHoldings), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   const normalized = { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore), remoteMeta: sanitizeRemoteMeta(s.remoteMeta) };
@@ -735,42 +737,9 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
     </div>}
   </article>;
 }
-function AllocationPresetPanel({ holdings, preset, roleBySymbol, onApply, onKeepCustom }: {
-  holdings: Array<Pick<Holding, 'symbol' | 'name' | 'targetWeight'>>;
-  preset: AllocationPreset;
-  roleBySymbol: AllocationRoleBySymbol;
-  onApply: (preview: ReturnType<typeof deriveAllocationPresetPreview>, roles: AllocationRoleBySymbol) => void;
-  onKeepCustom: () => void;
-}) {
-  const [draftPreset, setDraftPreset] = useState<AllocationPreset>(preset);
-  const [draftRoles, setDraftRoles] = useState<AllocationRoleBySymbol>(roleBySymbol);
-  useEffect(() => {
-    setDraftPreset(preset);
-    setDraftRoles(roleBySymbol);
-  }, [preset, roleBySymbol]);
-  const preview = deriveAllocationPresetPreview({ preset: draftPreset, holdings, roleBySymbol: draftRoles });
-  const resetDraft = () => { setDraftPreset(preset); setDraftRoles(roleBySymbol); };
-  return <Card title="正式目標配置" className="allocation-preset-panel">
-    <AllocationContextNotice context="official-target" />
-    <div className="allocation-preset-controls">
-      <label>正式目標配置<select value={draftPreset} onChange={event => setDraftPreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="custom">自訂正式配置</option><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
-      <p><small>目前正式目標配置</small><strong>{allocationPresetLabel(preset)}</strong></p>
-    </div>
-    {draftPreset !== 'custom' && <div className="allocation-preset-roles">{holdings.map(holding => {
-      const symbol = normalizeSymbol(holding.symbol);
-      const currentRole = draftRoles[symbol] || 'none';
-      const occupiedRoles = new Set(Object.entries(draftRoles).filter(([otherSymbol, role]) => otherSymbol !== symbol && role !== 'none').map(([, role]) => role));
-      return <label key={symbol}><span><b>{symbol}</b><small>{holding.name || symbol}｜目前目標 {pct(holding.targetWeight ?? 0)}</small></span><select value={currentRole} onChange={event => { const role = event.currentTarget.value as AllocationRole; setDraftRoles(current => ({ ...current, [symbol]: role })); }}><option value="none">未指派</option><option value="prototype" disabled={currentRole !== 'prototype' && occupiedRoles.has('prototype')}>原型資產</option><option value="leveraged" disabled={currentRole !== 'leveraged' && occupiedRoles.has('leveraged')}>槓桿資產</option><option value="cash-like" disabled={currentRole !== 'cash-like' && occupiedRoles.has('cash-like')}>類現金持股</option></select></label>;
-    })}</div>}
-    <div className={`allocation-preset-preview ${preview.canApply ? 'good' : 'bad'}`}>
-      <h3>套用後預覽</h3>
-      <p><b>{allocationPresetLabel(draftPreset)}</b>｜持股目標合計 {preview.targetTotal === null ? '無法計算' : pct(preview.targetTotal)}｜銀行現金目標 {preview.cashTargetPct === null ? '無法計算' : pct(preview.cashTargetPct)}</p>
-      {preview.rows.map(row => <p key={row.symbol}><span>{row.symbol}｜{row.issue === 'duplicate-role' ? '角色重複，尚未分配' : roleLabel(row.role)}</span><strong>{pct(row.currentWeight)} → {row.nextWeight === null ? '無法計算' : pct(row.nextWeight)}</strong></p>)}
-      {preview.warnings.map(item => <p className="warning-message" key={item}>{item}</p>)}
-      {preview.blockingReasons.map(item => <p className="warning-message" key={item}>{item}</p>)}
-    </div>
-    <div className="actions"><button type="button" className="small" onClick={resetDraft}>取消預覽</button>{draftPreset === 'custom' ? <button type="button" className="small" onClick={onKeepCustom}>保留目前配置</button> : <button type="button" disabled={!preview.canApply} onClick={() => onApply(preview, draftRoles)}>確認套用 {allocationPresetLabel(draftPreset)}</button>}</div>
-  </Card>;
+/** UR-TODO-048 phase B: allocationPreset is always 'custom' now (see coerceAllocationPresetToCustom); this is read-only display only, no write path. */
+function AllocationPresetSummary({ preset }: { preset: AllocationPreset }) {
+  return <p className="allocation-preset-readonly">目前正式配置：<strong>{allocationPresetLabel(preset)}</strong></p>;
 }
 function Stat({ label, value, tone: toneClass }: { label: string; value: ReactNode; tone?: string }) {
   return <div className="stat"><small>{label}</small><b className={toneClass || ''}>{value}</b></div>;
@@ -1712,14 +1681,6 @@ function App() {
       }, s.holdings)
     }));
   };
-  const applyAllocationPreset = (preview: ReturnType<typeof deriveAllocationPresetPreview>, roles: AllocationRoleBySymbol) => setState(current => {
-    if (!preview.canApply || preview.preset === 'custom') return current;
-    if (preview.rows.some(row => row.nextWeight === null)) return current;
-    const targetBySymbol = Object.fromEntries(preview.rows.map(row => [row.symbol, row.nextWeight]));
-    const holdings = safeHoldings(current.holdings).map(holding => ({ ...holding, targetWeight: targetBySymbol[normalizeSymbol(holding.symbol)] ?? 0 }));
-    return { ...current, holdings, allocationPreset: preview.preset, allocationRoleBySymbol: normalizeAllocationRoleBySymbol(roles, holdings) };
-  });
-  const keepCustomAllocation = () => setState(current => current.allocationPreset === 'custom' ? current : { ...current, allocationPreset: 'custom' });
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
     const holdings = safeHoldings(s.holdings);
     const normalizedSymbol = normalizeSymbol(symbol);
@@ -1914,7 +1875,7 @@ function App() {
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
         <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
-        <div className="for-assets"><AllocationPresetPanel holdings={m.rows.map(row => ({ symbol: row.symbol, name: row.name, targetWeight: row.targetWeight }))} preset={state.allocationPreset} roleBySymbol={state.allocationRoleBySymbol} onApply={applyAllocationPreset} onKeepCustom={keepCustomAllocation} /></div>
+        <div className="for-assets"><AllocationPresetSummary preset={state.allocationPreset} /></div>
         <Card className="page-card for-assets" title="新增持股">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。已清倉資產可封存，保留給股息歷史使用。</p>
           <div className="asset-add-row">
