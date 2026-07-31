@@ -5,6 +5,7 @@ import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import AllocationContextNotice from '../components/AllocationContextNotice';
 import { getAllocationContext } from '../lib/allocationContext';
 import { deriveAllocationSimulatorFunding, type AllocationSimulatorFundingInput } from '../lib/allocationSimulatorFunding';
+import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, roleLabel, type AllocationPreset, type AllocationRole } from '../lib/allocationPresets';
 
 type SimulatorRow = {
   symbol: string;
@@ -77,6 +78,16 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
   const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
   const [allowSafetyCashUsage, setAllowSafetyCashUsage] = useState(false);
   const resetTargets = () => setTargets(Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
+  // UR-TODO-048 phase C: template-only, session-local role picker. Never reads or writes the app's
+  // formal allocation preset/role fields - it only feeds the pure deriveAllocationPresetPreview() selector below.
+  const [templatePreset, setTemplatePreset] = useState<AllocationPreset>('clec-442');
+  const [templateRoles, setTemplateRoles] = useState<Record<string, AllocationRole>>({});
+  const templateHoldings = useMemo(() => rows.map(row => ({ symbol: row.symbol, name: row.name, targetWeight: officialTarget(row) })), [rows]);
+  const templatePreview = useMemo(() => deriveAllocationPresetPreview({ preset: templatePreset, holdings: templateHoldings, roleBySymbol: templateRoles }), [templatePreset, templateHoldings, templateRoles]);
+  const applyTemplatePreview = () => {
+    if (!templatePreview.canApply) return;
+    setTargets(current => ({ ...current, ...Object.fromEntries(templatePreview.rows.map(row => [row.symbol, String(row.nextWeight ?? 0)])) }));
+  };
   const funding = useMemo(() => deriveAllocationSimulatorFunding({ ...fundingInput, allowSafetyCashUsage }), [fundingInput, allowSafetyCashUsage]);
   const canUseSafetyCashAssumption = !funding.isUnavailable && funding.usableProtectedSafetyCash !== null && funding.usableProtectedSafetyCash > 0;
   useEffect(() => {
@@ -130,6 +141,25 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
       <article><small>目前正式總資產</small><strong>{money(totalAssets)}</strong></article><article><small>模擬後總資產</small><strong>{simulatedTotal === null ? '資料不足' : money(simulatedTotal)}</strong></article><article><small>模擬目標比例合計</small><strong className={result.isExact ? 'good' : 'bad'}>{pct(result.targetTotal)}</strong></article><article><small>預估需調整總金額</small><strong>{canShowSimulationAmounts && result.isExact && calculationTotal > 0 ? money(result.buyTotal + result.sellTotal) : blockedAmountMessage}</strong></article><article><small>預估買進／賣出</small><strong>{canShowSimulationAmounts && result.isExact && calculationTotal > 0 ? `${money(result.buyTotal)}／${money(result.sellTotal)}` : '—'}</strong></article>
     </section>
     <section className="card simulator-controls"><div><h2>模擬條件</h2><p className="note">可調整目標比例；資金來源為唯讀正式資料，不會回寫任何設定。</p></div><div className="actions"><button type="button" className="small" onClick={resetTargets}><RotateCcw size={16} /> 恢復正式目標比例</button></div></section>
+    <section className="card sim-clec-template">
+      <h2>套用 CLEC 442／433 權重樣板（試算）</h2>
+      <p className="note">角色指派僅供本次模擬使用，暫存於本頁，不會寫入正式配置、localStorage 或 Firebase；套用後只覆寫下方模擬目標比例，不會產生交易或修改正式 targetWeight。</p>
+      <div className="allocation-preset-controls">
+        <label>樣板<select value={templatePreset} onChange={event => setTemplatePreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
+      </div>
+      <div className="allocation-preset-roles">{rows.map(row => {
+        const currentRole = templateRoles[row.symbol] || 'none';
+        const occupiedRoles = new Set(Object.entries(templateRoles).filter(([symbol, role]) => symbol !== row.symbol && role !== 'none').map(([, role]) => role));
+        return <label key={row.symbol}><span><b>{row.symbol}</b><small>{row.name || row.symbol}｜正式目標 {pct(officialTarget(row))}</small></span><select value={currentRole} onChange={event => { const role = event.currentTarget.value as AllocationRole; setTemplateRoles(current => ({ ...current, [row.symbol]: role })); }}><option value="none">未指派</option><option value="prototype" disabled={currentRole !== 'prototype' && occupiedRoles.has('prototype')}>原型資產</option><option value="leveraged" disabled={currentRole !== 'leveraged' && occupiedRoles.has('leveraged')}>槓桿資產</option><option value="cash-like" disabled={currentRole !== 'cash-like' && occupiedRoles.has('cash-like')}>類現金持股</option></select></label>;
+      })}</div>
+      <div className={`allocation-preset-preview ${templatePreview.canApply ? 'good' : 'bad'}`}>
+        <p><b>{allocationPresetLabel(templatePreset)}</b>｜持股目標合計 {templatePreview.targetTotal === null ? '無法計算' : pct(templatePreview.targetTotal)}｜銀行現金目標 {templatePreview.cashTargetPct === null ? '無法計算' : pct(templatePreview.cashTargetPct)}</p>
+        {templatePreview.rows.map(row => <p key={row.symbol}><span>{row.symbol}｜{row.issue === 'duplicate-role' ? '角色重複，尚未分配' : roleLabel(row.role)}</span><strong>{pct(row.currentWeight)} → {row.nextWeight === null ? '無法計算' : pct(row.nextWeight)}</strong></p>)}
+        {templatePreview.warnings.map(item => <p className="warning-message" key={item}>{item}</p>)}
+        {templatePreview.blockingReasons.map(item => <p className="warning-message" key={item}>{item}</p>)}
+      </div>
+      <div className="actions"><button type="button" disabled={!templatePreview.canApply} onClick={applyTemplatePreview}>套用至下方模擬目標比例</button></div>
+    </section>
     <section className="card"><div className="sim-section-heading"><div><h2>資產目標比例調整</h2><p className="note">可調整模擬目標比例；正式資料僅供參考且不會被修改。</p></div><div className={`sim-target-status ${result.isExact ? 'good' : 'bad'}`}><small>比例驗證</small><strong>{targetStatus}</strong></div></div><div className="sim-editor-list">{result.entries.map(row => <article key={row.symbol} className="sim-editor-row"><div><strong>{row.symbol}</strong><span>{row.name || row.symbol}｜{row.assetClass === 'defensive' ? '防守資產' : '成長資產'}</span></div><p><small>目前市值</small><b>{money(row.marketValue)}</b></p><p><small>目前比例</small><b>{totalAssets > 0 ? pct(row.marketValue / totalAssets * 100) : '—'}</b></p><p><small>正式目標</small><b>{pct(officialTarget(row))}</b></p><label>模擬目標比例<input aria-label={`${row.symbol} 模擬目標比例`} type="number" min="0" max="1000" step="0.01" inputMode="decimal" value={targets[row.symbol] ?? '0'} onChange={event => { const value = event.currentTarget.value; setTargets(current => ({ ...current, [row.symbol]: value })); }} /></label><p><small>模擬目標金額</small><b>{canShowSimulationAmounts ? money(row.targetValue) : '資料不足'}</b></p><p><small>模擬差額</small><b className={canShowSimulationAmounts ? row.diff > 0 ? 'good' : row.diff < 0 ? 'bad' : '' : ''}>{canShowSimulationAmounts ? signedMoney(row.diff) : '資料不足'}</b></p></article>)}</div></section>
     {!result.isExact && <p className="warning-message">比例尚未符合 100%。系統保留你的輸入，但不顯示完整交易模擬，也不會自動調整比例。</p>}
     {!canShowSimulationAmounts && <p className="warning-message">資金資料不足或計畫提領已觸發阻擋；仍可比較目標比例，但不顯示金額與交易方向。</p>}
