@@ -16,11 +16,15 @@ test('three allocation contexts are centrally defined and deterministic', () => 
   assert.equal(ALLOCATION_CONTEXTS.simulation.modifiesOfficialTarget, false);
 });
 
-test('official, simulation, and analysis surfaces use the shared context notice', () => {
+test('official-target is a read-only custom-only summary; simulation and analysis keep the shared context notice', () => {
   const app = source('src/App.tsx');
   const simulator = source('src/pages/AllocationSimulatorPage.tsx');
-  assert.match(app, /<Card title="正式目標配置" className="allocation-preset-panel">/);
-  assert.match(app, /<AllocationContextNotice context="official-target" \/>/);
+  // UR-TODO-048 phase B: official-target no longer renders AllocationContextNotice or an
+  // interactive preset panel — allocationPreset is state-only 'custom', so this surface is
+  // now a plain read-only summary line instead.
+  assert.match(app, /function AllocationPresetSummary\(\{ preset \}: \{ preset: AllocationPreset \}\) \{/);
+  assert.match(app, /目前正式配置：<strong>\{allocationPresetLabel\(preset\)\}<\/strong>/);
+  assert.doesNotMatch(app, /<AllocationContextNotice context="official-target"/);
   assert.match(app, /<AllocationContextNotice context="analysis" showCta \/>/);
   assert.match(simulator, /<AllocationContextNotice context="simulation" showCta \/>/);
 });
@@ -43,7 +47,7 @@ test('simulator tool metadata stays aligned with the central simulation context 
 });
 
 test('allocation context copy keeps official targets, simulations, and analysis distinct', () => {
-  assert.match(ALLOCATION_CONTEXTS['official-target'].description, /再平衡建議與相關決策會使用/);
+  assert.match(ALLOCATION_CONTEXTS['official-target'].description, /再平衡建議與相關決策皆使用/);
   assert.match(ALLOCATION_CONTEXTS.simulation.description, /不會自動取代正式目標配置/);
   assert.match(ALLOCATION_CONTEXTS.simulation.description, /不提供套用正式配置/);
   assert.match(ALLOCATION_CONTEXTS.analysis.description, /不會建立或修改配置方案/);

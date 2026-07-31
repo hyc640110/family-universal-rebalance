@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 
 const fontSizesFor = (selector: string) => [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)]
@@ -41,9 +41,9 @@ test('V6.13 preserves mobile input, dividend, and chart readability contracts', 
 });
 
 test('V6.13 applies final scoped 13px rules to audited desktop allocation and section labels', () => {
-  assert.equal(finalFontSizeFor('.allocation-preset-roles small'), '13px');
-  assert.match(css, /\.allocation-preset-roles small\{color:#b6c7da;font-size:13px;line-height:1\.4;overflow-wrap:anywhere\}/);
-  assert.match(css, /\.allocation-preset-roles span\{min-width:0\}/);
+  // UR-TODO-048 phase B removed .allocation-preset-roles entirely along with the interactive
+  // AllocationPresetPanel it styled; the remaining section-label audit below is unaffected.
+  assert.doesNotMatch(css, /\.allocation-preset-roles/);
   assert.equal(finalFontSizeFor('.performance-heading .eyebrow'), '13px');
   assert.equal(finalFontSizeFor('.market-hero .eyebrow'), '13px');
   assert.equal(finalFontSizeFor('.market-section header .eyebrow'), '13px');

@@ -20,7 +20,7 @@ export const ALLOCATION_CONTEXTS: Readonly<Record<AllocationContextId, Allocatio
     id: 'official-target',
     name: '正式目標配置',
     shortLabel: '正式設定',
-    description: 'CLEC 433、442 或自訂配置都是正式目標比例；再平衡建議與相關決策會使用此設定。確認套用後，才會影響後續正式配置判定。',
+    description: '自訂配置是目前唯一的正式目標比例；再平衡建議與相關決策皆使用此設定。',
     modifiesOfficialTarget: true,
     isReadOnly: false,
     route: '/assets',
