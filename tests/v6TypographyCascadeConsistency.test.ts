@@ -41,9 +41,12 @@ test('V6.13 preserves mobile input, dividend, and chart readability contracts', 
 });
 
 test('V6.13 applies final scoped 13px rules to audited desktop allocation and section labels', () => {
-  // UR-TODO-048 phase B removed .allocation-preset-roles entirely along with the interactive
-  // AllocationPresetPanel it styled; the remaining section-label audit below is unaffected.
-  assert.doesNotMatch(css, /\.allocation-preset-roles/);
+  // UR-TODO-048 phase C reintroduces .allocation-preset-roles for the Allocation Simulator's
+  // session-only CLEC template role picker (phase B had removed it along with the interactive
+  // AllocationPresetPanel it used to style); the audited font-size is unchanged.
+  assert.equal(finalFontSizeFor('.allocation-preset-roles small'), '13px');
+  assert.match(css, /\.allocation-preset-roles small\{color:#b6c7da;font-size:13px;line-height:1\.4;overflow-wrap:anywhere\}/);
+  assert.match(css, /\.allocation-preset-roles span\{min-width:0\}/);
   assert.equal(finalFontSizeFor('.performance-heading .eyebrow'), '13px');
   assert.equal(finalFontSizeFor('.market-hero .eyebrow'), '13px');
   assert.equal(finalFontSizeFor('.market-section header .eyebrow'), '13px');
