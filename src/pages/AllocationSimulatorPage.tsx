@@ -145,7 +145,7 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
       <h2>套用 CLEC 442／433 權重樣板（試算）</h2>
       <p className="note">角色指派僅供本次模擬使用，暫存於本頁，不會寫入正式配置、localStorage 或 Firebase；套用後只覆寫下方模擬目標比例，不會產生交易或修改正式 targetWeight。</p>
       <div className="allocation-preset-controls">
-        <label>樣板<select value={templatePreset} onChange={event => setTemplatePreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option></select></label>
+        <label>樣板<select value={templatePreset} onChange={event => setTemplatePreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option><option value="clec-703">CLEC 703</option><option value="clec-5050">CLEC 5050</option></select></label>
       </div>
       <div className="allocation-preset-roles">{rows.map(row => {
         const currentRole = templateRoles[row.symbol] || 'none';

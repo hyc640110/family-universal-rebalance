@@ -59,3 +59,33 @@ test('模擬交易方向清單維持純文字呈現，樣板套用不新增任�
   assert.match(page, /<section className="card"><h2>模擬交易方向<\/h2>/);
   assert.doesNotMatch(page, /下單|建立交易|placeOrder|submitOrder/);
 });
+
+test('UR-TODO-048 phase D: 樣板選單新增 CLEC 703／5050 選項，既有 442／433 選項不變', () => {
+  const page = source('src/pages/AllocationSimulatorPage.tsx');
+
+  assert.match(page, /<option value="clec-442">CLEC 442<\/option><option value="clec-433">CLEC 433<\/option><option value="clec-703">CLEC 703<\/option><option value="clec-5050">CLEC 5050<\/option>/);
+});
+
+test('UR-TODO-048 phase D: CLEC 703／5050 樣板套用後正確產生 0/70/30、0/50/50 目標比例（既有純函式契約）', () => {
+  const holdings = [
+    { symbol: 'AAA', name: 'AAA', targetWeight: 33 },
+    { symbol: 'BBB', name: 'BBB', targetWeight: 33 },
+    { symbol: 'CCC', name: 'CCC', targetWeight: 34 }
+  ];
+  const roles = { AAA: 'prototype' as const, BBB: 'leveraged' as const, CCC: 'cash-like' as const };
+
+  const clec703 = deriveAllocationPresetPreview({ preset: 'clec-703', holdings, roleBySymbol: roles });
+  assert.equal(clec703.canApply, true);
+  assert.deepEqual(clec703.rows.map(row => [row.symbol, row.nextWeight]), [['AAA', 0], ['BBB', 70], ['CCC', 30]]);
+  assert.equal(clec703.targetTotal, 100);
+
+  const clec5050 = deriveAllocationPresetPreview({ preset: 'clec-5050', holdings, roleBySymbol: roles });
+  assert.equal(clec5050.canApply, true);
+  assert.deepEqual(clec5050.rows.map(row => [row.symbol, row.nextWeight]), [['AAA', 0], ['BBB', 50], ['CCC', 50]]);
+  assert.equal(clec5050.targetTotal, 100);
+});
+
+test('UR-TODO-048 phase D: ClecStrategyCenterPage 未新增任何 clec-703／5050 相關內容', () => {
+  const page = source('src/pages/ClecStrategyCenterPage.tsx');
+  assert.doesNotMatch(page, /clec-703|clec-5050|CLEC 703|CLEC 5050/);
+});
