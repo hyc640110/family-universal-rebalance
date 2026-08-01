@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.51
+# Universal Rebalance Todo Backlog v1.52
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）的「走勢方向漸層填色」子需求正式標記為已完成**，已由使用者手動 Merge [PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`，`mergedAt: 2026-08-01T11:34:18Z`。**本項條目下仍有其他 2026-07-19 提出、本次未處理的待確認項目（07／15 附近日期斷裂、Y 軸整數刻度、手機左側文字裁切、Y 軸位置），故 UR-TODO-027 整體狀態維持「部分完成」，僅漸層填色子需求正式結案，不整體標記為已完成。** 範圍：`src/components/TrendChart.tsx` 新增紅漲綠跌漸層填色，**依驗收回饋由「整段頭尾單一顏色」調整為「逐段各自變色」**——每個相鄰資料點間的線段依「該段自己的終點 vs 起點」各自決定紅（`#ff5b5b`）／綠（`#43d17a`），中間震盪（先漲後跌再漲）會逐段各自呈現正確方向，而非只看整段頭尾；持平線段維持不填色。`monotonePath`（可見折線）改為從新的 `monotoneSegments()` 衍生，確保折線與逐段填色使用完全相同的曲線片段。視覺風格為「逐段漸層淡出」（使用者於實作前以 `AskUserQuestion` 二選一確認，選定漸層淡出而非逐段實色填色），每張圖表僅渲染 2 個共用 `<linearGradient>`（紅、綠各一，`gradientUnits="userSpaceOnUse"` 確保全圖統一絕對淡出速率），由所有同方向線段共用，不是逐段各自一個漸層。折線本身仍是單一連續 `<path>`（`stroke="currentColor"`），資料點與 hover／touch 互動完全未變動。`tests/trendChartGradientArea.test.ts` 全面改寫為 7 個測試，涵蓋逐段變色關鍵案例（含「整體區間上漲但中段下跌」）、持平線段不填色、共用漸層數量、折線與互動標記不變；`npx tsc -b`、`test:ci` 全數通過。隔離本機 dev server 實機驗證：seed 一組震盪走勢確認 6 個線段各自正確變色、僅 2 個共用漸層、`getComputedStyle` 確認顏色與淡出透明度正確、390px 無橫向溢出、hover/touch 互動正常、console 全程無 error；`Deploy GitHub Pages` run `30697948596` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。詳見下方更新後的 **UR-TODO-027** 正式條目。
 
 2026-08-01 **治理落差補記：UR-TODO-026 正式標記為已完成**。已由使用者手動 Merge [PR #216](https://github.com/hyc640110/family-universal-rebalance/pull/216)（`fix/ur-todo-026-remove-holding-ratio-label`），merge commit `63feac1f0012546fadc1e341c55c047c967ada65`，`mergedAt: 2026-08-01T10:02:00Z`；本文件先前僅記錄「使用者拍板需求範圍」，PR #216 Merge 結果未同步進本文件，本次一併補齊。範圍：`src/App.tsx` 移除持股卡片圓形徽章內的「持有比例」文字標籤，只保留百分比數字，未新增任何圖形／圓圈視覺（既有 `.holding-mobile-weight` CSS 圓形徽章維持不變），改用 `aria-label` 保留無障礙語意；`src/styles.css` 同步清理已死的相關 CSS 規則。`Deploy GitHub Pages` run `30694911418`（headSha `63feac1`，PR #216 為觸發此次部署的最後一次 push，PR #215 對應的 run `30694886154` 因 `concurrency: cancel-in-progress` 被此次部署自動取消，屬正常行為，非錯誤）success；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。詳見下方更新後的 **UR-TODO-026** 正式條目。
 
@@ -709,25 +711,23 @@
 
 ### UR-TODO-027 趨勢圖剩餘視覺與刻度問題
 - 優先級：P1
-- 狀態：待盤點
+- 狀態：**部分完成**（走勢方向漸層填色子需求已完成；07／15 日期斷裂、Y 軸整數刻度、手機文字裁切、Y 軸位置四項待確認未於本次處理）
 - 提出日期：2026-07-19
-- 待確認：
+- 2026-08-01 完成依據（漸層填色子需求）：[PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`。`src/components/TrendChart.tsx` 新增紅漲綠跌漸層填色，**依驗收回饋由「整段頭尾單一顏色」調整為「逐段各自變色」**：每個相鄰資料點間的線段依「該段自己的終點 vs 起點」各自決定紅（`#ff5b5b`）／綠（`#43d17a`），中間震盪會逐段各自呈現正確方向；持平線段不填色。`monotonePath`（折線）改為從新的 `monotoneSegments()` 衍生，確保折線與填色使用相同曲線片段。視覺風格為「逐段漸層淡出」（實作前以 `AskUserQuestion` 確認選定），每張圖表僅 2 個共用 `<linearGradient>`（`gradientUnits="userSpaceOnUse"`），不是逐段各自一個。折線與資料點 hover／touch 互動完全未變動。`tests/trendChartGradientArea.test.ts` 新增 7 個測試；`npx tsc -b`、`test:ci` 全數通過；隔離本機 dev server 實機驗證通過；`Deploy GitHub Pages` run `30697948596` success；Production／Preview `curl` 實測皆 HTTP 200。
+- 待確認（本次未處理，維持原狀）：
   - 07／15 附近是否仍有中間空白。
   - Y 軸是否使用易讀整數刻度。
   - 手機左側文字是否裁切。
   - Y 軸位置是否需調整。
-  - 走勢方向漸層填色需求（2026-07-26 補充明確規格，取代原本模糊的「綠色漸層需求是否仍保留」，見下方）。
-- 明確需求（2026-07-26 使用者提供，參考樣式為 Google 財經個股走勢圖）：
+- 明確需求（2026-07-26 使用者提供，參考樣式為 Google 財經個股走勢圖；2026-08-01 驗收後調整為逐段變色，見上方完成依據）：
   - 趨勢圖線下方應依走勢方向顯示漸層填色，由線條顏色向下漸淡至透明：
     - 區間內上漲（終點高於起點）：紅色漸層（符合台股慣例，紅漲）。
     - 區間內下跌（終點低於起點）：綠色漸層（符合台股慣例，綠跌）。
-  - 2026-07-26 唯讀確認：`src/components/TrendChart.tsx` 目前只繪製 `<path>` 折線與資料點 `<circle>`，未使用任何 `<linearGradient>`／填色區域；`src/styles.css` 的 `.trend-chart` 相關規則亦未定義漸層。**目前完全沒有既有的固定單色漸層**，本項為**新增需求，不是既有功能的方向切換調整**。
-  - 若未來開發時發現螢幕上仍殘留其他既有漸層樣式（例如非 TrendChart 本身、由其他共用元件或 CSS 疊加造成），需另行唯讀盤點確認來源，不得假設本項已涵蓋該情況。
 - 驗收條件：
-  - 真實資料無日期斷裂。
-  - 手機 Safari 約 390px 無裁切。
-  - 桌機 1000px／1600px 正常。
-  - 走勢圖依區間漲跌動態顯示紅／綠漸層填色，且與現有「紅漲綠跌」台股顏色慣例一致，不與既有 `currentColor` 折線顏色邏輯衝突。
+  - 真實資料無日期斷裂。（未於本次處理）
+  - 手機 Safari 約 390px 無裁切。（未於本次處理；漸層填色本身已於 390px 驗證無溢出）
+  - 桌機 1000px／1600px 正常。（未於本次處理；漸層填色本身已於桌機驗證正常）
+  - 走勢圖依區間漲跌動態顯示紅／綠漸層填色，且與現有「紅漲綠跌」台股顏色慣例一致，不與既有 `currentColor` 折線顏色邏輯衝突。（**已達成**，改為逐段判斷）
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
