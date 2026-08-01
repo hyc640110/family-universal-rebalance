@@ -83,5 +83,5 @@ export function deriveAllocationPresetPreview(input: AllocationPresetPreviewInpu
   return { preset, canApply: false, blockingReasons, warnings, rows, targetTotal: null, cashTargetPct: null };
 }
 
-export const allocationPresetLabel = (preset: AllocationPreset) => preset === 'clec-442' ? 'CLEC 442' : preset === 'clec-433' ? 'CLEC 433' : preset === 'clec-703' ? 'CLEC 703' : preset === 'clec-5050' ? 'CLEC 5050' : '自訂配置';
+export const allocationPresetLabel = (preset: AllocationPreset) => preset === 'clec-442' ? 'CLEC 442' : preset === 'clec-433' ? 'CLEC 433' : preset === 'clec-703' ? '7:3' : preset === 'clec-5050' ? '50:50' : '自訂配置';
 export const roleLabel = (role: AllocationRole) => role === 'prototype' ? '原型資產' : role === 'leveraged' ? '槓桿資產' : role === 'cash-like' ? '類現金持股' : '未指派';

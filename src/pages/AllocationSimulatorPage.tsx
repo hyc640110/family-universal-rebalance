@@ -21,6 +21,10 @@ type Props = { rows: SimulatorRow[]; totalAssets: number; cash: number; fundingI
 type Action = '買進' | '賣出' | '不操作';
 
 const MONEY_FLOOR = 1000;
+/** UR-TODO-048 phase E: the cash target is a session-only simulation concept - it is stored under this
+ * synthetic key in the same targets record as real holdings, purely so its percentage can be included in
+ * the same 100% allocation total. It never maps to a real symbol, Household Liquidity field, or trade. */
+const CASH_TARGET_KEY = '__cash__';
 const money = (value: number) => `${(Math.abs(Number.isFinite(value) ? value : 0) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
 const signedMoney = (value: number) => `${value > 0 ? '+' : value < 0 ? '-' : ''}${money(value)}`;
 const pct = (value: number) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}%`;
@@ -69,7 +73,7 @@ function Donut({ title, items, total, centerLabel = '總資產', centerValue = m
         </svg>
         <div className="allocation-donut-center"><small>{centerLabel}</small><strong>{centerValue}</strong></div>
       </div>
-      <div className="allocation-legend">{segments.map(item => <div className="allocation-legend-item" key={item.symbol}><i style={{ backgroundColor: colorFor(item.symbol) }} /><span><b>{item.symbol === 'CASH' ? '台幣現金' : item.symbol}</b><small>{item.symbol === 'CASH' ? '未配置現金' : item.name}</small></span><strong>{pct(item.percent)}</strong></div>)}</div>
+      <div className="allocation-legend">{segments.map(item => <div className="allocation-legend-item" key={item.symbol}><i style={{ backgroundColor: colorFor(item.symbol) }} /><span><b>{item.symbol === 'CASH' ? item.name : item.symbol}</b><small>{item.symbol === 'CASH' ? '' : item.name}</small></span><strong>{pct(item.percent)}</strong></div>)}</div>
     </div>}
   </section>;
 }
@@ -77,16 +81,18 @@ function Donut({ title, items, total, centerLabel = '總資產', centerValue = m
 export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundingInput }: Props) {
   const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
   const [allowSafetyCashUsage, setAllowSafetyCashUsage] = useState(false);
-  const resetTargets = () => setTargets(Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
+  const resetTargets = () => setTargets({ ...Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])), [CASH_TARGET_KEY]: '0' });
   // UR-TODO-048 phase C: template-only, session-local role picker. Never reads or writes the app's
   // formal allocation preset/role fields - it only feeds the pure deriveAllocationPresetPreview() selector below.
   const [templatePreset, setTemplatePreset] = useState<AllocationPreset>('clec-442');
   const [templateRoles, setTemplateRoles] = useState<Record<string, AllocationRole>>({});
   const templateHoldings = useMemo(() => rows.map(row => ({ symbol: row.symbol, name: row.name, targetWeight: officialTarget(row) })), [rows]);
   const templatePreview = useMemo(() => deriveAllocationPresetPreview({ preset: templatePreset, holdings: templateHoldings, roleBySymbol: templateRoles }), [templatePreset, templateHoldings, templateRoles]);
+  // UR-TODO-048 phase E: a CLEC template always allocates 100% across its three roles (cashTargetPct is
+  // always 0 whenever canApply is true), so applying one resets the cash target to keep the combined total at 100%.
   const applyTemplatePreview = () => {
     if (!templatePreview.canApply) return;
-    setTargets(current => ({ ...current, ...Object.fromEntries(templatePreview.rows.map(row => [row.symbol, String(row.nextWeight ?? 0)])) }));
+    setTargets(current => ({ ...current, [CASH_TARGET_KEY]: String(templatePreview.cashTargetPct ?? 0), ...Object.fromEntries(templatePreview.rows.map(row => [row.symbol, String(row.nextWeight ?? 0)])) }));
   };
   const funding = useMemo(() => deriveAllocationSimulatorFunding({ ...fundingInput, allowSafetyCashUsage }), [fundingInput, allowSafetyCashUsage]);
   const canUseSafetyCashAssumption = !funding.isUnavailable && funding.usableProtectedSafetyCash !== null && funding.usableProtectedSafetyCash > 0;
@@ -107,15 +113,16 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
       const action: Action = Math.abs(diff) < MONEY_FLOOR ? '不操作' : diff > 0 ? '買進' : '賣出';
       return { ...row, targetPercent, targetValue, diff, action, hasValidPrice, estimatedShares: hasValidPrice ? Math.floor(Math.abs(diff) / row.quote.price) : null };
     });
-    const targetTotal = entries.reduce((sum, row) => sum + row.targetPercent, 0);
+    const cashTargetPercent = Math.max(0, safeNumber(targets[CASH_TARGET_KEY]));
+    const targetTotal = entries.reduce((sum, row) => sum + row.targetPercent, 0) + cashTargetPercent;
     const isExact = Math.abs(targetTotal - 100) < 0.0001;
     const buyTotal = isExact && calculationTotal > 0 ? entries.filter(row => row.action === '買進').reduce((sum, row) => sum + row.diff, 0) : 0;
     const sellTotal = isExact && calculationTotal > 0 ? entries.filter(row => row.action === '賣出').reduce((sum, row) => sum + Math.abs(row.diff), 0) : 0;
-    return { entries, targetTotal, isExact, buyTotal, sellTotal };
+    return { entries, cashTargetPercent, targetTotal, isExact, buyTotal, sellTotal };
   }, [calculationTotal, rows, targets]);
   const targetStatus = result.isExact ? '合計正好 100%' : result.targetTotal < 100 ? `尚差 ${(100 - result.targetTotal).toFixed(2)} 個百分點` : `超出 ${(result.targetTotal - 100).toFixed(2)} 個百分點`;
   const currentChart = [...rows.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: Math.max(0, row.marketValue) })), { symbol: 'CASH', name: '台幣現金', value: Math.max(0, cash) }];
-  const targetChart = [...result.entries.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: canShowSimulationAmounts ? row.targetValue : row.targetPercent })), { symbol: 'CASH', name: '未配置現金', value: canShowSimulationAmounts ? Math.max(0, calculationTotal * Math.max(0, 100 - result.targetTotal) / 100) : Math.max(0, 100 - result.targetTotal) }];
+  const targetChart = [...result.entries.map(row => ({ symbol: row.symbol, name: row.name || row.symbol, value: canShowSimulationAmounts ? row.targetValue : row.targetPercent })), { symbol: 'CASH', name: '現金（模擬）', value: canShowSimulationAmounts ? calculationTotal * result.cashTargetPercent / 100 : result.cashTargetPercent }];
   const fundingValue = (value: number | null) => funding.isUnavailable || value === null ? '資料不足' : money(value);
   const fundingMessages = [...funding.blockingReasons, ...funding.warnings]
     .filter(reason => reason !== 'SAFETY_CASH_USAGE_ASSUMPTION')
@@ -145,7 +152,7 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
       <h2>套用 CLEC 442／433 權重樣板（試算）</h2>
       <p className="note">角色指派僅供本次模擬使用，暫存於本頁，不會寫入正式配置、localStorage 或 Firebase；套用後只覆寫下方模擬目標比例，不會產生交易或修改正式 targetWeight。</p>
       <div className="allocation-preset-controls">
-        <label>樣板<select value={templatePreset} onChange={event => setTemplatePreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option><option value="clec-703">CLEC 703</option><option value="clec-5050">CLEC 5050</option></select></label>
+        <label>樣板<select value={templatePreset} onChange={event => setTemplatePreset(normalizeAllocationPreset(event.currentTarget.value))}><option value="clec-442">CLEC 442</option><option value="clec-433">CLEC 433</option><option value="clec-703">7:3</option><option value="clec-5050">50:50</option></select></label>
       </div>
       <div className="allocation-preset-roles">{rows.map(row => {
         const currentRole = templateRoles[row.symbol] || 'none';
@@ -160,7 +167,7 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
       </div>
       <div className="actions"><button type="button" disabled={!templatePreview.canApply} onClick={applyTemplatePreview}>套用至下方模擬目標比例</button></div>
     </section>
-    <section className="card"><div className="sim-section-heading"><div><h2>資產目標比例調整</h2><p className="note">可調整模擬目標比例；正式資料僅供參考且不會被修改。</p></div><div className={`sim-target-status ${result.isExact ? 'good' : 'bad'}`}><small>比例驗證</small><strong>{targetStatus}</strong></div></div><div className="sim-editor-list">{result.entries.map(row => <article key={row.symbol} className="sim-editor-row"><div><strong>{row.symbol}</strong><span>{row.name || row.symbol}｜{row.assetClass === 'defensive' ? '防守資產' : '成長資產'}</span></div><p><small>目前市值</small><b>{money(row.marketValue)}</b></p><p><small>目前比例</small><b>{totalAssets > 0 ? pct(row.marketValue / totalAssets * 100) : '—'}</b></p><p><small>正式目標</small><b>{pct(officialTarget(row))}</b></p><label>模擬目標比例<input aria-label={`${row.symbol} 模擬目標比例`} type="number" min="0" max="1000" step="0.01" inputMode="decimal" value={targets[row.symbol] ?? '0'} onChange={event => { const value = event.currentTarget.value; setTargets(current => ({ ...current, [row.symbol]: value })); }} /></label><p><small>模擬目標金額</small><b>{canShowSimulationAmounts ? money(row.targetValue) : '資料不足'}</b></p><p><small>模擬差額</small><b className={canShowSimulationAmounts ? row.diff > 0 ? 'good' : row.diff < 0 ? 'bad' : '' : ''}>{canShowSimulationAmounts ? signedMoney(row.diff) : '資料不足'}</b></p></article>)}</div></section>
+    <section className="card"><div className="sim-section-heading"><div><h2>資產目標比例調整</h2><p className="note">可調整模擬目標比例；正式資料僅供參考且不會被修改。</p></div><div className={`sim-target-status ${result.isExact ? 'good' : 'bad'}`}><small>比例驗證</small><strong>{targetStatus}</strong></div></div><div className="sim-editor-list">{result.entries.map(row => <article key={row.symbol} className="sim-editor-row"><div><strong>{row.symbol}</strong><span>{row.name || row.symbol}｜{row.assetClass === 'defensive' ? '防守資產' : '成長資產'}</span></div><p><small>目前市值</small><b>{money(row.marketValue)}</b></p><p><small>目前比例</small><b>{totalAssets > 0 ? pct(row.marketValue / totalAssets * 100) : '—'}</b></p><p><small>正式目標</small><b>{pct(officialTarget(row))}</b></p><label>模擬目標比例<input aria-label={`${row.symbol} 模擬目標比例`} type="number" min="0" max="1000" step="0.01" inputMode="decimal" value={targets[row.symbol] ?? '0'} onChange={event => { const value = event.currentTarget.value; setTargets(current => ({ ...current, [row.symbol]: value })); }} /></label><p><small>模擬目標金額</small><b>{canShowSimulationAmounts ? money(row.targetValue) : '資料不足'}</b></p><p><small>模擬差額</small><b className={canShowSimulationAmounts ? row.diff > 0 ? 'good' : row.diff < 0 ? 'bad' : '' : ''}>{canShowSimulationAmounts ? signedMoney(row.diff) : '資料不足'}</b></p></article>)}<article className="sim-editor-row sim-editor-row-cash"><div><strong>現金</strong><span>模擬概念，非真實資金部位</span></div><p><small>目前市值</small><b>—</b></p><p><small>目前比例</small><b>—</b></p><p><small>正式目標</small><b>—</b></p><label>模擬目標比例<input aria-label="現金 模擬目標比例" type="number" min="0" max="1000" step="0.01" inputMode="decimal" value={targets[CASH_TARGET_KEY] ?? '0'} onChange={event => { const value = event.currentTarget.value; setTargets(current => ({ ...current, [CASH_TARGET_KEY]: value })); }} /></label><p><small>模擬目標金額</small><b>{canShowSimulationAmounts ? money(calculationTotal * result.cashTargetPercent / 100) : '資料不足'}</b></p><p><small>模擬差額</small><b>—</b></p></article></div></section>
     {!result.isExact && <p className="warning-message">比例尚未符合 100%。系統保留你的輸入，但不顯示完整交易模擬，也不會自動調整比例。</p>}
     {!canShowSimulationAmounts && <p className="warning-message">資金資料不足或計畫提領已觸發阻擋；仍可比較目標比例，但不顯示金額與交易方向。</p>}
     <section className="sim-chart-grid card"><Donut title="目前配置" items={currentChart} total={Math.max(0, totalAssets)} /><Donut title="模擬目標配置" items={targetChart} total={canShowSimulationAmounts ? calculationTotal : 100} centerLabel={canShowSimulationAmounts ? '模擬後總資產' : '比例視覺'} centerValue={canShowSimulationAmounts ? money(calculationTotal) : pct(result.targetTotal)} /></section>
