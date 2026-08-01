@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { formatCompactQuoteMovement } from '../src/lib/compactAssetCard';
+import { formatCompactQuoteMovement, formatCompactQuoteHeadline } from '../src/lib/compactAssetCard';
 
 test('V6.6 presents existing recent-trading-day quote changes with stable Taiwan-market signs and tones', () => {
   assert.deepEqual(formatCompactQuoteMovement(0.25, 0.78, 32), { text: '+0.25（+0.78%）', tone: 'up', ariaLabel: '最近交易日上漲 0.25 元，漲幅 0.78%' });
@@ -20,11 +20,11 @@ test('V6.6 compact list consumes trusted Quote fields without calculating from a
   const helper = readFileSync(new URL('../src/lib/compactAssetCard.ts', import.meta.url), 'utf8');
   const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function AllocationPresetPanel'));
-  const summary = card.slice(card.indexOf('const compactQuoteMovement'), card.indexOf('{isEditing &&'));
+  const summary = card.slice(card.indexOf('const quoteHeadline'), card.indexOf('{isEditing &&'));
   const todayChange = summary.slice(summary.indexOf('holding-card-today-change'), summary.indexOf('holding-card-market-value'));
-  assert.match(summary, /formatCompactQuoteMovement\(row\.quote\.change, row\.quote\.changePct, row\.quote\.previousClose, row\.quote\.previousCloseTrusted === true\)/);
-  assert.match(summary, /aria-label=\{compactQuoteMovement\.ariaLabel\}/);
-  assert.match(summary, /holding-card-price[\s\S]*holding-quote-change \$\{compactQuoteMovement\.tone\}/);
+  assert.match(summary, /formatCompactQuoteHeadline\(row\.quote\.change, row\.quote\.changePct, row\.quote\.previousClose, row\.quote\.previousCloseTrusted === true\)/);
+  assert.match(summary, /aria-label=\{quoteHeadline\.ariaLabel\}/);
+  assert.match(summary, /holding-card-price[\s\S]*holding-quote-change \$\{quoteHeadline\.tone\}/);
   assert.doesNotMatch(todayChange, /avgCost|row\.pnl|quoteDateStatus|isTodayQuote/);
   assert.doesNotMatch(helper, /price\s*-/);
   assert.match(styles, /holding-quote-change/);
@@ -32,4 +32,12 @@ test('V6.6 compact list consumes trusted Quote fields without calculating from a
   assert.match(styles, /holding-card-price>strong\.down\{color:#43d17a\}/);
   assert.match(styles, /holding-card-price>strong\.hold\{color:#9fb3c8\}/);
   assert.match(styles, /grid-template-columns:minmax\(0,1fr\)/);
+});
+
+test('V6.6 same-line price+percent headline shows arrows and matches Taiwan-market red-up/green-down tones', () => {
+  assert.deepEqual(formatCompactQuoteHeadline(0.25, 0.78, 32), { arrow: '▲', percentText: '+0.78%', amountText: '+0.25', tone: 'up', ariaLabel: '最近交易日上漲 0.25 元，漲幅 0.78%' });
+  assert.deepEqual(formatCompactQuoteHeadline(-0.15, -0.3, 50), { arrow: '▼', percentText: '-0.30%', amountText: '-0.15', tone: 'down', ariaLabel: '最近交易日下跌 0.15 元，跌幅 0.30%' });
+  assert.deepEqual(formatCompactQuoteHeadline(0, 0, 100.15), { arrow: '', percentText: '0.00%', amountText: '0.00', tone: 'hold', ariaLabel: '最近交易日平盤' });
+  assert.deepEqual(formatCompactQuoteHeadline(0.25, 0.78, 0), { arrow: '', percentText: '—', amountText: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' });
+  assert.deepEqual(formatCompactQuoteHeadline(-2.18, -5.86, 37.19, false), { arrow: '', percentText: '—', amountText: '—', tone: 'hold', ariaLabel: '今日漲跌比較基準未驗證' });
 });

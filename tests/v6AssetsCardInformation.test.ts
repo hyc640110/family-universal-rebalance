@@ -18,7 +18,7 @@ test('V6.16 compact card keeps average cost in details while mobile presents onl
   assert.match(card, /holding-card-shares[\s\S]*row\.shares/);
   assert.match(card, /holding-card-average-cost[\s\S]*row\.avgCost/);
   assert.match(card, /holding-card-price[\s\S]*row\.quote\.price\.toFixed\(2\)/);
-  assert.match(card, /holding-card-today-change[\s\S]*compactQuoteMovement\.text/);
+  assert.match(card, /holding-card-today-change[\s\S]*quoteHeadline\.amountText/);
   assert.match(card, /holding-card-market-value[\s\S]*money\(row\.marketValue\)/);
   assert.match(card, /holding-card-unrealized-pnl[\s\S]*signedMoney\(row\.pnl\)[\s\S]*signedPct\(pnlPct\)/);
   assert.match(card, /holding-edit-button/);

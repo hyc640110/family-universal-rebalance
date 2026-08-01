@@ -57,7 +57,7 @@ import { deriveClecStrategyRule } from './lib/clecStrategyRules';
 import { deriveRebalanceExecutionEligibility } from './lib/rebalanceExecutionEligibility';
 import { deriveHouseholdLiquidity } from './lib/householdLiquidity';
 import { buildHouseholdLiquidityInput } from './lib/householdLiquidityInputAdapter';
-import { formatCompactHoldingWeight, formatCompactQuoteMovement } from './lib/compactAssetCard';
+import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { formatTransactionAmount } from './lib/transactionPresentation';
@@ -703,7 +703,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
-  const compactQuoteMovement = formatCompactQuoteMovement(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
+  const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
@@ -712,8 +712,8 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
       <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{row.avgCost.toFixed(2)} 元</strong></p>
-      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`}>{row.quote.price.toFixed(2)} 元</strong></p>
-      <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${compactQuoteMovement.tone}`} aria-label={compactQuoteMovement.ariaLabel}>{compactQuoteMovement.text}</strong></p>
+      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
+      <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
       <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
       <p className="holding-card-detail holding-card-unrealized-pnl"><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
       <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>

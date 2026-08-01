@@ -25,3 +25,26 @@ export function formatCompactQuoteMovement(change: number | null | undefined, ch
   if (amount < 0) return { text: `-${Math.abs(amount).toFixed(2)}（-${Math.abs(percent).toFixed(2)}%）`, tone: 'down', ariaLabel: `最近交易日下跌 ${Math.abs(amount).toFixed(2)} 元，跌幅 ${Math.abs(percent).toFixed(2)}%` };
   return { text: '0.00（0.00%）', tone: 'hold', ariaLabel: '最近交易日平盤' };
 }
+
+export type CompactQuoteHeadline = {
+  arrow: '▲' | '▼' | '';
+  percentText: string;
+  amountText: string;
+  tone: 'up' | 'down' | 'hold';
+  ariaLabel: string;
+};
+
+/**
+ * Splits the same movement into a same-line "price + arrow + percent" headline
+ * and a secondary-line amount, reusing formatCompactQuoteMovement as the single
+ * source of validity/tone/aria-label truth so both presentations never disagree.
+ */
+export function formatCompactQuoteHeadline(change: number | null | undefined, changePct: number | null | undefined, previousClose: number | null | undefined, previousCloseTrusted = true): CompactQuoteHeadline {
+  const movement = formatCompactQuoteMovement(change, changePct, previousClose, previousCloseTrusted);
+  if (movement.text === '—') return { arrow: '', percentText: '—', amountText: '—', tone: movement.tone, ariaLabel: movement.ariaLabel };
+  const amount = Number(change);
+  const percent = Math.abs(Number(changePct)).toFixed(2);
+  if (movement.tone === 'up') return { arrow: '▲', percentText: `+${percent}%`, amountText: `+${amount.toFixed(2)}`, tone: 'up', ariaLabel: movement.ariaLabel };
+  if (movement.tone === 'down') return { arrow: '▼', percentText: `-${percent}%`, amountText: `-${Math.abs(amount).toFixed(2)}`, tone: 'down', ariaLabel: movement.ariaLabel };
+  return { arrow: '', percentText: `${percent}%`, amountText: amount.toFixed(2), tone: 'hold', ariaLabel: movement.ariaLabel };
+}
