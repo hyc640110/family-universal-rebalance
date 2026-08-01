@@ -106,6 +106,10 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-card-today-change>strong.hold,.holding-card-unrealized-pnl>strong.hold{color:#9fb3c8}
 .holding-card-unrealized-pnl{min-width:0}
 .holding-card-unrealized-pnl strong{display:flex;flex-wrap:wrap;gap:2px 5px;white-space:normal;overflow-wrap:anywhere}
+/* UR-TODO-002 item 5: distinguish 未實現損益 from 今日漲跌 via container weight (tint + accent border), not a new color family. */
+.holding-card-unrealized-pnl-up{background:rgba(255,91,91,.12);border-color:#ff5b5b;border-left-width:3px}
+.holding-card-unrealized-pnl-down{background:rgba(67,209,122,.12);border-color:#43d17a;border-left-width:3px}
+.holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.08);border-color:#9fb3c8;border-left-width:3px}
 .holding-card-summary>.holding-edit-button{justify-self:end;min-height:32px;padding:5px 10px}
 .holding-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .holding-snapshot>div{min-width:0;padding:10px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
@@ -322,6 +326,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto;gap:8px;align-items:center;min-height:72px}
   .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:15px;white-space:nowrap}.holding-card-identity .holding-symbol{font-size:16px}
   .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
+  .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{padding:4px 8px;border-radius:6px;border-left-width:3px;border-left-style:solid}
+  .holding-card-unrealized-pnl-up{background:rgba(255,91,91,.1);border-left-color:#ff5b5b}
+  .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.1);border-left-color:#43d17a}
+  .holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.07);border-left-color:#9fb3c8}
   .holding-card-summary>.holding-edit-button{justify-self:end;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
   .holding-mobile-summary{grid-template-columns:44px 64px minmax(72px,1.2fr) minmax(84px,.65fr) minmax(126px,1.15fr) minmax(66px,.55fr) minmax(96px,.85fr);gap:8px;min-height:64px}
   .holding-mobile-weight{width:44px;height:44px}
