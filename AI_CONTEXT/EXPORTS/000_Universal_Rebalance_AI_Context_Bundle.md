@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-01T14:51:43.311709+00:00
+Generated UTC: 2026-08-01T15:34:43.282159+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-01T14:51:43.311709+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `424e1af523fc13050a995fd16012ca59b13b6a73d366c35f9ba610df54ea8777`
+- `003_CURRENT_STATUS.md` — SHA-256 `9f4de4f4414fd2afd1bffdd0be1619a132358aba3e3fd7e803e333553136b958`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `07088d4ea4c22d2ce4ff0721d842b2d1efc6b77097ab884eb903d74d04a69abf`
+- `008_TODO_BACKLOG.md` — SHA-256 `48a5d0154a0555603d42185b87624faaf7e96be18062fd708decf3b840fa8540`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.60
+# Universal Rebalance Current Status v3.61
 
 最後更新：2026-08-01
+
+**PR #220 Production 唯讀驗證＋收支與現金流中心元單位輸入結案（2026-08-01）**：使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30706058168` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**收支與現金流中心「每月設定」（每月收入、每月預定投資金額、固定支出清單各項金額）金額輸入改為元單位正式標記為已完成**：新增獨立的 `parseYuanInput`／`formatYuanInput`，`wanToYuan`／`yuanToWan`（供「家庭流動資金計畫」額外投入資金／預計提領資金專用）完全未修改；底層儲存格式未變動，純顯示／輸入層調整。此為使用者於 Claude Home 唯讀盤點後直接下達的開發指令，非既有 UR-TODO 編號。詳見 `008_TODO_BACKLOG.md` 對應段落。
 
 **PR #218 Production 唯讀驗證＋UR-TODO-027 漸層填色子需求結案（2026-08-01）**：使用者手動 Merge [PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`，`mergedAt: 2026-08-01T11:34:18Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30697948596` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用。**UR-TODO-027 的「走勢方向漸層填色」子需求正式標記為已完成**：`TrendChart.tsx` 新增逐段紅漲綠跌漸層填色，每個線段依自己的終點 vs 起點各自判斷方向（驗收回饋後由「整段頭尾單一顏色」調整為逐段變色），持平不填色，僅 2 個共用 `<linearGradient>`，折線與資料點互動未變動。**UR-TODO-027 整體狀態維持「部分完成」**——07／15 日期斷裂、Y 軸整數刻度、手機文字裁切、Y 軸位置四項 2026-07-19 提出的待確認項目本次未處理。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
@@ -2797,9 +2799,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.52
+# Universal Rebalance Todo Backlog v1.53
 
 最後更新：2026-08-01
+
+2026-08-01 **收支與現金流中心「每月設定」金額輸入改為元單位，正式標記為已完成**（非既有 UR-TODO 編號，由使用者於 Claude Home 唯讀盤點後直接下達開發指令，經 Claude Code 執行）。已由使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。**背景**：使用者反映固定支出清單以「萬元」輸入無法精確填入百元級金額（例如 600 元只能輸成 0.06 萬）；唯讀盤點確認固定支出清單、每月收入、每月預定投資金額三欄位共用 `WanField` 元件與 `wanToYuan`／`yuanToWan` 換算函式，底層儲存（`CashFlowItem.amount`、`state.cashFlowProfile`）本來就是「元」，萬元僅為顯示層換算。**開發過程中觸發一次停止條件並經使用者確認後才繼續**：重新核對呼叫鏈時發現 `formatWanInput` 也被用於「額外投入資金／預計提領資金」欄位的初始顯示字串（`CashFlowPage.tsx:21`），若直接修改共用函式會波及這兩個不在範圍內的欄位；使用者確認採用「方案 1」——新建獨立的元單位格式化函式，不觸碰共用函式本身。範圍：`src/lib/cashFlow.ts` 新增 `parseYuanInput`／`formatYuanInput`（不做 ×10000／÷10000 換算，只做整數四捨五入），`wanToYuan`／`yuanToWan`／`formatWanInput`／`parseWanInput` 完全未修改，繼續唯一供「家庭流動資金計畫」（額外投入資金／預計提領資金）使用；`src/pages/CashFlowPage.tsx` 的 `WanField` 重新命名為 `YuanField`，只給「每月收入」「每月預定投資金額」「固定支出清單各項金額」三處使用，欄位標籤由「（萬元）」改為「（元）」，`input` 屬性由 `inputMode="decimal" step="0.1"` 改為 `inputMode="numeric" step="1"`。新增 `tests/cashFlowYuanUnitInput.test.ts` 5 個測試，涵蓋 600 元精確輸入、既有萬元資料 round-trip 顯示正確、`wanToYuan`／`yuanToWan` 契約未變動、頁面原始碼結構確認三欄位為元單位而 Plan Input 兩欄位仍為萬元；`npx tsc -b`、`test:ci`、Production build、Preview build 全數成功。實作於全新獨立 worktree（`E:/2026_CodeX/worktrees/family-universal-rebalance-cashflow-yuan-input`）進行，未操作既有固定 worktree／stash；建置過程中順帶產生的 `dist/`、`package-lock.json` 漂移（`"latest"` 版本被 `npm install` 正規化為實際解析版本）已確認為建置產物、非本次範圍，予以還原未提交。隔離 Preview 環境（`workflow_dispatch` 部署）實機驗證：既有 60000 元資料重新載入正確顯示為 `60000`；新增 600 元測試項目儲存後 `localStorage` 確認 `amount: 600`，完整重新整理後仍精確顯示 `600`，無精度遺失；「額外投入資金（萬元）」「預計提領資金（萬元）」標籤與初始顯示完全未受影響；390px 無橫向溢出，console 全程無 error；驗證後已刪除測試資料還原 Preview 環境。`Deploy GitHub Pages` run `30706058168` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**明確不包含**：資產頁 `DraftInput`、Household Liquidity 核心公式、資金基數計算邏輯、全站其餘萬元輸入欄位皆未觸碰。
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）的「走勢方向漸層填色」子需求正式標記為已完成**，已由使用者手動 Merge [PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`，`mergedAt: 2026-08-01T11:34:18Z`。**本項條目下仍有其他 2026-07-19 提出、本次未處理的待確認項目（07／15 附近日期斷裂、Y 軸整數刻度、手機左側文字裁切、Y 軸位置），故 UR-TODO-027 整體狀態維持「部分完成」，僅漸層填色子需求正式結案，不整體標記為已完成。** 範圍：`src/components/TrendChart.tsx` 新增紅漲綠跌漸層填色，**依驗收回饋由「整段頭尾單一顏色」調整為「逐段各自變色」**——每個相鄰資料點間的線段依「該段自己的終點 vs 起點」各自決定紅（`#ff5b5b`）／綠（`#43d17a`），中間震盪（先漲後跌再漲）會逐段各自呈現正確方向，而非只看整段頭尾；持平線段維持不填色。`monotonePath`（可見折線）改為從新的 `monotoneSegments()` 衍生，確保折線與逐段填色使用完全相同的曲線片段。視覺風格為「逐段漸層淡出」（使用者於實作前以 `AskUserQuestion` 二選一確認，選定漸層淡出而非逐段實色填色），每張圖表僅渲染 2 個共用 `<linearGradient>`（紅、綠各一，`gradientUnits="userSpaceOnUse"` 確保全圖統一絕對淡出速率），由所有同方向線段共用，不是逐段各自一個漸層。折線本身仍是單一連續 `<path>`（`stroke="currentColor"`），資料點與 hover／touch 互動完全未變動。`tests/trendChartGradientArea.test.ts` 全面改寫為 7 個測試，涵蓋逐段變色關鍵案例（含「整體區間上漲但中段下跌」）、持平線段不填色、共用漸層數量、折線與互動標記不變；`npx tsc -b`、`test:ci` 全數通過。隔離本機 dev server 實機驗證：seed 一組震盪走勢確認 6 個線段各自正確變色、僅 2 個共用漸層、`getComputedStyle` 確認顏色與淡出透明度正確、390px 無橫向溢出、hover/touch 互動正常、console 全程無 error；`Deploy GitHub Pages` run `30697948596` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。詳見下方更新後的 **UR-TODO-027** 正式條目。
 

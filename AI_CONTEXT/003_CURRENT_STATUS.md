@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.60
+# Universal Rebalance Current Status v3.61
 
 最後更新：2026-08-01
+
+**PR #220 Production 唯讀驗證＋收支與現金流中心元單位輸入結案（2026-08-01）**：使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30706058168` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**收支與現金流中心「每月設定」（每月收入、每月預定投資金額、固定支出清單各項金額）金額輸入改為元單位正式標記為已完成**：新增獨立的 `parseYuanInput`／`formatYuanInput`，`wanToYuan`／`yuanToWan`（供「家庭流動資金計畫」額外投入資金／預計提領資金專用）完全未修改；底層儲存格式未變動，純顯示／輸入層調整。此為使用者於 Claude Home 唯讀盤點後直接下達的開發指令，非既有 UR-TODO 編號。詳見 `008_TODO_BACKLOG.md` 對應段落。
 
 **PR #218 Production 唯讀驗證＋UR-TODO-027 漸層填色子需求結案（2026-08-01）**：使用者手動 Merge [PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`，`mergedAt: 2026-08-01T11:34:18Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30697948596` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用。**UR-TODO-027 的「走勢方向漸層填色」子需求正式標記為已完成**：`TrendChart.tsx` 新增逐段紅漲綠跌漸層填色，每個線段依自己的終點 vs 起點各自判斷方向（驗收回饋後由「整段頭尾單一顏色」調整為逐段變色），持平不填色，僅 2 個共用 `<linearGradient>`，折線與資料點互動未變動。**UR-TODO-027 整體狀態維持「部分完成」**——07／15 日期斷裂、Y 軸整數刻度、手機文字裁切、Y 軸位置四項 2026-07-19 提出的待確認項目本次未處理。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
