@@ -57,6 +57,11 @@ export function normalizeCashFlowProfile(raw: unknown): CashFlowProfile {
 /** The existing Cash Flow normalization boundary is the deterministic, idempotent provenance migration. */
 export const migrateCashFlowProfile = (raw: unknown): CashFlowProfile => normalizeCashFlowProfile(raw);
 
+// Used only by the Household Liquidity Plan Input fields (external contribution /
+// planned withdrawal) via formatWanInput/parseWanInput. Do not repurpose for the
+// monthly income / investment budget / fixed-expense amount fields below - those
+// use the independent parseYuanInput/formatYuanInput pair so a unit change here
+// never leaks into the Plan Input fields' 萬元 display, and vice versa.
 export const wanToYuan = (value: string): number | null => {
   if (value.trim() === '') return null;
   const parsed = Number(value);
@@ -65,6 +70,17 @@ export const wanToYuan = (value: string): number | null => {
 export const yuanToWan = (value: number | null | undefined): string => value === null || value === undefined || !Number.isFinite(value) ? '' : String(value / 10000);
 export const formatWanInput = yuanToWan;
 export const parseWanInput = wanToYuan;
+
+// Independent 元-unit pair for the Cash Flow "每月設定" fields (monthly income,
+// monthly investment budget, and each fixed-expense item's amount). The stored
+// value is already in 元, so unlike wanToYuan/yuanToWan there is no ×10000/÷10000
+// conversion - only integer rounding and the same empty/negative-input contract.
+export const parseYuanInput = (value: string): number | null => {
+  if (value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+};
+export const formatYuanInput = (value: number | null | undefined): string => value === null || value === undefined || !Number.isFinite(value) ? '' : String(Math.round(value));
 
 const ratio = (numerator: number, denominator: number | null): number | null => denominator !== null && denominator > 0 && Number.isFinite(numerator) ? numerator / denominator : null;
 export function calculateFixedExpenses(profile: CashFlowProfile): number { return profile.fixedExpenses.filter(item => item.enabled).reduce((total, item) => total + Math.max(0, n(item.amount)), 0); }
