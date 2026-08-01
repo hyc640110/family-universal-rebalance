@@ -34,11 +34,21 @@ export const deriveTrendDomain = (values: readonly number[], axisScale = 1): Tre
 export const deriveSharedTrendDomain = (series: ReadonlyArray<ReadonlyArray<number>>, axisScale = 1) => deriveTrendDomain(series.flat(), axisScale);
 export const trendChartPlotMargins = (width: number) => width >= 720 ? { labelX: 6, left: 56, right: 34, top: 16, bottom: 34 } : { labelX: 6, left: 54, right: 28, top: 16, bottom: 34 };
 export const formatTrendAxisTick = (value: number, axisScale = 1) => String(Math.round(value / axisScale));
-const monotonePath = (points: Array<{ x: number; y: number }>) => {
-  if (points.length < 2) return '';
+// Shared tangent/curve math: monotonePath (the visible stroke) and monotoneSegments
+// (per-segment area fills) must draw the exact same curve, so segments derive from
+// the same slopes/tangents rather than a parallel re-implementation.
+const monotoneSegments = (points: Array<{ x: number; y: number }>) => {
+  if (points.length < 2) return [];
   const slopes = points.slice(1).map((point, index) => (point.y - points[index].y) / (point.x - points[index].x));
   const tangents = points.map((point, index) => index === 0 ? slopes[0] : index === points.length - 1 ? slopes.at(-1)! : slopes[index - 1] * slopes[index] <= 0 ? 0 : 2 / (1 / slopes[index - 1] + 1 / slopes[index]));
-  return points.slice(1).reduce((path, point, index) => { const prev = points[index], dx = (point.x - prev.x) / 3; return `${path} C ${prev.x + dx} ${prev.y + dx * tangents[index]}, ${point.x - dx} ${point.y - dx * tangents[index + 1]}, ${point.x} ${point.y}`; }, `M ${points[0].x} ${points[0].y}`);
+  return points.slice(1).map((point, index) => {
+    const prev = points[index], dx = (point.x - prev.x) / 3;
+    return { from: prev, to: point, curve: `C ${prev.x + dx} ${prev.y + dx * tangents[index]}, ${point.x - dx} ${point.y - dx * tangents[index + 1]}, ${point.x} ${point.y}` };
+  });
+};
+const monotonePath = (points: Array<{ x: number; y: number }>) => {
+  const segments = monotoneSegments(points);
+  return segments.length ? segments.reduce((path, segment) => `${path} ${segment.curve}`, `M ${points[0].x} ${points[0].y}`) : '';
 };
 
 export default function TrendChart({ title, unit, data, formatValue, axisScale = 1, domain, className = '' }: Props) {
@@ -66,15 +76,23 @@ export default function TrendChart({ title, unit, data, formatValue, axisScale =
   const x = (index: number) => valid.length < 2 ? (left + width - right) / 2 : left + index / (valid.length - 1) * (width - left - right);
   const y = (value: number) => top + (max - value) / span * (height - top - bottom);
   const plotted = valid.map((point, index) => ({ x: x(index), y: y(point.value) }));
+  const segments = monotoneSegments(plotted);
   const path = monotonePath(plotted);
   const baselineY = height - bottom;
-  const trendDirection = valid.length > 1 && valid.at(-1)!.value !== valid[0].value ? (valid.at(-1)!.value > valid[0].value ? 'up' : 'down') : null;
-  const areaPath = trendDirection && path ? `${path} L ${plotted.at(-1)!.x} ${baselineY} L ${plotted[0].x} ${baselineY} Z` : '';
+  // Each segment picks red/green from its own end-vs-start value, not the whole
+  // range's first/last point, so a mid-chart dip or rally shows its own color.
+  const areaSegments = segments.map((segment, index) => {
+    const fromValue = valid[index].value, toValue = valid[index + 1].value;
+    const direction = toValue > fromValue ? 'up' as const : toValue < fromValue ? 'down' as const : null;
+    if (!direction) return null;
+    return { direction, d: `M ${segment.from.x} ${segment.from.y} ${segment.curve} L ${segment.to.x} ${baselineY} L ${segment.from.x} ${baselineY} Z` };
+  }).filter((segment): segment is { direction: 'up' | 'down'; d: string } => segment !== null);
+  const usedDirections = [...new Set(areaSegments.map(segment => segment.direction))];
   const spanDays = Math.max(0, (Date.parse(`${valid.at(-1)!.date}T00:00:00`) - Date.parse(`${valid[0].date}T00:00:00`)) / 86_400_000);
   const xTicks = selectTrendTickIndexes(valid);
   const mobileTicks = new Set(selectTrendTickIndexes(valid, true));
   const yTicks = axis.ticks;
   const current = active === null ? valid.at(-1)! : valid[active];
   const summary = `${title}，期間 ${valid[0].date} 至 ${valid.at(-1)!.date}，由 ${formatValue(valid[0].value)} 變為 ${formatValue(valid.at(-1)!.value)}。`;
-  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{trendDirection && <defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" className={`trend-area-stop trend-area-stop-start trend-area-${trendDirection}`}/><stop offset="100%" className={`trend-area-stop trend-area-stop-end trend-area-${trendDirection}`}/></linearGradient></defs>}{areaPath && <path d={areaPath} className={`trend-area trend-area-${trendDirection}`} fill={`url(#${gradientId})`} stroke="none"/>}{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={labelX} y={y(value)+4} textAnchor="start" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
+  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{usedDirections.length > 0 && <defs>{usedDirections.map(direction => <linearGradient key={direction} id={`${gradientId}-${direction}`} x1="0" y1={top} x2="0" y2={baselineY} gradientUnits="userSpaceOnUse"><stop offset="0%" className={`trend-area-stop trend-area-stop-start trend-area-${direction}`}/><stop offset="100%" className={`trend-area-stop trend-area-stop-end trend-area-${direction}`}/></linearGradient>)}</defs>}{areaSegments.map((segment, index) => <path key={`area-${index}`} d={segment.d} className={`trend-area trend-area-${segment.direction}`} fill={`url(#${gradientId}-${segment.direction})`} stroke="none"/>)}{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={labelX} y={y(value)+4} textAnchor="start" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
 }
