@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-01T15:34:43.282159+00:00
+Generated UTC: 2026-08-01T16:13:32.375160+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-01T15:34:43.282159+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `9f4de4f4414fd2afd1bffdd0be1619a132358aba3e3fd7e803e333553136b958`
+- `003_CURRENT_STATUS.md` — SHA-256 `58b5c1c3352553aa1a1256580c3b05d90db9b9347ff9503beaeac93be43c888f`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `48a5d0154a0555603d42185b87624faaf7e96be18062fd708decf3b840fa8540`
+- `008_TODO_BACKLOG.md` — SHA-256 `899616feea3b9f8bc8c1ca0530ea65b66984629bcf74344495fd3dff25ad2703`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.61
+# Universal Rebalance Current Status v3.62
 
 最後更新：2026-08-01
+
+**PR #221／#222 Production 唯讀驗證＋UR-TODO-002 正式結案（2026-08-01）**：使用者指示 Merge，Claude Code 依 `007_GIT_WORKFLOW.md` §8.1 既有政策使用 `gh pr merge --admin` 完成兩支 PR Merge（branch protection 需要審核人數，本 repo 僅一名協作者；PR #221 為純治理文件同步，PR #222 為使用者已親自到 Preview 驗收確認後直接指示 Merge，兩次使用皆已於 Merge 當下明確告知使用者）：**PR #221**（merge commit `cbd68d6c58f24f81c5cc5f6efa06a6c1b4c93a4b`，`mergedAt: 2026-08-01T16:06:16Z`）記錄 PR #220 的完成狀態；**PR #222**（merge commit `cd430dcafd3aedbb4b0c6bcdadf2b0b161239925`，`mergedAt: 2026-08-01T16:09:00Z`）為 **UR-TODO-002 正式結案**：五項原始版面差異中前四項已由 UR-TODO-033（PR #214）達成、本次未重做，僅新增第五項「未實現損益」與「今日漲跌」的視覺區隔（使用者選定方案 C，容器背景色＋左側色條強調，沿用既有紅漲綠跌色碼）。以 `git fetch`／`gh run list` 確認 `origin/main` 推進至 `cd430dc`、`Deploy GitHub Pages` run success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對 gh-pages 分支實際部署的 JS bundle 內容確認同時包含 PR #220（「每月收入（元）」）與 PR #222（`holding-card-unrealized-pnl-`）的變更，`deployment-environment` metadata 正確、資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-002 條目。
 
 **PR #220 Production 唯讀驗證＋收支與現金流中心元單位輸入結案（2026-08-01）**：使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30706058168` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**收支與現金流中心「每月設定」（每月收入、每月預定投資金額、固定支出清單各項金額）金額輸入改為元單位正式標記為已完成**：新增獨立的 `parseYuanInput`／`formatYuanInput`，`wanToYuan`／`yuanToWan`（供「家庭流動資金計畫」額外投入資金／預計提領資金專用）完全未修改；底層儲存格式未變動，純顯示／輸入層調整。此為使用者於 Claude Home 唯讀盤點後直接下達的開發指令，非既有 UR-TODO 編號。詳見 `008_TODO_BACKLOG.md` 對應段落。
 
@@ -2799,9 +2801,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.53
+# Universal Rebalance Todo Backlog v1.54
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-002（持股資產管理卡片 2.0 差異盤點）正式標記為已完成**。使用者於前一輪盤點選擇「方向 2：依原始版面需求重新設計」並下達開發指令；開發前重新唯讀盤點時發現原始盤點基準 `d49e98b` 早於 UR-TODO-033（PR #214，`fd3ae44`）合併，五項差異中前四項（現價與漲跌幅同列、漲跌金額獨立次列、▲／▼ 箭頭、三者同色）其實已由 UR-TODO-033 完成，本次**未重做**這四項，僅實作唯一仍為缺口的第五項（與未實現損益清楚區隔）。已由使用者手動 Merge [PR #222](https://github.com/hyc640110/family-universal-rebalance/pull/222)（`feat/ur-todo-002-holding-card-pnl-distinction`），merge commit `cd430dcafd3aedbb4b0c6bcdadf2b0b161239925`，`mergedAt: 2026-08-01T16:09:00Z`（因 branch protection 需要審核人數、僅一名協作者，經使用者確認 Preview 驗收後由使用者直接指示、Claude Code 執行 `gh pr merge --admin`，已於 Merge 當下明確告知使用者）。第五項採使用者選定的方案 C（容器樣式區隔）：「未實現損益」格新增淡色背景＋左側色條強調（沿用既有紅漲綠跌色碼），「今日漲跌」格完全未變動；新增 4 個測試明確斷言 UR-TODO-033 成果未被重做。`Deploy GitHub Pages` 對應 run success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對 gh-pages 分支實際部署內容確認新 class 已生效，`deployment-environment` metadata 正確、資源路徑未混用。詳見下方更新後的 **UR-TODO-002** 正式條目。
 
 2026-08-01 **收支與現金流中心「每月設定」金額輸入改為元單位，正式標記為已完成**（非既有 UR-TODO 編號，由使用者於 Claude Home 唯讀盤點後直接下達開發指令，經 Claude Code 執行）。已由使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。**背景**：使用者反映固定支出清單以「萬元」輸入無法精確填入百元級金額（例如 600 元只能輸成 0.06 萬）；唯讀盤點確認固定支出清單、每月收入、每月預定投資金額三欄位共用 `WanField` 元件與 `wanToYuan`／`yuanToWan` 換算函式，底層儲存（`CashFlowItem.amount`、`state.cashFlowProfile`）本來就是「元」，萬元僅為顯示層換算。**開發過程中觸發一次停止條件並經使用者確認後才繼續**：重新核對呼叫鏈時發現 `formatWanInput` 也被用於「額外投入資金／預計提領資金」欄位的初始顯示字串（`CashFlowPage.tsx:21`），若直接修改共用函式會波及這兩個不在範圍內的欄位；使用者確認採用「方案 1」——新建獨立的元單位格式化函式，不觸碰共用函式本身。範圍：`src/lib/cashFlow.ts` 新增 `parseYuanInput`／`formatYuanInput`（不做 ×10000／÷10000 換算，只做整數四捨五入），`wanToYuan`／`yuanToWan`／`formatWanInput`／`parseWanInput` 完全未修改，繼續唯一供「家庭流動資金計畫」（額外投入資金／預計提領資金）使用；`src/pages/CashFlowPage.tsx` 的 `WanField` 重新命名為 `YuanField`，只給「每月收入」「每月預定投資金額」「固定支出清單各項金額」三處使用，欄位標籤由「（萬元）」改為「（元）」，`input` 屬性由 `inputMode="decimal" step="0.1"` 改為 `inputMode="numeric" step="1"`。新增 `tests/cashFlowYuanUnitInput.test.ts` 5 個測試，涵蓋 600 元精確輸入、既有萬元資料 round-trip 顯示正確、`wanToYuan`／`yuanToWan` 契約未變動、頁面原始碼結構確認三欄位為元單位而 Plan Input 兩欄位仍為萬元；`npx tsc -b`、`test:ci`、Production build、Preview build 全數成功。實作於全新獨立 worktree（`E:/2026_CodeX/worktrees/family-universal-rebalance-cashflow-yuan-input`）進行，未操作既有固定 worktree／stash；建置過程中順帶產生的 `dist/`、`package-lock.json` 漂移（`"latest"` 版本被 `npm install` 正規化為實際解析版本）已確認為建置產物、非本次範圍，予以還原未提交。隔離 Preview 環境（`workflow_dispatch` 部署）實機驗證：既有 60000 元資料重新載入正確顯示為 `60000`；新增 600 元測試項目儲存後 `localStorage` 確認 `amount: 600`，完整重新整理後仍精確顯示 `600`，無精度遺失；「額外投入資金（萬元）」「預計提領資金（萬元）」標籤與初始顯示完全未受影響；390px 無橫向溢出，console 全程無 error；驗證後已刪除測試資料還原 Preview 環境。`Deploy GitHub Pages` run `30706058168` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**明確不包含**：資產頁 `DraftInput`、Household Liquidity 核心公式、資金基數計算邏輯、全站其餘萬元輸入欄位皆未觸碰。
 
@@ -3033,26 +3037,26 @@ Hotfix 仍需：
 ### UR-TODO-002 持股資產管理卡片 2.0 差異盤點
 
 - 優先級：P0
-- 狀態：**待你決策**（2026-08-01 唯讀盤點確認實際上線版面與原始構想不同，需先由使用者決定是否接受現況為最終版本，才能判斷是否結案或另立開發範圍）
-- 唯讀盤點日期：2026-08-01（Claude Code，Review Mode，基準 `origin/main` HEAD `d49e98b`，未修改任何程式碼）
-- 已完成（現有實作核對後維持有效）：
+- 狀態：**已完成**
+- 完成日期：2026-08-01
+- 歷史脈絡（唯讀盤點曾一度過期，特此記錄避免未來誤判）：本條目 2026-08-01 首次唯讀盤點時基準為 `origin/main` HEAD `d49e98b`，結論是「現價與漲跌幅不同列、無箭頭、金額百分比合併、與未實現損益同色僅靠標籤區隔」，並列出五項差異請使用者決策。使用者選擇「方向 2：依原始版面需求重新設計」並下達開發指令。**開發前重新唯讀盤點時發現 `d49e98b` 早於 UR-TODO-033（[PR #214](https://github.com/hyc640110/family-universal-rebalance/pull/214)，merge commit `fd3ae44`）合併**，五項差異中的前四項（現價與漲跌幅同列、漲跌金額獨立次列、▲／▼ 箭頭、三者同色）其實已經在 UR-TODO-033 完成，**本次開發未重做這四項**，只實作了唯一仍為缺口的第五項。
+- 五項最終狀態：
+  1. 現價與漲跌幅同列 —— ✅ 已由 UR-TODO-033（PR #214）達成。
+  2. 漲跌金額獨立次列 —— ✅ 已由 UR-TODO-033（PR #214）達成。
+  3. ▲／▼ 箭頭 —— ✅ 已由 UR-TODO-033（PR #214）達成。
+  4. 現價／漲跌金額／箭頭三者完全同色 —— ✅ 已由 UR-TODO-033（PR #214）達成。
+  5. 與未實現損益清楚區隔 —— ✅ 本次（[PR #222](https://github.com/hyc640110/family-universal-rebalance/pull/222)，merge commit `cd430dcafd3aedbb4b0c6bcdadf2b0b161239925`，`mergedAt: 2026-08-01T16:09:00Z`）完成。
+- 第 5 項完成依據：原始需求未定義「清楚區隔」的具體做法，唯讀盤點後提出三個視覺方案（圖示區隔／字重字級區隔／容器樣式區隔）供使用者選擇，使用者選定**方案 C（容器樣式區隔）**。範圍：`src/App.tsx` 的「未實現損益」`<p>` 容器新增 `holding-card-unrealized-pnl-${tone(row.pnl)}` class（`<strong>` 內既有文字色 class 不變）；`src/styles.css` 新增淡色背景＋左側 3px 色條強調（沿用既有紅漲綠跌／灰 hold 色碼，未新增新色系），base 樣式與 `@media (min-width:901px)` 桌機覆寫各一組（桌機版原本會把卡片邊框／背景整個清空為扁平表格列樣式，需另外覆寫才能讓區隔在桌機生效）；「今日漲跌」格完全未變動。新增 `tests/holdingCardUnrealizedPnlDistinction.test.ts` 4 個測試，明確斷言 UR-TODO-033 四項成果未被重做；`npx tsc -b`、`test:ci` 全數通過（既有 `v6AssetsCardInformation.test.ts` 零修改直接通過）。隔離 Preview 環境（`workflow_dispatch` 部署）實機驗證：seed 正／負報酬持股，確認正報酬格顯示紅色淡底＋紅色左邊框、負報酬格顯示綠色淡底＋綠色左邊框，「今日漲跌」格背景維持透明不受影響；390px 與桌機皆正確、無橫向溢出，console 無 error；驗證後已清除測試資料還原 Preview 環境。`Deploy GitHub Pages` run 對應 headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對 gh-pages 分支實際部署的 JS bundle 內容確認含 `holding-card-unrealized-pnl-`，`deployment-environment` metadata 正確、資源路徑未混用。
+- 已完成（現有實作核對後維持有效，非本次改動）：
   - 現價
   - 今日漲跌金額
   - 今日漲跌幅
   - 台股紅漲綠跌
   - TWSE 可信前收
   - 手機主卡移除均價
-- 唯讀盤點結論（逐項核對「待確認」清單，對照 `src/App.tsx` 的 `HoldingCompactCard`〔`App.tsx:694`〕與 `src/styles.css`）：
-  - **現價與漲跌幅同列**：不符原始構想。現價（`App.tsx:715`）只顯示金額、不含 %；「今日漲跌」（`App.tsx:716`）是獨立一行，內容為 `formatCompactQuoteMovement()` 產生的「金額＋百分比」合併字串（如 `+2.50（+1.23%）`），與「現價＋漲跌幅同列」的原始版面不同。
-  - **漲跌金額次列**：不符。金額與百分比合併在同一行顯示（見上），並未拆成獨立次列。
-  - **`▲／▼`**：未實作。全庫搜尋確認 `▲`／`▼` 只用於 Section 收合按鈕（「收合 ▲」「展開 ▼」，`App.tsx:767`），持股卡片一律用 `+`／`-` 文字符號，無箭頭。
-  - **三者完全同色**：僅能驗證兩者。現價（`styles.css:100-102`）與今日漲跌（`styles.css:103-105`）確認共用相同 `up`/`down`/`hold` 色碼（紅 `#ff5b5b`／綠 `#43d17a`／灰 `#9fb3c8`）；因 ▲／▼ 未實作，「三者」中第三項不存在，無法完整驗證。
-  - **與未實現損益清楚區隔**：色碼相同，僅靠標籤與版面區隔。CSS 確認「今日漲跌」與「未實現損益」共用完全相同色碼（`styles.css:103-105`：`.holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:#ff5b5b}`），區隔僅靠不同標籤文字（「今日漲跌」vs「未實現損益」）與各自獨立的 `<p>` 列，非顏色區隔。
-  - **桌機／手機一致**：已符合。目前僅有 `HoldingCompactCard` 一個持股卡片元件，`isMobile` 與 `uiState.displayMode`（簡潔／完整模式）皆不影響其版面結構，只控制其他 Section 的收合與顯示，架構上桌機與手機必然使用同一份 JSX。
-- 待你決策：目前上線版面（現價獨立一行、今日漲跌金額與百分比合併一行、無箭頭符號、今日漲跌與未實現損益同色僅靠標籤區隔）是已穩定使用多年的替代呈現方式。請決定：
-  1. 接受現況為最終版本 → 可依此結案，並更新本條目描述與驗收標準以符合實際實作；或
-  2. 仍要依原始版面需求（現價＋%同列、金額獨立次列、▲／▼箭頭、與未實現損益顏色區隔）重新設計 → 需另立開發範圍，經「開始開發」授權後才可實作。
-- 完成 PR：#100、#101（部分）
+- 桌機／手機一致：已符合，`isMobile`／`uiState.displayMode` 皆不影響持股卡片版面結構，僅有 `HoldingCompactCard` 一份 JSX。
+- 明確不包含：未修改 `formatCompactQuoteMovement()`／`formatCompactQuoteHeadline()`（UR-TODO-033 核心函式）、台股紅漲綠跌配色邏輯本身、TWSE 可信前收機制、任何持股資料計算邏輯。
+- 完成 PR：#100、#101（部分，前期基礎）、#214（UR-TODO-033，項目 1～4）、#222（本次，項目 5）
 
 ### UR-TODO-003 每檔成長／防守分類完整性
 
