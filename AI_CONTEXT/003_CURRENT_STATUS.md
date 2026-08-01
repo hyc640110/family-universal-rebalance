@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.61
+# Universal Rebalance Current Status v3.62
 
 最後更新：2026-08-01
+
+**PR #221／#222 Production 唯讀驗證＋UR-TODO-002 正式結案（2026-08-01）**：使用者指示 Merge，Claude Code 依 `007_GIT_WORKFLOW.md` §8.1 既有政策使用 `gh pr merge --admin` 完成兩支 PR Merge（branch protection 需要審核人數，本 repo 僅一名協作者；PR #221 為純治理文件同步，PR #222 為使用者已親自到 Preview 驗收確認後直接指示 Merge，兩次使用皆已於 Merge 當下明確告知使用者）：**PR #221**（merge commit `cbd68d6c58f24f81c5cc5f6efa06a6c1b4c93a4b`，`mergedAt: 2026-08-01T16:06:16Z`）記錄 PR #220 的完成狀態；**PR #222**（merge commit `cd430dcafd3aedbb4b0c6bcdadf2b0b161239925`，`mergedAt: 2026-08-01T16:09:00Z`）為 **UR-TODO-002 正式結案**：五項原始版面差異中前四項已由 UR-TODO-033（PR #214）達成、本次未重做，僅新增第五項「未實現損益」與「今日漲跌」的視覺區隔（使用者選定方案 C，容器背景色＋左側色條強調，沿用既有紅漲綠跌色碼）。以 `git fetch`／`gh run list` 確認 `origin/main` 推進至 `cd430dc`、`Deploy GitHub Pages` run success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對 gh-pages 分支實際部署的 JS bundle 內容確認同時包含 PR #220（「每月收入（元）」）與 PR #222（`holding-card-unrealized-pnl-`）的變更，`deployment-environment` metadata 正確、資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-002 條目。
 
 **PR #220 Production 唯讀驗證＋收支與現金流中心元單位輸入結案（2026-08-01）**：使用者手動 Merge [PR #220](https://github.com/hyc640110/family-universal-rebalance/pull/220)（`feat/cash-flow-yuan-unit-input`），merge commit `421f0566077dfbc482c9b5767802e12ae7364c91`，`mergedAt: 2026-08-01T15:30:19Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` workflow run `30706058168` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含「每月收入（元）」不含「每月收入（萬元）」，`deployment-environment` metadata 正確、資源路徑未混用。**收支與現金流中心「每月設定」（每月收入、每月預定投資金額、固定支出清單各項金額）金額輸入改為元單位正式標記為已完成**：新增獨立的 `parseYuanInput`／`formatYuanInput`，`wanToYuan`／`yuanToWan`（供「家庭流動資金計畫」額外投入資金／預計提領資金專用）完全未修改；底層儲存格式未變動，純顯示／輸入層調整。此為使用者於 Claude Home 唯讀盤點後直接下達的開發指令，非既有 UR-TODO 編號。詳見 `008_TODO_BACKLOG.md` 對應段落。
 
