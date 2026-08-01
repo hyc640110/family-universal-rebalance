@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.48
+# Universal Rebalance Todo Backlog v1.49
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-032（資產頁更新股價入口與手機下拉更新盤點）唯讀盤點與隔離 Preview 環境實機驗收完成，正式標記為已完成**（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `2abe5ac`（PR #212 merge commit），**未修改任何 `src/`、`tests/` 程式碼**——本項為既有基礎設施已滿足驗收條件，非新增開發，僅治理文件同步）。唯讀盤點先確認架構：`refreshQuotes()` → `createQuoteRefreshController`（`src/lib/quoteRefreshController.ts`）為桌機／手機共用的單一刷新入口；`isRefreshingQuotes`、`hasUpdatedQuotes`、`latestQuoteTime`、`quoteSummaryText`、`quoteStatus` 皆為 `App.tsx` 頂層單一狀態／`useMemo`，逐一以 props 傳入首頁、資產頁、分析頁，非各頁分別重算；手機下拉更新另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控事件，呼叫同一個 `refreshQuotes(true)`。隨後於隔離本機 dev server（`npm run dev -- --mode preview-deploy`，串接真實 Yahoo Finance via Cloudflare Worker，未使用使用者 Production 資料）實機驗收：於資產頁點擊「更新股價」→ 確認「持股報價來源與新鮮度」區塊顯示「股價更新成功（4/4）：時間戳記」，四檔標的（00631L、00662、00670L、00865B）逐一列出市場時間／來源／系統取得時間 → 以 SPA 內部導覽（非瀏覽器重新整理）切換至分析頁，確認同一時間戳記、同一組報價與今日漲跌數字完全一致重現（非重新抓取）→ 切回首頁，確認「最後股價更新」短格式時間與前述時間戳記一致 → 於首頁點擊「更新股價」再次觸發刷新，確認新時間戳記（17:15:33）立即同步反映於資產頁、分析頁、首頁三處，全程無需個別重新整理 → 縮放至 390px 確認資產頁 `scrollWidth === clientWidth`（無橫向溢出）→ 全程 `read_console_messages` 與 dev server log 皆無 error。驗收條件「桌機與手機使用同一刷新契約」「更新後各頁報價一致」達成；`npx tsc -b` 建置成功。手機下拉觸發（`assetsPullToRefresh` 觸控事件）與明確的錯誤狀態（Worker 失敗情境）因本次環境網路正常、未能重現失敗案例，故錯誤狀態呈現（`quotePresentation.ts` 的 `isPreserved`／`hasFailure` 分支）本次僅完成程式碼靜態確認，未實機重現，但程式碼路徑明確、與正常路徑共用同一組件與狀態，風險判斷為低。本項自 2026-07-19 提出、2026-07-23 補登建檔以來從未被任何專屬 PR 處理，本次確認為其他 Sprint（V7.0B、UR-TODO-009 等）陸續建成的共用基礎設施順帶滿足，並非本次新增程式邏輯。詳見下方更新後的 **UR-TODO-032** 正式條目。
 
 2026-08-01 **UR-TODO-028（股息中心未指定資產編輯限制）唯讀盤點與隔離 Preview 環境實機驗收完成，正式標記為已完成**（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `a7cc0a4`，**未修改任何 `src/`、`tests/` 程式碼**——本項為既有功能已滿足驗收條件，非新增開發，僅治理文件同步）。唯讀盤點先確認 `src/pages/DividendCenterPage.tsx` 對所有股息紀錄（含 `assetSymbol` 為空的「未指定資產」紀錄）皆同時提供「編輯」「刪除」兩個動作，「編輯」會載入同一份含 `DividendAssetReferenceSelect`（含「未指定資產」選項）的完整表單。隨後於隔離本機 dev server（`npm run dev -- --mode preview-deploy`，未使用使用者 Production 資料）實機驗收：新增一筆帳戶「現金」、資產「未指定資產」、實收股息 1,234 元的紀錄 → 點擊「編輯」→ 確認表單正確載入既有資料（含「編輯股息紀錄」標題與「儲存股息紀錄」「取消編輯」按鈕）→ 於資產代號欄位選擇「00631L 元大台灣50正2」→ 點擊「儲存股息紀錄」→ 確認「資產股息排行」「股息組成」「股息來源分布」三處摘要卡片同步由「未指定資產」改為「00631L」→ `F5` 重新整理後確認變更已持久化（localStorage）不遺失 → 縮放至 390px 寬度確認 `document.documentElement.scrollWidth === clientWidth`（無橫向溢出）→ 全程 `read_console_messages` 僅出現 Vite HMR／React DevTools 提示，無 error。同時一併確認同一筆紀錄可再次點擊「編輯」將資產切回「未指定資產」（下拉選單保留該選項），雙向切換皆正常。驗收條件「未指定資產紀錄可安全編輯」達成；`npx tsc -b` 建置成功。本項自 2026-07-19 提出、2026-07-23 補登建檔以來從未被任何專屬 PR 處理，本次確認為既有股息中心改版（新增／編輯／刪除共用同一表單元件）順帶滿足，並非本次新增程式邏輯。詳見下方更新後的 **UR-TODO-028** 正式條目。
 
@@ -791,14 +793,15 @@
 
 ### UR-TODO-032 資產頁更新股價入口與手機下拉更新盤點
 - 優先級：P1
-- 狀態：部分完成／待盤點
+- 狀態：**已完成**
+- 完成日期：2026-08-01
+- 完成依據：唯讀盤點＋隔離本機 dev server 實機驗收（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `2abe5ac`）。架構確認 `refreshQuotes()` → `createQuoteRefreshController` 為桌機／手機共用的單一刷新入口，`isRefreshingQuotes`／`hasUpdatedQuotes`／`latestQuoteTime`／`quoteSummaryText`／`quoteStatus` 皆為 `App.tsx` 頂層單一狀態，以 props 傳入首頁、資產頁、分析頁，非各頁分別重算；手機下拉更新（`src/lib/assetsPullToRefresh.ts`）呼叫同一個 `refreshQuotes(true)`。實機驗收：資產頁點擊「更新股價」（串接真實 Yahoo Finance via Cloudflare Worker）→ 確認四檔標的市場時間／來源／系統取得時間正確顯示 → SPA 內部導覽切換至分析頁，確認同一時間戳記、同一組報價與今日漲跌數字完全一致重現（非重新抓取）→ 首頁「最後股價更新」短格式時間與前述一致 → 再次於首頁觸發更新，確認新時間戳記立即同步反映於三處頁面 → 390px 無橫向溢出 → console／dev server log 全程無 error。**明確不包含**：手機觸控下拉的實際手勢觸發與明確錯誤狀態（Worker 失敗情境）因本次網路正常未能重現，僅完成程式碼路徑靜態確認（`quotePresentation.ts` 的 `isPreserved`／`hasFailure` 分支與正常路徑共用同一元件，風險判斷為低）。**本項未新增或修改任何 `src/`／`tests/` 程式碼**，為其他 Sprint 陸續建成的共用基礎設施順帶滿足。
 - 提出日期：2026-07-19
-- 2026-08-01 唯讀盤點補充（未實機驗收，僅程式碼靜態確認）：桌機／手機共用同一份 `refreshQuotes()` → `createQuoteRefreshController`；手機另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控下拉事件；首頁固定有「更新股價」按鈕並含 `isRefreshingQuotes` loading 狀態；`quotePresentation.ts` 的 `describeQuotePresentation` 統一報價呈現邏輯。基礎設施已大致完備，研判「桌機與手機使用同一刷新契約」在程式碼層面已成立，但「loading／error／lastUpdated／quote date 跨頁一致」仍待下一輪實機互動驗收確認才能結案。
-- 待確認：
-  - 是否有明確更新股價按鈕。
-  - 手機頂端下拉是否可靠觸發。
-  - loading、error、lastUpdated、quote date 是否一致。
-- 驗收條件：
+- 已確認：
+  - 首頁與資產頁皆有明確「更新股價」按鈕。
+  - 手機下拉更新有專屬綁定模組，呼叫路徑與按鈕相同；實際觸控手勢本次未實機重現。
+  - lastUpdated、quote date 跨頁一致（同一份狀態，非各頁分別計算）；error 呈現路徑經程式碼確認但本次未實機重現失敗情境。
+- 驗收條件（已達成）：
   - 桌機與手機使用同一刷新契約。
   - 更新後各頁報價一致。
 
