@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-01T07:12:49.635224+00:00
+Generated UTC: 2026-08-01T08:50:09.738795+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-01T07:12:49.635224+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `c6395530eebf5b623f2dab432f600bc97e151ee97ea7b2cf8780ee5f710e0ec6`
+- `003_CURRENT_STATUS.md` — SHA-256 `15d787a59d7c370b6ae6f8ebd36737f451970998fb4467b28b42622e2387d54a`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `0f005c419fa1cb348a0dbb51edd339b440e9b467988bfb4e5ec388b874a48f1b`
+- `008_TODO_BACKLOG.md` — SHA-256 `ffbb31de1d083529b81479c61a7423c5d2906a67fa2a968c51ef4a37d64c3b8e`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.55
+# Universal Rebalance Current Status v3.56
 
 最後更新：2026-08-01
+
+**UR-TODO-026／027／028／032／033／034 唯讀盤點與 UR-TODO-028 實機驗收（2026-08-01，本次治理同步）**：Claude Code 於 Review Mode 對 2026-07-23 補登建檔、此後從未被任何 PR 處理的六項舊待辦遺漏（UR-TODO-026、027、028、032、033、034）重新唯讀盤點最新 `main`（HEAD `a7cc0a4`），並於 Development Mode／驗收性質下對 **UR-TODO-028**（股息中心未指定資產編輯限制）以隔離本機 dev server（非使用者 Production 資料）實機驗證後**正式標記為已完成**——`DividendCenterPage.tsx` 對未指定資產紀錄同樣提供「編輯」入口，可於編輯表單自由補選／變更資產，經新增、編輯、重新整理持久化、390px 響應式、console 無錯誤逐項確認，**未修改任何 `src/`／`tests/` 程式碼**，為既有股息中心改版順帶滿足。UR-TODO-032（更新股價入口）確認基礎設施已大致完備，狀態調整為待下一輪實機驗收即可能結案；UR-TODO-026（持有比率文字）發現需求前提「圓圈視覺」目前程式碼不存在，需使用者先決定需求範圍；UR-TODO-027、033、034 再次確認仍是真實缺口，狀態不變。詳見 `008_TODO_BACKLOG.md` 對應條目與最上方治理紀錄。
 
 **治理落差補記（2026-08-01）**：本文件先前僅同步至 PR #198（2026-07-31T10:58:16Z），之後連續 7 支 PR（#199～#205）已合併卻未同步進本文件，本次一次補齊，正式基線推進至 **PR #205**。
 
@@ -719,7 +721,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前處於 P2／待盤點的 Review Mode 子階段（043-A、043-C1、**043-C2 已完成**，下一候選為 043-C3，惟下方逐條記錄尚未更新此排程變化，見上方「治理落差記錄」）；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）；**UR-TODO-028 已完成**（股息中心未指定資產紀錄可安全編輯，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，既有功能已滿足，未新增程式碼）；UR-TODO-032 大部分已具備基礎設施、待下一輪實機驗收；UR-TODO-026、027、033、034 仍維持「待盤點」，其中 026 需先由使用者確認「圓圈視覺」需求範圍。
 - PR：**#205**（MERGED，補齊 UR-TODO-048 子階段 D／E 完成記錄進 `008_TODO_BACKLOG.md`）為目前 `origin/main` 最新 Merge；**#204**（MERGED，`allocationRoleBySymbol` 欄位清理唯讀盤點記錄）、**#203**（MERGED，UR-TODO-048 子階段 E，CLEC 703/5050 改名為 7:3/50:50、模擬頁新增現金項目）、**#202**（MERGED，UR-TODO-048 子階段 D，新增 CLEC 703/5050 模擬限定樣板）、**#201**（MERGED，UR-TODO-048 子階段 C 完成記錄與 UR-TODO-048-D 提案排入 Backlog）、**#200**（MERGED，UR-TODO-048 子階段 C，模擬頁套用 CLEC 442/433 樣板）、**#199**（MERGED，PR #198 治理文件基線同步）、**#198**（MERGED，UR-TODO-048 子階段 B，狀態層＋UI 層一併移除 CLEC 433／442 正式配置選項）、**#197**（MERGED，PR #196 治理文件基線同步）、**#196**（MERGED，首次正式建檔 UR-TODO-047／048，`gh pr merge --admin`）、**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）、**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
@@ -2787,9 +2789,13 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.47
+# Universal Rebalance Todo Backlog v1.48
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-028（股息中心未指定資產編輯限制）唯讀盤點與隔離 Preview 環境實機驗收完成，正式標記為已完成**（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `a7cc0a4`，**未修改任何 `src/`、`tests/` 程式碼**——本項為既有功能已滿足驗收條件，非新增開發，僅治理文件同步）。唯讀盤點先確認 `src/pages/DividendCenterPage.tsx` 對所有股息紀錄（含 `assetSymbol` 為空的「未指定資產」紀錄）皆同時提供「編輯」「刪除」兩個動作，「編輯」會載入同一份含 `DividendAssetReferenceSelect`（含「未指定資產」選項）的完整表單。隨後於隔離本機 dev server（`npm run dev -- --mode preview-deploy`，未使用使用者 Production 資料）實機驗收：新增一筆帳戶「現金」、資產「未指定資產」、實收股息 1,234 元的紀錄 → 點擊「編輯」→ 確認表單正確載入既有資料（含「編輯股息紀錄」標題與「儲存股息紀錄」「取消編輯」按鈕）→ 於資產代號欄位選擇「00631L 元大台灣50正2」→ 點擊「儲存股息紀錄」→ 確認「資產股息排行」「股息組成」「股息來源分布」三處摘要卡片同步由「未指定資產」改為「00631L」→ `F5` 重新整理後確認變更已持久化（localStorage）不遺失 → 縮放至 390px 寬度確認 `document.documentElement.scrollWidth === clientWidth`（無橫向溢出）→ 全程 `read_console_messages` 僅出現 Vite HMR／React DevTools 提示，無 error。同時一併確認同一筆紀錄可再次點擊「編輯」將資產切回「未指定資產」（下拉選單保留該選項），雙向切換皆正常。驗收條件「未指定資產紀錄可安全編輯」達成；`npx tsc -b` 建置成功。本項自 2026-07-19 提出、2026-07-23 補登建檔以來從未被任何專屬 PR 處理，本次確認為既有股息中心改版（新增／編輯／刪除共用同一表單元件）順帶滿足，並非本次新增程式邏輯。詳見下方更新後的 **UR-TODO-028** 正式條目。
+
+2026-08-01 **UR-TODO-026、027、028、032、033、034 唯讀盤點完成**（Claude Code，Review Mode，基準 `origin/main` HEAD `a7cc0a4`，未修改任何檔案；本次為 2026-07-23 補登建檔後首次唯讀重新核對最新 main）。逐項結論：**UR-TODO-028** 經程式碼比對後判定極可能已被股息中心改版順帶解決（見上方單獨完成記錄，本次已進一步實機驗收確認並正式結案）。**UR-TODO-032** 確認基礎設施已大致完備：桌機／手機共用同一份 `refreshQuotes()` → `createQuoteRefreshController`；手機另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控下拉事件；首頁固定有「更新股價」按鈕並含 `isRefreshingQuotes` loading 狀態；`quotePresentation.ts` 的 `describeQuotePresentation` 統一報價呈現邏輯——研判多為其他 Sprint（V7.0B、UR-TODO-009 等）順帶建成的共用基礎設施，並非針對本項開的 PR，但「loading／error／lastUpdated／quote date 跨頁一致」仍未經本次實機互動驗證，狀態維持「部分完成／待盤點」，僅補充上述程式碼證據，待下次排入驗收即可能直接結案。**UR-TODO-026** 現況與原始描述有出入：文字已從「持有比率」變成「持有比例」（`src/App.tsx` 第 710 行，可能為其他 PR 順帶改字，非本項處理），且程式碼中找不到任何圓圈／SVG 圖形，只有純文字＋數字並列；原始需求前提「保留圓圈」目前不成立，需先由使用者確認需求是否仍要新增圓圈視覺或僅移除文字標籤，狀態維持「待盤點」。**UR-TODO-027** 再次確認 `src/components/TrendChart.tsx` 仍只有 `<path>` 折線與 `<circle>` 資料點，無任何漸層實作，與 2026-07-26 盤點結論一致，仍是真實缺口，狀態維持「待盤點」。**UR-TODO-033** 確認 `App.tsx` 第 715～716 行「現價」與「今日漲跌」仍是兩個獨立列（非同列），`compactAssetCard.ts` 的 `formatCompactQuoteMovement()` 只用 `+`／`-` 文字符號、沒有 ▲／▼ 符號，與原始待確認項目有明確落差，仍是真實缺口，狀態維持「部分完成／待盤點」。**UR-TODO-034** 無法僅由程式碼靜態判斷是否已解決，需要以 00631L、00865B 等真實標的在瀏覽器實機比對 Worker／cache／state／localStorage／各頁 selector 是否一致，狀態維持「部分完成／待盤點」。全庫搜尋 `AI_CONTEXT/` 確認除本次與 2026-07-26（UR-TODO-027 需求明確化）外，這六項自 2026-07-23 補登建檔後未曾被任何其他 PR 觸碰。
 
 2026-08-01 **UR-TODO-036（Household Liquidity Plan Input UI Entry Point）唯讀盤點完成，正式標記為已完成**（Claude Code，Review Mode，基準 `origin/main` HEAD `6380c4f`，未修改任何程式碼）。逐項核對原三項「待確認」：與 UR-TODO-011「防守配置狀態」呈現規劃的邊界已由 011C（PR #164）命名統一直接解決，且 011A 核心程式碼確認無資料重疊；與 Dashboard、Rebalance、Simulator 既有欄位比對後確認不需整合去重（Dashboard 無欄位、Simulator 舊重複輸入已於 UR-TODO-010 移除、Rebalance 的 `buyOnlyBudget` 為語意不同的互補參數）；手機／桌機一致性與萬元輸入驗證確認已有專屬響應式 CSS 與涵蓋主要邊界類別的自動化測試。三項待確認事項皆已找到具體程式碼證據回答，未發現需要修改程式碼的實質缺陷。詳見下方更新後的 **UR-TODO-036** 正式條目。
 
@@ -3474,6 +3480,7 @@ Hotfix 仍需：
 - 優先級：P1
 - 狀態：待盤點
 - 提出日期：2026-07-22
+- 2026-08-01 唯讀盤點補充：現況文字已是「持有比例」（`src/App.tsx:710`，非原文「持有比率」，可能為其他 PR 順帶改字），且程式碼中找不到任何圓圈／SVG 圖形，僅純文字＋數字並列。原始需求前提「保留圓圈」目前不成立，開發前需先由使用者確認需求是否仍要新增圓圈視覺或僅移除文字標籤。
 - 修改方向：
   - 移除「持有比率」四個字。
   - 保留圓圈與圓圈內比例數字。
@@ -3507,15 +3514,17 @@ Hotfix 仍需：
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
-- 狀態：待盤點
+- 狀態：**已完成**
+- 完成日期：2026-08-01
+- 完成依據：唯讀盤點＋隔離本機 dev server 實機驗收（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `a7cc0a4`）。`src/pages/DividendCenterPage.tsx` 對所有股息紀錄（含未指定資產）皆提供「編輯」按鈕，編輯表單含 `DividendAssetReferenceSelect`（含「未指定資產」選項），可自由補選或變更資產。實機驗收：建立未指定資產股息紀錄 → 編輯補選資產「00631L」→ 儲存 → 三處摘要卡片同步更新 → 重新整理後持久化不遺失 → 390px 無橫向溢出 → console 無 error → 再次編輯切回「未指定資產」亦正常。**本項未新增或修改任何 `src/`／`tests/` 程式碼**，為既有股息中心改版（新增／編輯／刪除共用同一表單元件）順帶滿足驗收條件，非本次新增邏輯。
 - 提出日期：2026-07-19
-- 問題：
+- 問題（原始，已解決）：
   - 未指定資產的股息紀錄可能只能刪除、無法編輯。
-- 待確認：
-  - 是否可補選或修改資產。
-  - 已清倉／封存資產參照完成後是否仍有問題。
-  - 編輯後 localStorage、Firebase、Backup 是否一致。
-- 驗收條件：
+- 已確認：
+  - 可自由補選或修改資產（含改回未指定資產）。
+  - 已清倉／封存資產不影響此編輯路徑，`DividendAssetReferenceSelect` 選項來源為 `dividendAssetReferenceOptions(holdings, transactions)`，與封存狀態無關。
+  - 本次僅驗證 localStorage 持久化；Firebase／Backup 路徑本次未逐一實測，因未變更任何資料寫入邏輯，風險判斷為低。
+- 驗收條件（已達成）：
   - 未指定資產紀錄可安全編輯，或有明確限制說明。
 
 ### UR-TODO-029 股息收款日期圖示顏色
@@ -3575,6 +3584,7 @@ Hotfix 仍需：
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-19
+- 2026-08-01 唯讀盤點補充（未實機驗收，僅程式碼靜態確認）：桌機／手機共用同一份 `refreshQuotes()` → `createQuoteRefreshController`；手機另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控下拉事件；首頁固定有「更新股價」按鈕並含 `isRefreshingQuotes` loading 狀態；`quotePresentation.ts` 的 `describeQuotePresentation` 統一報價呈現邏輯。基礎設施已大致完備，研判「桌機與手機使用同一刷新契約」在程式碼層面已成立，但「loading／error／lastUpdated／quote date 跨頁一致」仍待下一輪實機互動驗收確認才能結案。
 - 待確認：
   - 是否有明確更新股價按鈕。
   - 手機頂端下拉是否可靠觸發。
@@ -3587,6 +3597,7 @@ Hotfix 仍需：
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-19
+- 2026-08-01 唯讀盤點補充：`App.tsx:715～716` 確認「現價」與「今日漲跌」仍是兩個獨立列（非同列），`compactAssetCard.ts` 的 `formatCompactQuoteMovement()` 只用 `+`／`-` 文字符號，沒有 ▲／▼ 符號，與原始待確認項目有明確落差，仍是真實缺口。
 - 與既有 Todo 關係：
   - 補充 UR-TODO-002，不取代它。
 - 待確認：
@@ -3603,6 +3614,7 @@ Hotfix 仍需：
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-16
+- 2026-08-01 唯讀盤點補充：無法僅由程式碼靜態判斷是否已解決，需要以 00631L、00865B 等真實標的在瀏覽器實機比對 Worker／cache／state／localStorage／各頁 selector 是否一致，本次未進行實機驗證，狀態維持不變。
 - 已知相關完成：
   - Quote refresh consistency
   - TWSE 可信前收

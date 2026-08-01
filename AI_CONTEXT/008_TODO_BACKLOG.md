@@ -1,6 +1,10 @@
-# Universal Rebalance Todo Backlog v1.47
+# Universal Rebalance Todo Backlog v1.48
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-028（股息中心未指定資產編輯限制）唯讀盤點與隔離 Preview 環境實機驗收完成，正式標記為已完成**（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `a7cc0a4`，**未修改任何 `src/`、`tests/` 程式碼**——本項為既有功能已滿足驗收條件，非新增開發，僅治理文件同步）。唯讀盤點先確認 `src/pages/DividendCenterPage.tsx` 對所有股息紀錄（含 `assetSymbol` 為空的「未指定資產」紀錄）皆同時提供「編輯」「刪除」兩個動作，「編輯」會載入同一份含 `DividendAssetReferenceSelect`（含「未指定資產」選項）的完整表單。隨後於隔離本機 dev server（`npm run dev -- --mode preview-deploy`，未使用使用者 Production 資料）實機驗收：新增一筆帳戶「現金」、資產「未指定資產」、實收股息 1,234 元的紀錄 → 點擊「編輯」→ 確認表單正確載入既有資料（含「編輯股息紀錄」標題與「儲存股息紀錄」「取消編輯」按鈕）→ 於資產代號欄位選擇「00631L 元大台灣50正2」→ 點擊「儲存股息紀錄」→ 確認「資產股息排行」「股息組成」「股息來源分布」三處摘要卡片同步由「未指定資產」改為「00631L」→ `F5` 重新整理後確認變更已持久化（localStorage）不遺失 → 縮放至 390px 寬度確認 `document.documentElement.scrollWidth === clientWidth`（無橫向溢出）→ 全程 `read_console_messages` 僅出現 Vite HMR／React DevTools 提示，無 error。同時一併確認同一筆紀錄可再次點擊「編輯」將資產切回「未指定資產」（下拉選單保留該選項），雙向切換皆正常。驗收條件「未指定資產紀錄可安全編輯」達成；`npx tsc -b` 建置成功。本項自 2026-07-19 提出、2026-07-23 補登建檔以來從未被任何專屬 PR 處理，本次確認為既有股息中心改版（新增／編輯／刪除共用同一表單元件）順帶滿足，並非本次新增程式邏輯。詳見下方更新後的 **UR-TODO-028** 正式條目。
+
+2026-08-01 **UR-TODO-026、027、028、032、033、034 唯讀盤點完成**（Claude Code，Review Mode，基準 `origin/main` HEAD `a7cc0a4`，未修改任何檔案；本次為 2026-07-23 補登建檔後首次唯讀重新核對最新 main）。逐項結論：**UR-TODO-028** 經程式碼比對後判定極可能已被股息中心改版順帶解決（見上方單獨完成記錄，本次已進一步實機驗收確認並正式結案）。**UR-TODO-032** 確認基礎設施已大致完備：桌機／手機共用同一份 `refreshQuotes()` → `createQuoteRefreshController`；手機另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控下拉事件；首頁固定有「更新股價」按鈕並含 `isRefreshingQuotes` loading 狀態；`quotePresentation.ts` 的 `describeQuotePresentation` 統一報價呈現邏輯——研判多為其他 Sprint（V7.0B、UR-TODO-009 等）順帶建成的共用基礎設施，並非針對本項開的 PR，但「loading／error／lastUpdated／quote date 跨頁一致」仍未經本次實機互動驗證，狀態維持「部分完成／待盤點」，僅補充上述程式碼證據，待下次排入驗收即可能直接結案。**UR-TODO-026** 現況與原始描述有出入：文字已從「持有比率」變成「持有比例」（`src/App.tsx` 第 710 行，可能為其他 PR 順帶改字，非本項處理），且程式碼中找不到任何圓圈／SVG 圖形，只有純文字＋數字並列；原始需求前提「保留圓圈」目前不成立，需先由使用者確認需求是否仍要新增圓圈視覺或僅移除文字標籤，狀態維持「待盤點」。**UR-TODO-027** 再次確認 `src/components/TrendChart.tsx` 仍只有 `<path>` 折線與 `<circle>` 資料點，無任何漸層實作，與 2026-07-26 盤點結論一致，仍是真實缺口，狀態維持「待盤點」。**UR-TODO-033** 確認 `App.tsx` 第 715～716 行「現價」與「今日漲跌」仍是兩個獨立列（非同列），`compactAssetCard.ts` 的 `formatCompactQuoteMovement()` 只用 `+`／`-` 文字符號、沒有 ▲／▼ 符號，與原始待確認項目有明確落差，仍是真實缺口，狀態維持「部分完成／待盤點」。**UR-TODO-034** 無法僅由程式碼靜態判斷是否已解決，需要以 00631L、00865B 等真實標的在瀏覽器實機比對 Worker／cache／state／localStorage／各頁 selector 是否一致，狀態維持「部分完成／待盤點」。全庫搜尋 `AI_CONTEXT/` 確認除本次與 2026-07-26（UR-TODO-027 需求明確化）外，這六項自 2026-07-23 補登建檔後未曾被任何其他 PR 觸碰。
 
 2026-08-01 **UR-TODO-036（Household Liquidity Plan Input UI Entry Point）唯讀盤點完成，正式標記為已完成**（Claude Code，Review Mode，基準 `origin/main` HEAD `6380c4f`，未修改任何程式碼）。逐項核對原三項「待確認」：與 UR-TODO-011「防守配置狀態」呈現規劃的邊界已由 011C（PR #164）命名統一直接解決，且 011A 核心程式碼確認無資料重疊；與 Dashboard、Rebalance、Simulator 既有欄位比對後確認不需整合去重（Dashboard 無欄位、Simulator 舊重複輸入已於 UR-TODO-010 移除、Rebalance 的 `buyOnlyBudget` 為語意不同的互補參數）；手機／桌機一致性與萬元輸入驗證確認已有專屬響應式 CSS 與涵蓋主要邊界類別的自動化測試。三項待確認事項皆已找到具體程式碼證據回答，未發現需要修改程式碼的實質缺陷。詳見下方更新後的 **UR-TODO-036** 正式條目。
 
@@ -685,6 +689,7 @@
 - 優先級：P1
 - 狀態：待盤點
 - 提出日期：2026-07-22
+- 2026-08-01 唯讀盤點補充：現況文字已是「持有比例」（`src/App.tsx:710`，非原文「持有比率」，可能為其他 PR 順帶改字），且程式碼中找不到任何圓圈／SVG 圖形，僅純文字＋數字並列。原始需求前提「保留圓圈」目前不成立，開發前需先由使用者確認需求是否仍要新增圓圈視覺或僅移除文字標籤。
 - 修改方向：
   - 移除「持有比率」四個字。
   - 保留圓圈與圓圈內比例數字。
@@ -718,15 +723,17 @@
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
-- 狀態：待盤點
+- 狀態：**已完成**
+- 完成日期：2026-08-01
+- 完成依據：唯讀盤點＋隔離本機 dev server 實機驗收（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `a7cc0a4`）。`src/pages/DividendCenterPage.tsx` 對所有股息紀錄（含未指定資產）皆提供「編輯」按鈕，編輯表單含 `DividendAssetReferenceSelect`（含「未指定資產」選項），可自由補選或變更資產。實機驗收：建立未指定資產股息紀錄 → 編輯補選資產「00631L」→ 儲存 → 三處摘要卡片同步更新 → 重新整理後持久化不遺失 → 390px 無橫向溢出 → console 無 error → 再次編輯切回「未指定資產」亦正常。**本項未新增或修改任何 `src/`／`tests/` 程式碼**，為既有股息中心改版（新增／編輯／刪除共用同一表單元件）順帶滿足驗收條件，非本次新增邏輯。
 - 提出日期：2026-07-19
-- 問題：
+- 問題（原始，已解決）：
   - 未指定資產的股息紀錄可能只能刪除、無法編輯。
-- 待確認：
-  - 是否可補選或修改資產。
-  - 已清倉／封存資產參照完成後是否仍有問題。
-  - 編輯後 localStorage、Firebase、Backup 是否一致。
-- 驗收條件：
+- 已確認：
+  - 可自由補選或修改資產（含改回未指定資產）。
+  - 已清倉／封存資產不影響此編輯路徑，`DividendAssetReferenceSelect` 選項來源為 `dividendAssetReferenceOptions(holdings, transactions)`，與封存狀態無關。
+  - 本次僅驗證 localStorage 持久化；Firebase／Backup 路徑本次未逐一實測，因未變更任何資料寫入邏輯，風險判斷為低。
+- 驗收條件（已達成）：
   - 未指定資產紀錄可安全編輯，或有明確限制說明。
 
 ### UR-TODO-029 股息收款日期圖示顏色
@@ -786,6 +793,7 @@
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-19
+- 2026-08-01 唯讀盤點補充（未實機驗收，僅程式碼靜態確認）：桌機／手機共用同一份 `refreshQuotes()` → `createQuoteRefreshController`；手機另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控下拉事件；首頁固定有「更新股價」按鈕並含 `isRefreshingQuotes` loading 狀態；`quotePresentation.ts` 的 `describeQuotePresentation` 統一報價呈現邏輯。基礎設施已大致完備，研判「桌機與手機使用同一刷新契約」在程式碼層面已成立，但「loading／error／lastUpdated／quote date 跨頁一致」仍待下一輪實機互動驗收確認才能結案。
 - 待確認：
   - 是否有明確更新股價按鈕。
   - 手機頂端下拉是否可靠觸發。
@@ -798,6 +806,7 @@
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-19
+- 2026-08-01 唯讀盤點補充：`App.tsx:715～716` 確認「現價」與「今日漲跌」仍是兩個獨立列（非同列），`compactAssetCard.ts` 的 `formatCompactQuoteMovement()` 只用 `+`／`-` 文字符號，沒有 ▲／▼ 符號，與原始待確認項目有明確落差，仍是真實缺口。
 - 與既有 Todo 關係：
   - 補充 UR-TODO-002，不取代它。
 - 待確認：
@@ -814,6 +823,7 @@
 - 優先級：P1
 - 狀態：部分完成／待盤點
 - 提出日期：2026-07-16
+- 2026-08-01 唯讀盤點補充：無法僅由程式碼靜態判斷是否已解決，需要以 00631L、00865B 等真實標的在瀏覽器實機比對 Worker／cache／state／localStorage／各頁 selector 是否一致，本次未進行實機驗證，狀態維持不變。
 - 已知相關完成：
   - Quote refresh consistency
   - TWSE 可信前收
