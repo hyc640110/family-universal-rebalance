@@ -707,7 +707,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
-        <p className="holding-mobile-weight"><span>持有比例</span><strong>{compactWeight}</strong></p>
+        <p className="holding-mobile-weight" aria-label={`持有比例 ${compactWeight}`}><strong>{compactWeight}</strong></p>
         <h3 className="holding-title"><span className="holding-name" title={row.quote.name}>{row.quote.name}</span><span className="holding-symbol">{row.symbol}</span></h3>
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
