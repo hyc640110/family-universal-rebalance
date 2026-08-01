@@ -715,7 +715,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
       <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
       <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
       <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
-      <p className="holding-card-detail holding-card-unrealized-pnl"><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
+      <p className={`holding-card-detail holding-card-unrealized-pnl holding-card-unrealized-pnl-${tone(row.pnl)}`}><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
       <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>
     </div>
     {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
