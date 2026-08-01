@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.62
+# Universal Rebalance Current Status v3.63
 
 最後更新：2026-08-01
+
+**UR-TODO-027 剩餘四項中三項唯讀確認完成（2026-08-01）**：Claude Code 以隔離本機 dev server（高數值＋日期跳躍測試資料，390px）實機驗證 Y 軸整數刻度、手機文字裁切、Y 軸位置三項，皆確認符合／不需調整，正式標記為已完成；純唯讀驗證，未修改任何程式碼。**僅剩「07／15 附近中間空白」一項，待使用者以自己真實 Production 資料查看後另行處理**——測試資料驗證折線在日期跳躍時的行為符合既有「不補日期、不插值」設計，但無法代表使用者真實情境。UR-TODO-027 整體狀態維持「部分完成」。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
 **PR #221／#222 Production 唯讀驗證＋UR-TODO-002 正式結案（2026-08-01）**：使用者指示 Merge，Claude Code 依 `007_GIT_WORKFLOW.md` §8.1 既有政策使用 `gh pr merge --admin` 完成兩支 PR Merge（branch protection 需要審核人數，本 repo 僅一名協作者；PR #221 為純治理文件同步，PR #222 為使用者已親自到 Preview 驗收確認後直接指示 Merge，兩次使用皆已於 Merge 當下明確告知使用者）：**PR #221**（merge commit `cbd68d6c58f24f81c5cc5f6efa06a6c1b4c93a4b`，`mergedAt: 2026-08-01T16:06:16Z`）記錄 PR #220 的完成狀態；**PR #222**（merge commit `cd430dcafd3aedbb4b0c6bcdadf2b0b161239925`，`mergedAt: 2026-08-01T16:09:00Z`）為 **UR-TODO-002 正式結案**：五項原始版面差異中前四項已由 UR-TODO-033（PR #214）達成、本次未重做，僅新增第五項「未實現損益」與「今日漲跌」的視覺區隔（使用者選定方案 C，容器背景色＋左側色條強調，沿用既有紅漲綠跌色碼）。以 `git fetch`／`gh run list` 確認 `origin/main` 推進至 `cd430dc`、`Deploy GitHub Pages` run success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對 gh-pages 分支實際部署的 JS bundle 內容確認同時包含 PR #220（「每月收入（元）」）與 PR #222（`holding-card-unrealized-pnl-`）的變更，`deployment-environment` metadata 正確、資源路徑未混用。詳見 `008_TODO_BACKLOG.md` UR-TODO-002 條目。
 
