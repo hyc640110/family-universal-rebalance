@@ -212,42 +212,44 @@
 ### UR-TODO-002 持股資產管理卡片 2.0 差異盤點
 
 - 優先級：P0
-- 狀態：部分完成
-- 已完成：
+- 狀態：**待你決策**（2026-08-01 唯讀盤點確認實際上線版面與原始構想不同，需先由使用者決定是否接受現況為最終版本，才能判斷是否結案或另立開發範圍）
+- 唯讀盤點日期：2026-08-01（Claude Code，Review Mode，基準 `origin/main` HEAD `d49e98b`，未修改任何程式碼）
+- 已完成（現有實作核對後維持有效）：
   - 現價
   - 今日漲跌金額
   - 今日漲跌幅
   - 台股紅漲綠跌
   - TWSE 可信前收
   - 手機主卡移除均價
-- 待確認：
-  - 現價與漲跌幅同列
-  - 漲跌金額次列
-  - `▲／▼`
-  - 三者完全同色
-  - 與未實現損益清楚區隔
-  - 桌機／手機一致
+- 唯讀盤點結論（逐項核對「待確認」清單，對照 `src/App.tsx` 的 `HoldingCompactCard`〔`App.tsx:694`〕與 `src/styles.css`）：
+  - **現價與漲跌幅同列**：不符原始構想。現價（`App.tsx:715`）只顯示金額、不含 %；「今日漲跌」（`App.tsx:716`）是獨立一行，內容為 `formatCompactQuoteMovement()` 產生的「金額＋百分比」合併字串（如 `+2.50（+1.23%）`），與「現價＋漲跌幅同列」的原始版面不同。
+  - **漲跌金額次列**：不符。金額與百分比合併在同一行顯示（見上），並未拆成獨立次列。
+  - **`▲／▼`**：未實作。全庫搜尋確認 `▲`／`▼` 只用於 Section 收合按鈕（「收合 ▲」「展開 ▼」，`App.tsx:767`），持股卡片一律用 `+`／`-` 文字符號，無箭頭。
+  - **三者完全同色**：僅能驗證兩者。現價（`styles.css:100-102`）與今日漲跌（`styles.css:103-105`）確認共用相同 `up`/`down`/`hold` 色碼（紅 `#ff5b5b`／綠 `#43d17a`／灰 `#9fb3c8`）；因 ▲／▼ 未實作，「三者」中第三項不存在，無法完整驗證。
+  - **與未實現損益清楚區隔**：色碼相同，僅靠標籤與版面區隔。CSS 確認「今日漲跌」與「未實現損益」共用完全相同色碼（`styles.css:103-105`：`.holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:#ff5b5b}`），區隔僅靠不同標籤文字（「今日漲跌」vs「未實現損益」）與各自獨立的 `<p>` 列，非顏色區隔。
+  - **桌機／手機一致**：已符合。目前僅有 `HoldingCompactCard` 一個持股卡片元件，`isMobile` 與 `uiState.displayMode`（簡潔／完整模式）皆不影響其版面結構，只控制其他 Section 的收合與顯示，架構上桌機與手機必然使用同一份 JSX。
+- 待你決策：目前上線版面（現價獨立一行、今日漲跌金額與百分比合併一行、無箭頭符號、今日漲跌與未實現損益同色僅靠標籤區隔）是已穩定使用多年的替代呈現方式。請決定：
+  1. 接受現況為最終版本 → 可依此結案，並更新本條目描述與驗收標準以符合實際實作；或
+  2. 仍要依原始版面需求（現價＋%同列、金額獨立次列、▲／▼箭頭、與未實現損益顏色區隔）重新設計 → 需另立開發範圍，經「開始開發」授權後才可實作。
 - 完成 PR：#100、#101（部分）
 
 ### UR-TODO-003 每檔成長／防守分類完整性
 
 - 優先級：P0
-- 狀態：部分完成
+- 狀態：**部分完成**（2026-08-01 唯讀盤點確認資料持久化與下游 SSOT 一致性子項皆已妥善處理，僅剩 CLEC／`cash-like`／`defensive` 語意分歧一項技術缺口尚未解決）
+- 唯讀盤點日期：2026-08-01（Claude Code，Review Mode，基準 `origin/main` HEAD `d49e98b`，未修改任何程式碼）
 - 已有：
   - `assetClass`
   - 持股編輯 UI
   - `allocationRoleBySymbol`
-- 待盤點：
-  - localStorage
-  - Firebase
-  - Backup
-  - 封存／恢復
-  - Dashboard
-  - Risk
-  - Rebalance
-  - CLEC
-  - SSOT
-  - `cash-like` 與 `defensive` 的語意
+- 唯讀盤點結論（原「待盤點」清單逐項核對，`AssetClass` 為 `'growth' | 'defensive'`，定義於 `App.tsx:83`）：
+  - **localStorage／Firebase／Backup**：皆確認一致。三者共用同一個 `normalizeState()` 正規化管線（`App.tsx:377` `normalizedCore`），App 唯一的 `setState` wrapper 每次更新皆重新呼叫，`backupPayload()`（`App.tsx:419`）直接使用同一份已正規化的 `normalized.holdings`，與 UR-TODO-005 確認過的名稱解析管線同源。
+  - **封存／恢復**：已確認不會遺失。`removeHoldingAsset()`／`restoreHoldingAsset()`（`App.tsx:1708-1719`）只改寫 `isArchived`／`targetWeight`／`dipAlerts`／`allocationRoleBySymbol`，未觸碰 `assetClass`，封存與恢復皆完整保留分類。
+  - **Dashboard**：已確認符合單一計算來源、下游只讀原則。`investmentDashboard.ts`／`DashboardDecisionPage.tsx` 只消費彙總後的 `growthRatio`／`defensiveRatio`（已由上游依 `assetClass` 算好），未重新判斷分類。
+  - **Risk／Rebalance**：已接線。`riskMetrics.ts`、`portfolioRisk.ts`、`rebalanceRecommendation.ts`、`rebalanceOrderHelper.ts`、`RebalanceRecommendationPage.tsx` 皆引用 `assetClass`。
+  - **SSOT**：已確認符合。持股層級 `assetClass` 單一正規化來源為 `normalizeState()`／`sanitizeHolding()`，下游 Risk／Rebalance／Dashboard 皆只讀不重算。
+  - **CLEC／`cash-like`／`defensive` 的語意 —— 唯一剩餘技術缺口**：全庫比對確認 `clecStrategy.ts`／`clecStrategyRules.ts`／`ClecStrategyCenterPage.tsx`／`ClecRuleSummaryCard.tsx` 完全零命中 `assetClass`／`AssetClass`。CLEC 模組使用的是完全獨立的 `AllocationRole`（`'prototype' | 'leveraged' | 'cash-like' | 'none'`，定義於 `src/lib/allocationPresets.ts:2`），與持股正式分類 `AssetClass`（`growth`／`defensive`）是**兩套互不相通、無轉換邏輯的平行分類系統**。同一檔標的可能在 `AssetClass` 中被標為「防守資產」，又同時在 CLEC 模擬頁面被標為「類現金持股」（`AllocationRole`），語意上仍可能造成混淆，尚未解決。
+- **與 UR-TODO-048 的關聯**：本項唯一剩餘缺口與 UR-TODO-048 條目內「`allocationRoleBySymbol` 欄位清理」待評估議題**直接相關聯**——`allocationRoleBySymbol` 正是承載 `AllocationRole`（含 `cash-like`）語意的 AppState 欄位，UR-TODO-048 子階段 B 完成後已確認此欄位僅剩 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片的裝飾性顯示用途，清理需先由使用者決定該卡片角色欄位的呈現方式並明確授權。若未來啟動 `allocationRoleBySymbol` 清理，應一併評估是否統一或明確區隔 `AssetClass` 與 `AllocationRole` 兩套分類語意，作為解決本項最後一項待盤點的具體切入點；兩個 Todo 的後續開發規劃應合併考慮，避免分開處理造成語意設計反覆。
 
 ### UR-TODO-004 同一畫面內成長／防守資產比例小數位數不一致（原標題：桌機／手機目前偏離目標一致性）
 
