@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.49
+# Universal Rebalance Todo Backlog v1.50
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-033（持股卡片現價與今日漲跌版面完整差異）正式標記為已完成**，已由使用者手動 Merge [PR #214](https://github.com/hyc640110/family-universal-rebalance/pull/214)（`feat/ur-todo-033-holding-card-quote-layout`），merge commit `fd3ae448e9e7c5678a793f81d548fe5ed1f783c7`，`mergedAt: 2026-08-01T09:50:04Z`。範圍：`src/lib/compactAssetCard.ts` 新增 `formatCompactQuoteHeadline()`，內部重用既有 `formatCompactQuoteMovement()` 的 tone／有效性／aria-label 作為單一事實來源，只新增箭頭與拆分後的百分比／金額格式化；`App.tsx` 的 `HoldingCompactCard`「現價」格改為同列顯示「價格 元 ▲/▼ 漲跌幅%」，「今日漲跌」格只顯示漲跌金額（次列，與現價同一格線列相鄰，維持既有 6 格 grid 不變）；`styles.css` 新增 `.holding-quote-percent`，顏色沿用既有 `.holding-card-price>strong.{up,down,hold}`／`.holding-card-today-change>strong.{up,down,hold}` 規則，現價、▲/▼、漲跌幅、漲跌金額四者共用同一 tone class。三個既有 characterization 測試檔同步更新結構性斷言，並新增 `formatCompactQuoteHeadline` 專屬測試涵蓋上漲／下跌／平盤／資料不足／比較基準未驗證五種情境；`npx tsc -b`、`test:ci` 全數通過。`Deploy GitHub Pages` run `30694521777` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用。隔離本機 dev server（真實 Yahoo Finance via Cloudflare Worker）實機驗證已於 PR 內完成：`getComputedStyle` 確認現價、箭頭、漲跌幅、漲跌金額顏色一致（`rgb(255, 91, 91)` 紅漲），390px／1280px 皆無橫向溢出，console 無 error。**明確不包含**：「非今日報價清楚標示」既有機制（`quoteSummaryText` 頂層提示、`row.quote.error` 時「現價」標示為「參考價」）本次未變動；未修改任何持股計算邏輯、`Quote` 型別或資料契約。詳見下方更新後的 **UR-TODO-033** 正式條目。
 
 2026-08-01 **UR-TODO-032（資產頁更新股價入口與手機下拉更新盤點）唯讀盤點與隔離 Preview 環境實機驗收完成，正式標記為已完成**（Claude Code，Development Mode／驗收性質，基準 `origin/main` HEAD `2abe5ac`（PR #212 merge commit），**未修改任何 `src/`、`tests/` 程式碼**——本項為既有基礎設施已滿足驗收條件，非新增開發，僅治理文件同步）。唯讀盤點先確認架構：`refreshQuotes()` → `createQuoteRefreshController`（`src/lib/quoteRefreshController.ts`）為桌機／手機共用的單一刷新入口；`isRefreshingQuotes`、`hasUpdatedQuotes`、`latestQuoteTime`、`quoteSummaryText`、`quoteStatus` 皆為 `App.tsx` 頂層單一狀態／`useMemo`，逐一以 props 傳入首頁、資產頁、分析頁，非各頁分別重算；手機下拉更新另有獨立模組 `src/lib/assetsPullToRefresh.ts`（`createAssetsPullToRefresh`）綁定觸控事件，呼叫同一個 `refreshQuotes(true)`。隨後於隔離本機 dev server（`npm run dev -- --mode preview-deploy`，串接真實 Yahoo Finance via Cloudflare Worker，未使用使用者 Production 資料）實機驗收：於資產頁點擊「更新股價」→ 確認「持股報價來源與新鮮度」區塊顯示「股價更新成功（4/4）：時間戳記」，四檔標的（00631L、00662、00670L、00865B）逐一列出市場時間／來源／系統取得時間 → 以 SPA 內部導覽（非瀏覽器重新整理）切換至分析頁，確認同一時間戳記、同一組報價與今日漲跌數字完全一致重現（非重新抓取）→ 切回首頁，確認「最後股價更新」短格式時間與前述時間戳記一致 → 於首頁點擊「更新股價」再次觸發刷新，確認新時間戳記（17:15:33）立即同步反映於資產頁、分析頁、首頁三處，全程無需個別重新整理 → 縮放至 390px 確認資產頁 `scrollWidth === clientWidth`（無橫向溢出）→ 全程 `read_console_messages` 與 dev server log 皆無 error。驗收條件「桌機與手機使用同一刷新契約」「更新後各頁報價一致」達成；`npx tsc -b` 建置成功。手機下拉觸發（`assetsPullToRefresh` 觸控事件）與明確的錯誤狀態（Worker 失敗情境）因本次環境網路正常、未能重現失敗案例，故錯誤狀態呈現（`quotePresentation.ts` 的 `isPreserved`／`hasFailure` 分支）本次僅完成程式碼靜態確認，未實機重現，但程式碼路徑明確、與正常路徑共用同一組件與狀態，風險判斷為低。本項自 2026-07-19 提出、2026-07-23 補登建檔以來從未被任何專屬 PR 處理，本次確認為其他 Sprint（V7.0B、UR-TODO-009 等）陸續建成的共用基礎設施順帶滿足，並非本次新增程式邏輯。詳見下方更新後的 **UR-TODO-032** 正式條目。
 
@@ -807,20 +809,22 @@
 
 ### UR-TODO-033 持股卡片現價與今日漲跌版面完整差異
 - 優先級：P1
-- 狀態：部分完成／待盤點
-- 提出日期：2026-07-19
-- 2026-08-01 唯讀盤點補充：`App.tsx:715～716` 確認「現價」與「今日漲跌」仍是兩個獨立列（非同列），`compactAssetCard.ts` 的 `formatCompactQuoteMovement()` 只用 `+`／`-` 文字符號，沒有 ▲／▼ 符號，與原始待確認項目有明確落差，仍是真實缺口。
+- 狀態：**已完成**
+- 完成日期：2026-08-01
+- 完成依據：[PR #214](https://github.com/hyc640110/family-universal-rebalance/pull/214)（`feat/ur-todo-033-holding-card-quote-layout`），merge commit `fd3ae448e9e7c5678a793f81d548fe5ed1f783c7`。`src/lib/compactAssetCard.ts` 新增 `formatCompactQuoteHeadline()`（內部重用既有 `formatCompactQuoteMovement()` 的 tone／有效性／aria-label，不重複驗證邏輯）；`App.tsx` 的 `HoldingCompactCard`「現價」格改為同列顯示「價格 元 ▲/▼ 漲跌幅%」，「今日漲跌」格只顯示金額（次列，與現價同一格線列相鄰）；`styles.css` 新增 `.holding-quote-percent`，顏色沿用既有 `up/down/hold` class 規則，四者（現價、箭頭、漲跌幅、漲跌金額）共用同一 tone。實機驗證（隔離本機 dev server，真實 Yahoo Finance via Cloudflare Worker）：`getComputedStyle` 確認顏色一致（`rgb(255, 91, 91)` 紅漲），390px／1280px 皆無橫向溢出，console 無 error；`npx tsc -b`、`test:ci` 全數通過。`Deploy GitHub Pages` run `30694521777` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。
 - 與既有 Todo 關係：
   - 補充 UR-TODO-002，不取代它。
-- 待確認：
-  - 現價與漲跌幅是否同列。
-  - 漲跌金額是否次列。
-  - 是否顯示 ▲／▼。
-  - 三者是否依台股紅漲綠跌一致著色。
-  - 是否與未實現損益清楚區隔。
-- 驗收條件：
+- 已確認：
+  - 現價與漲跌幅同列（同一格內）。
+  - 漲跌金額次列（相鄰格）。
+  - 顯示 ▲／▼。
+  - 三者依台股紅漲綠跌一致著色（同一 tone class）。
+  - 與未實現損益仍為獨立格線，維持既有區隔。
+- 明確不包含：
+  - 「非今日報價清楚標示」既有機制（`quoteSummaryText` 頂層提示、`row.quote.error` 時「現價」標示為「參考價」）本次未變動，維持原狀，非本次新增。
+- 驗收條件（已達成）：
   - 桌機與手機一致。
-  - 非今日報價清楚標示。
+  - 非今日報價清楚標示（沿用既有機制）。
 
 ### UR-TODO-034 持股更新後仍顯示舊報價的殘留案例盤點
 - 優先級：P1
