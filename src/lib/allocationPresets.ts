@@ -1,4 +1,4 @@
-export type AllocationPreset = 'custom' | 'clec-442' | 'clec-433';
+export type AllocationPreset = 'custom' | 'clec-442' | 'clec-433' | 'clec-703' | 'clec-5050';
 export type AllocationRole = 'prototype' | 'leveraged' | 'cash-like' | 'none';
 
 export type AllocationPresetHolding = {
@@ -26,14 +26,16 @@ export type AllocationPresetPreview = {
 const ROLE_ORDER: AllocationRole[] = ['prototype', 'leveraged', 'cash-like'];
 const PRESET_WEIGHTS: Record<Exclude<AllocationPreset, 'custom'>, Record<Exclude<AllocationRole, 'none'>, number>> = {
   'clec-442': { prototype: 40, leveraged: 40, 'cash-like': 20 },
-  'clec-433': { prototype: 40, leveraged: 30, 'cash-like': 30 }
+  'clec-433': { prototype: 40, leveraged: 30, 'cash-like': 30 },
+  'clec-703': { prototype: 0, leveraged: 70, 'cash-like': 30 },
+  'clec-5050': { prototype: 0, leveraged: 50, 'cash-like': 50 }
 };
 
 const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
 const weight = (value: unknown) => finite(value) ? Math.max(0, Number(value)) : 0;
 const key = (symbol: unknown) => String(symbol ?? '').trim().toUpperCase();
 
-export const normalizeAllocationPreset = (value: unknown): AllocationPreset => value === 'clec-442' || value === 'clec-433' ? value : 'custom';
+export const normalizeAllocationPreset = (value: unknown): AllocationPreset => value === 'clec-442' || value === 'clec-433' || value === 'clec-703' || value === 'clec-5050' ? value : 'custom';
 export const normalizeAllocationRole = (value: unknown): AllocationRole => value === 'prototype' || value === 'leveraged' || value === 'cash-like' ? value : 'none';
 
 export function normalizeAllocationRoleBySymbol(value: unknown, holdings: readonly AllocationPresetHolding[]) {
@@ -81,5 +83,5 @@ export function deriveAllocationPresetPreview(input: AllocationPresetPreviewInpu
   return { preset, canApply: false, blockingReasons, warnings, rows, targetTotal: null, cashTargetPct: null };
 }
 
-export const allocationPresetLabel = (preset: AllocationPreset) => preset === 'clec-442' ? 'CLEC 442' : preset === 'clec-433' ? 'CLEC 433' : '自訂配置';
+export const allocationPresetLabel = (preset: AllocationPreset) => preset === 'clec-442' ? 'CLEC 442' : preset === 'clec-433' ? 'CLEC 433' : preset === 'clec-703' ? 'CLEC 703' : preset === 'clec-5050' ? 'CLEC 5050' : '自訂配置';
 export const roleLabel = (role: AllocationRole) => role === 'prototype' ? '原型資產' : role === 'leveraged' ? '槓桿資產' : role === 'cash-like' ? '類現金持股' : '未指派';

@@ -65,3 +65,40 @@ test('correcting a duplicate mapping restores a valid 100% preview', () => {
 test('mapping normalization drops unknown symbols and none roles', () => {
   assert.deepEqual(normalizeAllocationRoleBySymbol({ aaa: 'prototype', ghost: 'leveraged', BBB: 'none' }, holdings), { AAA: 'prototype' });
 });
+
+test('UR-TODO-048 phase D: CLEC 703 previews the locked 0/70/30 weights without mutating its input', () => {
+  const input = { preset: 'clec-703' as const, holdings, roleBySymbol: roles };
+  const result = deriveAllocationPresetPreview(input);
+  assert.equal(result.canApply, true);
+  assert.equal(result.targetTotal, 100);
+  assert.equal(result.cashTargetPct, 0);
+  assert.deepEqual(result.rows.map(row => [row.symbol, row.nextWeight]), [['AAA', 0], ['BBB', 70], ['CCC', 30], ['DDD', 0]]);
+  assert.deepEqual(input, { preset: 'clec-703', holdings, roleBySymbol: roles });
+});
+
+test('UR-TODO-048 phase D: CLEC 5050 previews the locked 0/50/50 weights without mutating its input', () => {
+  const input = { preset: 'clec-5050' as const, holdings, roleBySymbol: roles };
+  const result = deriveAllocationPresetPreview(input);
+  assert.equal(result.canApply, true);
+  assert.equal(result.targetTotal, 100);
+  assert.equal(result.cashTargetPct, 0);
+  assert.deepEqual(result.rows.map(row => [row.symbol, row.nextWeight]), [['AAA', 0], ['BBB', 50], ['CCC', 50], ['DDD', 0]]);
+  assert.deepEqual(input, { preset: 'clec-5050', holdings, roleBySymbol: roles });
+});
+
+test('UR-TODO-048 phase D: CLEC 703／5050 still require all three roles and block on missing/duplicate assignment', () => {
+  const missingProto703 = deriveAllocationPresetPreview({ preset: 'clec-703', holdings, roleBySymbol: { BBB: 'leveraged', CCC: 'cash-like' } });
+  assert.equal(missingProto703.canApply, false);
+  assert.ok(missingProto703.blockingReasons.some(reason => reason.includes('原型資產')));
+
+  const duplicate5050 = deriveAllocationPresetPreview({ preset: 'clec-5050', holdings, roleBySymbol: { AAA: 'prototype', BBB: 'prototype', CCC: 'cash-like' } });
+  assert.equal(duplicate5050.canApply, false);
+  assert.match(duplicate5050.blockingReasons.join('\n'), /僅能指定一檔持股/);
+});
+
+test('UR-TODO-048 phase D: adding CLEC 703／5050 does not alter existing CLEC 442／433 weights', () => {
+  const clec442 = deriveAllocationPresetPreview({ preset: 'clec-442', holdings, roleBySymbol: roles });
+  const clec433 = deriveAllocationPresetPreview({ preset: 'clec-433', holdings, roleBySymbol: roles });
+  assert.deepEqual(clec442.rows.map(row => row.nextWeight), [40, 40, 20, 0]);
+  assert.deepEqual(clec433.rows.map(row => row.nextWeight), [40, 30, 30, 0]);
+});
