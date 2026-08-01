@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-01T06:58:23.966803+00:00
+Generated UTC: 2026-08-01T07:12:49.635224+00:00
 
 ## Manifest
 
@@ -16,7 +16,7 @@ Generated UTC: 2026-08-01T06:58:23.966803+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `38a86752dfc446b0ad52dded9fe769de9ad056f27988212272ea5cdb26a6c377`
+- `008_TODO_BACKLOG.md` — SHA-256 `0f005c419fa1cb348a0dbb51edd339b440e9b467988bfb4e5ec388b874a48f1b`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -2787,9 +2787,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.46
+# Universal Rebalance Todo Backlog v1.47
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-036（Household Liquidity Plan Input UI Entry Point）唯讀盤點完成，正式標記為已完成**（Claude Code，Review Mode，基準 `origin/main` HEAD `6380c4f`，未修改任何程式碼）。逐項核對原三項「待確認」：與 UR-TODO-011「防守配置狀態」呈現規劃的邊界已由 011C（PR #164）命名統一直接解決，且 011A 核心程式碼確認無資料重疊；與 Dashboard、Rebalance、Simulator 既有欄位比對後確認不需整合去重（Dashboard 無欄位、Simulator 舊重複輸入已於 UR-TODO-010 移除、Rebalance 的 `buyOnlyBudget` 為語意不同的互補參數）；手機／桌機一致性與萬元輸入驗證確認已有專屬響應式 CSS 與涵蓋主要邊界類別的自動化測試。三項待確認事項皆已找到具體程式碼證據回答，未發現需要修改程式碼的實質缺陷。詳見下方更新後的 **UR-TODO-036** 正式條目。
 
 2026-08-01 **UR-TODO-042（PortfolioRiskPage「槓桿暴露」卡片 React 重複 key console error）正式標記為已完成**。已由使用者手動 Merge [PR #209](https://github.com/hyc640110/family-universal-rebalance/pull/209)（`fix/ur-todo-042-portfolio-risk-key-collision`），merge commit `e81259a3c180aa557aa21b4b1663975aeb85b488`，`mergedAt: 2026-08-01T06:54:11Z`。範圍僅 `src/pages/PortfolioRiskPage.tsx` 的 `Rows` 元件 1 行變更：儲存格 `key` 由依賴文字內容的 `key={item}` 改為依賴欄位索引的 `key={index}`，未觸碰 `src/lib/portfolioRisk.ts`、Household Liquidity 核心公式或任何其他頁面。`npx tsc -b`、`test:ci`（0 fail）、Production build 皆成功；隔離 Preview 環境瀏覽器實測確認「槓桿暴露」卡片「占總資產／0.0%／占總資產」列內容不變、console 不再出現重複 key 警告。`Deploy GitHub Pages` workflow run `30688639249` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確、資源路徑未混用。此為 UR-TODO-041／UR-TODO-042 唯讀盤點（2026-07-26 提出、2026-08-01 重新確認缺陷未變）後首個進入開發並完成的項目。詳見下方更新後的 **UR-TODO-042** 正式條目。
 
@@ -3337,21 +3339,22 @@ Hotfix 仍需：
 ### UR-TODO-036 Household Liquidity Plan Input UI Entry Point
 
 - 優先級：P1
-- 狀態：待盤點
+- 狀態：**已完成**
 - 提出日期：2026-07-24
+- 完成日期：2026-08-01
 - 提出依據：PR #105（V6.17.3A.1 Entry Point，merge `2510169`）
 - 背景：
   - PR #105 在「收支與現金流中心」（`CashFlowPage.tsx`）新增「家庭流動資金計畫」UI 區塊，可編輯 `externalContribution`（額外投入資金）與 `plannedWithdrawal`（預計提領資金），這是家庭流動性主題第一次修改正式 UI 頁面。
   - 此範圍未被 UR-TODO-006、UR-TODO-007 原始描述涵蓋，也未被 UR-TODO-011（Cross-Module Presentation Consistency）明確涵蓋。
-- 待確認：
-  - 此 UI 區塊與 UR-TODO-011「防守配置狀態」呈現規劃之間的關係與邊界。
-  - 是否需要與 Dashboard、Rebalance、Simulator 既有的預算／資金輸入欄位整合或去重。
-  - 手機／桌機一致性、萬元輸入元儲存的 validation 是否已涵蓋所有邊界案例（見 PR #105 測試：Entry Point 7/7、Foundation 16/16）。
-- 依賴：
-  - UR-TODO-007（部分完成，尚未接 consumer）
-  - UR-TODO-011（待開發）
-- 驗收條件：
-  - 明確記錄此 UI Entry Point 與家庭流動性主題其餘 Sprint（Rebalance、Risk、CLEC、Simulator、Cross-Module Presentation）的整合關係，不得重複設計相同的資金輸入欄位。
+- 2026-08-01 唯讀盤點結論（Claude Code，Review Mode，基準 `origin/main` HEAD `6380c4f`，未修改任何程式碼），逐項核對原「待確認」清單：
+  - **與 UR-TODO-011「防守配置狀態」呈現規劃之間的關係與邊界 —— 已解決**：`defensiveConfigurationPresentation.ts`（011A 核心）全文搜尋 `externalContribution`／`plannedWithdrawal`／`cashFlowProfile` 零命中，確認與此 UI 區塊是完全獨立的資料領域，無功能重疊。**011C（PR #164）已直接處理過本項所擔心的命名邊界問題**：Cash Flow 的「額外投入資金／預計提領資金」與 CLEC 原本不同的「計畫投入／計畫提領」用詞已於 011C 統一為同一組正式名稱。
+  - **是否需要與 Dashboard、Rebalance、Simulator 既有欄位整合或去重 —— 已釐清為不需要**：全庫比對 `externalContribution`／`plannedWithdrawal` 讀寫點確認 Dashboard（`investmentDashboard.ts`／`DashboardDecisionPage.tsx`）完全無金額輸入欄位；Simulator（`AllocationSimulatorPage.tsx`）與 CLEC（`ClecStrategyCenterPage.tsx`）皆已是唯讀顯示，舊版 Simulator「模擬投入金額」重複輸入欄位已於 UR-TODO-010 子 PR2B 移除。Rebalance「再平衡建議中心」`.rebalance-settings` 區塊（`App.tsx:1935`）雖另有「只買不賣可用加碼預算（萬）」（`buyOnlyBudget`）獨立輸入欄位，但比對 `householdLiquidity.ts` 核心公式（`executableBudget = min(configuredBudget, investableCash)`）確認 `configuredBudget` 與 `externalContribution`／`plannedWithdrawal` 是語意不同、互補而非衝突的兩個參數（前者為使用者手動設定的加碼支出上限，後者為家庭實際資金流入流出計畫），非同一欄位重複設計。
+  - **手機／桌機一致性、萬元輸入驗證邊界案例 —— 已有紮實測試與專屬 CSS，涵蓋主要邊界類別**：`parseHouseholdLiquidityPlanWan()`（`householdLiquidityPlanInputUi.ts`）現有測試涵蓋空字串／零值／小數／負數／非數字／`Infinity` 關鍵字／科學記號／逼近安全整數邊界的大數；響應式 CSS 確認有專屬規則（`.household-liquidity-plan-row` 桌機雙欄、`styles.css:558` 手機斷點改單欄並將 input／button 最小觸控高度設為 44px），非僅沿用預設樣式；測試 8（`householdLiquidityPlanInputEntryPoint.test.ts`）以原始碼結構位置驗證欄位已正確依附「每月設定」卡片儲存按鈕（UR-TODO-039 修復成果）。少數次要輸入格式（前導零、正號前綴、多個小數點、千分位逗號）雖無逐一明確測試，但正規表示式預設安全拒絕，不構成阻擋性缺口。
+- 結論：三項原始「待確認」事項皆已找到具體程式碼證據回答，**未發現任何需要修改程式碼的實質缺陷**；UR-TODO-011（尤其 011C 的命名統一）已直接解決本 Todo 最核心的疑慮。剩餘可補強之處（少數輸入格式測試覆蓋、跨頁資金輸入介面的說明文案清晰度）屬低優先級、非阻擋性的可選強化，不構成「待開發」的必要條件。
+- 依賴（提出當時，現已釐清）：
+  - UR-TODO-007（部分完成，尚未接 consumer——不影響本項結論，Plan Input 資料層本身持久化與正規化已完整，接 consumer 屬於 UR-TODO-007 自身範圍）
+  - UR-TODO-011（已完成，見上方結論）
+- 完成標準對照：本項為唯讀盤點性質的 Todo（「明確記錄此 UI Entry Point 與家庭流動性主題其餘 Sprint 的整合關係」），驗收條件為釐清邊界關係而非程式碼交付；本次盤點已明確記錄此 UI 區塊與 Rebalance、Risk、CLEC、Simulator、Cross-Module Presentation（UR-TODO-011）的完整整合關係，並確認未重複設計相同的資金輸入欄位，**驗收條件達成，正式標記為已完成**。
 
 ### UR-TODO-039 收支與現金流中心「額外投入資金」「預計提領資金」欄位未實際寫回
 
