@@ -17,4 +17,4 @@ export default function PortfolioRiskPage({ view }: { view: PortfolioRiskView })
   </PageFrame>;
 }
 function RiskCard({ title, children }: { title: string; children: ReactNode }) { return <article className="portfolio-risk-card"><h2>{title}</h2>{children}</article>; }
-function Rows({ rows, headers }: { rows: string[][]; headers?: string[] }) { return <div className="portfolio-risk-rows">{headers && <div className="head">{headers.map(item => <span key={item}>{item}</span>)}</div>}{rows.map(row => <div key={row.join('|')}>{row.map(item => <span key={item}>{item}</span>)}</div>)}</div>; }
+function Rows({ rows, headers }: { rows: string[][]; headers?: string[] }) { return <div className="portfolio-risk-rows">{headers && <div className="head">{headers.map(item => <span key={item}>{item}</span>)}</div>}{rows.map(row => <div key={row.join('|')}>{row.map((item, index) => <span key={index}>{item}</span>)}</div>)}</div>; }
