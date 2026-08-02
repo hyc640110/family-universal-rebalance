@@ -8,7 +8,18 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 C3A Pure Runtime Derived-Evidence Adapter 已完成（2026-08-02）
+
+- 正式基線：PR [#244](https://github.com/hyc640110/family-universal-rebalance/pull/244) 已 Merge；`main`、`origin/main` 為 **`0fd1955bfe6267e55072bf2278114f70aa11f98e`**（`mergedAt: 2026-08-02T13:15:09Z`）。
+- C3A 已完成：新增純 `deriveRuntimeDerivedAttributionEvidence()`。它只消費 C1／C2 `candidate` reconciliation result，以 `Asia/Taipei` canonical calendar-day `openingSnapshot.date < effectiveDate <= closingSnapshot.date` 產出 runtime-only `DerivedAttributionEvidence`。
+- provenance 明確為 `derived-transaction`，不等同 Ledger-confirmed／user-confirmed event；保留 transactionId、effectiveDate、category、amount、signed contribution 與 `safe-taxonomy-candidate` basis。external income／expense、dividend 分別維持正負經濟符號；internal transfer、adjustment 均為零效果，不能被稱為 market effect。
+- matched／duplicate／ambiguous／unsupported／invalid 不會產生 derived evidence，避免與 C1 Ledger double-count。C3A 沒有呼叫或改變 `deriveNetWorthAttribution()`、quality、UI、Ledger、AppState、localStorage、Firebase、JSON Backup、schema、migration、legacy rewrite、AI Decision、Rebalance 或 Household Liquidity。
+- **UR-TODO-046 整體仍未完成；下一候選是 046-C3B**（Ledger contribution + derived contribution → 正式 attribution calculator）。它會改變使用者可見的財務歸因結果與 quality 語意，屬重大產品／核心財務語意事件；必須以最新 `origin/main` 重做唯讀架構審查，並回 ChatGPT／使用者完成產品契約確認，**不得自動開始**。
+- PR #244 CI Verification（head `1490e56264c4222d69a953d39ee24aebb1fcfb58`）成功；Merge 後 Pages workflow／Production 與 Preview 狀態須以 `003_CURRENT_STATUS.md` 的後續正式同步為準。
+
+---
+
+## 歷史交接快照：UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）
 
 - 正式基線：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242) 已 Merge；`main`、`origin/main` 為 **`b8b9a4d212917444e313ef22649461a843273bdb`**（`mergedAt: 2026-08-02T12:12:48Z`）。
 - 已完成 046-C1／C2：新增純、deterministic、唯讀 `reconcileTransactions()`，每筆既有交易唯一輸出 `matched`／`candidate`／`unsupported`／`ambiguous`／`duplicate`／`invalid`。安全候選僅限既有 taxonomy 可證明的非股息收入、股息、非投資支出、同幣別轉帳及 adjustment；投資、借款、FX 與不明分類不得猜測。
