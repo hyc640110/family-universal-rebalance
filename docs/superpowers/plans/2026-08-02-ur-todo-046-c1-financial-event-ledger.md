@@ -83,7 +83,19 @@ export type FinancialEventStatus = 'pending' | 'posted' | 'void';
 export type FinancialEventSource = 'manual' | 'linked-transaction';
 export type FinancialEvent = { id: string; type: FinancialEventType; status: FinancialEventStatus; source: FinancialEventSource; effectiveDate: string; occurredAt?: string; amount: number; currency: string; accountId?: string; counterpartyAccountId?: string; assetSymbol?: string; loanId?: string; transactionId?: string; note: string; createdAt: string; updatedAt: string };
 export type FinancialEventReferenceContext = { accountIds: Set<string>; loanIds: Set<string>; transactionIds: Set<string> };
-export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext) { /* return { schemaVersion, events, attributionStartDate, skipped } */ }
+export type FinancialEventLedger = {
+  schemaVersion: number;
+  events: FinancialEvent[];
+  attributionStartDate?: string;
+  skipped: string[];
+};
+export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext): FinancialEventLedger {
+  // Treat raw as a read-only record. Keep only valid, uniquely identified events;
+  // retain supported future fields on accepted events, and record every rejected
+  // event without synthesising money, dates, links, or legacy events.
+  // Return schemaVersion 1, the accepted immutable event list, an optional valid
+  // Asia/Taipei YYYY-MM-DD attributionStartDate, and the rejected-item diagnostics.
+}
 ```
 
 Require account + counterparty account for `internal-transfer`, account + asset for investment buy/sell, account + loan for all loan events, account for external flows/dividend/fee/adjustment, and an existing transaction ID when source is `linked-transaction`. Validate real calendar dates, ISO timestamps when supplied, positive finite money, distinct internal-transfer accounts, unique IDs, and immutable input handling.
