@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import type { FinancialAccount } from '../src/lib/financialAccounts';
 import { deriveRuntimeDerivedAttributionEvidence } from '../src/lib/derivedAttributionEvidence';
 import { reconcileTransactions } from '../src/lib/transactionReconciliation';
@@ -94,7 +95,7 @@ test('相同日期或無效 snapshot 日期不產生 derived evidence，並涵�
 
 test('adapter 對不同 runtime timezone 保持 Asia/Taipei 日期結果一致', () => {
   const code = "import { deriveRuntimeDerivedAttributionEvidence } from './src/lib/derivedAttributionEvidence.ts'; console.log(JSON.stringify(deriveRuntimeDerivedAttributionEvidence({ openingSnapshot: { date: '2026-08-01', totalAssets: 0, netWorth: 0, investmentValue: 0, cash: 0, debt: 0 }, closingSnapshot: { date: '2026-08-02', totalAssets: 0, netWorth: 0, investmentValue: 0, cash: 0, debt: 0 }, transactions: [{ id: 'taipei-boundary', accountId: 'bank-a', type: 'income', status: 'posted', source: 'manual', amount: 100, currency: 'TWD', categoryId: 'income-salary', description: '', merchant: '', note: '', occurredAt: '2026-08-01T16:00:00.000Z', fingerprint: '', excluded: false, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' }], reconciliationResults: [{ transactionId: 'taipei-boundary', status: 'candidate', reason: 'safe-taxonomy-candidate', eventType: 'external-income', completedPeriodEvidence: false }] })));";
-  const projectRoot = new URL('..', import.meta.url).pathname.replace(/^\//, '');
+  const projectRoot = fileURLToPath(new URL('..', import.meta.url));
   const outputs = ['UTC', 'Asia/Taipei', 'America/New_York'].map(timeZone => execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', code], {
     cwd: projectRoot,
     encoding: 'utf8',
