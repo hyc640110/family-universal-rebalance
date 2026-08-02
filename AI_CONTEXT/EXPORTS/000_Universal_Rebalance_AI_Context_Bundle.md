@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T03:46:57.039191+00:00
+Generated UTC: 2026-08-02T04:02:52.056290+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-02T03:46:57.039191+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `9099a7bd24193b08f180ea812ae218e177a9a4353de9a938b8de020fc29b6fe4`
+- `003_CURRENT_STATUS.md` — SHA-256 `8680fad00ccc82d43ab50f3d9c54ced59610820f0ea845aa26d15ccf1a736559`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `27d04842d58682e070a59c8d80a56928932434f8c6cb3357cab563b135d7a824`
+- `008_TODO_BACKLOG.md` — SHA-256 `b69f2f3646b45f6e4c4e4c6c4cd67efbb0f0e756df53d755e5088575c7d51752`
 - `009_CHANGELOG.md` — SHA-256 `00049236ecfc2e19bab5957e6665cbbbb8424788743d124226c74bb1db162943`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.64
+# Universal Rebalance Current Status v3.65
 
 最後更新：2026-08-01
+
+**UR-TODO-027 正式全數結案（2026-08-01）**：Claude Code 唯讀盤點確認最後一項「07／15 附近中間空白」為 `TrendChart.tsx` X 軸座標索引式定位的設計行為（非日曆天數換算），以 seed 跳日測試資料實機渲染驗證相鄰資料點間距在跨多天缺口與跨單日皆相同、填色區塊無跳過，證實圖表對日期缺漏無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身為稀疏陣列，符合既有「不補日期、不插值」原則。使用者確認為設計行為、不需修正，直接結案。**UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數完畢，狀態由「部分完成」更新為「已完成」。** 純唯讀盤點，未修改任何程式碼。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
 **PR #225 Production 唯讀驗證＋UR-TODO-003／UR-TODO-048 步驟一正式結案（2026-08-01）**：使用者手動 Merge [PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)（`fix/ur-todo-003-048-clec-role-semantic-label`），merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`，`mergedAt: 2026-08-01T16:53:39Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` run `30709137755` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含新文案 `clec-role-scope-note`，`deployment-environment` metadata 正確、資源路徑未混用。**UR-TODO-003 正式標記為已完成**：唯一剩餘技術缺口（`AssetClass` 與 CLEC `AllocationRole` 語意分歧）經使用者決定以「明確標示」而非「資料統一」解決，`ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關，純文案調整，未觸碰任何分類型別或資料值。**UR-TODO-048 步驟一（明確標示）正式標記為已完成**；步驟二（`allocationRoleBySymbol` 資料層清理）仍維持「待評估」。詳見 `008_TODO_BACKLOG.md` UR-TODO-003、UR-TODO-048 條目。
 
@@ -2805,9 +2807,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.57
+# Universal Rebalance Todo Backlog v1.58
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
 2026-08-01 **UR-TODO-003／UR-TODO-048 合併規劃：CLEC 分類語意標示正式標記為已完成**。已由使用者手動 Merge [PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)（`fix/ur-todo-003-048-clec-role-semantic-label`），merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`，`mergedAt: 2026-08-01T16:53:39Z`。UR-TODO-003 唯一剩餘技術缺口（`AssetClass` 與 CLEC `AllocationRole` 語意分歧）與 UR-TODO-048 的 `allocationRoleBySymbol` 清理議題（步驟一）合併解決：使用者決定不做資料統一，於 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案明確標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關；純文案調整，未觸碰任何分類型別、資料值或核心計算邏輯。`Deploy GitHub Pages` run `30709137755` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含新文案，`deployment-environment` metadata 正確、資源路徑未混用。**UR-TODO-003 正式標記為已完成；UR-TODO-048 步驟一（明確標示）正式標記為已完成，步驟二（`allocationRoleBySymbol` 資料層清理）仍維持「待評估」，非本次範圍。** 詳見下方更新後的 **UR-TODO-003**、**UR-TODO-048** 正式條目。
 
@@ -3530,18 +3534,21 @@ Hotfix 仍需：
 
 ### UR-TODO-027 趨勢圖剩餘視覺與刻度問題
 - 優先級：P1
-- 狀態：**部分完成**（走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置四項已完成；僅剩 07／15 日期斷裂待使用者以自己真實資料確認）
+- 狀態：**已完成**（走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢）
 - 提出日期：2026-07-19
 - 2026-08-01 完成依據（漸層填色子需求）：[PR #218](https://github.com/hyc640110/family-universal-rebalance/pull/218)（`feat/ur-todo-027-trend-chart-gradient`），merge commit `b85521aa959377089e2e8d67b3fbd01292c9bfb2`。`src/components/TrendChart.tsx` 新增紅漲綠跌漸層填色，**依驗收回饋由「整段頭尾單一顏色」調整為「逐段各自變色」**：每個相鄰資料點間的線段依「該段自己的終點 vs 起點」各自決定紅（`#ff5b5b`）／綠（`#43d17a`），中間震盪會逐段各自呈現正確方向；持平線段不填色。`monotonePath`（折線）改為從新的 `monotoneSegments()` 衍生，確保折線與填色使用相同曲線片段。視覺風格為「逐段漸層淡出」（實作前以 `AskUserQuestion` 確認選定），每張圖表僅 2 個共用 `<linearGradient>`（`gradientUnits="userSpaceOnUse"`），不是逐段各自一個。折線與資料點 hover／touch 互動完全未變動。`tests/trendChartGradientArea.test.ts` 新增 7 個測試；`npx tsc -b`、`test:ci` 全數通過；隔離本機 dev server 實機驗證通過；`Deploy GitHub Pages` run `30697948596` success；Production／Preview `curl` 實測皆 HTTP 200。
 - 2026-08-01 唯讀盤點＋隔離本機 dev server 實機驗證，Y 軸整數刻度／手機文字裁切／Y 軸位置三項正式標記為已完成：以高數值（8.5～9.5 百萬）＋日期跳躍（07/12 直接跳至 07/20）資料 seed 測試，於 390px 實測。**Y 軸整數刻度**：`deriveTrendDomain()` 的 `niceIntegerStep()` 保證刻度永遠是 1／2／5／10 倍數整數，大數值先經 `axisScale`（萬元）換算再顯示（例如 850 萬顯示為刻度「-500、0、500、1000、1500」），實測確認皆為整數、無小數點雜訊。**手機文字裁切**：SVG `viewBox` 與容器實測寬度 1:1 對應（`ResizeObserver` 動態量測），Y 軸標籤固定 `x=6`；實測 `document.documentElement.scrollWidth === clientWidth`（390＝390），無橫向溢出，console 無錯誤。**Y 軸位置**：使用者確認現況（固定左側 `x=6`，緊貼繪圖區左邊界）不需調整，維持現況即為驗收通過，原始需求未提供更具體標準。
-- 待確認（使用者將以自己真實資料查看後另行處理，非本次盤點範圍）：
-  - 07／15 附近是否仍有中間空白。本次以 07/12→07/20 刻意留空的測試資料驗證，折線正確直接連接兩個既有資料點（不補值、不插值，符合既有「不補日期」設計），未觀察到視覺空白／斷裂；但無法用測試資料重現使用者真實 Production 資料的實際情境，需使用者自行確認。
+- **07／15 附近中間空白 —— 最終唯讀盤點結論（2026-08-01，Claude Code，Review Mode，未修改任何程式碼）：確認為 X 軸座標定位邏輯的設計行為，非缺陷，使用者確認不需修正、直接結案。** 判斷依據：
+  1. `TrendChart.tsx:76` 的 `x(index) = left + index/(valid.length-1) * (width-left-right)` 純粹以資料點在陣列中的**索引**決定水平位置，完全不依實際日曆天數換算——以 seed 測試資料（07/10、07/11、07/12、跳過 07/13～07/19、07/20、07/21）實機渲染驗證，`circle` 的 `cx` 座標間距在跨 8 天缺口與跨 1 天皆完全相同（59.5px），證實圖表對「缺幾天」完全無感。
+  2. 同一組測試資料的填色區塊（`trend-area`）數量與相鄰資料點對數一致（4 段對應 5 點 4 對），未跳過任何一段，證實只要兩個資料點存在，中間必定連續填滿，不會留白。
+  3. 上游資料來源（`src/lib/netWorthHistory.ts` 的 `upsertNetWorthSnapshot()`／`historyForRange()`）本身即為稀疏陣列，缺快照的日期在陣列中完全不存在（不是存在但值為空），與既有「不補日期、不插值」原則一致。
+  4. 綜合結論：圖表不會出現「有些日期完全沒有填色的視覺斷裂」，也沒有「所有日期都有填色只是標籤沒顯示」這個概念——因為圖表根本不知道有缺漏的日期，會直接把有資料的兩點以與其他任何相鄰兩點相同的寬度連接，缺口在畫面上完全消失、不可辨識。這是與「07/15 空白」字面描述不同、但實務上更值得留意的行為：使用者無法從圖表判斷資料是否連續完整。
 - 明確需求（2026-07-26 使用者提供，參考樣式為 Google 財經個股走勢圖；2026-08-01 驗收後調整為逐段變色，見上方完成依據）：
   - 趨勢圖線下方應依走勢方向顯示漸層填色，由線條顏色向下漸淡至透明：
     - 區間內上漲（終點高於起點）：紅色漸層（符合台股慣例，紅漲）。
     - 區間內下跌（終點低於起點）：綠色漸層（符合台股慣例，綠跌）。
-- 驗收條件：
-  - 真實資料無日期斷裂。（**待使用者以真實資料確認**，唯讀盤點以測試資料驗證行為符合既有設計，未發現異常）
+- 驗收條件（**全數已達成**）：
+  - 真實資料無日期斷裂。（**已達成**，確認為索引式定位設計行為，不會產生視覺斷裂，使用者確認不需修正）
   - 手機 Safari 約 390px 無裁切。（**已達成**，2026-08-01 實機驗證）
   - 桌機 1000px／1600px 正常。（漸層填色本身已於桌機驗證正常）
   - 走勢圖依區間漲跌動態顯示紅／綠漸層填色，且與現有「紅漲綠跌」台股顏色慣例一致，不與既有 `currentColor` 折線顏色邏輯衝突。（**已達成**，改為逐段判斷）
