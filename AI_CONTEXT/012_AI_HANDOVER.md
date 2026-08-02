@@ -8,13 +8,23 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 C1 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 B 已完成（2026-08-02）
+
+- 正式基線：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）。
+- 已完成的是 046-B **Pure Attribution Calculator／Quality Model**：新增純 `deriveNetWorthAttribution()`，品質狀態為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者**不等同 market effect**。
+- 明確不包含：schema、persistence、Firebase、migration、legacy rewrite、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。046-B 沒有改寫既有資料，也沒有啟動 attribution 結果的產品消費端。
+- **UR-TODO-046 整體仍未完成**。下一正式候選是 046-C existing transaction reconciliation，涉及 transaction reconciliation、external flow／internal transfer 與事件分類產品契約，屬重大事件候選；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則仍各自待評估，不得自行開始。
+- PR #240 CI Verification（head `6ba782e42cff1ea32b5e0c5a55156e6a7c58467f`）成功；Merge 後 Deploy GitHub Pages run `30743250912` 成功，head 與 merge commit 一致；Production／Preview HTTP 200 且 assets path 隔離。
+
+---
+
+## 歷史交接快照：UR-TODO-046 C1 已完成（2026-08-02）
 
 - 正式基線：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`ef42c2408c989bc56c4ee1d31986161c7628ed2f`**（`mergedAt: 2026-08-02T09:51:20Z`）。
 - 已完成的僅是 UR-TODO-046 **C1 Financial Event Ledger contract／persistence foundation**，不是 UR-TODO-046 整體結案。Ledger 為 forward-only，僅保存於 AppState、localStorage、JSON Backup／Full Restore。
 - C1 採 future-schema opaque fail-safe；linked transaction 只接受既有 taxonomy 可安全證明的語意；manual event 不得帶 `transactionId`；同一 transactionId 的有效 linked events 不得重複消費。未新增 split allocation schema。
 - **Firebase Ledger sync 未實作**：現有 Firebase root PUT 沒有 mixed-version Ledger 安全性，故 C1 刻意不把 Ledger 放入 canonical payload；後續若要進行必須另開重大階段審查。
-- 未做 migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI，亦未接入 AI Decision、Rebalance 或 Household Liquidity。後續候選僅為待評估的 046-B pure calculator／quality model；046-C transaction reconciliation、Firebase sync、split allocation 與正式 attribution 分類均未開始。
+- 此快照當時未做 migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI，亦未接入 AI Decision、Rebalance 或 Household Liquidity；其後的 046-B 已由 PR #240 完成，最新狀態以本文件上方交接快照與 `008_TODO_BACKLOG.md` 為準。
 - PR #238 CI Verification（head `e6a2273a3a820a17f0858b33099bd29b6dd60f43`）成功；合併前本機 `npm run test:ci` 為 694/694 通過，並已確認 TypeScript、Production／Preview build、`git diff --check`。
 
 ---
