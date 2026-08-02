@@ -8,7 +8,18 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 B 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）
+
+- 正式基線：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242) 已 Merge；`main`、`origin/main` 為 **`b8b9a4d212917444e313ef22649461a843273bdb`**（`mergedAt: 2026-08-02T12:12:48Z`）。
+- 已完成 046-C1／C2：新增純、deterministic、唯讀 `reconcileTransactions()`，每筆既有交易唯一輸出 `matched`／`candidate`／`unsupported`／`ambiguous`／`duplicate`／`invalid`。安全候選僅限既有 taxonomy 可證明的非股息收入、股息、非投資支出、同幣別轉帳及 adjustment；投資、借款、FX 與不明分類不得猜測。
+- C2 僅診斷既有 C1 Ledger：有效 linked event 為 matched，void 不消費，兩個以上有效 linked event 為 duplicate，相似 manual event 為 ambiguous；pending linked 可保留為 C1 evidence，但 `completedPeriodEvidence` 為 false。沒有任何 Ledger 寫入、自動連結、去重或 calculator wiring。
+- 明確不包含：schema、persistence、Firebase、JSON Backup、migration、legacy rewrite、split allocation、attribution calculator input／quality、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。
+- **UR-TODO-046 整體仍未完成**。下一正式候選為待盤點的 046-C3 reconciliation 結果消費／產品契約；若要接入 calculator、quality 或正式 external flow／internal transfer 分類，即屬重大事件候選，須另行產品決策與授權，**不得自動開始**。
+- PR #242 CI Verification（head `5aedf0e2322b6adb1ab5f2d0e077eb66b0f78e44`）成功；Merge 後 Deploy GitHub Pages run `30747353452` 成功，head 與 merge commit 一致；Production／Preview HTTP 200、環境 metadata 與 assets path 隔離。
+
+---
+
+## 歷史交接快照：UR-TODO-046 B 已完成（2026-08-02）
 
 - 正式基線：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）。
 - 已完成的是 046-B **Pure Attribution Calculator／Quality Model**：新增純 `deriveNetWorthAttribution()`，品質狀態為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者**不等同 market effect**。
