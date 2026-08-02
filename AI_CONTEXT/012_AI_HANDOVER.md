@@ -8,6 +8,17 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046 C1 已完成（2026-08-02）
+
+- 正式基線：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`ef42c2408c989bc56c4ee1d31986161c7628ed2f`**（`mergedAt: 2026-08-02T09:51:20Z`）。
+- 已完成的僅是 UR-TODO-046 **C1 Financial Event Ledger contract／persistence foundation**，不是 UR-TODO-046 整體結案。Ledger 為 forward-only，僅保存於 AppState、localStorage、JSON Backup／Full Restore。
+- C1 採 future-schema opaque fail-safe；linked transaction 只接受既有 taxonomy 可安全證明的語意；manual event 不得帶 `transactionId`；同一 transactionId 的有效 linked events 不得重複消費。未新增 split allocation schema。
+- **Firebase Ledger sync 未實作**：現有 Firebase root PUT 沒有 mixed-version Ledger 安全性，故 C1 刻意不把 Ledger 放入 canonical payload；後續若要進行必須另開重大階段審查。
+- 未做 migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI，亦未接入 AI Decision、Rebalance 或 Household Liquidity。後續候選僅為待評估的 046-B pure calculator／quality model；046-C transaction reconciliation、Firebase sync、split allocation 與正式 attribution 分類均未開始。
+- PR #238 CI Verification（head `e6a2273a3a820a17f0858b33099bd29b6dd60f43`）成功；合併前本機 `npm run test:ci` 為 694/694 通過，並已確認 TypeScript、Production／Preview build、`git diff --check`。
+
+---
+
 ## 最新交接快照：UR-TODO-043 正式結案（2026-08-02）
 
 - 正式基線：`main`、`origin/main`、`HEAD` 已由治理 PR #236 推進至 **`844d4fe9756f1ef8fe3b5ddf1f9c8be867928516`**。

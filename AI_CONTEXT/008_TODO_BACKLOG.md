@@ -985,12 +985,16 @@
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
-2026-08-02 結案同步：UR-TODO-043-B（日期／時區契約）已完成，因此本 Todo 的前置依賴已解除；本次不開始 UR-TODO-046，維持待評估，仍需另行決定資料模型與產品契約。
+2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
 
 - 優先級：待評估
-- 狀態：**待評估**（Phase 1 唯讀盤點已完成；UR-TODO-043-B 依賴已解除，尚未授權排程或開發）
+- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點與 C1 Financial Event Ledger contract／persistence foundation 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
+
+- **C1 已完成（2026-08-02）**：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238)（`feat/ur-todo-046-financial-event-ledger-c1`）已由使用者最終授權 Merge，merge commit `ef42c2408c989bc56c4ee1d31986161c7628ed2f`，`mergedAt: 2026-08-02T09:51:20Z`。建立 forward-only Financial Event Ledger contract／normalization 與 persistence foundation，範圍嚴格限於 AppState、localStorage、JSON Backup／Full Restore。future schema payload 採 opaque fail-safe，不降級、不 migration、不改寫；linked transaction 僅接受現有 taxonomy 可安全證明的語意，manual event 不得帶 `transactionId`，同一 transactionId 不得被多個有效 linked events 重複消費。未新增 split allocation schema。
+- **C1 明確不包含**：Firebase Financial Event Ledger synchronization（現有 Firebase root PUT 不具 mixed-version Ledger 安全性，須另開重大階段）、migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI、AI Decision／Rebalance／Household Liquidity consumer wiring 或 Production 部署。
+- **後續候選（均待評估，未開始）**：046-B pure calculator／quality model（前提為保持純函式、無 schema／persistence／consumer 接線）；046-C existing transaction reconciliation；Firebase Ledger sync、split allocation、external flow／internal transfer 正式分類與 loan principal／interest／dividend attribution 規則均屬獨立重大事件。
 
 - 問題：使用者希望能核對「收支與現金流中心記錄的淨儲蓄」與「淨資產歷史實際變動」之間的落差，並將淨值成長拆解為外部投入、投資報酬、負債變化等來源，而非只看總額差分。
 

@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+**UR-TODO-046 C1 Financial Event Ledger contract／persistence foundation（2026-08-02）**：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已由使用者最終授權 Merge，merge commit `ef42c2408c989bc56c4ee1d31986161c7628ed2f`。C1 新增 forward-only Ledger contract、future-schema opaque fail-safe、現有 taxonomy 可證明的 linked transaction validation 與 transaction duplicate-consumption guard；持久化僅為 AppState、localStorage、JSON Backup／Full Restore。**不含 Firebase Ledger sync**：現有 root PUT 不具 mixed-version Ledger 安全性，需另開重大階段。未做 migration、legacy rewrite、split allocation schema、attribution calculator、事件輸入 UI 或 AI Decision／Rebalance／Household Liquidity consumer wiring；UR-TODO-046 整體仍為部分完成／後續待評估。
+
 **UR-TODO-043 正式結案（2026-08-02）**：結案前唯讀最終盤點確認 043-A、C1、C2、C3-A、C3-B、B1、B2、B3 全數完成；Analytics 現況沒有 043 範圍內殘留程式 Bug 或需最小修正的語意缺口。現行資料模型能證明快照欄位與兩期差額，但不能證明市場漲跌、投入、提領、股息、現金或負債的個別來源貢獻；此核心資料缺口已正式由 UR-TODO-046 承接，043 不重做。UR-TODO-043 標記為已完成；B4 不需要、C4 未觸發；UR-TODO-046 維持待評估且對 043-B 的依賴已解除。390px 長文裁切維持獨立待盤點，不納入本 Todo。
 
 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成（2026-08-02）**：PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA。Producer、History／Performance range cutoff、Calendar today/month identity 共用 `Asia/Taipei` canonical day；same-day selection 維持 deterministic last-occurrence，不引入 timestamp semantics。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未修改 schema、migration、legacy dates、NetWorthSnapshot type、C3 classification semantics 或核心財務模組。043-B（B1～B3）正式完成；B4 未觸發且不需要，UR-TODO-043 原始 Analytics 語意／來源貢獻事項仍待盤點。
