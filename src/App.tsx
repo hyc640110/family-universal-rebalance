@@ -60,6 +60,7 @@ import { buildHouseholdLiquidityInput } from './lib/householdLiquidityInputAdapt
 import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
+import { createNetWorthSnapshotReadTimeViewFromState, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
@@ -381,18 +382,20 @@ function normalizeState(raw: unknown): AppState {
   const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
   return { ...normalized, syncMeta: { ...normalized.syncMeta, dirty: baseline.dirty } };
 }
-function readState(): AppState {
+type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView };
+function readStateWithSnapshotView(): AppReadState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
+    if (!raw) return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined) };
     const parsed = JSON.parse(raw); assertNoOAuthSecrets(parsed);
+    const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(parsed);
     const normalized = normalizeState(parsed);
     const json = JSON.stringify(normalized);
     if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
-    return normalized;
+    return { state: normalized, netWorthSnapshotReadTimeView };
   } catch (error) {
     try { startupIssue = { message: error instanceof Error ? error.message : 'localStorage JSON 解析失敗', raw: localStorage.getItem(STORAGE_KEY) || '' }; } catch { startupIssue = { message: 'localStorage JSON 解析失敗' }; }
-    return defaultState;
+    return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined) };
   }
 }
 function writeState(s: AppState) { assertNoOAuthSecrets(s); const normalized = normalizeState(s); assertNoOAuthSecrets(normalized); localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); }
@@ -423,7 +426,7 @@ function backupHasRemovedStrategy(raw: unknown) {
   const keys = ['holdings', 'assets', 'assetAllocation', 'rebalance', 'strategy', 'strategies', 'defaultHoldings', 'mock', 'fallback', 'demo', 'legacy', 'cashAccounts', 'cash'];
   return keys.some(key => hasRemovedSymbol(JSON.stringify(r[key] ?? '')));
 }
-function stateFromBackup(raw: unknown, current: AppState): AppState {
+function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   if (!raw || typeof raw !== 'object') throw new Error('備份檔格式不正確。');
   // Scheme A: reject the entire backup rather than silently removing an OAuth secret.
   assertNoOAuthSecrets(raw);
@@ -439,10 +442,11 @@ function stateFromBackup(raw: unknown, current: AppState): AppState {
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
   const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), allocationRoleBySymbol: r.allocationRoleBySymbol ?? current.allocationRoleBySymbol, rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase };
-  if (Array.isArray(r.accounts)) return normalizeState({ ...backupState, accounts: r.accounts });
+  const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(raw);
+  if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView };
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
   const { accounts: _accounts, accountSchemaVersion: _schema, cashAccountMigrationVersion: _migration, ...legacyBackupState } = backupState;
-  return normalizeState(legacyBackupState);
+  return { state: normalizeState(legacyBackupState), netWorthSnapshotReadTimeView };
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
@@ -464,7 +468,7 @@ function waitForDraftCommit() {
 function syncPath(config: FirebaseConfig) { return buildFirebaseSyncRoot(config.secretPath); }
 function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
 async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
-async function downloadFirebase(config: FirebaseConfig) { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }); }
+async function downloadFirebase(config: FirebaseConfig): Promise<AppReadState> { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); assertNoOAuthSecrets(data); const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return { state: normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }), netWorthSnapshotReadTimeView }; }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number | null; previousCloseDate?: string | null; previousCloseSource?: Quote['previousCloseSource']; previousCloseTrusted?: boolean; previousCloseReason?: string | null; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
@@ -1029,8 +1033,10 @@ function App() {
   }, []);
 
   const [uiState, setUiState] = useState<UiState>(() => readUiState());
-  const [state, setStateValue] = useState<AppState>(() => readState());
+  const [initialRead] = useState(() => readStateWithSnapshotView());
+  const [state, setStateValue] = useState<AppState>(() => initialRead.state);
   const stateRef = useRef(state);
+  const netWorthSnapshotReadTimeViewRef = useRef(initialRead.netWorthSnapshotReadTimeView);
   const isApplyingRemoteRef = useRef(false);
   const didMount = useRef(false);
   const setState = (updater: SetStateAction<AppState>) => {
@@ -1247,7 +1253,9 @@ function App() {
   const downloadCloud = async () => { 
     if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併。是否繼續？')) return;
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
-    const remote = await downloadFirebase(state.firebase); 
+    const remoteResult = await downloadFirebase(state.firebase);
+    const remote = remoteResult.state;
+    netWorthSnapshotReadTimeViewRef.current = remoteResult.netWorthSnapshotReadTimeView;
     const downloadedAt = now(); 
     const downloadedSnapshot = createSyncPayloadSnapshot(remote);
     transactionBaselineRef.current = Array.isArray(downloadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(downloadedSnapshot.payload.transactions)) as unknown[] : [];
@@ -1742,7 +1750,9 @@ function App() {
       const raw = JSON.parse(await f.text());
       const accountImport = raw && typeof raw === 'object' ? normalizeFinancialAccounts((raw as Partial<BackupPayload>).accounts) : { skipped: [] };
       const importedAt = now();
-      const restored = stateFromBackup(raw, stateRef.current);
+      const restoredResult = stateFromBackup(raw, stateRef.current);
+      const restored = restoredResult.state;
+      netWorthSnapshotReadTimeViewRef.current = restoredResult.netWorthSnapshotReadTimeView;
       const next = normalizeState({
         ...restored,
         syncMeta: {
