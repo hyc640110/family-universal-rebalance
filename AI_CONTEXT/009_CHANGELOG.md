@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+**UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成（2026-08-02）**：PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA。Producer、History／Performance range cutoff、Calendar today/month identity 共用 `Asia/Taipei` canonical day；same-day selection 維持 deterministic last-occurrence，不引入 timestamp semantics。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未修改 schema、migration、legacy dates、NetWorthSnapshot type、C3 classification semantics 或核心財務模組。043-B（B1～B3）正式完成；B4 未觸發且不需要，UR-TODO-043 原始 Analytics 語意／來源貢獻事項仍待盤點。
+
 **UR-TODO-043-B1/B2 Canonical Calendar Day／Deterministic Same-Day Snapshot Selection 正式完成（2026-08-02）**：PR #233 已 Merge，merge commit `0e3c80404be4eb5452835b0497f3274c8edca62c`，正式基線推進至此 SHA。新增固定 `Asia/Taipei` 的 canonical calendar-day helper，以及依輸入序列最後一筆勝出的共享同日 snapshot selector；未新增 timestamp、schema、migration 或改寫既有資料。History、Analytics、Calendar 與 C3 read-time boundary 共用選擇契約。`test:ci` 675 項、TypeScript、Production／Preview build、CI verify `30737460836`、Pages workflow `30737504196` 均成功；C4 未觸發。043-B 其餘範圍維持待盤點。
 
 **UR-TODO-043-C3 Consumer Wiring 正式完成（2026-08-02）**：C3-A 已由 PR #229 完成，C3-B 已由 PR #231 Merge，merge commit `a755c7ed9c0c3987989c3890fdfa615ae6a7c092`，正式基線推進至此 SHA。History、Analytics、Calendar 使用共享 read-time boundary，保留 valid `0`、missing、invalid、non-finite 四分類與部分 snapshot；Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已提供既有統計／AI／Risk 輸入邊界所需的完整資料。`test:ci` 659 項、TypeScript、Production／Preview build、CI verify `30736102179`、Pages workflow `30736227380` 均成功；C3 整體完成，C4 未觸發。043-B 僅列為下一候選，尚未開始或做產品決策；既存 390px 長文裁切僅列為待盤點，非本次範圍。

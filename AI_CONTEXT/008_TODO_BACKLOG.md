@@ -889,8 +889,10 @@
 
 ### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
 
+2026-08-02 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成**。PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA；Producer、History／Performance range cutoff、Calendar today/month identity 均接入共享 `Asia/Taipei` canonical calendar-day contract，same-day selection 維持共享 deterministic last-occurrence。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite。**043-B（B1～B3）正式完成，B4 未觸發且不需要；UR-TODO-043 原始 Analytics 語意／來源貢獻事項仍待盤點。**
+
 - 優先級：P2
-- 狀態：**C3、043-B1、043-B2 已完成；UR-TODO-043 整體仍為 P2／待盤點（043-B 其餘範圍尚待盤點）**
+- 狀態：**C3、043-B1、043-B2、043-B3 已完成；043-B 整體已完成；UR-TODO-043 仍為 P2／待盤點（原始 Analytics 語意／來源貢獻事項尚未全部處理）**
 - 提出日期：2026-07-28
 
 - 問題：
@@ -924,6 +926,12 @@
   - `netWorthHistory.ts`、`investmentPerformanceHistory.ts`、`netWorthSnapshotReadBoundary.ts` 已移除重複同日選擇接線，改用共享 selector；localStorage、Firebase、JSON Backup、Import／Export、NetWorthSnapshot type、schema 與 migration 均未修改。
   - 已補強 UTC／Asia-Taipei／America-New_York runtime、Taipei 15:59／16:00 邊界、同日三筆與反轉順序、既有 characterization 及 CI harness 測試。`test:ci` 675 項、TypeScript、Production／Preview build、CI verify `30737460836`、Pages workflow `30737504196` 均成功；C4 未觸發。
 
+- 043-B3 已完成（PR #235）：
+  - Producer 維持 `netWorthSnapshotFromTotals()` → `localSnapshotDate()` → canonical `Asia/Taipei` helper；未新增第二日期 helper，既有 `YYYY-MM-DD` snapshot date 不重寫。
+  - `historyForRange()`、`filterInvestmentPerformanceRange()`、Calendar 的 `currentMonthKey()`／`localCalendarDateKey()` 改由 canonical day 與 canonical day shift 計算，UTC 15:59／16:00 不再受 runtime timezone 影響。
+  - Dashboard-derived stats 與 AI Decision performance-derived stats 維持既有 App history input boundary；未為形式接線而修改不直接決定 snapshot date identity 的原始模組。
+  - localStorage、Firebase、JSON Backup、Import／Export、NetWorthSnapshot type、schema、migration、timestamp 與 C3 四分類契約均未改變；Household Liquidity、Rebalance、Treasury、Worker、UR-TODO-030 與 390px clipping 均未納入。
+
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
   2. 休市日快照的建立時機與觸發來源。
@@ -951,8 +959,8 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **UR-TODO-043-C3、043-B1、043-B2 已完成。043-B 其餘範圍維持待盤點**；本次不宣稱 043-B 整體完成，也不自行啟動未定義的後續子階段。
-  - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發，不得誤標為已啟動。
+  - **UR-TODO-043-C3、043-B1、043-B2、043-B3 已完成；043-B 整體正式完成。B4 不需要啟動，因本次未出現需要 timestamp、schema、migration、legacy metadata、既有資料改寫或 round-trip 破壞語意的實證。**
+  - **043-C4** 目前未觸發，維持未啟動。
   - 既存 390px 部分長文裁切問題非 C3-B 造成，僅列為待盤點，不在本 Todo 內順便修正。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
