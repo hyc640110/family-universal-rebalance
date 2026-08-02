@@ -8,6 +8,7 @@ type AppPersistence = {
   normalizeState(raw: unknown): { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] };
   backupPayload(state: unknown, quotes: Record<string, unknown>): unknown;
   stateFromBackup(raw: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] } };
+  stateFromFirebasePayload(raw: unknown, config: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string } };
 };
 
 async function loadAppPersistence(): Promise<AppPersistence> {
@@ -47,18 +48,20 @@ async function stateWithLedger() {
   });
 }
 
-test('localStorage 正規化、Firebase canonical payload、JSON Backup 匯出匯入均保留有效 Ledger', async () => {
+test('localStorage 正規化與 JSON Backup 匯出匯入保留有效 Ledger，Firebase payload 不含它', async () => {
   const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
   const localState = await stateWithLedger();
-  const firebaseState = normalizeState(canonicalSyncPayload(localState));
   const backup = backupPayload(localState, {});
   const restored = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
 
-  for (const state of [localState, firebaseState, restored]) {
+  for (const state of [localState, restored]) {
     assert.equal(state.financialEventSchemaVersion, 1);
     assert.equal(state.financialEventAttributionStartDate, '2026-08-02');
     assert.deepEqual(state.financialEvents, [event]);
   }
+  const firebasePayload = canonicalSyncPayload(localState);
+  assert.equal('financialEvents' in firebasePayload, false);
+  assert.equal('financialEventSchemaVersion' in firebasePayload, false);
 });
 
 test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易變成事件', async () => {
@@ -75,5 +78,55 @@ test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易�
     assert.deepEqual(state.financialEvents, []);
     assert.equal(state.financialEventAttributionStartDate, undefined);
     assert.equal(state.transactions.length, 1);
+  }
+});
+
+test('Firebase download 在本機已有 Ledger 時 fail-safe 拒絕，避免替換 linked evidence', async () => {
+  const { stateFromFirebasePayload, normalizeState } = await loadAppPersistence();
+  const current = await stateWithLedger();
+  const remote = canonicalSyncPayload(normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '遠端銀行', type: 'bank', manualBalance: 0 })],
+    transactions: []
+  }));
+
+  assert.throws(
+    () => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current),
+    /Financial Event Ledger/
+  );
+});
+
+test('legacy Backup Full Restore 明確清空目前 Ledger', async () => {
+  const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
+  const current = await stateWithLedger();
+  const legacyBackup = backupPayload(normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '舊備份帳戶', type: 'bank', manualBalance: 0 })],
+    transactions: []
+  }), {}) as Record<string, unknown>;
+  delete legacyBackup.financialEventSchemaVersion;
+  delete legacyBackup.financialEvents;
+  delete legacyBackup.financialEventAttributionStartDate;
+
+  const restored = stateFromBackup(legacyBackup, current).state;
+
+  assert.equal(restored.financialEventSchemaVersion, 1);
+  assert.deepEqual(restored.financialEvents, []);
+  assert.equal(restored.financialEventAttributionStartDate, undefined);
+});
+
+test('future Ledger 讀取、正規化與 Backup 輸出不會降級已知 Ledger payload', async () => {
+  const { backupPayload, normalizeState } = await loadAppPersistence();
+  const future = {
+    financialEventSchemaVersion: 2,
+    financialEventAttributionStartDate: { future: true },
+    financialEvents: { eventSet: [{ schema: 2, opaque: 'preserve' }] }
+  };
+  const normalized = normalizeState(future);
+  const reloaded = normalizeState(JSON.parse(JSON.stringify(normalized)));
+  const backup = backupPayload(normalized, {}) as Record<string, unknown>;
+
+  for (const value of [normalized, reloaded, backup]) {
+    assert.equal(value.financialEventSchemaVersion, 2);
+    assert.deepEqual(value.financialEvents, future.financialEvents);
+    assert.deepEqual(value.financialEventAttributionStartDate, future.financialEventAttributionStartDate);
   }
 });

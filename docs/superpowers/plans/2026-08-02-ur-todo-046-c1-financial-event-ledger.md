@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a forward-only, additive Financial Event Ledger that survives localStorage, Firebase canonical sync, and JSON Backup without changing any consumer or legacy record.
+**Goal:** Add a forward-only Financial Event Ledger that survives AppState, localStorage, and JSON Backup / Full Restore without changing any consumer or legacy record.
 
-**Architecture:** A new pure `financialEvents` module owns event types, normalisation, reference validation, and immutable legacy handling. `App.tsx` only calls that boundary while loading, saving, importing, and exporting. `syncState.ts` adds the two new top-level fields to its existing canonical allow-list so Firebase has the same portable representation as localStorage and Backup.
+**Architecture:** A new pure `financialEvents` module owns event types, normalisation, reference validation, and immutable legacy handling. `App.tsx` only calls that boundary while loading, saving, importing, and exporting. The existing Firebase root PUT protocol deliberately excludes Ledger fields; Firebase Ledger synchronization is a separate reviewed phase.
 
 **Tech Stack:** React, TypeScript, Node test runner via `tsx`, browser localStorage, Firebase Realtime Database JSON sync, JSON Backup.
 
@@ -16,7 +16,8 @@
 - Asia/Taipei `effectiveDate` is the only period identity; `occurredAt` is optional audit detail.
 - Missing, invalid, negative, zero, NaN, and Infinity event money must not be coerced into a posted financial event.
 - C1 contains no input UI, attribution calculator, Household Liquidity, Rebalance, AI Decision, Preview deployment, or Production deployment.
-- Preserve localStorage, Firebase, and JSON Backup compatibility; failed import normalisation must not overwrite raw user data.
+- Preserve localStorage and JSON Backup compatibility; future Ledger schema remains opaque and is never downgraded.
+- **UR-TODO-046 C1 intentionally does not synchronize Financial Event Ledger through Firebase because the existing root PUT protocol is not mixed-version safe. Firebase Ledger synchronization requires a separate reviewed phase.**
 
 ---
 
@@ -113,39 +114,37 @@ git add src/lib/financialEvents.ts tests/financialEvents.test.ts
 git commit -m "feat: add financial event ledger contract"
 ```
 
-### Task 2: AppState normalisation and portable persistence wiring
+### Task 2: AppState normalisation and local-only persistence wiring
 
 **Files:**
 - Modify: `src/App.tsx:91` AppState definition and `src/App.tsx:363-423` state normalisation, local read/write, Backup export/import
-- Modify: `src/lib/syncState.ts:5-31` `SYNCABLE_TOP_LEVEL_FIELDS`
+- Modify: `src/lib/syncState.ts:5-31` `SYNCABLE_TOP_LEVEL_FIELDS` to exclude Ledger
 - Modify: `tests/syncState.test.ts`
 - Create: `tests/financialEventPersistence.test.ts`
 
 **Interfaces:**
 - Consumes: `normalizeFinancialEventLedger`, `FinancialEvent[]`, AppState `accounts`, `loans`, and `transactions`.
-- Produces: normalised `financialEvents`, `financialEventSchemaVersion`, optional `financialEventAttributionStartDate`, canonical Firebase payload fields, and Backup round-trip fields.
+- Produces: normalised `financialEvents`, `financialEventSchemaVersion`, optional `financialEventAttributionStartDate`, local/Backup round-trip fields, and a Firebase exclusion boundary.
 
 - [ ] **Step 1: Write the failing persistence tests**
 
 ```ts
-test('canonical Firebase payload keeps a posted event and attribution start date', () => {
+test('canonical Firebase payload excludes local-only Ledger fields', () => {
   const payload = canonicalSyncPayload({
     ...baseState,
     financialEventSchemaVersion: 1,
     financialEventAttributionStartDate: '2026-08-02',
     financialEvents: [validDividendEvent]
   });
-  assert.deepEqual(payload.financialEvents, [validDividendEvent]);
-  assert.equal(payload.financialEventAttributionStartDate, '2026-08-02');
+  assert.equal('financialEvents' in payload, false);
+  assert.equal('financialEventSchemaVersion' in payload, false);
+  assert.equal('financialEventAttributionStartDate' in payload, false);
 });
 
-test('Backup and local state preserve Ledger fields while legacy state remains ledger-free', () => {
-  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.match(app, /financialEventSchemaVersion: financialEventLedger\.schemaVersion/);
-  assert.match(app, /financialEvents: financialEventLedger\.events/);
-  assert.match(app, /financialEventAttributionStartDate/);
-  assert.match(app, /financialEvents: normalized\.financialEvents/);
-  assert.match(app, /financialEventSchemaVersion: normalized\.financialEventSchemaVersion/);
+test('legacy Full Restore clears an existing local Ledger', async () => {
+  const restored = stateFromBackup(legacyBackupWithoutLedger, currentWithLedger).state;
+  assert.deepEqual(restored.financialEvents, []);
+  assert.equal(restored.financialEventAttributionStartDate, undefined);
 });
 ```
 
@@ -153,7 +152,7 @@ test('Backup and local state preserve Ledger fields while legacy state remains l
 
 Run: `npx tsx --test tests/syncState.test.ts tests/financialEventPersistence.test.ts`
 
-Expected: FAIL because the new fields are not part of AppState, Sync allow-list, or Backup payload.
+Expected: FAIL because Ledger is still in the Firebase allow-list or Backup Full Restore retains the current Ledger.
 
 - [ ] **Step 3: Wire the smallest persistence boundary**
 
@@ -172,13 +171,13 @@ const financialEventLedger = normalizeFinancialEventLedger(r, {
 });
 ```
 
-Add `financialEvents`, `financialEventSchemaVersion`, and `financialEventAttributionStartDate` to `SYNCABLE_TOP_LEVEL_FIELDS`; then add the same fields to `backupPayload` and `stateFromBackup`. Use the existing normalisation before every local write and during Firebase download. Do not add an event-input handler or alter a current UI component.
+Keep `financialEvents`, `financialEventSchemaVersion`, and `financialEventAttributionStartDate` out of `SYNCABLE_TOP_LEVEL_FIELDS`; retain them in `backupPayload` and `stateFromBackup`. A Firebase download must fail-safe when local Ledger evidence exists rather than replacing linked transactions. Do not add an event-input handler or alter a current UI component.
 
 - [ ] **Step 4: Run focused tests to verify they pass**
 
 Run: `npx tsx --test tests/syncState.test.ts tests/financialEventPersistence.test.ts tests/productionTransactionsSyncRegression.test.ts`
 
-Expected: PASS. Existing transactions remain byte-for-byte semantically unchanged; the canonical payload includes the new top-level fields; Backup import/export and local normalisation preserve valid events; legacy data produces an empty ledger without a start date.
+Expected: PASS. Existing transactions remain byte-for-byte semantically unchanged; the canonical Firebase payload excludes Ledger fields; Backup import/export and local normalisation preserve valid events; legacy Full Restore produces an empty ledger without a start date.
 
 - [ ] **Step 5: Commit**
 

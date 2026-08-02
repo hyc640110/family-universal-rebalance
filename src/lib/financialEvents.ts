@@ -1,3 +1,6 @@
+import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
+import type { FinancialTransaction } from './transactions';
+
 export const FINANCIAL_EVENT_SCHEMA_VERSION = 1;
 
 export type FinancialEventType =
@@ -39,6 +42,7 @@ export type FinancialEventReferenceContext = {
   accountIds: ReadonlySet<string>;
   loanIds: ReadonlySet<string>;
   transactionIds: ReadonlySet<string>;
+  transactionsById: ReadonlyMap<string, FinancialTransaction>;
 };
 
 export type FinancialEventLedger = {
@@ -46,6 +50,8 @@ export type FinancialEventLedger = {
   events: FinancialEvent[];
   attributionStartDate?: string;
   skipped: string[];
+  /** false means this Ledger is opaque future data and must never be interpreted as C1. */
+  supported: boolean;
 };
 
 const EVENT_TYPES = new Set<FinancialEventType>([
@@ -82,16 +88,6 @@ function optionalText(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-function isCalendarDate(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-}
-
 function normalizeIsoTimestamp(value: unknown): string | undefined {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return undefined;
   const timestamp = Date.parse(value);
@@ -111,11 +107,39 @@ function skip(skipped: string[], index: number, reason: string): undefined {
   return undefined;
 }
 
+function linkedTransactionReason(
+  type: FinancialEventType,
+  status: FinancialEventStatus,
+  amount: number,
+  currency: string,
+  accountId: string,
+  counterpartyAccountId: string | undefined,
+  effectiveDate: string,
+  transaction: FinancialTransaction
+): string | undefined {
+  if (transaction.status !== status) return 'linked transaction status 必須與事件一致';
+  if (transaction.excluded) return 'linked transaction 不得是 excluded';
+  if (transaction.accountId !== accountId) return 'linked transaction accountId 必須與事件一致';
+  if (transaction.amount !== amount || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
+  if (canonicalCalendarDay(transaction.occurredAt) !== effectiveDate) return 'linked transaction occurredAt 的 Asia/Taipei 日期必須與 effectiveDate 一致';
+  if (type === 'external-income') return transaction.type === 'income' && transaction.categoryId !== 'income-dividend' ? undefined : 'external-income 只可連結非股息 income transaction';
+  if (type === 'external-expense') return transaction.type === 'expense' && transaction.categoryId !== 'expense-investment' ? undefined : 'external-expense 不得連結 investment expense transaction';
+  if (type === 'internal-transfer') {
+    return transaction.type === 'transfer' && transaction.transferAccountId === counterpartyAccountId
+      ? undefined
+      : 'internal-transfer 必須連結同帳戶、同對方帳戶的 transfer transaction';
+  }
+  if (type === 'dividend') return transaction.type === 'income' && transaction.categoryId === 'income-dividend' ? undefined : 'dividend 只可連結 income-dividend transaction';
+  if (type === 'adjustment') return transaction.type === 'adjustment' ? undefined : 'adjustment 只可連結 adjustment transaction';
+  return `${type} 尚無可安全驗證的 transaction taxonomy`;
+}
+
 function normalizeEvent(
   raw: unknown,
   index: number,
   context: FinancialEventReferenceContext,
   knownIds: Set<string>,
+  consumedTransactionIds: Set<string>,
   skipped: string[]
 ): FinancialEvent | undefined {
   const record = asRecord(raw);
@@ -133,7 +157,7 @@ function normalizeEvent(
   if (typeof source !== 'string' || !EVENT_SOURCES.has(source as FinancialEventSource)) return skip(skipped, index, 'source 無效');
 
   const effectiveDate = requiredText(record.effectiveDate);
-  if (!effectiveDate || !isCalendarDate(effectiveDate)) return skip(skipped, index, 'effectiveDate 必須是有效 YYYY-MM-DD');
+  if (!effectiveDate || !isCanonicalCalendarDay(effectiveDate)) return skip(skipped, index, 'effectiveDate 必須是有效 Asia/Taipei YYYY-MM-DD');
   const occurredAt = record.occurredAt === undefined ? undefined : normalizeIsoTimestamp(record.occurredAt);
   if (record.occurredAt !== undefined && !occurredAt) return skip(skipped, index, 'occurredAt 必須是有效 ISO UTC timestamp');
 
@@ -156,8 +180,16 @@ function normalizeEvent(
   if (LOAN_EVENT_TYPES.has(type as FinancialEventType) && (!loanId || !context.loanIds.has(loanId))) return skip(skipped, index, `${type} 必須連結既有 loanId`);
 
   const transactionId = optionalText(record.transactionId);
-  if (source === 'linked-transaction' && (!transactionId || !context.transactionIds.has(transactionId))) return skip(skipped, index, 'linked-transaction 必須連結既有 transactionId');
-  if (source === 'manual' && transactionId && !context.transactionIds.has(transactionId)) return skip(skipped, index, 'transactionId 必須連結既有交易');
+  if (source === 'manual' && transactionId) return skip(skipped, index, 'manual event 不得設定 transactionId');
+  if (source === 'linked-transaction') {
+    if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, 'linked-transaction 必須連結既有 transactionId');
+    const transaction = context.transactionsById.get(transactionId);
+    if (!transaction) return skip(skipped, index, 'linked-transaction 缺少可驗證的 transaction 資料');
+    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction);
+    if (reason) return skip(skipped, index, reason);
+    if (status !== 'void' && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
+    if (status !== 'void') consumedTransactionIds.add(transactionId);
+  }
 
   const note = typeof record.note === 'string' ? record.note : '';
   const createdAt = normalizeIsoTimestamp(record.createdAt);
@@ -192,17 +224,29 @@ function normalizeEvent(
  */
 export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext): FinancialEventLedger {
   const record = asRecord(raw) ?? {};
+  const hasLedgerPayload = record.financialEventSchemaVersion !== undefined || record.financialEvents !== undefined || record.financialEventAttributionStartDate !== undefined;
+  if (hasLedgerPayload && record.financialEventSchemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION) {
+    return {
+      schemaVersion: record.financialEventSchemaVersion as number,
+      events: record.financialEvents as FinancialEvent[],
+      ...(record.financialEventAttributionStartDate !== undefined ? { attributionStartDate: record.financialEventAttributionStartDate as string } : {}),
+      skipped: [],
+      supported: false
+    };
+  }
   const skipped: string[] = [];
   const knownIds = new Set<string>();
+  const consumedTransactionIds = new Set<string>();
   const events = Array.isArray(record.financialEvents)
-    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, skipped)).filter((event): event is FinancialEvent => Boolean(event))
+    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, skipped)).filter((event): event is FinancialEvent => Boolean(event))
     : [];
   const attributionStartDate = optionalText(record.financialEventAttributionStartDate);
 
   return {
     schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION,
     events,
-    ...(attributionStartDate && isCalendarDate(attributionStartDate) ? { attributionStartDate } : {}) ,
-    skipped
+    ...(attributionStartDate && isCanonicalCalendarDay(attributionStartDate) ? { attributionStartDate } : {}) ,
+    skipped,
+    supported: true
   };
 }

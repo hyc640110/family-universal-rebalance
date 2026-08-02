@@ -20,10 +20,10 @@ not rewrite history, infer legacy causes, or change investment decisions.
   stores the required `effectiveDate` (`YYYY-MM-DD`); optional `occurredAt` is
   an ISO timestamp for audit detail, not a competing date identity.
 
-## C1: additive persistence contract
+## C1: forward-only local persistence contract
 
-Add these top-level AppState fields and include them in localStorage, Firebase
-canonical sync, and JSON Backup:
+Add these top-level AppState fields and include them in AppState, localStorage,
+and JSON Backup / Full Restore Import:
 
 ```ts
 financialEventSchemaVersion: 1
@@ -33,6 +33,16 @@ financialEventAttributionStartDate?: string
 
 `financialEventAttributionStartDate` is set only when the user first enables
 the ledger. Earlier periods remain legacy and cannot be presented as complete.
+
+**UR-TODO-046 C1 intentionally does not synchronize Financial Event Ledger
+through Firebase because the existing root PUT protocol is not mixed-version
+safe. Firebase Ledger synchronization requires a separate reviewed phase.**
+
+The existing Firebase root protocol is unchanged. The three Ledger fields are
+excluded from its canonical payload. If a local Ledger exists, C1 rejects a
+Firebase download before it can replace the accounts or transactions used as
+linked evidence; export a JSON Backup first. This is a fail-safe limitation,
+not a merge protocol or migration.
 
 ```ts
 type FinancialEventStatus = 'pending' | 'posted' | 'void'
@@ -86,20 +96,33 @@ diagnostic rather than coerced into a financial amount.
 | loan-interest-payment | account + loan | external expense |
 | adjustment | account | unexplained; blocks complete quality |
 
-`posted` and non-void events are the only candidates for future attribution.
-`pending` and `void` stay auditable but do not affect a completed period.
+`posted` events are the only candidates for a future attribution calculator.
+`pending` and `void` stay auditable but do not affect a completed period. For
+linked evidence, both `posted` and `pending` reserve one transaction ID to
+avoid accidental double-count; `void` reserves none. Split allocations are
+explicitly deferred to a separate schema decision.
+
+The C1 linked-transaction mapping is deliberately narrow: `external-income`
+links only a non-dividend `income`, `external-expense` only a non-investment
+`expense`, `internal-transfer` only a matching `transfer`, `dividend` only
+`income-dividend`, and `adjustment` only `adjustment`. Each also matches
+account, amount, currency, Asia/Taipei calendar day, status, and non-excluded
+state. Investment and loan event types cannot safely link existing
+transactions in C1; manual events never carry a `transactionId`.
 
 ## Compatibility and migration
 
-C1 is additive and forward-only. Absent legacy fields normalise to an empty
-ledger with no attribution start date. Existing records are retained exactly;
-there is no automatic conversion from `FinancialTransaction`, CashFlowProfile,
-loan fields, or Snapshot rows.
+C1 is additive and forward-only. A legacy payload with neither Ledger version
+nor Ledger events normalises to an empty ledger with no attribution start
+date. Existing records are retained exactly; there is no automatic conversion
+from `FinancialTransaction`, CashFlowProfile, loan fields, or Snapshot rows.
 
-The normaliser must preserve unknown future fields through the supported
-localStorage, Firebase, and Backup paths. A failed normalisation must not
-overwrite the imported raw data. Preview and Production storage boundaries
-remain unchanged.
+Only schema version 1 is parsed. A payload that contains Ledger metadata with
+any other version is opaque: C1 does not migrate it, does not interpret it as
+v1, and preserves its Ledger fields through localStorage and JSON Backup. A
+Full Restore Import is authoritative: importing a legacy backup without
+Ledger fields clears the current Ledger. Preview and Production storage
+boundaries remain unchanged.
 
 ## Later phases
 
@@ -113,9 +136,10 @@ remain unchanged.
 
 ## C1 scope and acceptance
 
-C1 changes only types, normalisation, AppState persistence boundaries, and
-tests. It has no UI, no event entry, no attribution calculator, no legacy data
-rewrite, and no Production deployment.
+C1 changes only types, normalisation, AppState/localStorage/JSON Backup
+persistence boundaries, and tests. It has no UI, no event entry, no attribution
+calculator, no Firebase Ledger sync, no legacy data rewrite, and no Production
+deployment.
 
 Required tests:
 
@@ -123,10 +147,12 @@ Required tests:
 2. Invalid dates, non-finite and non-positive amounts, duplicate IDs, and
    invalid transfer or loan links are rejected without amount coercion.
 3. Legacy state remains readable without a ledger or start date.
-4. localStorage normalisation, Firebase canonical payload, and JSON Backup
-   round-trip retain ledger fields and preserve legacy records.
-5. Preview data cannot enter Production paths.
-6. Existing transaction, dividend, loan, snapshot, Household Liquidity,
+4. localStorage and JSON Backup / Full Restore round-trip retain supported
+   Ledger fields; Firebase canonical payload explicitly excludes them.
+5. unknown future schema fields are not downgraded; a Firebase download is
+   rejected while local Ledger evidence exists.
+6. Preview data cannot enter Production paths.
+7. Existing transaction, dividend, loan, snapshot, Household Liquidity,
    Rebalance, and AI Decision regression suites remain unchanged.
 
 ## Stop gates
