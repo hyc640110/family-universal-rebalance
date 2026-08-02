@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.63
+# Universal Rebalance Current Status v3.64
 
 最後更新：2026-08-01
+
+**PR #225 Production 唯讀驗證＋UR-TODO-003／UR-TODO-048 步驟一正式結案（2026-08-01）**：使用者手動 Merge [PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)（`fix/ur-todo-003-048-clec-role-semantic-label`），merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`，`mergedAt: 2026-08-01T16:53:39Z`。以 `git fetch`／`gh run list` 確認 `origin/main` 推進、`Deploy GitHub Pages` run `30709137755` success，headSha 與 merge commit 一致；`curl` 實測 Production／Preview 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含新文案 `clec-role-scope-note`，`deployment-environment` metadata 正確、資源路徑未混用。**UR-TODO-003 正式標記為已完成**：唯一剩餘技術缺口（`AssetClass` 與 CLEC `AllocationRole` 語意分歧）經使用者決定以「明確標示」而非「資料統一」解決，`ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關，純文案調整，未觸碰任何分類型別或資料值。**UR-TODO-048 步驟一（明確標示）正式標記為已完成**；步驟二（`allocationRoleBySymbol` 資料層清理）仍維持「待評估」。詳見 `008_TODO_BACKLOG.md` UR-TODO-003、UR-TODO-048 條目。
 
 **UR-TODO-027 剩餘四項中三項唯讀確認完成（2026-08-01）**：Claude Code 以隔離本機 dev server（高數值＋日期跳躍測試資料，390px）實機驗證 Y 軸整數刻度、手機文字裁切、Y 軸位置三項，皆確認符合／不需調整，正式標記為已完成；純唯讀驗證，未修改任何程式碼。**僅剩「07／15 附近中間空白」一項，待使用者以自己真實 Production 資料查看後另行處理**——測試資料驗證折線在日期跳躍時的行為符合既有「不補日期、不插值」設計，但無法代表使用者真實情境。UR-TODO-027 整體狀態維持「部分完成」。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
