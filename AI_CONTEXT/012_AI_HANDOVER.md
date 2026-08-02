@@ -8,12 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-043-B1/B2 Merge 後治理同步（2026-08-02）
+## 最新交接快照：UR-TODO-043-B3 Merge 後治理同步（2026-08-02）
 
-- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #233 推進至 **`0e3c80404be4eb5452835b0497f3274c8edca62c`**。
-- UR-TODO-043-B1 Canonical Calendar Day Contract 與 B2 Deterministic Same-Day Snapshot Selection 已正式完成：PR #233 已 Merge；canonical day 固定 `Asia/Taipei`，同日多筆 snapshot 依輸入序列最後一筆勝出，不使用 timestamp-latest。
-- C3-A／C3-B 與 B1／B2 共用 read-time／same-day boundary；未修改 AppState、localStorage／Firebase／JSON Backup schema、Import／Export、migration 或既有 snapshot，不新增 timestamp。Dashboard／`aiDecision.ts` 原始模組、Household Liquidity、Rebalance、Treasury、Worker 均未修改；C4 未觸發。
-- `test:ci` 675 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30737460836`、Pages workflow `30737504196` 均成功。**UR-TODO-043-C3 與 043-B1／B2 已完成；043-B 其餘範圍維持待盤點，不預先宣稱整體完成。**
+- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #235 推進至 **`b783d2af974271bbbb2ec64149802d746c98e06b`**。
+- UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 已正式完成：PR #235 已 Merge；Producer、History／Performance range cutoff、Calendar today/month identity 均使用 `Asia/Taipei` canonical day，同日多筆仍由 shared deterministic last-occurrence selector 決定。
+- C3-A／C3-B 與 B1～B3 共用 read-time／same-day／calendar-day boundary；未修改 AppState、localStorage／Firebase／JSON Backup schema、Import／Export、migration、legacy date、timestamp 或既有 snapshot。Dashboard／`aiDecision.ts` 維持既有 App history input boundary；Household Liquidity、Rebalance、Treasury、Worker 均未修改。
+- `test:ci` 680 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30738055541`、Pages workflow `30738107227` 均成功。**UR-TODO-043-B（B1～B3）正式完成；B4 未觸發且不需要。UR-TODO-043 整體仍保留原始 Analytics 語意／來源貢獻待盤點事項。**
 - 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；不得在 043-B 或本次治理同步中順便修正。
 - 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
 
