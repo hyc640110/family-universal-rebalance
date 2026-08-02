@@ -1,4 +1,5 @@
 import { normalizeInvestmentPerformanceHistory, type AssetSeries } from './investmentPerformanceHistory';
+import { canonicalCalendarDay } from './calendarDay';
 
 export type DailyAssetChangeMode = AssetSeries;
 export type CalendarDateState = 'past' | 'today' | 'future';
@@ -45,12 +46,11 @@ export function monthKeyFromDate(date: string): string {
 }
 
 export function currentMonthKey(date = new Date()): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 7);
+  return canonicalCalendarDay(date).slice(0, 7);
 }
 
 export function localCalendarDateKey(date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return canonicalCalendarDay(date);
 }
 
 export function calendarDateState(date: string, today = localCalendarDateKey()): CalendarDateState {

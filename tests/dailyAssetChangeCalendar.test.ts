@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildCalendarMonth, buildDailyAssetChanges, calendarDateState, latestSnapshotMonth, localCalendarDateKey, shiftMonth, summarizeCalendarMonth } from '../src/lib/dailyAssetChangeCalendar';
+import { buildCalendarMonth, buildDailyAssetChanges, calendarDateState, currentMonthKey, latestSnapshotMonth, localCalendarDateKey, shiftMonth, summarizeCalendarMonth } from '../src/lib/dailyAssetChangeCalendar';
 import type { NetWorthSnapshot } from '../src/lib/netWorthHistory';
 import { readFileSync } from 'node:fs';
 
@@ -55,13 +55,19 @@ test('builds empty months, correct month lengths and weekday starting positions'
   assert.equal(buildCalendarMonth([], 'netWorth', '2026-07').days.every(day => day.change === null), true);
 });
 
-test('assigns past, today and future display states using local calendar dates', () => {
+test('assigns past, today and future display states using canonical Taipei calendar dates', () => {
   assert.equal(calendarDateState('2026-07-13', '2026-07-14'), 'past');
   assert.equal(calendarDateState('2026-07-14', '2026-07-14'), 'today');
   assert.equal(calendarDateState('2026-07-15', '2026-07-14'), 'future');
   assert.equal(calendarDateState('2026-06-30', '2026-07-01'), 'past');
   assert.equal(calendarDateState('2026-08-01', '2026-07-31'), 'future');
   assert.equal(localCalendarDateKey(new Date(2026, 6, 14, 0, 30)), '2026-07-14');
+});
+
+test('calendar today and month identity use Asia/Taipei at UTC boundary', () => {
+  assert.equal(localCalendarDateKey(new Date('2026-01-01T15:59:00.000Z')), '2026-01-01');
+  assert.equal(localCalendarDateKey(new Date('2026-01-01T16:00:00.000Z')), '2026-01-02');
+  assert.equal(currentMonthKey(new Date('2026-01-31T16:00:00.000Z')), '2026-02');
 });
 
 test('keeps future snapshots visible while preserving their future display state', () => {
