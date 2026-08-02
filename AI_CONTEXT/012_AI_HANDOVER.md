@@ -8,6 +8,15 @@
 
 ---
 
+## 最新交接快照：UR-TODO-035 正式結案（2026-08-02）
+
+- 正式基線：`main`、`origin/main`、`HEAD` 均為 **`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`**（PR #227 merge commit）；本次僅同步治理文件與 Bundle，未修改程式、建立 Branch、Commit、Push、PR 或部署。
+- UR-TODO-035 已正式標記為 **已完成**：市場頁「重新取得」click handler 實際觸發 refresh，request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均已唯讀／隔離實機確認。
+- Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。
+- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。下一直接起點維持 UR-TODO-043，狀態為 **P2／待盤點**；未授權下一個 Todo 開發。
+
+---
+
 ## 最新交接快照：PR #178／#179 治理同步（下一直接起點仍為 043-C2）
 
 - 正式基線：`origin/main`＝**`94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`**（PR #179 merge commit，`mergedAt: 2026-07-28T18:15:50Z`，`mergedBy: hyc640110`）。Deploy GitHub Pages run `30386642108` success，headSha 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。

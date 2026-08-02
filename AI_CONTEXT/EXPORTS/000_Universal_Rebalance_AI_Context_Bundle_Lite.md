@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T04:02:52.056290+00:00
+Generated UTC: 2026-08-02T05:31:18.959985+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `8680fad00ccc82d43ab50f3d9c54ced59610820f0ea845aa26d15ccf1a736559`
-- `008_TODO_BACKLOG.md` — SHA-256 `b69f2f3646b45f6e4c4e4c6c4cd67efbb0f0e756df53d755e5088575c7d51752`
-- `012_AI_HANDOVER.md` — SHA-256 `d278c5b7223fc5aacc08918cbad157ac8a05281c7d81d6f157e38b15727ddfc2`
+- `003_CURRENT_STATUS.md` — SHA-256 `55ba321dac74a34d32a973304bea27412d2871c7353ea18506f255059058a5d9`
+- `008_TODO_BACKLOG.md` — SHA-256 `a5e2e41d6b282e9287003fc4e46d9f9eb636f7186cacf760f26ee6098c601e9c`
+- `012_AI_HANDOVER.md` — SHA-256 `862e5f5e3017b7182692913c1daab4b16479aa556895ba7a2505907426855897`
 
 ---
 
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.65
+# Universal Rebalance Current Status v3.66
 
-最後更新：2026-08-01
+最後更新：2026-08-02
+
+**UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以最新正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`（PR #227 merge commit）完成唯讀與隔離實機回歸。確認 click handler 實際觸發 `refreshMarketData(true)`，手動 request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均可見，Preview／Production 均可更新實際資料。Production／Preview Market Worker URL 與 live bundle environment boundary 正確，未混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。此次僅同步治理文件與重新產生 Bundle，未修改 `src/`、`tests/`、package、`.github/`、Worker 或 Production。
 
 **UR-TODO-027 正式全數結案（2026-08-01）**：Claude Code 唯讀盤點確認最後一項「07／15 附近中間空白」為 `TrendChart.tsx` X 軸座標索引式定位的設計行為（非日曆天數換算），以 seed 跳日測試資料實機渲染驗證相鄰資料點間距在跨多天缺口與跨單日皆相同、填色區塊無跳過，證實圖表對日期缺漏無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身為稀疏陣列，符合既有「不補日期、不插值」原則。使用者確認為設計行為、不需修正，直接結案。**UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數完畢，狀態由「部分完成」更新為「已完成」。** 純唯讀盤點，未修改任何程式碼。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
@@ -976,9 +978,9 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.58
+# Universal Rebalance Todo Backlog v1.59
 
-最後更新：2026-08-01
+最後更新：2026-08-02
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
@@ -1841,11 +1843,19 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### UR-TODO-035 市場頁「重新取得」按鈕回歸確認
 - 優先級：P2
-- 狀態：已完成候選／待回歸確認
+- 狀態：已完成
 - 提出日期：2026-07-16
+- 完成日期：2026-08-02
 - 已知相關完成：
   - Market 重新取得
   - Market CORS Hotfix
+- 正式結案唯讀驗證（基線：`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`，PR #227 merge commit）：
+  - `MarketIntelligencePage` 的 click handler 實際觸發 `refreshMarketData(true)`，不是只有 UI state 變化。
+  - 手動 request builder 實際發出 `/market-summary?refresh=1&request=<nonce>`，並使用 `cache: no-store` 與 `Accept: application/json`。
+  - Loading 狀態顯示「更新中…」且按鈕 disabled；Success 狀態於 Preview／Production 均可重新取得實際資料並更新 UI。
+  - Partial failure 時保留前次資料並顯示失敗區塊；Full failure 時正確顯示錯誤，重新取得按鈕仍可再次使用。
+  - Console 無產品 error／warn；Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用。
+- 結案邊界：Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix、不修改程式；若未來處理，應另立獨立 Todo。
 - 驗收條件：
   - 按鈕實際發出請求。
   - loading、成功、失敗狀態可見。
@@ -2155,6 +2165,15 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-035 正式結案（2026-08-02）
+
+- 正式基線：`main`、`origin/main`、`HEAD` 均為 **`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`**（PR #227 merge commit）；本次僅同步治理文件與 Bundle，未修改程式、建立 Branch、Commit、Push、PR 或部署。
+- UR-TODO-035 已正式標記為 **已完成**：市場頁「重新取得」click handler 實際觸發 refresh，request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均已唯讀／隔離實機確認。
+- Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。
+- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。下一直接起點維持 UR-TODO-043，狀態為 **P2／待盤點**；未授權下一個 Todo 開發。
 
 ---
 

@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.65
+# Universal Rebalance Current Status v3.66
 
-最後更新：2026-08-01
+最後更新：2026-08-02
+
+**UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以最新正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`（PR #227 merge commit）完成唯讀與隔離實機回歸。確認 click handler 實際觸發 `refreshMarketData(true)`，手動 request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均可見，Preview／Production 均可更新實際資料。Production／Preview Market Worker URL 與 live bundle environment boundary 正確，未混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。此次僅同步治理文件與重新產生 Bundle，未修改 `src/`、`tests/`、package、`.github/`、Worker 或 Production。
 
 **UR-TODO-027 正式全數結案（2026-08-01）**：Claude Code 唯讀盤點確認最後一項「07／15 附近中間空白」為 `TrendChart.tsx` X 軸座標索引式定位的設計行為（非日曆天數換算），以 seed 跳日測試資料實機渲染驗證相鄰資料點間距在跨多天缺口與跨單日皆相同、填色區塊無跳過，證實圖表對日期缺漏無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身為稀疏陣列，符合既有「不補日期、不插值」原則。使用者確認為設計行為、不需修正，直接結案。**UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數完畢，狀態由「部分完成」更新為「已完成」。** 純唯讀盤點，未修改任何程式碼。詳見 `008_TODO_BACKLOG.md` UR-TODO-027 條目。
 
