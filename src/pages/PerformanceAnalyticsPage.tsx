@@ -5,10 +5,11 @@ import { deriveInvestmentPerformanceQuality, deriveInvestmentPerformanceStats, f
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
 import DailyAssetChangeCalendar from '../components/DailyAssetChangeCalendar';
 import TrendChart, { deriveSharedTrendDomain, type TrendDomain } from '../components/TrendChart';
+import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeView, toCompleteNetWorthSnapshots, type NetWorthSnapshotReadTimeView } from '../lib/netWorthSnapshotReadBoundary';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
-type Props = { assets: PerformanceAssetInput[]; history: NetWorthSnapshot[]; view: View; onViewChange: (view: View) => void };
+type Props = { assets: PerformanceAssetInput[]; history: NetWorthSnapshot[]; snapshotView?: NetWorthSnapshotReadTimeView; view: View; onViewChange: (view: View) => void };
 
 const money = (value: number | null) => {
   if (value === null || !Number.isFinite(value)) return '—';
@@ -20,16 +21,20 @@ const percent = (value: number | null) => value === null || !Number.isFinite(val
 const tone = (value: number | null) => value === null ? 'hold' : value > 0 ? 'up' : value < 0 ? 'down' : 'hold';
 const ratio = (value: number | null) => value === null ? '—' : `${(value * 100).toFixed(1)}%`;
 
-export default function PerformanceAnalyticsPage({ assets, history, view, onViewChange }: Props) {
+export default function PerformanceAnalyticsPage({ assets, history, snapshotView, view, onViewChange }: Props) {
   const [sort, setSort] = useState<Sort>('contribution');
   const [showAllContributions, setShowAllContributions] = useState(false);
   const [historyRange, setHistoryRange] = useState<InvestmentPerformanceRange>('30d');
+  const readView = useMemo(() => snapshotView ?? createNetWorthSnapshotReadTimeView(history), [history, snapshotView]);
+  const consumerRows = useMemo(() => createNetWorthSnapshotConsumerRows(readView), [readView]);
+  const completeHistory = useMemo(() => toCompleteNetWorthSnapshots(consumerRows), [consumerRows]);
+  const hasSnapshot = readView.status === 'has-snapshot';
   const performance = useMemo(() => calculatePortfolioPerformance(assets), [assets]);
   const concentration = useMemo(() => calculatePortfolioConcentration(performance), [performance]);
-  const investmentStats = useMemo(() => deriveInvestmentPerformanceStats(history, 'investmentValue'), [history]);
-  const netWorthStats = useMemo(() => deriveInvestmentPerformanceStats(history, 'netWorth'), [history]);
-  const quality = useMemo(() => deriveInvestmentPerformanceQuality(history), [history]);
-  const historyRows = useMemo(() => filterInvestmentPerformanceRange(history, historyRange), [history, historyRange]);
+  const investmentStats = useMemo(() => deriveInvestmentPerformanceStats(completeHistory, 'investmentValue'), [completeHistory]);
+  const netWorthStats = useMemo(() => deriveInvestmentPerformanceStats(completeHistory, 'netWorth'), [completeHistory]);
+  const quality = useMemo(() => deriveInvestmentPerformanceQuality(completeHistory), [completeHistory]);
+  const historyRows = useMemo(() => filterInvestmentPerformanceRange(completeHistory, historyRange), [completeHistory, historyRange]);
   const sharedHistoryDomain = useMemo(() => deriveSharedTrendDomain([historyRows.map(row => row.investmentValue), historyRows.map(row => row.netWorth)], 10000), [historyRows]);
   const sortedAssets = useMemo(() => {
     const rows = [...performance.assets];
@@ -63,13 +68,13 @@ export default function PerformanceAnalyticsPage({ assets, history, view, onView
       <article className="performance-card performance-history-card">
         <div className="performance-heading"><div><p className="eyebrow">歷史快照</p><h2>資產變化與回撤</h2></div><span>依每日快照，不補日期、不插值；這是資產變化，不是已排除現金流的投資報酬。</span></div>
         <div className="performance-sort" aria-label="歷史期間">{([['30d', '30 天'], ['90d', '90 天'], ['1y', '1 年'], ['all', '全部']] as const).map(([value, label]) => <button type="button" key={value} className={historyRange === value ? 'active' : ''} onClick={() => setHistoryRange(value)}>{label}</button>)}</div>
-        {historyRows.length < 2 ? <div className="analytics-empty"><p>歷史資料不足</p><span>至少需要兩筆有效快照才能呈現趨勢與資產變化。</span></div> : <div className="performance-history-grid">
+        {historyRows.length < 2 ? <div className="analytics-empty"><p>{hasSnapshot ? '資料不足' : '尚無資料'}</p><span>至少需要兩筆可用快照才能呈現趨勢與資產變化。</span></div> : <div className="performance-history-grid">
           <HistorySeries title="投資資產趨勢" description="快照中的投資市值；不等同期間投資報酬。" rows={historyRows} stats={investmentStats} field="investmentValue" domain={sharedHistoryDomain} />
           <HistorySeries title="淨資產趨勢" description="投資、現金與負債共同影響的淨資產變化。" rows={historyRows} stats={netWorthStats} field="netWorth" domain={sharedHistoryDomain} />
         </div>}
       </article>
 
-      <DailyAssetChangeCalendar history={history} />
+      <DailyAssetChangeCalendar history={completeHistory} snapshotView={readView} />
 
       <article className="performance-card">
         <div className="performance-heading"><div><h2>月度／年度資產變化</h2><span>期末有效快照減期初有效快照；不足兩筆時不計算。</span></div></div>

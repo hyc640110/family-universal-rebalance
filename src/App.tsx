@@ -60,7 +60,7 @@ import { buildHouseholdLiquidityInput } from './lib/householdLiquidityInputAdapt
 import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
-import { createNetWorthSnapshotReadTimeViewFromState, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
+import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
@@ -1284,13 +1284,15 @@ function App() {
     });
   };
   useEffect(() => { refreshQuotes(); }, []);
-  const netWorthHistory = useMemo(() => normalizeNetWorthHistory(state.netWorthHistory), [state.netWorthHistory]);
+  const snapshotConsumerRows = useMemo(() => createNetWorthSnapshotConsumerRows(netWorthSnapshotReadTimeViewRef.current), [state.netWorthHistory, state.remoteMeta]);
+  const netWorthHistory = useMemo(() => toCompleteNetWorthSnapshots(snapshotConsumerRows), [snapshotConsumerRows]);
   useEffect(() => {
     if (!hasUpdatedQuotes) return;
-    const latest = netWorthHistory.at(-1);
-    if (latest && latest.date === currentNetWorthSnapshot.date && latest.totalAssets === currentNetWorthSnapshot.totalAssets && latest.netWorth === currentNetWorthSnapshot.netWorth && latest.investmentValue === currentNetWorthSnapshot.investmentValue && latest.cash === currentNetWorthSnapshot.cash && latest.debt === currentNetWorthSnapshot.debt) return;
+    const latest = snapshotConsumerRows.at(-1);
+    if (latest?.status === 'complete' && latest.date === currentNetWorthSnapshot.date && latest.totalAssets === currentNetWorthSnapshot.totalAssets && latest.netWorth === currentNetWorthSnapshot.netWorth && latest.investmentValue === currentNetWorthSnapshot.investmentValue && latest.cash === currentNetWorthSnapshot.cash && latest.debt === currentNetWorthSnapshot.debt) return;
+    netWorthSnapshotReadTimeViewRef.current = upsertNetWorthSnapshotReadTimeView(netWorthSnapshotReadTimeViewRef.current, currentNetWorthSnapshot);
     setState(current => ({ ...current, netWorthHistory: upsertNetWorthSnapshot(current.netWorthHistory, currentNetWorthSnapshot) }));
-  }, [currentNetWorthSnapshot, hasUpdatedQuotes, netWorthHistory]);
+  }, [currentNetWorthSnapshot, hasUpdatedQuotes, snapshotConsumerRows]);
   const performanceAssets = useMemo(() => m.rows.map(row => ({
     symbol: row.symbol,
     name: row.name,
@@ -1845,7 +1847,7 @@ function App() {
       }} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
-        {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} view={analyticsView} onViewChange={setAnalyticsView} />}
+        {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} diagnostics={householdLiquidityDiagnosticPresentation} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
@@ -1995,7 +1997,7 @@ function App() {
       {isRiskCenter && <RiskCenterPage input={riskInput} diagnostics={householdLiquidityDiagnosticPresentation} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} loans={state.loans.map(({ id, name }) => ({ id, name }))} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
-      {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} />}
+      {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} />}
         {isDividendCenter && <DividendCenterPage accounts={state.accounts} holdings={dividendCenterHoldings} transactions={dividendCenterTransactions} onCreate={createTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} />}
         {isAiDecisionCenter && <AiDecisionCenterPage items={aiDecisionItems} asOf={localSnapshotDate()} diagnostics={householdLiquidityDiagnosticPresentation} />}
         {isPortfolioRiskCenter && <PortfolioRiskPage view={portfolioRiskView} />}
