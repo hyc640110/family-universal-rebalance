@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hasSyncableStateChanged, withoutSyncMetadata } from '../src/lib/syncState';
+import { canonicalSyncPayload, hasSyncableStateChanged, withoutSyncMetadata } from '../src/lib/syncState';
 
 const syncedMeta = { dirty: false, source: '本機資料' as const, status: '已同步', lastUploadAt: '2026-07-14T12:00:00.000Z' };
 const dirtyMeta = { dirty: true, source: '本機資料' as const, status: '本機資料有變更，尚未上傳' };
@@ -58,4 +58,20 @@ test('legacy Firebase payloads with stale or missing sync metadata remain compat
   const legacyWithoutMeta = withoutSyncMetadata(baseState);
   assert.deepEqual(withoutSyncMetadata(legacyWithDirtyMeta), legacyWithoutMeta);
   assert.deepEqual(withoutSyncMetadata(legacyWithoutMeta), legacyWithoutMeta);
+});
+
+test('Firebase canonical payload treats Ledger 與歸因起日為使用者資料，而非裝置同步中繼資料', () => {
+  const ledgerState = {
+    ...baseState,
+    financialEventSchemaVersion: 1,
+    financialEventAttributionStartDate: '2026-08-02',
+    financialEvents: [{ id: 'event-a', type: 'external-income', amount: 100 }]
+  };
+
+  const payload = canonicalSyncPayload(ledgerState);
+
+  assert.equal(payload.financialEventSchemaVersion, 1);
+  assert.equal(payload.financialEventAttributionStartDate, '2026-08-02');
+  assert.deepEqual(payload.financialEvents, [{ id: 'event-a', type: 'external-income', amount: 100 }]);
+  assert.equal(hasSyncableStateChanged(baseState, ledgerState), true);
 });
