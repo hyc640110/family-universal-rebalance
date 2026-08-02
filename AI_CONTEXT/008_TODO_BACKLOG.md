@@ -1,6 +1,6 @@
-# Universal Rebalance Todo Backlog v1.58
+# Universal Rebalance Todo Backlog v1.59
 
-最後更新：2026-08-01
+最後更新：2026-08-02
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
@@ -863,11 +863,19 @@
 
 ### UR-TODO-035 市場頁「重新取得」按鈕回歸確認
 - 優先級：P2
-- 狀態：已完成候選／待回歸確認
+- 狀態：已完成
 - 提出日期：2026-07-16
+- 完成日期：2026-08-02
 - 已知相關完成：
   - Market 重新取得
   - Market CORS Hotfix
+- 正式結案唯讀驗證（基線：`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`，PR #227 merge commit）：
+  - `MarketIntelligencePage` 的 click handler 實際觸發 `refreshMarketData(true)`，不是只有 UI state 變化。
+  - 手動 request builder 實際發出 `/market-summary?refresh=1&request=<nonce>`，並使用 `cache: no-store` 與 `Accept: application/json`。
+  - Loading 狀態顯示「更新中…」且按鈕 disabled；Success 狀態於 Preview／Production 均可重新取得實際資料並更新 UI。
+  - Partial failure 時保留前次資料並顯示失敗區塊；Full failure 時正確顯示錯誤，重新取得按鈕仍可再次使用。
+  - Console 無產品 error／warn；Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用。
+- 結案邊界：Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix、不修改程式；若未來處理，應另立獨立 Todo。
 - 驗收條件：
   - 按鈕實際發出請求。
   - loading、成功、失敗狀態可見。
