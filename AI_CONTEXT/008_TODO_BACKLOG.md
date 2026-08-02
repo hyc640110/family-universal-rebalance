@@ -1,8 +1,10 @@
-# Universal Rebalance Todo Backlog v1.60
+# Universal Rebalance Todo Backlog v1.61
 
 最後更新：2026-08-02
 
-2026-08-02 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成**。PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。已建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類、valid `0` 與 missing 的差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163` 與 Pages workflow `30735283065` 均成功。**C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring**；043-B 與 UR-TODO-030 不在本次範圍。
+2026-08-02 **UR-TODO-043-C3 Consumer Wiring 正式完成**。C3-A Read-time Snapshot Boundary 已由 PR #229 完成，C3-B Consumer Wiring 已由 PR #231 Merge，merge commit `a755c7ed9c0c3987989c3890fdfa615ae6a7c092`，正式基線推進至此 SHA。History、Analytics、Calendar 已接入共享 read-time boundary，保留 valid `0`、missing、invalid、non-finite 四分類，部分欄位 unavailable 時保留整筆 snapshot；Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已在既有輸入邊界傳入完整 snapshot／共享結果，無需重複接線。`test:ci` 659 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30736102179`、Pages workflow `30736227380` 均成功，Production／Preview HTTP 200 且環境隔離正常。**UR-TODO-043-C3（C3-A＋C3-B）整體已完成，C4 未觸發。** 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；043-B 日期／時區產品契約尚未處理，僅列為下一候選，不在本次開始開發或做產品決策。
+
+2026-08-02 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成**。PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。已建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類、valid `0` 與 missing 的差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163` 與 Pages workflow `30735283065` 均成功。**C4 未觸發；後續 C3-B 已由 PR #231 完成。**
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
@@ -888,7 +890,7 @@
 ### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
 
 - 優先級：P2
-- 狀態：待盤點
+- 狀態：**C3 已完成；UR-TODO-043 整體仍為 P2／待盤點（043-B 尚未處理）**
 - 提出日期：2026-07-28
 
 - 問題：
@@ -913,8 +915,8 @@
   - consumer：淨資產歷史與 Dashboard `deriveHistoryStats` 使用寬鬆歷史；Analytics 日曆、趨勢與月／年統計、AI 最大回撤使用 `normalizeInvestmentPerformanceHistory`，但接收的 App history 已先被寬鬆 normalizer 改寫；Rebalance 不接收 `netWorthHistory`。
   - C2 已完成（PR #181）：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；未接正式 consumer，未改日期及同日規則。
   - C3-A 已完成（PR #229）：建立不改 AppState／persistence schema 的 raw／classified read-time boundary；localStorage、Firebase、Backup ingress 均先建立 view，再進入既有 legacy normalization。未接正式 consumer UI。
-  - C3-B 下一直接起點：另行授權後才逐頁由同一 classified view 接線，涵蓋 App、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
-  - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。現況不應把既有 `0` 回推為 missing，故尚未證實 migration 必要。
+  - C3-B 已完成（PR #231）：History、Analytics、Calendar 使用共享 read-time boundary；App 將完整 snapshot／結果傳入既有統計、AI 與 Risk 輸入邊界。Dashboard 與 `aiDecision.ts` 原始模組未直接修改，避免重複接線與產品行為擴張。
+  - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。C3-A／C3-B 均未觸發上述條件，C4 維持未啟動。
 
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
@@ -943,8 +945,9 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **下一直接起點：043-C3-B Consumer Wiring**；C3-A 已由 PR #229 完成，未經「開始開發」不得建立功能 Branch 或實作 C3-B。
-  - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發。043-B 日期／時區產品契約決策仍排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **UR-TODO-043-C3 已整體完成。下一候選：043-B 日期／時區產品契約**；本次不開始 043-B、不做產品決策，不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發，不得誤標為已啟動。
+  - 既存 390px 部分長文裁切問題非 C3-B 造成，僅列為待盤點，不在本 Todo 內順便修正。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
 ### UR-TODO-045 淨資產歷史頁面新增收合／分頁功能

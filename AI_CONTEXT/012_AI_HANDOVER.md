@@ -8,12 +8,13 @@
 
 ---
 
-## 最新交接快照：UR-TODO-043-C3-A Merge 後治理同步（2026-08-02）
+## 最新交接快照：UR-TODO-043-C3-B Merge 後治理同步（2026-08-02）
 
-- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #229 推進至 **`e663e5d0dcda6117e75dcd972fcef6c336e2cf97`**。
-- UR-TODO-043-C3-A Read-time Snapshot Boundary 已正式完成：PR #229 已 Merge；建立平行 raw／classified read-time view，保留 valid／missing／invalid／non-finite 四分類與 valid `0`／missing 差異，localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。
-- PR #229 未修改 AppState／persistence schema、migration、日期／時區契約、同日排序、Household Liquidity、Rebalance、正式 consumer UI、043-B 或 UR-TODO-030；C4 未觸發。
-- `test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功。下一直接起點為 **043-C3-B Consumer Wiring**。
+- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #231 推進至 **`a755c7ed9c0c3987989c3890fdfa615ae6a7c092`**。
+- UR-TODO-043-C3-B Consumer Wiring 已正式完成：PR #231 已 Merge；History、Analytics、Calendar 使用共享 read-time boundary，保留 valid／missing／invalid／non-finite 四分類、valid `0`／missing 差異與部分 snapshot 保留語意。
+- Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已將完整 snapshot／共享結果傳入既有統計、AI 與 Risk 輸入邊界；本次不需重複改寫原始模組。PR #231 未修改 schema、migration、localStorage／Firebase／JSON Backup 契約、日期／時區、同日排序、Household Liquidity、Rebalance、Treasury 或 Worker；C4 未觸發。
+- `test:ci` 659 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30736102179`、Pages workflow `30736227380` 均成功；Production／Preview HTTP 200 且 environment boundary 正確。**UR-TODO-043-C3 整體已完成。下一候選為 043-B 日期／時區產品契約，但本次不開始或做產品決策。**
+- 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；不得在 043-B 或本次治理同步中順便修正。
 - 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
 
 ---
@@ -23,7 +24,7 @@
 - 正式基線：`main`、`origin/main`、`HEAD` 均為 **`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`**（PR #227 merge commit）；本次僅同步治理文件與 Bundle，未修改程式、建立 Branch、Commit、Push、PR 或部署。
 - UR-TODO-035 已正式標記為 **已完成**：市場頁「重新取得」click handler 實際觸發 refresh，request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均已唯讀／隔離實機確認。
 - Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。
-- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。當時下一直接起點為 UR-TODO-043；後續已完成 043-C2 與 043-C3-A，現行下一直接起點為 043-C3-B。
+- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。當時下一直接起點為 UR-TODO-043；後續已完成 043-C2、043-C3-A 與 043-C3-B，現行下一候選為 043-B。
 
 ---
 
