@@ -5,6 +5,7 @@ import {
   type NetWorthSnapshotFieldClassifications
 } from './netWorthSnapshotNormalization';
 import type { NetWorthSnapshot } from './netWorthHistory';
+import { selectLastOccurrenceByDate } from './calendarDay';
 
 export type NetWorthSnapshotReadRow = {
   readonly index: number;
@@ -91,10 +92,10 @@ export function createNetWorthSnapshotReadTimeViewFromState(rawState: unknown): 
  * consumers so the existing calendar-date contract is unchanged.
  */
 export function createNetWorthSnapshotConsumerRows(view: NetWorthSnapshotReadTimeView): NetWorthSnapshotConsumerRow[] {
-  const byDate = new Map<string, NetWorthSnapshotConsumerRow>();
+  const rows: NetWorthSnapshotConsumerRow[] = [];
   for (const row of view.rows) {
     if (!validDate(row.date)) continue;
-    byDate.set(row.date, {
+    rows.push({
       index: row.index,
       date: row.date,
       raw: row.raw,
@@ -107,7 +108,7 @@ export function createNetWorthSnapshotConsumerRows(view: NetWorthSnapshotReadTim
       debt: availableValue(row.fields, 'debt')
     });
   }
-  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+  return selectLastOccurrenceByDate(rows);
 }
 
 /** Returns only rows where all persisted money fields are usable for legacy number-only calculations. */

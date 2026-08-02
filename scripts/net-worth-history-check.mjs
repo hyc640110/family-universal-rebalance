@@ -2,8 +2,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
+const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 };
+const calendarDaySource = readFileSync(new URL('../src/lib/calendarDay.ts', import.meta.url), 'utf8');
+const calendarDayCompiled = ts.transpileModule(calendarDaySource, { compilerOptions }).outputText;
+const calendarDayUrl = `data:text/javascript;base64,${Buffer.from(calendarDayCompiled).toString('base64')}`;
 const source = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const compiled = ts.transpileModule(source, { compilerOptions }).outputText.replace(
+  /from ['"]\.\/calendarDay['"];?/u,
+  `from '${calendarDayUrl}';`
+);
 const history = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
 const snapshot = (date, netWorth) => ({date,totalAssets:netWorth+100,netWorth,investmentValue:netWorth, cash:100, debt:100});
 
