@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import NetWorthHistoryPage from '../src/pages/NetWorthHistoryPage';
 import type { NetWorthSnapshot } from '../src/lib/netWorthHistory';
+import { createNetWorthSnapshotReadTimeView } from '../src/lib/netWorthSnapshotReadBoundary';
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -89,4 +90,18 @@ test('empty history keeps its existing empty-state message, unaffected by the co
 test('renders without a history prop at all (optional prop contract preserved)', () => {
   const html = render(undefined);
   assert.match(html, /尚無淨資產歷史資料/);
+});
+
+test('read-time consumer presentation distinguishes no snapshot, data insufficient, and valid zero', () => {
+  const empty = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(NetWorthHistoryPage, {
+    snapshotView: createNetWorthSnapshotReadTimeView(undefined)
+  })));
+  const partial = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(NetWorthHistoryPage, {
+    snapshotView: createNetWorthSnapshotReadTimeView([{ date: '2026-01-01', totalAssets: 0, netWorth: 0, investmentValue: 0, cash: undefined, debt: 0 }])
+  })));
+
+  assert.match(empty, /尚無資料/);
+  assert.match(partial, /資料不足/);
+  assert.match(partial, /0 萬元/);
+  assert.doesNotMatch(partial, /NaN|Infinity/);
 });

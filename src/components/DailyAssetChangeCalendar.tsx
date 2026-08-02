@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { buildCalendarMonth, latestSnapshotMonth, shiftMonth, type DailyAssetChange, type DailyAssetChangeMode } from '../lib/dailyAssetChangeCalendar';
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
+import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeView, toCompleteNetWorthSnapshots, type NetWorthSnapshotReadTimeView } from '../lib/netWorthSnapshotReadBoundary';
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 const modeLabel = (mode: DailyAssetChangeMode) => mode === 'netWorth' ? '淨資產' : '投資資產';
@@ -20,11 +21,14 @@ const compactMoney = (value: number | null) => {
 const percent = (value: number | null) => value === null || !Number.isFinite(value) ? '—' : `${value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
 const tone = (change: DailyAssetChange | null) => !change || change.change === null ? 'neutral' : change.change > 0 ? 'positive' : change.change < 0 ? 'negative' : 'neutral';
 
-export default function DailyAssetChangeCalendar({ history }: { history: NetWorthSnapshot[] }) {
+export default function DailyAssetChangeCalendar({ history, snapshotView }: { history: NetWorthSnapshot[]; snapshotView?: NetWorthSnapshotReadTimeView }) {
   const [mode, setMode] = useState<DailyAssetChangeMode>('netWorth');
-  const [month, setMonth] = useState(() => latestSnapshotMonth(history));
+  const readView = useMemo(() => snapshotView ?? createNetWorthSnapshotReadTimeView(history), [history, snapshotView]);
+  const completeHistory = useMemo(() => toCompleteNetWorthSnapshots(createNetWorthSnapshotConsumerRows(readView)), [readView]);
+  const hasSnapshot = readView.status === 'has-snapshot';
+  const [month, setMonth] = useState(() => latestSnapshotMonth(completeHistory));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const calendar = useMemo(() => buildCalendarMonth(history, mode, month), [history, mode, month]);
+  const calendar = useMemo(() => buildCalendarMonth(completeHistory, mode, month), [completeHistory, mode, month]);
   const selected = selectedDate ? calendar.days.find(day => day.date === selectedDate)?.change || null : null;
   const changeMonth = (amount: number) => { setMonth(current => shiftMonth(current, amount)); setSelectedDate(null); };
   const changeMode = (next: DailyAssetChangeMode) => { setMode(next); setSelectedDate(null); };
@@ -60,7 +64,7 @@ export default function DailyAssetChangeCalendar({ history }: { history: NetWort
       </div>
     </div>
     {selected && <CalendarDetail change={selected} mode={mode} isFuture={calendar.days.find(day => day.date === selected.date)?.dateState === 'future'} />}
-    <p className="daily-calendar-disclaimer">此為每日資產快照變動，可能包含入金、提領、現金或負債變化，不等同純投資損益。</p>
+    <p className="daily-calendar-disclaimer">{hasSnapshot ? '資料不足的快照不會被當成 0 計算。' : '尚無資料。'}此為每日資產快照變動，可能包含入金、提領、現金或負債變化，不等同純投資損益。</p>
   </article>;
 }
 

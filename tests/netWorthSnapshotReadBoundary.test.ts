@@ -5,7 +5,9 @@ import { canonicalSyncPayload } from '../src/lib/syncState';
 import { normalizeNetWorthHistory } from '../src/lib/netWorthHistory';
 import {
   createNetWorthSnapshotReadTimeView,
-  createNetWorthSnapshotReadTimeViewFromState
+  createNetWorthSnapshotReadTimeViewFromState,
+  createNetWorthSnapshotConsumerRows,
+  toCompleteNetWorthSnapshots
 } from '../src/lib/netWorthSnapshotReadBoundary';
 
 const completeFields = {
@@ -82,6 +84,35 @@ test('Firebase and Backup-shaped payloads can share the same read-time boundary 
   assert.equal(backupView.rows[0].fields.investmentValue.status, 'invalid');
   assert.equal(firebaseView.rows[0].raw.investmentValue, 'not-a-number');
   assert.equal(backupView.rows[0].raw.investmentValue, 'not-a-number');
+});
+
+test('consumer projection retains partial rows while keeping independent fields available', () => {
+  const view = createNetWorthSnapshotReadTimeView([
+    { date: '2026-01-01', ...completeFields, netWorth: 0, cash: undefined },
+    { date: '2026-01-02', ...completeFields, netWorth: 'bad', investmentValue: Number.POSITIVE_INFINITY }
+  ]);
+  const rows = createNetWorthSnapshotConsumerRows(view);
+
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].netWorth, 0);
+  assert.equal(rows[0].cash, null);
+  assert.equal(rows[0].status, 'incomplete');
+  assert.equal(rows[1].netWorth, null);
+  assert.equal(rows[1].investmentValue, null);
+  assert.equal(rows[1].totalAssets, completeFields.totalAssets);
+  assert.equal(toCompleteNetWorthSnapshots(rows).length, 0);
+});
+
+test('consumer projection keeps final same-day occurrence without changing the raw view', () => {
+  const view = createNetWorthSnapshotReadTimeView([
+    { date: '2026-01-01', ...completeFields, netWorth: 100 },
+    { date: '2026-01-01', ...completeFields, netWorth: 200 }
+  ]);
+  const rows = createNetWorthSnapshotConsumerRows(view);
+
+  assert.equal(view.rows.length, 2);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].netWorth, 200);
 });
 
 test('App captures the localStorage raw view before legacy normalization', () => {
