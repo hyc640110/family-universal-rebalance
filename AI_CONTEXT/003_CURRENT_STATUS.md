@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.73
+# Universal Rebalance Current Status v3.74
 
 最後更新：2026-08-02
+
+**UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）**：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242) 已 Merge，merge commit **`b8b9a4d212917444e313ef22649461a843273bdb`**（`mergedAt: 2026-08-02T12:12:48Z`），為目前 `main`／`origin/main` 正式基線。新增純、deterministic、唯讀的 transaction reconciliation：每筆既有交易只會回傳 `matched`／`candidate`／`unsupported`／`ambiguous`／`duplicate`／`invalid` 其中之一；僅把現有 taxonomy 能證明的非股息收入、股息、非投資支出、同幣別帳戶轉帳與 adjustment 作為候選／證據。C2 僅診斷既有 C1 Ledger 的 linked match、duplicate 與相似 manual ambiguity；不會寫入 Ledger、不會接入 attribution calculator 或提升 quality。pending linked event 可保留為 C1 evidence，但不是 completed-period evidence；void linked event 不消費 transaction。**UR-TODO-046 整體仍未完成**：下一候選為待盤點且須另行授權的 046-C3 reconciliation 結果消費／產品契約，未自動開始。
 
 **UR-TODO-046 B Pure Attribution Calculator／Quality Model 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge，merge commit **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）；此為目前功能正式基線。新增純 `deriveNetWorthAttribution()` 計算器與測試，品質狀態僅為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出明確的 classified contribution 與 unexplained residual，**不得把 unexplained residual 宣稱為 market effect**。本階段無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。**UR-TODO-046 整體尚未完成**；下一正式候選為 046-C existing transaction reconciliation，屬重大事件候選，須先完成獨立架構／產品審查。
 

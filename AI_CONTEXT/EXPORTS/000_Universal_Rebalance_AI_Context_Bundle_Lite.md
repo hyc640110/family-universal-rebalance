@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T10:50:32.485282+00:00
+Generated UTC: 2026-08-02T12:15:49.262242+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `a7197a980f5f5d768a35e4ed4737653e8e80ee9addea2fb3adc685e18d7451fd`
-- `008_TODO_BACKLOG.md` — SHA-256 `59406c96b21f64b218df4c058c665217c4e650f647cc137ddaa80a93f25dc183`
-- `012_AI_HANDOVER.md` — SHA-256 `02b7fa3c630e6d55aa74c55227ba62d4a0ed7f878ab13b3ff351cffe3b5856a3`
+- `003_CURRENT_STATUS.md` — SHA-256 `f06ee8cfa8621175253265d13b055152c4475fda8f211bbd26391d4275761044`
+- `008_TODO_BACKLOG.md` — SHA-256 `19245cfdfba43a515daf1fe08ba35854f0e7c66bf0d9d79ef0af6afa5cf3f5d5`
+- `012_AI_HANDOVER.md` — SHA-256 `a47b209385899cfe0263566e892ffa112aaf6a3bba9848641c708501c436ac8a`
 
 ---
 
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.73
+# Universal Rebalance Current Status v3.74
 
 最後更新：2026-08-02
+
+**UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）**：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242) 已 Merge，merge commit **`b8b9a4d212917444e313ef22649461a843273bdb`**（`mergedAt: 2026-08-02T12:12:48Z`），為目前 `main`／`origin/main` 正式基線。新增純、deterministic、唯讀的 transaction reconciliation：每筆既有交易只會回傳 `matched`／`candidate`／`unsupported`／`ambiguous`／`duplicate`／`invalid` 其中之一；僅把現有 taxonomy 能證明的非股息收入、股息、非投資支出、同幣別帳戶轉帳與 adjustment 作為候選／證據。C2 僅診斷既有 C1 Ledger 的 linked match、duplicate 與相似 manual ambiguity；不會寫入 Ledger、不會接入 attribution calculator 或提升 quality。pending linked event 可保留為 C1 evidence，但不是 completed-period evidence；void linked event 不消費 transaction。**UR-TODO-046 整體仍未完成**：下一候選為待盤點且須另行授權的 046-C3 reconciliation 結果消費／產品契約，未自動開始。
 
 **UR-TODO-046 B Pure Attribution Calculator／Quality Model 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge，merge commit **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）；此為目前功能正式基線。新增純 `deriveNetWorthAttribution()` 計算器與測試，品質狀態僅為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出明確的 classified contribution 與 unexplained residual，**不得把 unexplained residual 宣稱為 market effect**。本階段無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。**UR-TODO-046 整體尚未完成**；下一正式候選為 046-C existing transaction reconciliation，屬重大事件候選，須先完成獨立架構／產品審查。
 
@@ -1977,17 +1979,18 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
-2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1 與 046-B 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
+2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1、046-B 與 046-C1／C2 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
 
 - 優先級：待評估
-- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation 與 046-B pure attribution calculator／quality model 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
+- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation、046-B pure attribution calculator／quality model 與 046-C1／C2 pure transaction reconciliation 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
 
 - **C1 已完成（2026-08-02）**：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238)（`feat/ur-todo-046-financial-event-ledger-c1`）已由使用者最終授權 Merge，merge commit `ef42c2408c989bc56c4ee1d31986161c7628ed2f`，`mergedAt: 2026-08-02T09:51:20Z`。建立 forward-only Financial Event Ledger contract／normalization 與 persistence foundation，範圍嚴格限於 AppState、localStorage、JSON Backup／Full Restore。future schema payload 採 opaque fail-safe，不降級、不 migration、不改寫；linked transaction 僅接受現有 taxonomy 可安全證明的語意，manual event 不得帶 `transactionId`，同一 transactionId 不得被多個有效 linked events 重複消費。未新增 split allocation schema。
 - **C1 明確不包含**：Firebase Financial Event Ledger synchronization（現有 Firebase root PUT 不具 mixed-version Ledger 安全性，須另開重大階段）、migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI、AI Decision／Rebalance／Household Liquidity consumer wiring 或 Production 部署。
 - **046-B 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240)（`feat/ur-todo-046-b-attribution-calculator`）已 Merge，merge commit `d61e0aa270bf006acb7000e2c1b3be0fc0f68264`，`mergedAt: 2026-08-02T10:11:19Z`。新增純 `deriveNetWorthAttribution()` calculator／quality model，品質狀態為 `unavailable`、`snapshot-only`、`partial`、`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者不得宣稱為 market effect。無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。
-- **下一正式候選（待評估，未開始）**：046-C existing transaction reconciliation。其涉及 transaction reconciliation、external flow／internal transfer 與事件分類產品契約，為**重大事件候選**；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則亦均為獨立重大事件，不得與 046-C 自動合併範圍。
+- **046-C1／C2 已完成（2026-08-02）**：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242)（`feat/ur-todo-046-c-transaction-reconciliation`）已 Merge，merge commit `b8b9a4d212917444e313ef22649461a843273bdb`，`mergedAt: 2026-08-02T12:12:48Z`。新增純、deterministic、唯讀 classifier／diagnostic；每筆 `FinancialTransaction` 唯一回傳 `matched`、`candidate`、`unsupported`、`ambiguous`、`duplicate`、`invalid` 之一。安全候選限於既有 taxonomy 可證明的非股息收入、股息、非投資支出、同幣別帳戶轉帳與 adjustment；investment／loan／FX／不明分類不猜測，維持 unsupported。有效 linked event 為 matched、void 不消費、兩個以上有效 linked event 為 duplicate、相似 manual event 為 ambiguous；pending linked 不是 completed-period evidence。**未改 schema、persistence、Firebase、JSON Backup、migration、Ledger 寫入、calculator input／quality、UI、AI Decision、Rebalance 或 Household Liquidity。**
+- **下一正式候選（待盤點，未開始）**：046-C3 reconciliation 結果消費／產品契約。它若要接入 attribution calculator、quality、external flow／internal transfer 正式分類或其他 consumer，即屬**重大事件候選**，須另行產品決策與授權；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則亦均為獨立重大事件，不得自動開始或混入 046-C3。
 
 - 問題：使用者希望能核對「收支與現金流中心記錄的淨儲蓄」與「淨資產歷史實際變動」之間的落差，並將淨值成長拆解為外部投入、投資報酬、負債變化等來源，而非只看總額差分。
 
@@ -2215,7 +2218,18 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ---
 
-## 最新交接快照：UR-TODO-046 B 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 C1／C2 Pure Transaction Reconciliation 已完成（2026-08-02）
+
+- 正式基線：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242) 已 Merge；`main`、`origin/main` 為 **`b8b9a4d212917444e313ef22649461a843273bdb`**（`mergedAt: 2026-08-02T12:12:48Z`）。
+- 已完成 046-C1／C2：新增純、deterministic、唯讀 `reconcileTransactions()`，每筆既有交易唯一輸出 `matched`／`candidate`／`unsupported`／`ambiguous`／`duplicate`／`invalid`。安全候選僅限既有 taxonomy 可證明的非股息收入、股息、非投資支出、同幣別轉帳及 adjustment；投資、借款、FX 與不明分類不得猜測。
+- C2 僅診斷既有 C1 Ledger：有效 linked event 為 matched，void 不消費，兩個以上有效 linked event 為 duplicate，相似 manual event 為 ambiguous；pending linked 可保留為 C1 evidence，但 `completedPeriodEvidence` 為 false。沒有任何 Ledger 寫入、自動連結、去重或 calculator wiring。
+- 明確不包含：schema、persistence、Firebase、JSON Backup、migration、legacy rewrite、split allocation、attribution calculator input／quality、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。
+- **UR-TODO-046 整體仍未完成**。下一正式候選為待盤點的 046-C3 reconciliation 結果消費／產品契約；若要接入 calculator、quality 或正式 external flow／internal transfer 分類，即屬重大事件候選，須另行產品決策與授權，**不得自動開始**。
+- PR #242 CI Verification（head `5aedf0e2322b6adb1ab5f2d0e077eb66b0f78e44`）成功；Merge 後 Deploy GitHub Pages run `30747353452` 成功，head 與 merge commit 一致；Production／Preview HTTP 200、環境 metadata 與 assets path 隔離。
+
+---
+
+## 歷史交接快照：UR-TODO-046 B 已完成（2026-08-02）
 
 - 正式基線：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）。
 - 已完成的是 046-B **Pure Attribution Calculator／Quality Model**：新增純 `deriveNetWorthAttribution()`，品質狀態為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者**不等同 market effect**。
