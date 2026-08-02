@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T06:48:04.616764+00:00
+Generated UTC: 2026-08-02T07:21:28.489302+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `0e83c1da6d42fbb8af63edf82b38119afc1d28351eabc96ed76a11e546342a67`
-- `008_TODO_BACKLOG.md` — SHA-256 `ce86ad54a66456ce8dc124374895c0d48685cc3ef52d504a5d4183fa9b33e3b6`
-- `012_AI_HANDOVER.md` — SHA-256 `93ba845a76f0ac74fa6abc6c6c7dccfabd1c3759342a7740b99173d9a119bc30`
+- `003_CURRENT_STATUS.md` — SHA-256 `415a21c931995a0c31af49664a453d4487b2a3937fb801b7c64e2eac50c89d58`
+- `008_TODO_BACKLOG.md` — SHA-256 `7e6d7a9fdae2a01f91e9d92a5149188a3a69b75e4755666f5fce3e2af27d74fe`
+- `012_AI_HANDOVER.md` — SHA-256 `4d3cda90c1daf0919c85bb5e50c3b92157d0db3e99535092a5446a338386b2bf`
 
 ---
 
@@ -425,13 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.68
+# Universal Rebalance Current Status v3.69
 
 最後更新：2026-08-02
 
-**UR-TODO-043-C3 Consumer Wiring 正式完成（2026-08-02）**：C3-A Read-time Snapshot Boundary 已由 PR #229 完成，C3-B Consumer Wiring 已由 PR #231 Merge，merge commit `a755c7ed9c0c3987989c3890fdfa615ae6a7c092`，正式基線推進至此 SHA。`test:ci` 659 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30736102179` 與 Merge 後 Pages workflow `30736227380` 均成功；Production／Preview HTTP 200 且 environment boundary 正確。History、Analytics、Calendar 已使用共享 read-time boundary，valid `0`、missing、invalid、non-finite 語意維持可區分，部分欄位 unavailable 時保留整筆 snapshot。C3-A／C3-B 均完成，**UR-TODO-043-C3 整體正式完成**；C4 未觸發。
+**UR-TODO-043-B1/B2 正式完成（2026-08-02）**：PR #233 已 Merge，merge commit `0e3c80404be4eb5452835b0497f3274c8edca62c`，正式基線推進至此 SHA。B1 建立固定 `Asia/Taipei` 的 canonical `YYYY-MM-DD` calendar-day helper，B2 建立同日 snapshot deterministic selector，明確採輸入序列最後一筆勝出，不引入 timestamp、schema 或 migration。`test:ci` 675 項、TypeScript、Production／Preview build、CI verify `30737460836` 與 Merge 後 Pages workflow `30737504196` 均成功；C3 read-time boundary、History、Analytics、Calendar 共用同一選擇契約。C4 未觸發。**UR-TODO-043-C3 整體與 043-B1/B2 均完成；043-B 其餘範圍尚待盤點，不預先宣稱完成。**
 
-Dashboard 與 `aiDecision.ts` 未直接修改，因本次既有 App 已將完整 snapshot 與共享 read-time 結果傳入既有統計／AI／Risk 輸入邊界，無需重複改寫原始模組。既存 390px 部分長文裁切問題非本次變更造成，僅記錄為待盤點，不在本次修正。UR-TODO-043-B 日期／時區產品契約尚未處理，僅列為下一候選；不得視為已拍板或開始開發。
+Dashboard 與 `aiDecision.ts` 未直接修改，因本次既有 App 已將完整 snapshot 與共享 read-time 結果傳入既有統計／AI／Risk 輸入邊界，無需重複改寫原始模組。既存 390px 部分長文裁切問題非本次變更造成，僅記錄為待盤點，不在本次修正。UR-TODO-043-B1/B2 不涉及日期以外的產品決策；043-B 後續範圍待盤點，不得混入 C4、UR-TODO-030 或其他 Todo。
 
 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。C3-A 建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類，並維持 valid `0` 與 missing 可區分；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 read-time view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。PR #229 的 `verify` CI run `30735211163`、Merge 後 `Deploy GitHub Pages` run `30735283065` 均成功；`test:ci` 655 項、TypeScript、Production／Preview build 均通過。C4 未觸發，043-B、043-C4、UR-TODO-030 均未納入；後續 C3-B 已由 PR #231 完成。
 
@@ -491,7 +491,7 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因本次既有 App 已將完整
 
 本次更新依據：**PR #182**（「feat: UR-TODO-045 net worth history grid collapse」）已由使用者手動 Merge，merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-045（淨資產歷史頁面新增收合／分頁功能）正式標記為已完成**：`NetWorthHistoryPage.tsx` 新增純前端顯示層收合機制（`showAllHistoryGrid`，不持久化），預設顯示最新 7 筆，超過 7 筆時可展開；`src/lib/netWorthHistory.ts` 資料層完全未觸碰。`CI Verification` run `30441980987` success；`Deploy GitHub Pages` run `30442672832` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；Production 上實測收合／展開／再收合三段行為皆符合預期。
 
-**治理落差已同步修正（2026-08-02）**：PR #231 已補齊 C3-B Merge 事實與最新正式基線；`003`／`008`／`012` 中將 C2、C3-A 或 C3-B 寫成現行下一候選的敘述均已更正。UR-TODO-043 仍為 P2 主題，但 043-A、043-C1、043-C2、043-C3-A、043-C3-B 均已完成，C3 整體已完成；C4 未觸發，043-B 僅列為下一候選。
+**治理落差已同步修正（2026-08-02）**：PR #233 已補齊 043-B1/B2 Merge 事實與最新正式基線；`003`／`008`／`012` 中將 C2、C3-A、C3-B 或 B1/B2 寫成現行下一候選的敘述均已更正。UR-TODO-043 仍為 P2 主題，但 043-A、043-C1、043-C2、043-C3-A、043-C3-B、043-B1、043-B2 均已完成，C3 整體與 B1/B2 階段已完成；C4 未觸發，043-B 其餘範圍維持待盤點。
 
 本次更新依據：**PR #179**（「docs: reconfirm UR-TODO-030 homepage 30-second decision center direction」）已由使用者手動 Merge，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`，此為目前 `main`／`origin/main` 正式基線。此 PR 正式再次確認首頁「30 秒決策中心」產品方向為既有決策並完整保留：首頁未來只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。**本 PR 未修改任何首頁 UI，未開始 UR-TODO-043-C2**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍。Deploy GitHub Pages run `30386642108` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
 
@@ -514,7 +514,7 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因本次既有 App 已將完整
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前已完成 C3 階段（043-A、043-C1、043-C2、C3-A、C3-B），C4 未觸發，043-B 日期／時區產品契約僅列為下一候選且尚未做決策；**UR-TODO-030 仍為待盤點且本次完全不處理**；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）；**UR-TODO-028 已完成**（股息中心未指定資產紀錄可安全編輯，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，既有功能已滿足，未新增程式碼）；**UR-TODO-032 已完成**（更新股價入口與跨頁一致性，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，桌機／手機共用單一刷新契約、首頁／資產頁／分析頁報價與時間戳記完全一致，既有基礎設施已滿足，未新增程式碼；手機觸控下拉手勢與錯誤狀態本次未實機重現，僅程式碼路徑確認）；**UR-TODO-033 已完成**（持股卡片現價與今日漲跌版面差異，2026-08-01 PR #214 Merge，新增 `formatCompactQuoteHeadline()`，現價同列顯示價格＋▲/▼＋漲跌幅、今日漲跌次列顯示金額，四者一致著色）；**UR-TODO-034 已完成**（2026-08-01 唯讀實機驗證，以 00631L、00865B 兩檔測試 Worker／state／localStorage／各頁 selector 跨頁一致性，未發現殘留舊報價，純唯讀驗證未修改任何程式碼）；**UR-TODO-026 已由使用者手動 Merge PR #216**（`fix/ur-todo-026-remove-holding-ratio-label`，merge commit `63feac1f0012546fadc1e341c55c047c967ada65`，只移除「持有比例」文字標籤、保留百分比數字，未新增任何圖形／圓圈視覺；本文件先前僅記錄「排入開發中」尚未同步 Merge 結果，本次一併補齊，**正式標記為已完成**）；**UR-TODO-027 部分完成**（走勢方向漸層填色子需求已於 PR #218 完成並改為逐段變色，07／15 日期斷裂／Y 軸整數刻度／手機文字裁切／Y 軸位置四項待確認仍未處理）。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前已完成 C3 階段與 043-B1/B2（043-A、043-C1、043-C2、C3-A、C3-B、B1、B2），C4 未觸發，043-B 其餘範圍維持待盤點；**UR-TODO-030 仍為待盤點且本次完全不處理**；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 唯讀盤點完成，狀態「待評估」，依賴 UR-TODO-043-B 定案後才排程；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）；**UR-TODO-028 已完成**（股息中心未指定資產紀錄可安全編輯，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，既有功能已滿足，未新增程式碼）；**UR-TODO-032 已完成**（更新股價入口與跨頁一致性，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，桌機／手機共用單一刷新契約、首頁／資產頁／分析頁報價與時間戳記完全一致，既有基礎設施已滿足，未新增程式碼；手機觸控下拉手勢與錯誤狀態本次未實機重現，僅程式碼路徑確認）；**UR-TODO-033 已完成**（持股卡片現價與今日漲跌版面差異，2026-08-01 PR #214 Merge，新增 `formatCompactQuoteHeadline()`，現價同列顯示價格＋▲/▼＋漲跌幅、今日漲跌次列顯示金額，四者一致著色）；**UR-TODO-034 已完成**（2026-08-01 唯讀實機驗證，以 00631L、00865B 兩檔測試 Worker／state／localStorage／各頁 selector 跨頁一致性，未發現殘留舊報價，純唯讀驗證未修改任何程式碼）；**UR-TODO-026 已由使用者手動 Merge PR #216**（`fix/ur-todo-026-remove-holding-ratio-label`，merge commit `63feac1f0012546fadc1e341c55c047c967ada65`，只移除「持有比例」文字標籤、保留百分比數字，未新增任何圖形／圓圈視覺；本文件先前僅記錄「排入開發中」尚未同步 Merge 結果，本次一併補齊，**正式標記為已完成**）；**UR-TODO-027 部分完成**（走勢方向漸層填色子需求已於 PR #218 完成並改為逐段變色，07／15 日期斷裂／Y 軸整數刻度／手機文字裁切／Y 軸位置四項待確認仍未處理）。
 - PR：**#205**（MERGED，補齊 UR-TODO-048 子階段 D／E 完成記錄進 `008_TODO_BACKLOG.md`）為目前 `origin/main` 最新 Merge；**#204**（MERGED，`allocationRoleBySymbol` 欄位清理唯讀盤點記錄）、**#203**（MERGED，UR-TODO-048 子階段 E，CLEC 703/5050 改名為 7:3/50:50、模擬頁新增現金項目）、**#202**（MERGED，UR-TODO-048 子階段 D，新增 CLEC 703/5050 模擬限定樣板）、**#201**（MERGED，UR-TODO-048 子階段 C 完成記錄與 UR-TODO-048-D 提案排入 Backlog）、**#200**（MERGED，UR-TODO-048 子階段 C，模擬頁套用 CLEC 442/433 樣板）、**#199**（MERGED，PR #198 治理文件基線同步）、**#198**（MERGED，UR-TODO-048 子階段 B，狀態層＋UI 層一併移除 CLEC 433／442 正式配置選項）、**#197**（MERGED，PR #196 治理文件基線同步）、**#196**（MERGED，首次正式建檔 UR-TODO-047／048，`gh pr merge --admin`）、**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）、**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
@@ -988,7 +988,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 最後更新：2026-08-02
 
-2026-08-02 **UR-TODO-043-C3 Consumer Wiring 正式完成**。C3-A Read-time Snapshot Boundary 已由 PR #229 完成，C3-B Consumer Wiring 已由 PR #231 Merge，merge commit `a755c7ed9c0c3987989c3890fdfa615ae6a7c092`，正式基線推進至此 SHA。History、Analytics、Calendar 已接入共享 read-time boundary，保留 valid `0`、missing、invalid、non-finite 四分類，部分欄位 unavailable 時保留整筆 snapshot；Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已在既有輸入邊界傳入完整 snapshot／共享結果，無需重複接線。`test:ci` 659 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30736102179`、Pages workflow `30736227380` 均成功，Production／Preview HTTP 200 且環境隔離正常。**UR-TODO-043-C3（C3-A＋C3-B）整體已完成，C4 未觸發。** 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；043-B 日期／時區產品契約尚未處理，僅列為下一候選，不在本次開始開發或做產品決策。
+2026-08-02 **UR-TODO-043-B1/B2 Canonical Calendar Day／Deterministic Same-Day Snapshot Selection 正式完成**。PR #233 已 Merge，merge commit `0e3c80404be4eb5452835b0497f3274c8edca62c`，正式基線推進至此 SHA；B1 固定 `Asia/Taipei` 輸出 canonical `YYYY-MM-DD`，B2 同日多筆 snapshot 依輸入序列最後一筆勝出，不新增 timestamp、schema 或 migration。C3 read-time boundary、History、Analytics、Calendar 共用同一選擇契約。`test:ci` 675 項、TypeScript、Production／Preview build、CI verify `30737460836`、Pages workflow `30737504196` 均成功；C4 未觸發。**043-B 其餘範圍維持待盤點。**
 
 2026-08-02 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成**。PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。已建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類、valid `0` 與 missing 的差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163` 與 Pages workflow `30735283065` 均成功。**C4 未觸發；後續 C3-B 已由 PR #231 完成。**
 
@@ -1876,7 +1876,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 ### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
 
 - 優先級：P2
-- 狀態：**C3 已完成；UR-TODO-043 整體仍為 P2／待盤點（043-B 尚未處理）**
+- 狀態：**C3、043-B1、043-B2 已完成；UR-TODO-043 整體仍為 P2／待盤點（043-B 其餘範圍尚待盤點）**
 - 提出日期：2026-07-28
 
 - 問題：
@@ -1903,6 +1903,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - C3-A 已完成（PR #229）：建立不改 AppState／persistence schema 的 raw／classified read-time boundary；localStorage、Firebase、Backup ingress 均先建立 view，再進入既有 legacy normalization。未接正式 consumer UI。
   - C3-B 已完成（PR #231）：History、Analytics、Calendar 使用共享 read-time boundary；App 將完整 snapshot／結果傳入既有統計、AI 與 Risk 輸入邊界。Dashboard 與 `aiDecision.ts` 原始模組未直接修改，避免重複接線與產品行為擴張。
   - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。C3-A／C3-B 均未觸發上述條件，C4 維持未啟動。
+
+- 043-B1／B2 已完成（PR #233）：
+  - B1 建立共享 `canonicalCalendarDay`，固定以 `Asia/Taipei` 輸出 `YYYY-MM-DD`，不受 runtime timezone 影響；既有 snapshot producer compatibility entry 改由此 helper 提供日期。
+  - B2 建立共享 `selectLastOccurrenceByDate`，同日多筆 snapshot 依輸入序列最後一筆勝出；此為 occurrence order 契約，不是 timestamp-latest，未新增 timestamp 欄位。
+  - `netWorthHistory.ts`、`investmentPerformanceHistory.ts`、`netWorthSnapshotReadBoundary.ts` 已移除重複同日選擇接線，改用共享 selector；localStorage、Firebase、JSON Backup、Import／Export、NetWorthSnapshot type、schema 與 migration 均未修改。
+  - 已補強 UTC／Asia-Taipei／America-New_York runtime、Taipei 15:59／16:00 邊界、同日三筆與反轉順序、既有 characterization 及 CI harness 測試。`test:ci` 675 項、TypeScript、Production／Preview build、CI verify `30737460836`、Pages workflow `30737504196` 均成功；C4 未觸發。
 
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
@@ -1931,7 +1937,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **UR-TODO-043-C3 已整體完成。下一候選：043-B 日期／時區產品契約**；本次不開始 043-B、不做產品決策，不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **UR-TODO-043-C3、043-B1、043-B2 已完成。043-B 其餘範圍維持待盤點**；本次不宣稱 043-B 整體完成，也不自行啟動未定義的後續子階段。
   - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發，不得誤標為已啟動。
   - 既存 390px 部分長文裁切問題非 C3-B 造成，僅列為待盤點，不在本 Todo 內順便修正。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
@@ -2180,12 +2186,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ---
 
-## 最新交接快照：UR-TODO-043-C3-B Merge 後治理同步（2026-08-02）
+## 最新交接快照：UR-TODO-043-B1/B2 Merge 後治理同步（2026-08-02）
 
-- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #231 推進至 **`a755c7ed9c0c3987989c3890fdfa615ae6a7c092`**。
-- UR-TODO-043-C3-B Consumer Wiring 已正式完成：PR #231 已 Merge；History、Analytics、Calendar 使用共享 read-time boundary，保留 valid／missing／invalid／non-finite 四分類、valid `0`／missing 差異與部分 snapshot 保留語意。
-- Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已將完整 snapshot／共享結果傳入既有統計、AI 與 Risk 輸入邊界；本次不需重複改寫原始模組。PR #231 未修改 schema、migration、localStorage／Firebase／JSON Backup 契約、日期／時區、同日排序、Household Liquidity、Rebalance、Treasury 或 Worker；C4 未觸發。
-- `test:ci` 659 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30736102179`、Pages workflow `30736227380` 均成功；Production／Preview HTTP 200 且 environment boundary 正確。**UR-TODO-043-C3 整體已完成。下一候選為 043-B 日期／時區產品契約，但本次不開始或做產品決策。**
+- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #233 推進至 **`0e3c80404be4eb5452835b0497f3274c8edca62c`**。
+- UR-TODO-043-B1 Canonical Calendar Day Contract 與 B2 Deterministic Same-Day Snapshot Selection 已正式完成：PR #233 已 Merge；canonical day 固定 `Asia/Taipei`，同日多筆 snapshot 依輸入序列最後一筆勝出，不使用 timestamp-latest。
+- C3-A／C3-B 與 B1／B2 共用 read-time／same-day boundary；未修改 AppState、localStorage／Firebase／JSON Backup schema、Import／Export、migration 或既有 snapshot，不新增 timestamp。Dashboard／`aiDecision.ts` 原始模組、Household Liquidity、Rebalance、Treasury、Worker 均未修改；C4 未觸發。
+- `test:ci` 675 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30737460836`、Pages workflow `30737504196` 均成功。**UR-TODO-043-C3 與 043-B1／B2 已完成；043-B 其餘範圍維持待盤點，不預先宣稱整體完成。**
 - 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；不得在 043-B 或本次治理同步中順便修正。
 - 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
 
