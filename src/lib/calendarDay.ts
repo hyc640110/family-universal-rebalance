@@ -2,6 +2,18 @@ const CANONICAL_TIME_ZONE = 'Asia/Taipei';
 
 export type CalendarDayInput = Date | number | string;
 
+/** Validates a persisted Asia/Taipei canonical calendar-day without consulting runtime TZ. */
+export function isCanonicalCalendarDay(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 /** Returns the canonical YYYY-MM-DD in Asia/Taipei, independent of runtime TZ. */
 export function canonicalCalendarDay(input: CalendarDayInput = new Date()): string {
   const date = input instanceof Date ? new Date(input.getTime()) : new Date(input);
@@ -19,14 +31,10 @@ export function canonicalCalendarDay(input: CalendarDayInput = new Date()): stri
 /** Shifts an already canonical YYYY-MM-DD day without using the runtime timezone. */
 export function shiftCanonicalCalendarDay(day: string, amount: number): string {
   const match = day.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match || !Number.isInteger(amount)) throw new RangeError('Invalid canonical calendar-day shift');
+  if (!match || !isCanonicalCalendarDay(day) || !Number.isInteger(amount)) throw new RangeError('Invalid canonical calendar-day shift');
   const year = Number(match[1]);
   const month = Number(match[2]);
   const dayOfMonth = Number(match[3]);
-  const base = new Date(Date.UTC(year, month - 1, dayOfMonth));
-  if (base.getUTCFullYear() !== year || base.getUTCMonth() !== month - 1 || base.getUTCDate() !== dayOfMonth) {
-    throw new RangeError('Invalid canonical calendar-day');
-  }
   const date = new Date(Date.UTC(year, month - 1, dayOfMonth + amount));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
