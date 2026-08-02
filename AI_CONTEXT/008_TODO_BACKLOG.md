@@ -985,10 +985,10 @@
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
-2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1、046-B 與 046-C1／C2 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
+2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1、046-B、046-C1／C2 與 046-C3A 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
 
 - 優先級：待評估
-- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation、046-B pure attribution calculator／quality model 與 046-C1／C2 pure transaction reconciliation 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
+- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation、046-B pure attribution calculator／quality model、046-C1／C2 pure transaction reconciliation 與 046-C3A pure runtime derived-evidence adapter 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
 
@@ -996,7 +996,8 @@
 - **C1 明確不包含**：Firebase Financial Event Ledger synchronization（現有 Firebase root PUT 不具 mixed-version Ledger 安全性，須另開重大階段）、migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI、AI Decision／Rebalance／Household Liquidity consumer wiring 或 Production 部署。
 - **046-B 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240)（`feat/ur-todo-046-b-attribution-calculator`）已 Merge，merge commit `d61e0aa270bf006acb7000e2c1b3be0fc0f68264`，`mergedAt: 2026-08-02T10:11:19Z`。新增純 `deriveNetWorthAttribution()` calculator／quality model，品質狀態為 `unavailable`、`snapshot-only`、`partial`、`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者不得宣稱為 market effect。無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。
 - **046-C1／C2 已完成（2026-08-02）**：PR [#242](https://github.com/hyc640110/family-universal-rebalance/pull/242)（`feat/ur-todo-046-c-transaction-reconciliation`）已 Merge，merge commit `b8b9a4d212917444e313ef22649461a843273bdb`，`mergedAt: 2026-08-02T12:12:48Z`。新增純、deterministic、唯讀 classifier／diagnostic；每筆 `FinancialTransaction` 唯一回傳 `matched`、`candidate`、`unsupported`、`ambiguous`、`duplicate`、`invalid` 之一。安全候選限於既有 taxonomy 可證明的非股息收入、股息、非投資支出、同幣別帳戶轉帳與 adjustment；investment／loan／FX／不明分類不猜測，維持 unsupported。有效 linked event 為 matched、void 不消費、兩個以上有效 linked event 為 duplicate、相似 manual event 為 ambiguous；pending linked 不是 completed-period evidence。**未改 schema、persistence、Firebase、JSON Backup、migration、Ledger 寫入、calculator input／quality、UI、AI Decision、Rebalance 或 Household Liquidity。**
-- **下一正式候選（待盤點，未開始）**：046-C3 reconciliation 結果消費／產品契約。它若要接入 attribution calculator、quality、external flow／internal transfer 正式分類或其他 consumer，即屬**重大事件候選**，須另行產品決策與授權；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則亦均為獨立重大事件，不得自動開始或混入 046-C3。
+- **046-C3A 已完成（2026-08-02）**：PR [#244](https://github.com/hyc640110/family-universal-rebalance/pull/244)（`feat/ur-todo-046-c3a-derived-evidence`）已 Merge，merge commit `0fd1955bfe6267e55072bf2278114f70aa11f98e`，`mergedAt: 2026-08-02T13:15:09Z`。新增純 runtime `deriveRuntimeDerivedAttributionEvidence()`；只把 C1／C2 `candidate` 依 `Asia/Taipei` canonical calendar-day `openingSnapshot.date < effectiveDate <= closingSnapshot.date` 轉為帶 `derived-transaction` provenance 的 derived evidence。可納入 external income、external expense、dividend、internal transfer（零效果）、adjustment（零效果）；matched／duplicate／ambiguous／unsupported／invalid 一律排除。**未將 derived evidence 送入 `deriveNetWorthAttribution()`，未改 calculator output／quality，無 Ledger write、schema、persistence、Firebase、JSON Backup、migration、legacy rewrite、UI 或 AI Decision／Rebalance／Household Liquidity wiring。**
+- **下一正式候選（待盤點，未開始）**：**046-C3B**，將 Ledger contribution 與 derived contribution 正式送入 attribution calculator。此步會改變使用者可見的財務歸因與 quality 語意，屬**重大產品／核心財務語意事件**；必須以最新基線重新審查，並由使用者／ChatGPT 完成最終產品契約確認。Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則仍為各自獨立重大事件，不得混入 C3B 或自動開始。
 
 - 問題：使用者希望能核對「收支與現金流中心記錄的淨儲蓄」與「淨資產歷史實際變動」之間的落差，並將淨值成長拆解為外部投入、投資報酬、負債變化等來源，而非只看總額差分。
 
