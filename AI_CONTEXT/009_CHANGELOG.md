@@ -8,7 +8,9 @@
 
 ## [Unreleased]
 
-**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類與 valid `0`／missing 差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功；C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring。
+**UR-TODO-043-C3 Consumer Wiring 正式完成（2026-08-02）**：C3-A 已由 PR #229 完成，C3-B 已由 PR #231 Merge，merge commit `a755c7ed9c0c3987989c3890fdfa615ae6a7c092`，正式基線推進至此 SHA。History、Analytics、Calendar 使用共享 read-time boundary，保留 valid `0`、missing、invalid、non-finite 四分類與部分 snapshot；Dashboard 與 `aiDecision.ts` 未直接修改，因 App 已提供既有統計／AI／Risk 輸入邊界所需的完整資料。`test:ci` 659 項、TypeScript、Production／Preview build、CI verify `30736102179`、Pages workflow `30736227380` 均成功；C3 整體完成，C4 未觸發。043-B 僅列為下一候選，尚未開始或做產品決策；既存 390px 長文裁切僅列為待盤點，非本次範圍。
+
+**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類與 valid `0`／missing 差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功；C4 未觸發，後續 C3-B 已由 PR #231 完成。
 
 **UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2` 完成唯讀與隔離實機回歸，確認 click handler 實際送出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`，Loading、Success、Partial failure、Full failure 及再次重試皆符合驗收；Console 無產品 error／warn，Preview／Production Worker boundary 未混用。Treasury 上游格式不完整屬外部資料問題，不阻擋本 Todo 結案，不建立 Hotfix。此次僅同步治理文件並重新產生 Full／Lite Bundle。
 
