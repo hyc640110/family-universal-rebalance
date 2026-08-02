@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.56
+# Universal Rebalance Todo Backlog v1.57
 
 最後更新：2026-08-01
+
+2026-08-01 **UR-TODO-003／UR-TODO-048 合併規劃：CLEC 分類語意標示正式標記為已完成**。已由使用者手動 Merge [PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)（`fix/ur-todo-003-048-clec-role-semantic-label`），merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`，`mergedAt: 2026-08-01T16:53:39Z`。UR-TODO-003 唯一剩餘技術缺口（`AssetClass` 與 CLEC `AllocationRole` 語意分歧）與 UR-TODO-048 的 `allocationRoleBySymbol` 清理議題（步驟一）合併解決：使用者決定不做資料統一，於 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案明確標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關；純文案調整，未觸碰任何分類型別、資料值或核心計算邏輯。`Deploy GitHub Pages` run `30709137755` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含新文案，`deployment-environment` metadata 正確、資源路徑未混用。**UR-TODO-003 正式標記為已完成；UR-TODO-048 步驟一（明確標示）正式標記為已完成，步驟二（`allocationRoleBySymbol` 資料層清理）仍維持「待評估」，非本次範圍。** 詳見下方更新後的 **UR-TODO-003**、**UR-TODO-048** 正式條目。
 
 2026-08-01 **UR-TODO-003／UR-TODO-048 合併規劃：CLEC 分類語意標示，Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`fix/ur-todo-003-048-clec-role-semantic-label` 分支，基準 `origin/main` HEAD `1b96e03`）。使用者對 UR-TODO-003 唯一剩餘技術缺口（`AssetClass` 與 CLEC `AllocationRole` 兩套平行分類系統語意可能混淆）與 UR-TODO-048 的 `allocationRoleBySymbol` 清理議題合併決策：**不做資料統一，保留兩套獨立系統，改以文案明確標示**「目前配置來源」卡片顯示的角色分類為 CLEC 模擬專用、與資產頁正式分類無關。範圍：`src/pages/ClecStrategyCenterPage.tsx` 於既有說明文字下方新增一行 `<p className="note clec-role-scope-note">`，純文案調整；**未修改** `AssetClass`／`AllocationRole` 型別定義、既有分類邏輯、任何持股分類資料值，未新增分類轉換或自動推斷機制，未觸碰 CLEC 核心策略計算或 Household Liquidity 核心公式。開發前重新唯讀盤點確認 `allocationRoleBySymbol` 全庫僅 `App.tsx`（8 處）與 `syncState.ts`（1 處）引用，`ClecStrategyCenterPage.tsx` 為唯一顯示角色標籤的畫面，與既有治理紀錄一致，未發現本次盤點未涵蓋的讀寫位置。新增 `tests/clecRoleSemanticScopeNote.test.ts` 2 個測試；`npx tsc -b`、`test:ci` 全數通過（既有 3 個相關測試檔零修改直接通過）；Production／Preview build 皆成功。**待 Merge 與 Preview 實機驗證。** 詳見下方更新後的 **UR-TODO-003**、**UR-TODO-048** 正式條目。
 
@@ -262,7 +264,7 @@
 ### UR-TODO-003 每檔成長／防守分類完整性
 
 - 優先級：P0
-- 狀態：**待驗收**（資料持久化與下游 SSOT 一致性子項已妥善處理；CLEC／`cash-like`／`defensive` 語意分歧一項使用者已明確決定**不做資料統一，改以文案明確標示**解決，實作已完成、Draft PR 待驗收與 Merge，見下方「語意混淆解法」）
+- 狀態：**已完成**（資料持久化與下游 SSOT 一致性子項已妥善處理；CLEC／`cash-like`／`defensive` 語意分歧一項使用者已明確決定**不做資料統一，改以文案明確標示**解決，已由使用者手動 Merge，見下方「語意混淆解法」）
 - 唯讀盤點日期：2026-08-01（Claude Code，Review Mode，基準 `origin/main` HEAD `d49e98b`，未修改任何程式碼）
 - 已有：
   - `assetClass`
@@ -276,7 +278,7 @@
   - **SSOT**：已確認符合。持股層級 `assetClass` 單一正規化來源為 `normalizeState()`／`sanitizeHolding()`，下游 Risk／Rebalance／Dashboard 皆只讀不重算。
   - **CLEC／`cash-like`／`defensive` 的語意 —— 唯一剩餘技術缺口**：全庫比對確認 `clecStrategy.ts`／`clecStrategyRules.ts`／`ClecStrategyCenterPage.tsx`／`ClecRuleSummaryCard.tsx` 完全零命中 `assetClass`／`AssetClass`。CLEC 模組使用的是完全獨立的 `AllocationRole`（`'prototype' | 'leveraged' | 'cash-like' | 'none'`，定義於 `src/lib/allocationPresets.ts:2`），與持股正式分類 `AssetClass`（`growth`／`defensive`）是**兩套互不相通、無轉換邏輯的平行分類系統**。同一檔標的可能在 `AssetClass` 中被標為「防守資產」，又同時在 CLEC 模擬頁面被標為「類現金持股」（`AllocationRole`），語意上仍可能造成混淆，尚未解決。
 - **與 UR-TODO-048 的關聯**：本項唯一剩餘缺口與 UR-TODO-048 條目內「`allocationRoleBySymbol` 欄位清理」待評估議題**直接相關聯**——`allocationRoleBySymbol` 正是承載 `AllocationRole`（含 `cash-like`）語意的 AppState 欄位，UR-TODO-048 子階段 B 完成後已確認此欄位僅剩 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片的裝飾性顯示用途。
-- **語意混淆解法（2026-08-01，使用者拍板）**：使用者明確決定**不做 `AssetClass` 與 `AllocationRole` 資料統一**，保留兩套獨立系統；改為在 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增明確的文案標示，說明該卡片顯示的角色分類（原型資產／槓桿資產／類現金持股）是 CLEC 模擬專用分類，與資產頁「成長／防守」正式配置分類無關。實作依據：Draft PR `fix/ur-todo-003-048-clec-role-semantic-label`（尚未 Merge）。範圍：`src/pages/ClecStrategyCenterPage.tsx` 於既有說明文字下方新增一行 `<p className="note clec-role-scope-note">`，純文案調整，**未修改** `AssetClass`／`AllocationRole` 型別定義或既有分類邏輯、未修改任何持股 `assetClass`／`allocationRoleBySymbol` 資料值、未新增任何分類轉換或自動推斷機制、未觸碰 CLEC 核心策略計算或 Household Liquidity 核心公式。開發前重新唯讀盤點確認 `allocationRoleBySymbol` 全庫僅 `App.tsx`（8 處）與 `syncState.ts`（1 處）引用，`ClecStrategyCenterPage.tsx` 確認為唯一顯示角色標籤（源自 `state.allocationRoleBySymbol`）的畫面，與既有治理紀錄一致，未發現本次盤點未涵蓋的讀寫位置。新增 `tests/clecRoleSemanticScopeNote.test.ts` 2 個測試；`npx tsc -b`、`test:ci` 全數通過（既有 3 個相關測試檔零修改直接通過）。**待 Merge 與 Preview 實機驗證，見下方最新變更記錄。**
+- **語意混淆解法（2026-08-01，使用者拍板）**：使用者明確決定**不做 `AssetClass` 與 `AllocationRole` 資料統一**，保留兩套獨立系統；改為在 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增明確的文案標示，說明該卡片顯示的角色分類（原型資產／槓桿資產／類現金持股）是 CLEC 模擬專用分類，與資產頁「成長／防守」正式配置分類無關。完成依據：[PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)（`fix/ur-todo-003-048-clec-role-semantic-label`），merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`，`mergedAt: 2026-08-01T16:53:39Z`。範圍：`src/pages/ClecStrategyCenterPage.tsx` 於既有說明文字下方新增一行 `<p className="note clec-role-scope-note">`，純文案調整，**未修改** `AssetClass`／`AllocationRole` 型別定義或既有分類邏輯、未修改任何持股 `assetClass`／`allocationRoleBySymbol` 資料值、未新增任何分類轉換或自動推斷機制、未觸碰 CLEC 核心策略計算或 Household Liquidity 核心公式。開發前重新唯讀盤點確認 `allocationRoleBySymbol` 全庫僅 `App.tsx`（8 處）與 `syncState.ts`（1 處）引用，`ClecStrategyCenterPage.tsx` 確認為唯一顯示角色標籤（源自 `state.allocationRoleBySymbol`）的畫面，與既有治理紀錄一致，未發現本次盤點未涵蓋的讀寫位置。新增 `tests/clecRoleSemanticScopeNote.test.ts` 2 個測試；`npx tsc -b`、`test:ci` 全數通過（既有 3 個相關測試檔零修改直接通過）。隔離 Preview 環境（`workflow_dispatch` 部署）實機驗證：進入 CLEC 再平衡策略中心，「目前配置來源」卡片正確顯示新說明文字，位置正確、既有角色標籤與目標比例總和計算不受影響，390px 無橫向溢出，console 無 error。`Deploy GitHub Pages` run `30709137755` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 皆 HTTP 200，並直接比對已部署 JS bundle 內容確認含 `clec-role-scope-note`，`deployment-environment` metadata 正確、資源路徑未混用。
 - 若未來啟動 `allocationRoleBySymbol` 資料層清理（非本次範圍），應一併評估是否統一或明確區隔 `AssetClass` 與 `AllocationRole` 兩套分類語意；兩個 Todo 的後續開發規劃應合併考慮，避免分開處理造成語意設計反覆。
 
 ### UR-TODO-004 同一畫面內成長／防守資產比例小數位數不一致（原標題：桌機／手機目前偏離目標一致性）
@@ -985,7 +987,7 @@
 ### UR-TODO-048 CLEC 433／442 移轉為 CLEC 策略中心純模擬模板
 
 - 優先級：待評估
-- 狀態：**子階段 A～E 已完成**（`allocationRoleBySymbol` 資料層清理維持「待評估」；步驟一「明確標示」已拍板並實作，Draft PR 待驗收，見下方唯讀盤點）
+- 狀態：**子階段 A～E 已完成**（`allocationRoleBySymbol` 資料層清理維持「待評估」；步驟一「明確標示」已拍板、實作並 Merge，正式標記為已完成，見下方唯讀盤點）
 - 提出日期：2026-07-31（子階段 A 唯讀盤點完成日）
 - 子階段 B 完成日期：2026-07-31
 - 子階段 B 完成 PR：[#198](https://github.com/hyc640110/family-universal-rebalance/pull/198)（`feat/ur-todo-048-phaseb-allocation-preset-custom-only`），merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`
@@ -1032,7 +1034,7 @@
   - **清理影響**：localStorage／Firebase／Backup 三邊清理風險皆低（可安全捨棄，無相容性風險，`readState()` 既有機制可平順覆蓋舊值，Backup 匯入舊檔會靜默忽略此欄位不報錯）。**唯一有實際影響的是畫面層**：`ClecStrategyCenterPage` 的角色標籤欄需要重新設計（整欄移除或改寫死值），屬產品呈現決定，非本次盤點範圍能單方面判斷；`removeHoldingAsset()` 的清理程式碼若欄位移除需一併刪除。
   - **結論：暫不清理，維持「待評估」**。建議未來若要清理，拆成兩個原子步驟：步驟一先由使用者決定 `ClecStrategyCenterPage` 角色欄位的呈現方式並明確授權；步驟二才移除資料層（型別、`normalizeState`、`backupPayload`、`stateFromBackup`、`SYNCABLE_TOP_LEVEL_FIELDS`、`removeHoldingAsset` 對應程式碼），比照子階段 B／C 的「狀態層＋UI 層同一 PR」先例。
 
-- **步驟一已拍板（2026-08-01）：使用者決定「明確標示」而非「移除／統一」**。與 UR-TODO-003 合併規劃（詳見該條目「語意混淆解法」段落），`ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關；資料層（`allocationRoleBySymbol` 型別與讀寫程式碼）**維持不動、未進入步驟二清理**。實作依據：Draft PR `fix/ur-todo-003-048-clec-role-semantic-label`（尚未 Merge，待驗收）。
+- **步驟一已完成（2026-08-01）：使用者決定「明確標示」而非「移除／統一」**。與 UR-TODO-003 合併規劃（詳見該條目「語意混淆解法」段落），`ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關；資料層（`allocationRoleBySymbol` 型別與讀寫程式碼）**維持不動、未進入步驟二清理**。完成依據：[PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)，merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`；Production 唯讀驗證通過（`curl` HTTP 200、已部署 JS bundle 內容確認含新文案）。**步驟二（資料層清理）仍維持「待評估」，非本次範圍。**
 
 - 子階段 E（PR #203）已完成結論（使用者提出的兩項獨立小變更，合併同一 PR 處理）：
   - **樣板改名**：`allocationPresetLabel`（`src/lib/allocationPresets.ts`）唯一修改位置，`clec-703` 顯示文字由「CLEC 703」改為「7:3」、`clec-5050` 由「CLEC 5050」改為「50:50」；內部代號與 `PRESET_WEIGHTS` 數值完全未動，`clec-433`／`clec-442` 顯示文字不受影響。
