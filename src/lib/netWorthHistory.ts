@@ -1,14 +1,16 @@
+import { canonicalCalendarDay, selectLastOccurrenceByDate } from './calendarDay';
+
 export type NetWorthSnapshot = { date: string; totalAssets: number; netWorth: number; investmentValue: number; cash: number; debt: number };
 export type NetWorthSnapshotTotals = Omit<NetWorthSnapshot, 'date'>;
 export type HistoryRange = '7d' | '30d' | '90d' | '1y' | 'all';
 const n = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : Number.isFinite(Number(value)) ? Number(value) : 0;
-export function localSnapshotDate(date = new Date()): string { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 10); }
+/** Compatibility name for the snapshot producer; canonical day is always Asia/Taipei. */
+export function localSnapshotDate(date = new Date()): string { return canonicalCalendarDay(date); }
 export function netWorthSnapshotFromTotals(totals: NetWorthSnapshotTotals, date = localSnapshotDate()): NetWorthSnapshot { return { date, totalAssets:n(totals.totalAssets), netWorth:n(totals.netWorth), investmentValue:n(totals.investmentValue), cash:n(totals.cash), debt:n(totals.debt) }; }
 export function normalizeNetWorthHistory(raw: unknown): NetWorthSnapshot[] {
   if (!Array.isArray(raw)) return [];
-  const byDate = new Map<string, NetWorthSnapshot>();
-  raw.forEach(value => { const row = value && typeof value === 'object' ? value as Partial<NetWorthSnapshot> : {}; const date = typeof row.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.date) ? row.date : ''; if (date) byDate.set(date,{date,totalAssets:n(row.totalAssets),netWorth:n(row.netWorth),investmentValue:n(row.investmentValue),cash:n(row.cash),debt:n(row.debt)}); });
-  return [...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
+  const rows = raw.flatMap(value => { const row = value && typeof value === 'object' ? value as Partial<NetWorthSnapshot> : {}; const date = typeof row.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.date) ? row.date : ''; return date ? [{ date, totalAssets:n(row.totalAssets), netWorth:n(row.netWorth), investmentValue:n(row.investmentValue), cash:n(row.cash), debt:n(row.debt) }] : []; });
+  return selectLastOccurrenceByDate(rows);
 }
 export function upsertNetWorthSnapshot(history: NetWorthSnapshot[] | undefined, snapshot: NetWorthSnapshot): NetWorthSnapshot[] { const rows = normalizeNetWorthHistory(history); const index = rows.findIndex(item=>item.date===snapshot.date); if(index >= 0) rows[index] = snapshot; else rows.push(snapshot); return rows.sort((a,b)=>a.date.localeCompare(b.date)); }
 export function historyForRange(history: NetWorthSnapshot[], range: HistoryRange, now = new Date()): NetWorthSnapshot[] { if(range==='all')return history; const days = range==='7d'?7:range==='30d'?30:range==='90d'?90:365; const cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-days+1); const date=localSnapshotDate(cutoff); return history.filter(item=>item.date>=date); }

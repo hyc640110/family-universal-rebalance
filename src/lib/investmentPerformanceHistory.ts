@@ -1,4 +1,5 @@
 import type { NetWorthSnapshot } from './netWorthHistory';
+import { selectLastOccurrenceByDate } from './calendarDay';
 
 export type InvestmentPerformanceRange = '30d' | '90d' | '1y' | 'all';
 export type AssetSeries = 'investmentValue' | 'netWorth';
@@ -32,7 +33,7 @@ function validDate(value: unknown): value is string {
  */
 export function normalizeInvestmentPerformanceHistory(raw: unknown): NetWorthSnapshot[] {
   if (!Array.isArray(raw)) return [];
-  const byDate = new Map<string, NetWorthSnapshot>();
+  const rows: NetWorthSnapshot[] = [];
   raw.forEach(value => {
     const row = value && typeof value === 'object' ? value as Partial<NetWorthSnapshot> : null;
     if (!row || !validDate(row.date)) return;
@@ -42,9 +43,9 @@ export function normalizeInvestmentPerformanceHistory(raw: unknown): NetWorthSna
     const cash = finite(row.cash);
     const debt = finite(row.debt);
     if (totalAssets === null || netWorth === null || investmentValue === null || cash === null || debt === null) return;
-    byDate.set(row.date, { date: row.date, totalAssets, netWorth, investmentValue, cash, debt });
+    rows.push({ date: row.date, totalAssets, netWorth, investmentValue, cash, debt });
   });
-  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+  return selectLastOccurrenceByDate(rows);
 }
 
 export function filterInvestmentPerformanceRange(history: NetWorthSnapshot[], range: InvestmentPerformanceRange, now = new Date()): NetWorthSnapshot[] {

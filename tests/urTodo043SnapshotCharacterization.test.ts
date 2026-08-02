@@ -25,8 +25,8 @@ const snapshot = (date: string, values: Partial<Omit<NetWorthSnapshot, 'date'>> 
   ...values
 });
 
-function localDateInTimeZone(timestamp: string, timeZone: string) {
-  const code = "import { localSnapshotDate } from './src/lib/netWorthHistory.ts'; console.log(localSnapshotDate(new Date(process.argv[1])));";
+function historicalLocalDateInTimeZone(timestamp: string, timeZone: string) {
+  const code = "const date = new Date(process.argv[1]); const offset = date.getTimezoneOffset() * 60000; console.log(new Date(date.getTime() - offset).toISOString().slice(0, 10));";
   return execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', code, timestamp], {
     cwd: projectRoot,
     encoding: 'utf8',
@@ -53,19 +53,19 @@ function decisionInput(history: NetWorthSnapshot[]): AiDecisionInput {
   };
 }
 
-test('current behavior: local snapshot date follows the executing browser timezone for the same UTC instant', () => {
+test('historical characterization: the former local snapshot formula followed the executing browser timezone', () => {
   const timestamp = '2025-12-31T16:30:00.000Z';
-  assert.equal(localDateInTimeZone(timestamp, 'Asia/Taipei'), '2026-01-01');
-  assert.equal(localDateInTimeZone(timestamp, 'UTC'), '2025-12-31');
-  assert.equal(localDateInTimeZone(timestamp, 'America/Los_Angeles'), '2025-12-31');
+  assert.equal(historicalLocalDateInTimeZone(timestamp, 'Asia/Taipei'), '2026-01-01');
+  assert.equal(historicalLocalDateInTimeZone(timestamp, 'UTC'), '2025-12-31');
+  assert.equal(historicalLocalDateInTimeZone(timestamp, 'America/Los_Angeles'), '2025-12-31');
 });
 
 test('known risk: Taiwan midnight and calendar boundaries are derived from local timezone rather than an explicit Taiwan contract', () => {
-  assert.equal(localDateInTimeZone('2025-12-31T15:59:00.000Z', 'Asia/Taipei'), '2025-12-31');
-  assert.equal(localDateInTimeZone('2025-12-31T16:00:00.000Z', 'Asia/Taipei'), '2026-01-01');
-  assert.equal(localDateInTimeZone('2025-12-31T16:01:00.000Z', 'Asia/Taipei'), '2026-01-01');
-  assert.equal(localDateInTimeZone('2026-06-30T15:59:00.000Z', 'Asia/Taipei'), '2026-06-30');
-  assert.equal(localDateInTimeZone('2026-06-30T16:00:00.000Z', 'Asia/Taipei'), '2026-07-01');
+  assert.equal(historicalLocalDateInTimeZone('2025-12-31T15:59:00.000Z', 'Asia/Taipei'), '2025-12-31');
+  assert.equal(historicalLocalDateInTimeZone('2025-12-31T16:00:00.000Z', 'Asia/Taipei'), '2026-01-01');
+  assert.equal(historicalLocalDateInTimeZone('2025-12-31T16:01:00.000Z', 'Asia/Taipei'), '2026-01-01');
+  assert.equal(historicalLocalDateInTimeZone('2026-06-30T15:59:00.000Z', 'Asia/Taipei'), '2026-06-30');
+  assert.equal(historicalLocalDateInTimeZone('2026-06-30T16:00:00.000Z', 'Asia/Taipei'), '2026-07-01');
 });
 
 test('current behavior: same-day snapshots use the final array occurrence, not a timestamp', () => {
