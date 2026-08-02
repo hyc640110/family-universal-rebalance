@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T07:43:25.406345+00:00
+Generated UTC: 2026-08-02T07:58:29.017896+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `eb5bb5e1d22868d1eb362afbedcf87d5fadc32f4a18ff3f55330a810f5129c6d`
-- `008_TODO_BACKLOG.md` — SHA-256 `fce94b37d3ea0e648f395bb5c442286d55b08c579bc22dede4ea17f986682df7`
-- `012_AI_HANDOVER.md` — SHA-256 `d6e63ecbde3a46ee09d88fb62c0f2b05c29be254030e549a81ab6d066a0435d5`
+- `003_CURRENT_STATUS.md` — SHA-256 `e5fcc40be4780011f8c8103687f7d6d720a7422571a1674e8eb9c4a228fbae9c`
+- `008_TODO_BACKLOG.md` — SHA-256 `98c278a1da780a3032b330f8c1a6ee69b26d22dd8a9654f915a30f4e8dcc7553`
+- `012_AI_HANDOVER.md` — SHA-256 `7b4c368cb71f2e8e6062126ca8a5913bd013c4d386b4982c2c3a7d110a7caa74`
 
 ---
 
@@ -425,11 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.70
+# Universal Rebalance Current Status v3.71
 
 最後更新：2026-08-02
 
-**UR-TODO-043-B3 正式完成（2026-08-02）**：PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA。Producer、History／Performance range cutoff、Calendar today/month identity 均接入同一 `Asia/Taipei` canonical calendar-day contract；same-day selection 仍由共享 deterministic last-occurrence selector 提供。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541` 與 Merge 後 Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite；B4 未觸發且不需要啟動。**UR-TODO-043-B（B1～B3）正式完成；UR-TODO-043 整體仍保留原始 Analytics 語意／來源貢獻等待盤點事項。**
+**UR-TODO-043 正式完成候選盤點結論（2026-08-02）**：唯讀核對確認 043-A、C1、C2、C3-A、C3-B、B1、B2、B3 均已完成，且未發現 043 範圍內殘留程式 Bug 或需要最小功能修正的 Analytics 語意缺口。現行 Analytics 對淨資產／投資資產只呈現快照值與兩期差額，已明確說明不等同純投資報酬；快照模型無法證明市場漲跌、投入、提領、股息、現金或負債對差額的來源貢獻。該來源歸因與現金流／淨值落差核對已正式歸入 UR-TODO-046，043 不重做。**UR-TODO-043 正式標記為已完成；B4 不需要、C4 未觸發。**
+
+**UR-TODO-043 完整契約驗證摘要**：`Asia/Taipei` canonical calendar-day、deterministic same-day last-occurrence、snapshot `valid`／`missing`／`invalid`／`non-finite` read-time classification、History／Analytics／Calendar consumer wiring 均已落地；未新增 timestamp、schema、migration、legacy date rewrite 或 persistence 格式變更。UR-TODO-046 維持「待評估」，其對 043-B 的前置依賴已解除，但本次不開始 046。既存 390px 部分長文裁切仍為獨立待盤點問題，不納入 043。
 
 Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer 產生並經 read-time boundary 整理的 history 傳入既有統計／AI／Risk 輸入邊界；本次僅修正直接決定 snapshot date identity 的 range／calendar wiring。既存 390px 部分長文裁切問題非本次變更造成，僅記錄為待盤點，不在本次修正。B4 不需要啟動；不得混入 C4、UR-TODO-030 或其他 Todo。
 
@@ -491,7 +493,7 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer �
 
 本次更新依據：**PR #182**（「feat: UR-TODO-045 net worth history grid collapse」）已由使用者手動 Merge，merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-045（淨資產歷史頁面新增收合／分頁功能）正式標記為已完成**：`NetWorthHistoryPage.tsx` 新增純前端顯示層收合機制（`showAllHistoryGrid`，不持久化），預設顯示最新 7 筆，超過 7 筆時可展開；`src/lib/netWorthHistory.ts` 資料層完全未觸碰。`CI Verification` run `30441980987` success；`Deploy GitHub Pages` run `30442672832` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；Production 上實測收合／展開／再收合三段行為皆符合預期。
 
-**治理落差已同步修正（2026-08-02）**：PR #235 已補齊 043-B3 Merge 事實與最新正式基線；`003`／`008`／`012` 中將 B1/B2 或 B3 寫成現行下一候選的敘述均已更正。UR-TODO-043 仍為 P2 主題，但 043-A、043-C1、043-C2、043-C3-A、043-C3-B、043-B1、043-B2、043-B3 均已完成，043-B 整體完成；C4／B4 均未觸發，原始 Analytics 語意與來源貢獻事項仍待盤點。
+**治理落差已同步修正（2026-08-02）**：本次最終盤點確認 PR #235 與 PR #236 後，UR-TODO-043 全部 A／B／C 子階段均完成，來源歸因缺口屬 UR-TODO-046，不是 043 的殘留程式缺口；043 正式結案，C4／B4 均未觸發。UR-TODO-046 維持待評估且依賴已解除；390px 裁切維持獨立待盤點。
 
 本次更新依據：**PR #179**（「docs: reconfirm UR-TODO-030 homepage 30-second decision center direction」）已由使用者手動 Merge，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`，此為目前 `main`／`origin/main` 正式基線。此 PR 正式再次確認首頁「30 秒決策中心」產品方向為既有決策並完整保留：首頁未來只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。**本 PR 未修改任何首頁 UI，未開始 UR-TODO-043-C2**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍。Deploy GitHub Pages run `30386642108` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
 
@@ -1875,10 +1877,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
 
-2026-08-02 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成**。PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA；Producer、History／Performance range cutoff、Calendar today/month identity 均接入共享 `Asia/Taipei` canonical calendar-day contract，same-day selection 維持共享 deterministic last-occurrence。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite。**043-B（B1～B3）正式完成，B4 未觸發且不需要；UR-TODO-043 原始 Analytics 語意／來源貢獻事項仍待盤點。**
+2026-08-02 **UR-TODO-043 結案前最終盤點完成，正式標記為已完成**：唯讀核對確認 A／B／C 所有技術契約均已完成，Analytics 現況沒有 043 範圍內殘留 Bug 或必須修正的語意不一致。現行頁面呈現快照值與兩期差額，並明確說明每日快照變動可能包含入金、提領、現金或負債變化、不等同純投資損益；`NetWorthSnapshot` 沒有事件來源欄位，因此無法由目前資料模型證明市場漲跌、投入本金、提領、股息、現金或負債各自的貢獻。這項來源歸因與淨值成長落差核對已由 **UR-TODO-046** 承接，043 不重做。**UR-TODO-043 正式結案；B4 不需要、C4 未觸發。**
+
+2026-08-02 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成**。PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA；Producer、History／Performance range cutoff、Calendar today/month identity 均接入共享 `Asia/Taipei` canonical calendar-day contract，same-day selection 維持共享 deterministic last-occurrence。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite。**043-B（B1～B3）正式完成，B4 未觸發且不需要；043 結案前剩餘來源歸因問題已確認由 UR-TODO-046 承接。**
 
 - 優先級：P2
-- 狀態：**C3、043-B1、043-B2、043-B3 已完成；043-B 整體已完成；UR-TODO-043 仍為 P2／待盤點（原始 Analytics 語意／來源貢獻事項尚未全部處理）**
+- 狀態：**已完成**
 - 提出日期：2026-07-28
 
 - 問題：
@@ -1918,6 +1922,12 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - Dashboard-derived stats 與 AI Decision performance-derived stats 維持既有 App history input boundary；未為形式接線而修改不直接決定 snapshot date identity 的原始模組。
   - localStorage、Firebase、JSON Backup、Import／Export、NetWorthSnapshot type、schema、migration、timestamp 與 C3 四分類契約均未改變；Household Liquidity、Rebalance、Treasury、Worker、UR-TODO-030 與 390px clipping 均未納入。
 
+- 結案前最終盤點結論：
+  - A／B／C 已全部完成：characterization、read-time snapshot classification、consumer wiring、canonical `Asia/Taipei` calendar day、deterministic same-day selection 均已有正式實作與測試保護。
+  - Analytics 的淨資產變化、投資資產變化、現金與負債影響目前是 snapshot 欄位或兩期差額；投入、提領、股息、市場漲跌與資產配置變化的個別來源無法由現有 snapshot／transaction 關聯直接證明。
+  - 上述來源歸因與現金流／淨值落差核對已正式屬 UR-TODO-046；043 不新增功能、不重做 046。046 維持「待評估」，其對 043-B 的依賴已解除。
+  - 未發現需要 043 範圍內小型修正的 Analytics 文案、shared helper 接線或資料不足呈現缺口；未建立功能修正 PR。
+
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
   2. 休市日快照的建立時機與觸發來源。
@@ -1945,7 +1955,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **UR-TODO-043-C3、043-B1、043-B2、043-B3 已完成；043-B 整體正式完成。B4 不需要啟動，因本次未出現需要 timestamp、schema、migration、legacy metadata、既有資料改寫或 round-trip 破壞語意的實證。**
+  - **UR-TODO-043-C3、043-B1、043-B2、043-B3 已完成；043-B 整體正式完成；UR-TODO-043 正式結案。B4 不需要啟動，因本次未出現需要 timestamp、schema、migration、legacy metadata、既有資料改寫或 round-trip 破壞語意的實證。**
   - **043-C4** 目前未觸發，維持未啟動。
   - 既存 390px 部分長文裁切問題非 C3-B 造成，僅列為待盤點，不在本 Todo 內順便修正。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
@@ -1963,8 +1973,10 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
+2026-08-02 結案同步：UR-TODO-043-B（日期／時區契約）已完成，因此本 Todo 的前置依賴已解除；本次不開始 UR-TODO-046，維持待評估，仍需另行決定資料模型與產品契約。
+
 - 優先級：待評估
-- 狀態：**待評估**（Phase 1 唯讀盤點已完成，等待 UR-TODO-043-B 日期／時區契約定案後再排程）
+- 狀態：**待評估**（Phase 1 唯讀盤點已完成；UR-TODO-043-B 依賴已解除，尚未授權排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
 
@@ -1972,7 +1984,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 - Phase 1 唯讀盤點結論：
   1. `NetWorthSnapshot`（`src/lib/netWorthHistory.ts`）只有 `totalAssets／netWorth／investmentValue／cash／debt` 五個總額欄位，完全沒有成因拆解；`deriveHistoryStats`／`deriveInvestmentPerformanceStats` 的 `todayChange`／`monthChange` 等統計都是總額差分，無法分辨差異來自市場漲跌或現金存入。既有 `deriveInvestmentPerformanceQuality`（`src/lib/investmentPerformanceHistory.ts`）已明確寫死 `canCalculateCagr: false`／`canCalculateXirr: false`，理由是「缺少可辨識的投資投入、提領與出售現金流」——本功能要解決的資料缺口與 CAGR／XIRR 現有缺口同源，非新問題。
-  2. 「收支與現金流中心」的 `CashFlowProfile`（`src/lib/cashFlow.ts`）是單一目前生效的月度計畫，沒有歷史序列、沒有逐筆時間戳記；App 內唯一具備 `occurredAt` 時間戳的是另一套獨立的 `FinancialTransaction`（`src/lib/financialAccounts.ts`），兩套資料模型目前互不相通。即使改用 `FinancialTransaction`，其 UTC ISO 時間戳與 `NetWorthSnapshot` 的當地日曆日字串（`localSnapshotDate`）之間也沒有共用的日期換算邏輯，而日期／時區契約本身正是 **UR-TODO-043-B** 尚未定案的範圍，不應在本 Todo 內搶先自訂。
+  2. 「收支與現金流中心」的 `CashFlowProfile`（`src/lib/cashFlow.ts`）是單一目前生效的月度計畫，沒有歷史序列、沒有逐筆時間戳記；App 內唯一具備 `occurredAt` 時間戳的是另一套獨立的 `FinancialTransaction`（`src/lib/financialAccounts.ts`），兩套資料模型目前互不相通。即使改用 `FinancialTransaction`，仍需在 UR-TODO-046 另行設計其 UTC ISO 時間戳與 `NetWorthSnapshot` canonical 日曆日的比對契約；043-B 已完成，本 Todo 不得自行假設產品層級來源規則。
   3. `householdLiquidity.ts` 的 `dataCompleteness`（`complete／partial／insufficient`）是單一時間點輸入品質分類，語意與「跨時間比對落差」完全不同，不能直接沿用，需要全新的比對邏輯與資料來源。
   4. 全庫搜尋確認沒有既有「淨值歸因」或「記帳對帳」實作或測試；語意相近但範疇不同的既有項目為 **UR-TODO-023（月底自動對帳）**（P4，待開發，比對對象是匯入銀行交易 vs App 記帳，而非現金流計畫 vs 淨值歷史），排程時須明確與其劃清邊界，避免混淆或誤判為重複。
 
@@ -1981,10 +1993,10 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - 讓淨值快照改為串接 `FinancialTransaction` 逐筆現金流，取代目前的「總額覆寫」模式。
   這兩者皆牽動 `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 第 5／6／7／29 節（金額來源分類、核心輸入契約、Schema／Migration 規則），須先有獨立唯讀盤點與 Schema 影響評估，不得在同一 Sprint 內直接實作。
 
-- 成本評估：**大（Large）**。需先解決「有無可歸因、帶時間戳的投資現金流資料」這個地基問題，而此問題目前連既有 CAGR／XIRR 功能都尚未解決；且必須等待 UR-TODO-043-B 定案，否則會提前自訂一個尚未授權的日期／時區產品契約。
+- 成本評估：**大（Large）**。需先解決「有無可歸因、帶時間戳的投資現金流資料」這個地基問題，而此問題目前連既有 CAGR／XIRR 功能都尚未解決；043-B 已完成，但仍不能替代 046 所需的產品與資料模型決策。
 
 - 明確依賴：
-  - **UR-TODO-043-B**（日期／時區契約，尚未定案）必須先決定，本 Todo 才能進入規格設計。
+  - **UR-TODO-043-B**（日期／時區契約）已完成，前置依賴已解除；本 Todo 仍需另行產品與資料模型決策。
   - 需先由使用者決定「記帳資料以 CashFlowProfile 月度計畫為準，還是以 FinancialTransaction 逐筆交易為準」這個產品層級問題。
 
 - 明確不包含（本次 Phase 1）：
@@ -1992,7 +2004,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
   - 未建立功能 Branch、未實作任何計算邏輯或 UI。
   - 未與 UR-TODO-023、UR-TODO-043 系列產生耦合修改。
 
-- 排程：待 UR-TODO-043-B 定案後，由使用者決定是否／何時排入正式規格設計與 Sprint。未經「開始開發」不得建立功能 Branch 或實作。
+- 排程：由使用者另行決定是否／何時排入正式規格設計與 Sprint；未經針對 UR-TODO-046 的明確授權，不得建立功能 Branch 或實作。
 
 ### UR-TODO-047 負債模組與現金流固定支出清單重複計算風險盤點
 
@@ -2194,13 +2206,14 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ---
 
-## 最新交接快照：UR-TODO-043-B3 Merge 後治理同步（2026-08-02）
+## 最新交接快照：UR-TODO-043 正式結案（2026-08-02）
 
-- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #235 推進至 **`b783d2af974271bbbb2ec64149802d746c98e06b`**。
-- UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 已正式完成：PR #235 已 Merge；Producer、History／Performance range cutoff、Calendar today/month identity 均使用 `Asia/Taipei` canonical day，同日多筆仍由 shared deterministic last-occurrence selector 決定。
+- 正式基線：`main`、`origin/main`、`HEAD` 已由治理 PR #236 推進至 **`844d4fe9756f1ef8fe3b5ddf1f9c8be867928516`**。
+- UR-TODO-043 已正式結案：A／B／C 全部完成，包含 C3-A／C3-B、B1／B2／B3；PR #235 完成功能契約，PR #236 完成結案治理同步。
 - C3-A／C3-B 與 B1～B3 共用 read-time／same-day／calendar-day boundary；未修改 AppState、localStorage／Firebase／JSON Backup schema、Import／Export、migration、legacy date、timestamp 或既有 snapshot。Dashboard／`aiDecision.ts` 維持既有 App history input boundary；Household Liquidity、Rebalance、Treasury、Worker 均未修改。
-- `test:ci` 680 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30738055541`、Pages workflow `30738107227` 均成功。**UR-TODO-043-B（B1～B3）正式完成；B4 未觸發且不需要。UR-TODO-043 整體仍保留原始 Analytics 語意／來源貢獻待盤點事項。**
-- 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；不得在 043-B 或本次治理同步中順便修正。
+- Analytics 目前呈現快照值與兩期差額，並明確說明不等同純投資損益；現有 `NetWorthSnapshot`／`FinancialTransaction` 模型無法直接證明市場、投入、提領、股息、現金或負債的個別來源貢獻。該來源歸因與淨值落差核對正式由 UR-TODO-046 承接；046 維持待評估，對 043-B 的依賴已解除，本次不開始 046。
+- `test:ci` 680 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30738388551`、Pages workflow `30738434065` 均成功。**UR-TODO-043 正式完成；B4 不需要、C4 未觸發。**
+- 既存 390px 部分長文裁切問題非本次變更造成，仍為獨立待盤點事項；不得在 043 結案中順便修正。
 - 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
 
 ---

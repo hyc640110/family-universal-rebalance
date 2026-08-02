@@ -889,10 +889,12 @@
 
 ### UR-TODO-043 Analytics 每日資產快照休市日變動語意與來源明細
 
-2026-08-02 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成**。PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA；Producer、History／Performance range cutoff、Calendar today/month identity 均接入共享 `Asia/Taipei` canonical calendar-day contract，same-day selection 維持共享 deterministic last-occurrence。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite。**043-B（B1～B3）正式完成，B4 未觸發且不需要；UR-TODO-043 原始 Analytics 語意／來源貢獻事項仍待盤點。**
+2026-08-02 **UR-TODO-043 結案前最終盤點完成，正式標記為已完成**：唯讀核對確認 A／B／C 所有技術契約均已完成，Analytics 現況沒有 043 範圍內殘留 Bug 或必須修正的語意不一致。現行頁面呈現快照值與兩期差額，並明確說明每日快照變動可能包含入金、提領、現金或負債變化、不等同純投資損益；`NetWorthSnapshot` 沒有事件來源欄位，因此無法由目前資料模型證明市場漲跌、投入本金、提領、股息、現金或負債各自的貢獻。這項來源歸因與淨值成長落差核對已由 **UR-TODO-046** 承接，043 不重做。**UR-TODO-043 正式結案；B4 不需要、C4 未觸發。**
+
+2026-08-02 **UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 正式完成**。PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA；Producer、History／Performance range cutoff、Calendar today/month identity 均接入共享 `Asia/Taipei` canonical calendar-day contract，same-day selection 維持共享 deterministic last-occurrence。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541`、Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite。**043-B（B1～B3）正式完成，B4 未觸發且不需要；043 結案前剩餘來源歸因問題已確認由 UR-TODO-046 承接。**
 
 - 優先級：P2
-- 狀態：**C3、043-B1、043-B2、043-B3 已完成；043-B 整體已完成；UR-TODO-043 仍為 P2／待盤點（原始 Analytics 語意／來源貢獻事項尚未全部處理）**
+- 狀態：**已完成**
 - 提出日期：2026-07-28
 
 - 問題：
@@ -932,6 +934,12 @@
   - Dashboard-derived stats 與 AI Decision performance-derived stats 維持既有 App history input boundary；未為形式接線而修改不直接決定 snapshot date identity 的原始模組。
   - localStorage、Firebase、JSON Backup、Import／Export、NetWorthSnapshot type、schema、migration、timestamp 與 C3 四分類契約均未改變；Household Liquidity、Rebalance、Treasury、Worker、UR-TODO-030 與 390px clipping 均未納入。
 
+- 結案前最終盤點結論：
+  - A／B／C 已全部完成：characterization、read-time snapshot classification、consumer wiring、canonical `Asia/Taipei` calendar day、deterministic same-day selection 均已有正式實作與測試保護。
+  - Analytics 的淨資產變化、投資資產變化、現金與負債影響目前是 snapshot 欄位或兩期差額；投入、提領、股息、市場漲跌與資產配置變化的個別來源無法由現有 snapshot／transaction 關聯直接證明。
+  - 上述來源歸因與現金流／淨值落差核對已正式屬 UR-TODO-046；043 不新增功能、不重做 046。046 維持「待評估」，其對 043-B 的依賴已解除。
+  - 未發現需要 043 範圍內小型修正的 Analytics 文案、shared helper 接線或資料不足呈現缺口；未建立功能修正 PR。
+
 - 待盤點：
   1. 當日快照與前一日、前一交易日或前一筆有效快照的精確比較規則。
   2. 休市日快照的建立時機與觸發來源。
@@ -959,7 +967,7 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **UR-TODO-043-C3、043-B1、043-B2、043-B3 已完成；043-B 整體正式完成。B4 不需要啟動，因本次未出現需要 timestamp、schema、migration、legacy metadata、既有資料改寫或 round-trip 破壞語意的實證。**
+  - **UR-TODO-043-C3、043-B1、043-B2、043-B3 已完成；043-B 整體正式完成；UR-TODO-043 正式結案。B4 不需要啟動，因本次未出現需要 timestamp、schema、migration、legacy metadata、既有資料改寫或 round-trip 破壞語意的實證。**
   - **043-C4** 目前未觸發，維持未啟動。
   - 既存 390px 部分長文裁切問題非 C3-B 造成，僅列為待盤點，不在本 Todo 內順便修正。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
@@ -977,8 +985,10 @@
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
+2026-08-02 結案同步：UR-TODO-043-B（日期／時區契約）已完成，因此本 Todo 的前置依賴已解除；本次不開始 UR-TODO-046，維持待評估，仍需另行決定資料模型與產品契約。
+
 - 優先級：待評估
-- 狀態：**待評估**（Phase 1 唯讀盤點已完成，等待 UR-TODO-043-B 日期／時區契約定案後再排程）
+- 狀態：**待評估**（Phase 1 唯讀盤點已完成；UR-TODO-043-B 依賴已解除，尚未授權排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
 
@@ -986,7 +996,7 @@
 
 - Phase 1 唯讀盤點結論：
   1. `NetWorthSnapshot`（`src/lib/netWorthHistory.ts`）只有 `totalAssets／netWorth／investmentValue／cash／debt` 五個總額欄位，完全沒有成因拆解；`deriveHistoryStats`／`deriveInvestmentPerformanceStats` 的 `todayChange`／`monthChange` 等統計都是總額差分，無法分辨差異來自市場漲跌或現金存入。既有 `deriveInvestmentPerformanceQuality`（`src/lib/investmentPerformanceHistory.ts`）已明確寫死 `canCalculateCagr: false`／`canCalculateXirr: false`，理由是「缺少可辨識的投資投入、提領與出售現金流」——本功能要解決的資料缺口與 CAGR／XIRR 現有缺口同源，非新問題。
-  2. 「收支與現金流中心」的 `CashFlowProfile`（`src/lib/cashFlow.ts`）是單一目前生效的月度計畫，沒有歷史序列、沒有逐筆時間戳記；App 內唯一具備 `occurredAt` 時間戳的是另一套獨立的 `FinancialTransaction`（`src/lib/financialAccounts.ts`），兩套資料模型目前互不相通。即使改用 `FinancialTransaction`，其 UTC ISO 時間戳與 `NetWorthSnapshot` 的當地日曆日字串（`localSnapshotDate`）之間也沒有共用的日期換算邏輯，而日期／時區契約本身正是 **UR-TODO-043-B** 尚未定案的範圍，不應在本 Todo 內搶先自訂。
+  2. 「收支與現金流中心」的 `CashFlowProfile`（`src/lib/cashFlow.ts`）是單一目前生效的月度計畫，沒有歷史序列、沒有逐筆時間戳記；App 內唯一具備 `occurredAt` 時間戳的是另一套獨立的 `FinancialTransaction`（`src/lib/financialAccounts.ts`），兩套資料模型目前互不相通。即使改用 `FinancialTransaction`，仍需在 UR-TODO-046 另行設計其 UTC ISO 時間戳與 `NetWorthSnapshot` canonical 日曆日的比對契約；043-B 已完成，本 Todo 不得自行假設產品層級來源規則。
   3. `householdLiquidity.ts` 的 `dataCompleteness`（`complete／partial／insufficient`）是單一時間點輸入品質分類，語意與「跨時間比對落差」完全不同，不能直接沿用，需要全新的比對邏輯與資料來源。
   4. 全庫搜尋確認沒有既有「淨值歸因」或「記帳對帳」實作或測試；語意相近但範疇不同的既有項目為 **UR-TODO-023（月底自動對帳）**（P4，待開發，比對對象是匯入銀行交易 vs App 記帳，而非現金流計畫 vs 淨值歷史），排程時須明確與其劃清邊界，避免混淆或誤判為重複。
 
@@ -995,10 +1005,10 @@
   - 讓淨值快照改為串接 `FinancialTransaction` 逐筆現金流，取代目前的「總額覆寫」模式。
   這兩者皆牽動 `013_HOUSEHOLD_LIQUIDITY_SPEC.md` 第 5／6／7／29 節（金額來源分類、核心輸入契約、Schema／Migration 規則），須先有獨立唯讀盤點與 Schema 影響評估，不得在同一 Sprint 內直接實作。
 
-- 成本評估：**大（Large）**。需先解決「有無可歸因、帶時間戳的投資現金流資料」這個地基問題，而此問題目前連既有 CAGR／XIRR 功能都尚未解決；且必須等待 UR-TODO-043-B 定案，否則會提前自訂一個尚未授權的日期／時區產品契約。
+- 成本評估：**大（Large）**。需先解決「有無可歸因、帶時間戳的投資現金流資料」這個地基問題，而此問題目前連既有 CAGR／XIRR 功能都尚未解決；043-B 已完成，但仍不能替代 046 所需的產品與資料模型決策。
 
 - 明確依賴：
-  - **UR-TODO-043-B**（日期／時區契約，尚未定案）必須先決定，本 Todo 才能進入規格設計。
+  - **UR-TODO-043-B**（日期／時區契約）已完成，前置依賴已解除；本 Todo 仍需另行產品與資料模型決策。
   - 需先由使用者決定「記帳資料以 CashFlowProfile 月度計畫為準，還是以 FinancialTransaction 逐筆交易為準」這個產品層級問題。
 
 - 明確不包含（本次 Phase 1）：
@@ -1006,7 +1016,7 @@
   - 未建立功能 Branch、未實作任何計算邏輯或 UI。
   - 未與 UR-TODO-023、UR-TODO-043 系列產生耦合修改。
 
-- 排程：待 UR-TODO-043-B 定案後，由使用者決定是否／何時排入正式規格設計與 Sprint。未經「開始開發」不得建立功能 Branch 或實作。
+- 排程：由使用者另行決定是否／何時排入正式規格設計與 Sprint；未經針對 UR-TODO-046 的明確授權，不得建立功能 Branch 或實作。
 
 ### UR-TODO-047 負債模組與現金流固定支出清單重複計算風險盤點
 

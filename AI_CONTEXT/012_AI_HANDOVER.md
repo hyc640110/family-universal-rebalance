@@ -8,13 +8,14 @@
 
 ---
 
-## 最新交接快照：UR-TODO-043-B3 Merge 後治理同步（2026-08-02）
+## 最新交接快照：UR-TODO-043 正式結案（2026-08-02）
 
-- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #235 推進至 **`b783d2af974271bbbb2ec64149802d746c98e06b`**。
-- UR-TODO-043-B3 Canonical Date Contract Producer／Consumer Wiring 已正式完成：PR #235 已 Merge；Producer、History／Performance range cutoff、Calendar today/month identity 均使用 `Asia/Taipei` canonical day，同日多筆仍由 shared deterministic last-occurrence selector 決定。
+- 正式基線：`main`、`origin/main`、`HEAD` 已由治理 PR #236 推進至 **`844d4fe9756f1ef8fe3b5ddf1f9c8be867928516`**。
+- UR-TODO-043 已正式結案：A／B／C 全部完成，包含 C3-A／C3-B、B1／B2／B3；PR #235 完成功能契約，PR #236 完成結案治理同步。
 - C3-A／C3-B 與 B1～B3 共用 read-time／same-day／calendar-day boundary；未修改 AppState、localStorage／Firebase／JSON Backup schema、Import／Export、migration、legacy date、timestamp 或既有 snapshot。Dashboard／`aiDecision.ts` 維持既有 App history input boundary；Household Liquidity、Rebalance、Treasury、Worker 均未修改。
-- `test:ci` 680 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30738055541`、Pages workflow `30738107227` 均成功。**UR-TODO-043-B（B1～B3）正式完成；B4 未觸發且不需要。UR-TODO-043 整體仍保留原始 Analytics 語意／來源貢獻待盤點事項。**
-- 既存 390px 部分長文裁切問題非本次變更造成，僅列為待盤點；不得在 043-B 或本次治理同步中順便修正。
+- Analytics 目前呈現快照值與兩期差額，並明確說明不等同純投資損益；現有 `NetWorthSnapshot`／`FinancialTransaction` 模型無法直接證明市場、投入、提領、股息、現金或負債的個別來源貢獻。該來源歸因與淨值落差核對正式由 UR-TODO-046 承接；046 維持待評估，對 043-B 的依賴已解除，本次不開始 046。
+- `test:ci` 680 項、TypeScript、Production／Preview build、`git diff --check`、CI verify `30738388551`、Pages workflow `30738434065` 均成功。**UR-TODO-043 正式完成；B4 不需要、C4 未觸發。**
+- 既存 390px 部分長文裁切問題非本次變更造成，仍為獨立待盤點事項；不得在 043 結案中順便修正。
 - 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
 
 ---
