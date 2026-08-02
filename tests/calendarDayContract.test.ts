@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { canonicalCalendarDay, selectLastOccurrenceByDate } from '../src/lib/calendarDay';
-import { localSnapshotDate, type NetWorthSnapshot } from '../src/lib/netWorthHistory';
+import { canonicalCalendarDay, selectLastOccurrenceByDate, shiftCanonicalCalendarDay } from '../src/lib/calendarDay';
+import { historyForRange, localSnapshotDate, type NetWorthSnapshot } from '../src/lib/netWorthHistory';
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const snapshot = (date: string, netWorth: number): NetWorthSnapshot => ({
@@ -54,4 +55,23 @@ test('same-day selector keeps the final occurrence and explicitly does not use t
 test('same-day selector preserves distinct dates and existing date strings', () => {
   const rows = [snapshot('2026-07-02', 200), snapshot('2026-07-01', 100), snapshot('2026-07-02', 220)];
   assert.deepEqual(selectLastOccurrenceByDate(rows).map(row => [row.date, row.netWorth]), [['2026-07-01', 100], ['2026-07-02', 220]]);
+});
+
+test('canonical day shifts stay independent of runtime timezone', () => {
+  assert.equal(shiftCanonicalCalendarDay('2026-01-01', -1), '2025-12-31');
+  assert.equal(shiftCanonicalCalendarDay('2026-02-28', 1), '2026-03-01');
+  assert.equal(shiftCanonicalCalendarDay('2026-12-31', 1), '2027-01-01');
+});
+
+test('App snapshot producer uses the compatibility entry backed by the canonical helper', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /netWorthSnapshotFromTotals\(\{/);
+  assert.match(app, /upsertNetWorthSnapshot\(stateRef\.current\.netWorthHistory, currentNetWorthSnapshot\)/);
+  assert.match(readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8'), /localSnapshotDate\(date = new Date\(\)\): string \{ return canonicalCalendarDay\(date\); \}/);
+});
+
+test('net-worth history ranges use the canonical Taipei day at the UTC boundary', () => {
+  const rows = [snapshot('2026-01-01', 100), snapshot('2026-01-02', 110), snapshot('2026-01-08', 120)];
+  assert.deepEqual(historyForRange(rows, '7d', new Date('2026-01-08T15:59:00.000Z')).map(row => row.date), ['2026-01-02', '2026-01-08']);
+  assert.deepEqual(historyForRange(rows, '7d', new Date('2026-01-08T16:00:00.000Z')).map(row => row.date), ['2026-01-08']);
 });

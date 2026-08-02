@@ -1,5 +1,5 @@
 import type { NetWorthSnapshot } from './netWorthHistory';
-import { selectLastOccurrenceByDate } from './calendarDay';
+import { canonicalCalendarDay, selectLastOccurrenceByDate, shiftCanonicalCalendarDay } from './calendarDay';
 
 export type InvestmentPerformanceRange = '30d' | '90d' | '1y' | 'all';
 export type AssetSeries = 'investmentValue' | 'netWorth';
@@ -52,10 +52,7 @@ export function filterInvestmentPerformanceRange(history: NetWorthSnapshot[], ra
   const rows = normalizeInvestmentPerformanceHistory(history);
   if (range === 'all') return rows;
   const days = range === '30d' ? 30 : range === '90d' ? 90 : 365;
-  const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - days + 1);
-  const offset = cutoff.getTimezoneOffset() * 60000;
-  const cutoffDate = new Date(cutoff.getTime() - offset).toISOString().slice(0, 10);
+  const cutoffDate = shiftCanonicalCalendarDay(canonicalCalendarDay(now), -days + 1);
   return rows.filter(row => row.date >= cutoffDate);
 }
 

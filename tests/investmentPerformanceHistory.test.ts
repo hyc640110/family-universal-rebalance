@@ -45,3 +45,15 @@ test('filters ranges and reports transparent quality limitations', () => {
   assert.equal(quality.canCalculateCagr, false);
   assert.match(quality.cagrReason, /現金流/);
 });
+
+test('filters ranges by canonical Taipei day rather than runtime timezone', () => {
+  const rows = [row('2025-12-10', 100), row('2025-12-11', 110), row('2026-01-08', 120)];
+  assert.deepEqual(
+    filterInvestmentPerformanceRange(rows, '30d', new Date('2026-01-08T15:59:00.000Z')).map(item => item.date),
+    ['2025-12-10', '2025-12-11', '2026-01-08']
+  );
+  assert.deepEqual(
+    filterInvestmentPerformanceRange(rows, '30d', new Date('2026-01-08T16:00:00.000Z')).map(item => item.date),
+    ['2025-12-11', '2026-01-08']
+  );
+});
