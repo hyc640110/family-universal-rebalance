@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+**UR-TODO-046 B Pure Attribution Calculator／Quality Model（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge，merge commit `d61e0aa270bf006acb7000e2c1b3be0fc0f68264`。新增未接線的純 `deriveNetWorthAttribution()` calculator／quality model，品質狀態僅為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出 classified contribution 與 explicit unexplained residual，並明確禁止把 residual 宣稱為 market effect。未修改 schema、persistence、Firebase、migration、UI、AI Decision、Rebalance 或 Household Liquidity。UR-TODO-046 整體仍為部分完成；下一候選 046-C existing transaction reconciliation 為重大事件候選。
+
 **UR-TODO-046 C1 Financial Event Ledger contract／persistence foundation（2026-08-02）**：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已由使用者最終授權 Merge，merge commit `ef42c2408c989bc56c4ee1d31986161c7628ed2f`。C1 新增 forward-only Ledger contract、future-schema opaque fail-safe、現有 taxonomy 可證明的 linked transaction validation 與 transaction duplicate-consumption guard；持久化僅為 AppState、localStorage、JSON Backup／Full Restore。**不含 Firebase Ledger sync**：現有 root PUT 不具 mixed-version Ledger 安全性，需另開重大階段。未做 migration、legacy rewrite、split allocation schema、attribution calculator、事件輸入 UI 或 AI Decision／Rebalance／Household Liquidity consumer wiring；UR-TODO-046 整體仍為部分完成／後續待評估。
 
 **UR-TODO-043 正式結案（2026-08-02）**：結案前唯讀最終盤點確認 043-A、C1、C2、C3-A、C3-B、B1、B2、B3 全數完成；Analytics 現況沒有 043 範圍內殘留程式 Bug 或需最小修正的語意缺口。現行資料模型能證明快照欄位與兩期差額，但不能證明市場漲跌、投入、提領、股息、現金或負債的個別來源貢獻；此核心資料缺口已正式由 UR-TODO-046 承接，043 不重做。UR-TODO-043 標記為已完成；B4 不需要、C4 未觸發；UR-TODO-046 維持待評估且對 043-B 的依賴已解除。390px 長文裁切維持獨立待盤點，不納入本 Todo。

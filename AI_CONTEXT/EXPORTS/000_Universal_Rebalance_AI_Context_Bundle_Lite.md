@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T09:54:29.245519+00:00
+Generated UTC: 2026-08-02T10:50:32.485282+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `053479763f4c651bba8275651d3ebe03347ad74c821319e06780a1965542d1d0`
-- `008_TODO_BACKLOG.md` — SHA-256 `29a846734c45a3dce04330f9c6839e0e343eb45a3f5232ce6abddd26303edecc`
-- `012_AI_HANDOVER.md` — SHA-256 `b6f2bb5fbf07c7e1c5cbd8b14569e13b8895213866e06ddd77349f89e504e59c`
+- `003_CURRENT_STATUS.md` — SHA-256 `a7197a980f5f5d768a35e4ed4737653e8e80ee9addea2fb3adc685e18d7451fd`
+- `008_TODO_BACKLOG.md` — SHA-256 `59406c96b21f64b218df4c058c665217c4e650f647cc137ddaa80a93f25dc183`
+- `012_AI_HANDOVER.md` — SHA-256 `02b7fa3c630e6d55aa74c55227ba62d4a0ed7f878ab13b3ff351cffe3b5856a3`
 
 ---
 
@@ -425,11 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.72
+# Universal Rebalance Current Status v3.73
 
 最後更新：2026-08-02
 
-**UR-TODO-046 C1 Financial Event Ledger contract／persistence foundation 已完成（2026-08-02）**：使用者最終授權後，PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已 Merge，merge commit **`ef42c2408c989bc56c4ee1d31986161c7628ed2f`**（`mergedAt: 2026-08-02T09:51:20Z`）；此為目前 `main`／`origin/main` 正式基線。C1 為 forward-only foundation：Ledger 僅進入 AppState、localStorage 與 JSON Backup／Full Restore；**不包含 Firebase Ledger sync**（現有 root PUT 不具 mixed-version Ledger 安全性，需另立重大階段）。future schema 採 opaque fail-safe；可由既有 taxonomy 證明的 linked transaction 才可連結，同一 transactionId 不得被多個有效 linked events 重複消費；未實作 split allocation。**UR-TODO-046 整體尚未完成**：無 migration、legacy rewrite、attribution calculator、事件輸入 UI、AI Decision／Rebalance／Household Liquidity consumer wiring。下一候選僅為待評估的 046-B pure calculator／quality model，不在本次開始。
+**UR-TODO-046 B Pure Attribution Calculator／Quality Model 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge，merge commit **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）；此為目前功能正式基線。新增純 `deriveNetWorthAttribution()` 計算器與測試，品質狀態僅為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出明確的 classified contribution 與 unexplained residual，**不得把 unexplained residual 宣稱為 market effect**。本階段無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。**UR-TODO-046 整體尚未完成**；下一正式候選為 046-C existing transaction reconciliation，屬重大事件候選，須先完成獨立架構／產品審查。
+
+**UR-TODO-046 C1 Financial Event Ledger contract／persistence foundation 已完成（2026-08-02）**：使用者最終授權後，PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已 Merge，merge commit **`ef42c2408c989bc56c4ee1d31986161c7628ed2f`**（`mergedAt: 2026-08-02T09:51:20Z`）。C1 為 forward-only foundation：Ledger 僅進入 AppState、localStorage 與 JSON Backup／Full Restore；**不包含 Firebase Ledger sync**（現有 root PUT 不具 mixed-version Ledger 安全性，需另立重大階段）。future schema 採 opaque fail-safe；可由既有 taxonomy 證明的 linked transaction 才可連結，同一 transactionId 不得被多個有效 linked events 重複消費；未實作 split allocation。
 
 **UR-TODO-043 正式完成候選盤點結論（2026-08-02）**：唯讀核對確認 043-A、C1、C2、C3-A、C3-B、B1、B2、B3 均已完成，且未發現 043 範圍內殘留程式 Bug 或需要最小功能修正的 Analytics 語意缺口。現行 Analytics 對淨資產／投資資產只呈現快照值與兩期差額，已明確說明不等同純投資報酬；快照模型無法證明市場漲跌、投入、提領、股息、現金或負債對差額的來源貢獻。該來源歸因與現金流／淨值落差核對已正式歸入 UR-TODO-046，043 不重做。**UR-TODO-043 正式標記為已完成；B4 不需要、C4 未觸發。**
 
@@ -518,7 +520,7 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer �
 ## 1. 最新正式版本
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core 的 Sprint 3（UR-TODO-008）、Sprint 4（UR-TODO-009）、Sprint 5（UR-TODO-010）與 **Sprint 6（UR-TODO-011）均已完成**。
-- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前已完成 C3 階段與 043-B1/B2/B3（043-A、043-C1、043-C2、C3-A、C3-B、B1、B2、B3），C4／B4 未觸發，043-B 整體完成；原始 Analytics 語意與來源貢獻事項仍待盤點；**UR-TODO-030 仍為待盤點且本次完全不處理**；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1 與 C1 Financial Event Ledger contract／persistence foundation 已完成，整體狀態「部分完成／後續待評估」；046-B pure calculator／quality model 僅為下一候選，尚未啟動；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）；**UR-TODO-028 已完成**（股息中心未指定資產紀錄可安全編輯，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，既有功能已滿足，未新增程式碼）；**UR-TODO-032 已完成**（更新股價入口與跨頁一致性，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，桌機／手機共用單一刷新契約、首頁／資產頁／分析頁報價與時間戳記完全一致，既有基礎設施已滿足，未新增程式碼；手機觸控下拉手勢與錯誤狀態本次未實機重現，僅程式碼路徑確認）；**UR-TODO-033 已完成**（持股卡片現價與今日漲跌版面差異，2026-08-01 PR #214 Merge，新增 `formatCompactQuoteHeadline()`，現價同列顯示價格＋▲/▼＋漲跌幅、今日漲跌次列顯示金額，四者一致著色）；**UR-TODO-034 已完成**（2026-08-01 唯讀實機驗證，以 00631L、00865B 兩檔測試 Worker／state／localStorage／各頁 selector 跨頁一致性，未發現殘留舊報價，純唯讀驗證未修改任何程式碼）；**UR-TODO-026 已由使用者手動 Merge PR #216**（`fix/ur-todo-026-remove-holding-ratio-label`，merge commit `63feac1f0012546fadc1e341c55c047c967ada65`，只移除「持有比例」文字標籤、保留百分比數字，未新增任何圖形／圓圈視覺；本文件先前僅記錄「排入開發中」尚未同步 Merge 結果，本次一併補齊，**正式標記為已完成**）；**UR-TODO-027 部分完成**（走勢方向漸層填色子需求已於 PR #218 完成並改為逐段變色，07／15 日期斷裂／Y 軸整數刻度／手機文字裁切／Y 軸位置四項待確認仍未處理）。
+- 名稱：Cross-Module Presentation Consistency — UR-TODO-011 Sprint 6；UR-TODO-043 目前已完成 C3 階段與 043-B1/B2/B3（043-A、043-C1、043-C2、C3-A、C3-B、B1、B2、B3），C4／B4 未觸發，043-B 整體完成；原始 Analytics 語意與來源貢獻事項由 046 承接；**UR-TODO-030 仍為待盤點且本次完全不處理**；**UR-TODO-045 已完成**；**UR-TODO-044 已完成**（Phase 1／2a／2b 全數達成，不存在獨立殘留的 Phase 2c 範圍）；**UR-TODO-037 已完成**（預設分支修正、Branch Protection 選項 2 皆已落地；GitHub Environments 人工核准維持原狀，非本次驗收範圍）；**UR-TODO-004 已完成**；**UR-TODO-005 已完成**；**UR-TODO-046**（淨值成長來源歸因）Phase 1、C1 Financial Event Ledger foundation 與 046-B pure calculator／quality model 已完成，整體狀態「部分完成／後續待評估」；下一候選為 046-C existing transaction reconciliation，屬重大事件候選；**UR-TODO-047 已完成**（負債模組與現金流固定支出清單重複計算風險盤點，無實際重複計算）；**UR-TODO-048**（CLEC 433／442 移轉為 CLEC 策略中心純模擬模板）**子階段 A～E 已完成**（狀態層固定回傳 `custom`＋UI 層移除 `AllocationPresetPanel`／子階段 B PR #198；模擬頁套用 442/433 樣板／子階段 C PR #200；新增 703/5050 模擬限定樣板／子階段 D PR #202；樣板改名＋模擬現金項目／子階段 E PR #203），`allocationRoleBySymbol` 欄位清理維持「待評估」；**UR-TODO-048-D 提案已完成**（即上述子階段 D／E，狀態由「待盤點」更新為「已完成」）；**UR-TODO-028 已完成**（股息中心未指定資產紀錄可安全編輯，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，既有功能已滿足，未新增程式碼）；**UR-TODO-032 已完成**（更新股價入口與跨頁一致性，2026-08-01 唯讀盤點＋隔離 dev server 實機驗收確認，桌機／手機共用單一刷新契約、首頁／資產頁／分析頁報價與時間戳記完全一致，既有基礎設施已滿足，未新增程式碼；手機觸控下拉手勢與錯誤狀態本次未實機重現，僅程式碼路徑確認）；**UR-TODO-033 已完成**（持股卡片現價與今日漲跌版面差異，2026-08-01 PR #214 Merge，新增 `formatCompactQuoteHeadline()`，現價同列顯示價格＋▲/▼＋漲跌幅、今日漲跌次列顯示金額，四者一致著色）；**UR-TODO-034 已完成**（2026-08-01 唯讀實機驗證，以 00631L、00865B 兩檔測試 Worker／state／localStorage／各頁 selector 跨頁一致性，未發現殘留舊報價，純唯讀驗證未修改任何程式碼）；**UR-TODO-026 已由使用者手動 Merge PR #216**（`fix/ur-todo-026-remove-holding-ratio-label`，merge commit `63feac1f0012546fadc1e341c55c047c967ada65`，只移除「持有比例」文字標籤、保留百分比數字，未新增任何圖形／圓圈視覺；本文件先前僅記錄「排入開發中」尚未同步 Merge 結果，本次一併補齊，**正式標記為已完成**）；**UR-TODO-027 部分完成**（走勢方向漸層填色子需求已於 PR #218 完成並改為逐段變色，07／15 日期斷裂／Y 軸整數刻度／手機文字裁切／Y 軸位置四項待確認仍未處理）。
 - PR：**#205**（MERGED，補齊 UR-TODO-048 子階段 D／E 完成記錄進 `008_TODO_BACKLOG.md`）為目前 `origin/main` 最新 Merge；**#204**（MERGED，`allocationRoleBySymbol` 欄位清理唯讀盤點記錄）、**#203**（MERGED，UR-TODO-048 子階段 E，CLEC 703/5050 改名為 7:3/50:50、模擬頁新增現金項目）、**#202**（MERGED，UR-TODO-048 子階段 D，新增 CLEC 703/5050 模擬限定樣板）、**#201**（MERGED，UR-TODO-048 子階段 C 完成記錄與 UR-TODO-048-D 提案排入 Backlog）、**#200**（MERGED，UR-TODO-048 子階段 C，模擬頁套用 CLEC 442/433 樣板）、**#199**（MERGED，PR #198 治理文件基線同步）、**#198**（MERGED，UR-TODO-048 子階段 B，狀態層＋UI 層一併移除 CLEC 433／442 正式配置選項）、**#197**（MERGED，PR #196 治理文件基線同步）、**#196**（MERGED，首次正式建檔 UR-TODO-047／048，`gh pr merge --admin`）、**#194**（MERGED，UR-TODO-037 Phase 1 唯讀盤點與預設分支修正記錄）、**#193**（MERGED，UR-TODO-044 完成記錄與基線同步）、**#192**（MERGED，UR-TODO-044 Phase 2b variableExpenseBudget 使用者確認遷移）、**#191**（MERGED，UR-TODO-046 Phase 1 唯讀盤點排入 Backlog）、**#190**（MERGED，PR #189 後治理同步）、**#189**（MERGED，UR-TODO-005 補充 `sanitizeHolding` 名稱解析邏輯單元測試）、**#188**（MERGED，UR-TODO-004 治理同步）、**#187**（MERGED，跟進統一 `investmentHealth.ts` 的 `pct()` 小數位數）、**#186**（MERGED，UR-TODO-004 主修正，`App.tsx` 的 `pct()` 統一為 1 位小數）、**#185**（MERGED，UR-TODO-044 Phase 2a 治理同步）、**#184**（MERGED，UR-TODO-044 Phase 2a 固定支出角色 fallback 修正）、**#182**（MERGED，UR-TODO-045 淨資產歷史頁面收合／分頁）、**#181**（MERGED，UR-TODO-043-C2 net worth snapshot normalization）、**#180**（MERGED，PR #178／#179 治理同步）、**#179**（MERGED，UR-TODO-030 首頁 30 秒決策中心方向再確認）、**#178**（MERGED，PR #176／#177 後治理同步）、**#177**（MERGED，Cash Flow 儲存動作位置調整）、**#176**（MERGED，UR-TODO-043-C1 治理同步）、**#175**（MERGED，UR-TODO-043-A Merge 後治理同步）為前置已合併 PR。
 - 前置同系列 PR（UR-TODO-008，V7.0B Sprint 3，已完成）：**#116**（子 PR 1／5，buy-only，MERGED）、**#118**（子 PR 2／5，standard，MERGED）、**#120**（子 PR 3／5，Execution Eligibility investableCash contract，MERGED）、**#122**（子 PR 4a／5，Order Helper characterization test 安全準備，MERGED）、**#124**（子 PR 4b／5，Order Helper investableCash 串接，MERGED）、**#126**（子 PR 5a／5，Dip Alert characterization test 安全準備，MERGED）
 - 狀態：**UR-TODO-010 已完成**；**UR-TODO-011 已完成**。011A 建立防守配置呈現契約，011B 完成 Analytics 單一卡片與舊提醒替換，011C 完成 Cash Flow／CLEC 名稱一致；程式、測試、Preview、Production 與治理同步均已閉環。
@@ -1975,16 +1977,17 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
-2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
+2026-08-02 更新：UR-TODO-043-B（日期／時區契約）已完成，前置依賴已解除；**UR-TODO-046 C1 與 046-B 已完成，但 UR-TODO-046 整體仍未完成**。後續資料來源歸因、分類規則與 consumer 接線仍需獨立排程與產品決策。
 
 - 優先級：待評估
-- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點與 C1 Financial Event Ledger contract／persistence foundation 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
+- 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation 與 046-B pure attribution calculator／quality model 已完成；UR-TODO-043-B 依賴已解除；其餘子階段尚未排程或開發）
 - 提出日期：2026-07-30
 - Phase 1 唯讀盤點日期：2026-07-30（Claude Code，Review Mode，未修改任何檔案，基準 `origin/main` HEAD `a649cf361f65724eb35b2db63a8477a4189b2574`／PR #190）
 
 - **C1 已完成（2026-08-02）**：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238)（`feat/ur-todo-046-financial-event-ledger-c1`）已由使用者最終授權 Merge，merge commit `ef42c2408c989bc56c4ee1d31986161c7628ed2f`，`mergedAt: 2026-08-02T09:51:20Z`。建立 forward-only Financial Event Ledger contract／normalization 與 persistence foundation，範圍嚴格限於 AppState、localStorage、JSON Backup／Full Restore。future schema payload 採 opaque fail-safe，不降級、不 migration、不改寫；linked transaction 僅接受現有 taxonomy 可安全證明的語意，manual event 不得帶 `transactionId`，同一 transactionId 不得被多個有效 linked events 重複消費。未新增 split allocation schema。
 - **C1 明確不包含**：Firebase Financial Event Ledger synchronization（現有 Firebase root PUT 不具 mixed-version Ledger 安全性，須另開重大階段）、migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI、AI Decision／Rebalance／Household Liquidity consumer wiring 或 Production 部署。
-- **後續候選（均待評估，未開始）**：046-B pure calculator／quality model（前提為保持純函式、無 schema／persistence／consumer 接線）；046-C existing transaction reconciliation；Firebase Ledger sync、split allocation、external flow／internal transfer 正式分類與 loan principal／interest／dividend attribution 規則均屬獨立重大事件。
+- **046-B 已完成（2026-08-02）**：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240)（`feat/ur-todo-046-b-attribution-calculator`）已 Merge，merge commit `d61e0aa270bf006acb7000e2c1b3be0fc0f68264`，`mergedAt: 2026-08-02T10:11:19Z`。新增純 `deriveNetWorthAttribution()` calculator／quality model，品質狀態為 `unavailable`、`snapshot-only`、`partial`、`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者不得宣稱為 market effect。無 schema、persistence、Firebase、migration、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。
+- **下一正式候選（待評估，未開始）**：046-C existing transaction reconciliation。其涉及 transaction reconciliation、external flow／internal transfer 與事件分類產品契約，為**重大事件候選**；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則亦均為獨立重大事件，不得與 046-C 自動合併範圍。
 
 - 問題：使用者希望能核對「收支與現金流中心記錄的淨儲蓄」與「淨資產歷史實際變動」之間的落差，並將淨值成長拆解為外部投入、投資報酬、負債變化等來源，而非只看總額差分。
 
@@ -2212,13 +2215,23 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 ---
 
-## 最新交接快照：UR-TODO-046 C1 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 B 已完成（2026-08-02）
+
+- 正式基線：PR [#240](https://github.com/hyc640110/family-universal-rebalance/pull/240) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`d61e0aa270bf006acb7000e2c1b3be0fc0f68264`**（`mergedAt: 2026-08-02T10:11:19Z`）。
+- 已完成的是 046-B **Pure Attribution Calculator／Quality Model**：新增純 `deriveNetWorthAttribution()`，品質狀態為 `unavailable`／`snapshot-only`／`partial`／`reconciled`；輸出 classified contribution 與 explicit unexplained residual，後者**不等同 market effect**。
+- 明確不包含：schema、persistence、Firebase、migration、legacy rewrite、UI、AI Decision／Rebalance／Household Liquidity consumer wiring。046-B 沒有改寫既有資料，也沒有啟動 attribution 結果的產品消費端。
+- **UR-TODO-046 整體仍未完成**。下一正式候選是 046-C existing transaction reconciliation，涉及 transaction reconciliation、external flow／internal transfer 與事件分類產品契約，屬重大事件候選；Firebase Ledger sync、split allocation、loan principal／interest／dividend attribution 規則仍各自待評估，不得自行開始。
+- PR #240 CI Verification（head `6ba782e42cff1ea32b5e0c5a55156e6a7c58467f`）成功；Merge 後 Deploy GitHub Pages run `30743250912` 成功，head 與 merge commit 一致；Production／Preview HTTP 200 且 assets path 隔離。
+
+---
+
+## 歷史交接快照：UR-TODO-046 C1 已完成（2026-08-02）
 
 - 正式基線：PR [#238](https://github.com/hyc640110/family-universal-rebalance/pull/238) 已 Merge；`main`、`origin/main`、`HEAD` 為 **`ef42c2408c989bc56c4ee1d31986161c7628ed2f`**（`mergedAt: 2026-08-02T09:51:20Z`）。
 - 已完成的僅是 UR-TODO-046 **C1 Financial Event Ledger contract／persistence foundation**，不是 UR-TODO-046 整體結案。Ledger 為 forward-only，僅保存於 AppState、localStorage、JSON Backup／Full Restore。
 - C1 採 future-schema opaque fail-safe；linked transaction 只接受既有 taxonomy 可安全證明的語意；manual event 不得帶 `transactionId`；同一 transactionId 的有效 linked events 不得重複消費。未新增 split allocation schema。
 - **Firebase Ledger sync 未實作**：現有 Firebase root PUT 沒有 mixed-version Ledger 安全性，故 C1 刻意不把 Ledger 放入 canonical payload；後續若要進行必須另開重大階段審查。
-- 未做 migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI，亦未接入 AI Decision、Rebalance 或 Household Liquidity。後續候選僅為待評估的 046-B pure calculator／quality model；046-C transaction reconciliation、Firebase sync、split allocation 與正式 attribution 分類均未開始。
+- 此快照當時未做 migration、legacy transaction／snapshot rewrite、attribution calculator、事件輸入 UI，亦未接入 AI Decision、Rebalance 或 Household Liquidity；其後的 046-B 已由 PR #240 完成，最新狀態以本文件上方交接快照與 `008_TODO_BACKLOG.md` 為準。
 - PR #238 CI Verification（head `e6a2273a3a820a17f0858b33099bd29b6dd60f43`）成功；合併前本機 `npm run test:ci` 為 694/694 通過，並已確認 TypeScript、Production／Preview build、`git diff --check`。
 
 ---
