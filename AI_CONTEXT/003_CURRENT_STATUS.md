@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.66
+# Universal Rebalance Current Status v3.67
 
 最後更新：2026-08-02
+
+**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。C3-A 建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類，並維持 valid `0` 與 missing 可區分；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 read-time view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。PR #229 的 `verify` CI run `30735211163`、Merge 後 `Deploy GitHub Pages` run `30735283065` 均成功；`test:ci` 655 項、TypeScript、Production／Preview build 均通過。C4 未觸發，043-B、043-C4、UR-TODO-030 均未納入。下一直接起點為 **043-C3-B Consumer Wiring**。
 
 **UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以最新正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`（PR #227 merge commit）完成唯讀與隔離實機回歸。確認 click handler 實際觸發 `refreshMarketData(true)`，手動 request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均可見，Preview／Production 均可更新實際資料。Production／Preview Market Worker URL 與 live bundle environment boundary 正確，未混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。此次僅同步治理文件與重新產生 Bundle，未修改 `src/`、`tests/`、package、`.github/`、Worker 或 Production。
 
@@ -58,7 +60,7 @@
 
 本次更新依據：**PR #182**（「feat: UR-TODO-045 net worth history grid collapse」）已由使用者手動 Merge，merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-045（淨資產歷史頁面新增收合／分頁功能）正式標記為已完成**：`NetWorthHistoryPage.tsx` 新增純前端顯示層收合機制（`showAllHistoryGrid`，不持久化），預設顯示最新 7 筆，超過 7 筆時可展開；`src/lib/netWorthHistory.ts` 資料層完全未觸碰。`CI Verification` run `30441980987` success；`Deploy GitHub Pages` run `30442672832` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；Production 上實測收合／展開／再收合三段行為皆符合預期。
 
-**治理落差記錄（僅記錄，未在本次修正）**：`003`／`008`／`012` 三份文件先前僅同步至 PR #179；PR #180（治理同步）、PR #181（UR-TODO-043-C2）、PR #182（本次）皆已合併，但 #180、#181 本身尚未各自有獨立段落記錄其合併事實（與先前 PR #176／#178 出現過的「下一支 PR 才回頭記錄上一支」同類落差）。UR-TODO-043-C2 已完成（PR #181），下方 UR-TODO-043 條目內「下一候選：043-C2」的排程敘述已過期，待後續治理同步一併更新為「043-C2 已完成，下一候選為 043-C3」；本次僅記錄此落差，不在本次治理同步中修正，以維持本次範圍單純。
+**治理落差已同步修正（2026-08-02）**：PR #229 已補齊 C3-A Merge 事實與最新正式基線；`003`／`008`／`012` 中將 C2 寫成下一候選、將 C3-A 寫成未開始的現行敘述均已更正。UR-TODO-043 目前仍為 P2／待盤點，但 043-A、043-C1、043-C2、043-C3-A 均已完成，下一直接起點為 043-C3-B；C4 未觸發。
 
 本次更新依據：**PR #179**（「docs: reconfirm UR-TODO-030 homepage 30-second decision center direction」）已由使用者手動 Merge，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`，此為目前 `main`／`origin/main` 正式基線。此 PR 正式再次確認首頁「30 秒決策中心」產品方向為既有決策並完整保留：首頁未來只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。**本 PR 未修改任何首頁 UI，未開始 UR-TODO-043-C2**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍。Deploy GitHub Pages run `30386642108` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
 

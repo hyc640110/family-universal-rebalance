@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-02T05:31:18.959985+00:00
+Generated UTC: 2026-08-02T06:13:03.506312+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-02T05:31:18.959985+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `55ba321dac74a34d32a973304bea27412d2871c7353ea18506f255059058a5d9`
+- `003_CURRENT_STATUS.md` — SHA-256 `60840436d0df7b3cc26c6b1285c39758a228f2fbfdaa4e312fb613f003ca4c35`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
-- `008_TODO_BACKLOG.md` — SHA-256 `a5e2e41d6b282e9287003fc4e46d9f9eb636f7186cacf760f26ee6098c601e9c`
-- `009_CHANGELOG.md` — SHA-256 `367364a361151c4c8f110a3e45b6a7a1b0221fc80163ea4089250b820664bf66`
+- `008_TODO_BACKLOG.md` — SHA-256 `bc9b413f6e6318813f1350b131297801886fc589129549052a4b789ad0b5d715`
+- `009_CHANGELOG.md` — SHA-256 `f8055357dc90ccd145216950257ce66aba54b94538558800f32885d3463b066b`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `862e5f5e3017b7182692913c1daab4b16479aa556895ba7a2505907426855897`
+- `012_AI_HANDOVER.md` — SHA-256 `04e07838c8d9c34731c6c3e2542f9948763f3344e82cc7918f4fcbce9079c4a2`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.66
+# Universal Rebalance Current Status v3.67
 
 最後更新：2026-08-02
+
+**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。C3-A 建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類，並維持 valid `0` 與 missing 可區分；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 read-time view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。PR #229 的 `verify` CI run `30735211163`、Merge 後 `Deploy GitHub Pages` run `30735283065` 均成功；`test:ci` 655 項、TypeScript、Production／Preview build 均通過。C4 未觸發，043-B、043-C4、UR-TODO-030 均未納入。下一直接起點為 **043-C3-B Consumer Wiring**。
 
 **UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以最新正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`（PR #227 merge commit）完成唯讀與隔離實機回歸。確認 click handler 實際觸發 `refreshMarketData(true)`，手動 request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均可見，Preview／Production 均可更新實際資料。Production／Preview Market Worker URL 與 live bundle environment boundary 正確，未混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。此次僅同步治理文件與重新產生 Bundle，未修改 `src/`、`tests/`、package、`.github/`、Worker 或 Production。
 
@@ -718,7 +720,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 本次更新依據：**PR #182**（「feat: UR-TODO-045 net worth history grid collapse」）已由使用者手動 Merge，merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-045（淨資產歷史頁面新增收合／分頁功能）正式標記為已完成**：`NetWorthHistoryPage.tsx` 新增純前端顯示層收合機制（`showAllHistoryGrid`，不持久化），預設顯示最新 7 筆，超過 7 筆時可展開；`src/lib/netWorthHistory.ts` 資料層完全未觸碰。`CI Verification` run `30441980987` success；`Deploy GitHub Pages` run `30442672832` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；Production 上實測收合／展開／再收合三段行為皆符合預期。
 
-**治理落差記錄（僅記錄，未在本次修正）**：`003`／`008`／`012` 三份文件先前僅同步至 PR #179；PR #180（治理同步）、PR #181（UR-TODO-043-C2）、PR #182（本次）皆已合併，但 #180、#181 本身尚未各自有獨立段落記錄其合併事實（與先前 PR #176／#178 出現過的「下一支 PR 才回頭記錄上一支」同類落差）。UR-TODO-043-C2 已完成（PR #181），下方 UR-TODO-043 條目內「下一候選：043-C2」的排程敘述已過期，待後續治理同步一併更新為「043-C2 已完成，下一候選為 043-C3」；本次僅記錄此落差，不在本次治理同步中修正，以維持本次範圍單純。
+**治理落差已同步修正（2026-08-02）**：PR #229 已補齊 C3-A Merge 事實與最新正式基線；`003`／`008`／`012` 中將 C2 寫成下一候選、將 C3-A 寫成未開始的現行敘述均已更正。UR-TODO-043 目前仍為 P2／待盤點，但 043-A、043-C1、043-C2、043-C3-A 均已完成，下一直接起點為 043-C3-B；C4 未觸發。
 
 本次更新依據：**PR #179**（「docs: reconfirm UR-TODO-030 homepage 30-second decision center direction」）已由使用者手動 Merge，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`，此為目前 `main`／`origin/main` 正式基線。此 PR 正式再次確認首頁「30 秒決策中心」產品方向為既有決策並完整保留：首頁未來只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。**本 PR 未修改任何首頁 UI，未開始 UR-TODO-043-C2**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍。Deploy GitHub Pages run `30386642108` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
 
@@ -2809,9 +2811,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.59
+# Universal Rebalance Todo Backlog v1.60
 
 最後更新：2026-08-02
+
+2026-08-02 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成**。PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。已建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類、valid `0` 與 missing 的差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163` 與 Pages workflow `30735283065` 均成功。**C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring**；043-B 與 UR-TODO-030 不在本次範圍。
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
@@ -3720,8 +3724,9 @@ Hotfix 仍需：
 - 043-C1 已完成（Review Mode，治理同步已於 PR #176 Merge，merge commit `272cd4a9ccff0c2def7bf0c73afbdbdf89363d58`）：
   - 寬鬆入口：`normalizeState` 在 AppState 初始載入、`setState`、localStorage 回寫、Firebase download 與 JSON Backup import 呼叫 `normalizeNetWorthHistory`；Firebase canonical payload 本身只做 JSON canonicalization，未保存原始無效值語意。
   - consumer：淨資產歷史與 Dashboard `deriveHistoryStats` 使用寬鬆歷史；Analytics 日曆、趨勢與月／年統計、AI 最大回撤使用 `normalizeInvestmentPerformanceHistory`，但接收的 App history 已先被寬鬆 normalizer 改寫；Rebalance 不接收 `netWorthHistory`。
-  - C2 候選：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；不接 App／storage／Firebase／Backup／UI 或正式 consumer，不改日期及同日規則。
-  - C3 候選：另行授權後才逐頁改由同一結果接線，涵蓋 AppState、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
+  - C2 已完成（PR #181）：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；未接正式 consumer，未改日期及同日規則。
+  - C3-A 已完成（PR #229）：建立不改 AppState／persistence schema 的 raw／classified read-time boundary；localStorage、Firebase、Backup ingress 均先建立 view，再進入既有 legacy normalization。未接正式 consumer UI。
+  - C3-B 下一直接起點：另行授權後才逐頁由同一 classified view 接線，涵蓋 App、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
   - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。現況不應把既有 `0` 回推為 missing，故尚未證實 migration 必要。
 
 - 待盤點：
@@ -3751,8 +3756,8 @@ Hotfix 仍需：
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **下一候選：043-C2**，建立不接正式 consumer 的共用純正規化契約、型別與測試；未經「開始開發」不得建立功能 Branch 或實作。
-  - **其後：043-C3**，逐頁接線與跨 consumer 一致性；**043-C4** 僅在相容性實證需要時處理 migration／legacy。043-B 日期／時區產品契約決策排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **下一直接起點：043-C3-B Consumer Wiring**；C3-A 已由 PR #229 完成，未經「開始開發」不得建立功能 Branch 或實作 C3-B。
+  - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發。043-B 日期／時區產品契約決策仍排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
 ### UR-TODO-045 淨資產歷史頁面新增收合／分頁功能
@@ -3998,6 +4003,8 @@ Hotfix 仍需：
 ---
 
 ## [Unreleased]
+
+**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類與 valid `0`／missing 差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功；C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring。
 
 **UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2` 完成唯讀與隔離實機回歸，確認 click handler 實際送出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`，Loading、Success、Partial failure、Full failure 及再次重試皆符合驗收；Console 無產品 error／warn，Preview／Production Worker boundary 未混用。Treasury 上游格式不完整屬外部資料問題，不阻擋本 Todo 結案，不建立 Hotfix。此次僅同步治理文件並重新產生 Full／Lite Bundle。
 
@@ -4464,12 +4471,22 @@ interface ServiceResult<T> {
 
 ---
 
-## 最新交接快照：UR-TODO-035 正式結案（2026-08-02）
+## 最新交接快照：UR-TODO-043-C3-A Merge 後治理同步（2026-08-02）
+
+- 正式基線：`main`、`origin/main`、`HEAD` 已由 PR #229 推進至 **`e663e5d0dcda6117e75dcd972fcef6c336e2cf97`**。
+- UR-TODO-043-C3-A Read-time Snapshot Boundary 已正式完成：PR #229 已 Merge；建立平行 raw／classified read-time view，保留 valid／missing／invalid／non-finite 四分類與 valid `0`／missing 差異，localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。
+- PR #229 未修改 AppState／persistence schema、migration、日期／時區契約、同日排序、Household Liquidity、Rebalance、正式 consumer UI、043-B 或 UR-TODO-030；C4 未觸發。
+- `test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功。下一直接起點為 **043-C3-B Consumer Wiring**。
+- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。
+
+---
+
+## 歷史交接快照：UR-TODO-035 正式結案（2026-08-02）
 
 - 正式基線：`main`、`origin/main`、`HEAD` 均為 **`2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2`**（PR #227 merge commit）；本次僅同步治理文件與 Bundle，未修改程式、建立 Branch、Commit、Push、PR 或部署。
 - UR-TODO-035 已正式標記為 **已完成**：市場頁「重新取得」click handler 實際觸發 refresh，request builder 發出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`；Loading、Success、Partial failure、Full failure 與再次重試均已唯讀／隔離實機確認。
 - Preview／Production Market Worker URL 與 live bundle environment boundary 正確，未發現混用；Console 無產品 error／warn。Treasury 上游格式不完整屬外部資料來源問題，不阻擋本 Todo 結案、不建立 Hotfix；若未來處理，應另立獨立 Todo。
-- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。下一直接起點維持 UR-TODO-043，狀態為 **P2／待盤點**；未授權下一個 Todo 開發。
+- 固定 stash `e141af14273b76501c1b287ea018e8728099f1e5`、`4a0ddb208c5821f18fbb8e1a74a903abdddb22ba` 未操作。當時下一直接起點為 UR-TODO-043；後續已完成 043-C2 與 043-C3-A，現行下一直接起點為 043-C3-B。
 
 ---
 

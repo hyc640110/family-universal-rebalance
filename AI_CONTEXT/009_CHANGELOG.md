@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+**UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成（2026-08-02）**：PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類與 valid `0`／missing 差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163`、Pages workflow `30735283065` 均成功；C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring。
+
 **UR-TODO-035 市場頁「重新取得」按鈕回歸確認正式結案（2026-08-02）**：以正式基線 `2bc1b1716c176b07bab4e11cbdc96c48ad1d52a2` 完成唯讀與隔離實機回歸，確認 click handler 實際送出 `/market-summary?refresh=1&request=<nonce>`，使用 `cache: no-store` 與 `Accept: application/json`，Loading、Success、Partial failure、Full failure 及再次重試皆符合驗收；Console 無產品 error／warn，Preview／Production Worker boundary 未混用。Treasury 上游格式不完整屬外部資料問題，不阻擋本 Todo 結案，不建立 Hotfix。此次僅同步治理文件並重新產生 Full／Lite Bundle。
 
 **UR-TODO-011（Cross-Module Presentation Consistency）Sprint 6 正式結案**：011A／PR #160 建立純防守配置呈現契約，011B／PR #162 在 Analytics 風險頁完成單一「防守配置狀態」卡並移除重複提醒，011C／PR #164 統一 Cash Flow 與 CLEC 的「額外投入資金／預計提領資金」名稱與輔助說明。治理同步 PR #161、#163、#165 均已 Merge；完整收尾盤點確認自動測試、Production／Preview build、桌機與約 390px Preview 驗收、Production 唯讀驗證與 Bundle 治理均已閉環。未修改 Dashboard、UR-TODO-043、DipFundingSummary、財務公式或持久化契約。
