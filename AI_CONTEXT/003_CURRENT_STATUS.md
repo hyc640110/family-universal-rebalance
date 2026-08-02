@@ -1,8 +1,10 @@
-# Universal Rebalance Current Status v3.70
+# Universal Rebalance Current Status v3.71
 
 最後更新：2026-08-02
 
-**UR-TODO-043-B3 正式完成（2026-08-02）**：PR #235 已 Merge，merge commit `b783d2af974271bbbb2ec64149802d746c98e06b`，正式基線推進至此 SHA。Producer、History／Performance range cutoff、Calendar today/month identity 均接入同一 `Asia/Taipei` canonical calendar-day contract；same-day selection 仍由共享 deterministic last-occurrence selector 提供。`test:ci` 680 項、TypeScript、Production／Preview build、CI verify `30738055541` 與 Merge 後 Pages workflow `30738107227` 均成功。未新增 timestamp、schema、migration 或 legacy date rewrite；B4 未觸發且不需要啟動。**UR-TODO-043-B（B1～B3）正式完成；UR-TODO-043 整體仍保留原始 Analytics 語意／來源貢獻等待盤點事項。**
+**UR-TODO-043 正式完成候選盤點結論（2026-08-02）**：唯讀核對確認 043-A、C1、C2、C3-A、C3-B、B1、B2、B3 均已完成，且未發現 043 範圍內殘留程式 Bug 或需要最小功能修正的 Analytics 語意缺口。現行 Analytics 對淨資產／投資資產只呈現快照值與兩期差額，已明確說明不等同純投資報酬；快照模型無法證明市場漲跌、投入、提領、股息、現金或負債對差額的來源貢獻。該來源歸因與現金流／淨值落差核對已正式歸入 UR-TODO-046，043 不重做。**UR-TODO-043 正式標記為已完成；B4 不需要、C4 未觸發。**
+
+**UR-TODO-043 完整契約驗證摘要**：`Asia/Taipei` canonical calendar-day、deterministic same-day last-occurrence、snapshot `valid`／`missing`／`invalid`／`non-finite` read-time classification、History／Analytics／Calendar consumer wiring 均已落地；未新增 timestamp、schema、migration、legacy date rewrite 或 persistence 格式變更。UR-TODO-046 維持「待評估」，其對 043-B 的前置依賴已解除，但本次不開始 046。既存 390px 部分長文裁切仍為獨立待盤點問題，不納入 043。
 
 Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer 產生並經 read-time boundary 整理的 history 傳入既有統計／AI／Risk 輸入邊界；本次僅修正直接決定 snapshot date identity 的 range／calendar wiring。既存 390px 部分長文裁切問題非本次變更造成，僅記錄為待盤點，不在本次修正。B4 不需要啟動；不得混入 C4、UR-TODO-030 或其他 Todo。
 
@@ -64,7 +66,7 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer �
 
 本次更新依據：**PR #182**（「feat: UR-TODO-045 net worth history grid collapse」）已由使用者手動 Merge，merge commit `ee5595a3bd85291d29c3242bb7c0f1d3ba93aade`，`mergedAt: 2026-07-29T10:11:13Z`，此為目前 `main`／`origin/main` 正式基線。**UR-TODO-045（淨資產歷史頁面新增收合／分頁功能）正式標記為已完成**：`NetWorthHistoryPage.tsx` 新增純前端顯示層收合機制（`showAllHistoryGrid`，不持久化），預設顯示最新 7 筆，超過 7 筆時可展開；`src/lib/netWorthHistory.ts` 資料層完全未觸碰。`CI Verification` run `30441980987` success；`Deploy GitHub Pages` run `30442672832` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑未混用；Production 上實測收合／展開／再收合三段行為皆符合預期。
 
-**治理落差已同步修正（2026-08-02）**：PR #235 已補齊 043-B3 Merge 事實與最新正式基線；`003`／`008`／`012` 中將 B1/B2 或 B3 寫成現行下一候選的敘述均已更正。UR-TODO-043 仍為 P2 主題，但 043-A、043-C1、043-C2、043-C3-A、043-C3-B、043-B1、043-B2、043-B3 均已完成，043-B 整體完成；C4／B4 均未觸發，原始 Analytics 語意與來源貢獻事項仍待盤點。
+**治理落差已同步修正（2026-08-02）**：本次最終盤點確認 PR #235 與 PR #236 後，UR-TODO-043 全部 A／B／C 子階段均完成，來源歸因缺口屬 UR-TODO-046，不是 043 的殘留程式缺口；043 正式結案，C4／B4 均未觸發。UR-TODO-046 維持待評估且依賴已解除；390px 裁切維持獨立待盤點。
 
 本次更新依據：**PR #179**（「docs: reconfirm UR-TODO-030 homepage 30-second decision center direction」）已由使用者手動 Merge，merge commit `94c3d08d1a18d4d81d41b003d1cc5f5e41231d24`，`mergedAt: 2026-07-28T18:15:50Z`，此為目前 `main`／`origin/main` 正式基線。此 PR 正式再次確認首頁「30 秒決策中心」產品方向為既有決策並完整保留：首頁未來只回答「今天是否需要做什麼」，建議保留今日是否需操作／精簡資產總覽／更新狀態三項，使用者已明確表示很少查看目前首頁大量資訊，「今日投資狀態」未來可移到分析頁或收合為一行摘要。**本 PR 未修改任何首頁 UI，未開始 UR-TODO-043-C2**，此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍。Deploy GitHub Pages run `30386642108` success，headSha 與 merge commit 一致；Production／Preview 本次以 `curl` 實測 HTTP 200，`deployment-environment` metadata 為 `production`。
 
