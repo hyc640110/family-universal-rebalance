@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.59
+# Universal Rebalance Todo Backlog v1.60
 
 最後更新：2026-08-02
+
+2026-08-02 **UR-TODO-043-C3-A Read-time Snapshot Boundary 正式完成**。PR #229 已 Merge，merge commit `e663e5d0dcda6117e75dcd972fcef6c336e2cf97`，正式基線推進至此 SHA。已建立平行 raw／classified read-time view，保留 `valid`／`missing`／`invalid`／`non-finite` 四分類、valid `0` 與 missing 的差異；localStorage、Firebase download、Backup import 均在 legacy normalization 前建立 view。未修改 AppState／persistence schema、不做 migration、不改寫既有 snapshot。`test:ci` 655 項、TypeScript、Production／Preview build、CI verify `30735211163` 與 Pages workflow `30735283065` 均成功。**C4 未觸發，下一直接起點為 043-C3-B Consumer Wiring**；043-B 與 UR-TODO-030 不在本次範圍。
 
 2026-08-01 **UR-TODO-027（趨勢圖剩餘視覺與刻度問題）四項待確認事項全數處理完畢，正式標記為已完成**（Claude Code，Review Mode，唯讀盤點，未修改任何程式碼）。最後一項「07／15 附近中間空白」唯讀盤點結論：確認為 `TrendChart.tsx:76` X 軸座標定位邏輯的設計行為（`x(index)` 純以資料陣列索引決定水平位置，不依實際日曆天數換算），非缺陷。以 seed 測試資料（刻意跳過 07/13～07/19）實機渲染驗證：相鄰資料點的 x 座標間距在跨 8 天缺口與跨 1 天皆完全相同，填色區塊數量與相鄰點對數一致、無跳過，證實圖表對日期缺漏完全無感、不會產生視覺斷裂；上游 `netWorthHistory.ts` 資料源本身即為稀疏陣列，缺快照日期在陣列中完全不存在，與既有「不補日期、不插值」原則一致。使用者確認此為設計行為、不需修正，直接結案。**至此 UR-TODO-027 走勢方向漸層填色、Y 軸整數刻度、手機文字裁切、Y 軸位置、07／15 日期斷裂五項全數確認完畢，整體狀態由「部分完成」更新為「已完成」。** 詳見下方更新後的 **UR-TODO-027** 正式條目。
 
@@ -909,8 +911,9 @@
 - 043-C1 已完成（Review Mode，治理同步已於 PR #176 Merge，merge commit `272cd4a9ccff0c2def7bf0c73afbdbdf89363d58`）：
   - 寬鬆入口：`normalizeState` 在 AppState 初始載入、`setState`、localStorage 回寫、Firebase download 與 JSON Backup import 呼叫 `normalizeNetWorthHistory`；Firebase canonical payload 本身只做 JSON canonicalization，未保存原始無效值語意。
   - consumer：淨資產歷史與 Dashboard `deriveHistoryStats` 使用寬鬆歷史；Analytics 日曆、趨勢與月／年統計、AI 最大回撤使用 `normalizeInvestmentPerformanceHistory`，但接收的 App history 已先被寬鬆 normalizer 改寫；Rebalance 不接收 `netWorthHistory`。
-  - C2 候選：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；不接 App／storage／Firebase／Backup／UI 或正式 consumer，不改日期及同日規則。
-  - C3 候選：另行授權後才逐頁改由同一結果接線，涵蓋 AppState、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
+  - C2 已完成（PR #181）：新增純 `src/lib/netWorthSnapshotNormalization.ts`、型別與契約測試；未接正式 consumer，未改日期及同日規則。
+  - C3-A 已完成（PR #229）：建立不改 AppState／persistence schema 的 raw／classified read-time boundary；localStorage、Firebase、Backup ingress 均先建立 view，再進入既有 legacy normalization。未接正式 consumer UI。
+  - C3-B 下一直接起點：另行授權後才逐頁由同一 classified view 接線，涵蓋 App、Analytics、淨資產歷史、Dashboard 與 AI；補跨頁一致性與 round-trip 測試。
   - C4 候選：只在需新增 legacy metadata、改寫歷史資料，或 read-time normalization 無法維持 localStorage／Firebase／Backup 相容時才評估。現況不應把既有 `0` 回推為 missing，故尚未證實 migration 必要。
 
 - 待盤點：
@@ -940,8 +943,8 @@
   - 不將此問題提前宣稱為計算 Bug。
 
 - 排程：
-  - **下一候選：043-C2**，建立不接正式 consumer 的共用純正規化契約、型別與測試；未經「開始開發」不得建立功能 Branch 或實作。
-  - **其後：043-C3**，逐頁接線與跨 consumer 一致性；**043-C4** 僅在相容性實證需要時處理 migration／legacy。043-B 日期／時區產品契約決策排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
+  - **下一直接起點：043-C3-B Consumer Wiring**；C3-A 已由 PR #229 完成，未經「開始開發」不得建立功能 Branch 或實作 C3-B。
+  - **043-C4** 僅在相容性實證需要時處理 migration／legacy，目前未觸發。043-B 日期／時區產品契約決策仍排在 043-C 後，不得預先把 Asia/Taipei 寫為既定正式契約。
   - 若證實日期偏移、同日覆蓋錯誤、重複計算、外部資金誤列為投資績效，或錯誤資料傳入 Dashboard／AI Decision／Rebalance，則升級為 P1 並插隊。
 
 ### UR-TODO-045 淨資產歷史頁面新增收合／分頁功能
