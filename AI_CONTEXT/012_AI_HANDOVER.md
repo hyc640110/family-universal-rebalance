@@ -8,14 +8,25 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 C3A Pure Runtime Derived-Evidence Adapter 已完成（2026-08-02）
+## 最新交接快照：UR-TODO-046 C3B Runtime Attribution Composition 已完成（2026-08-05）
 
-- 正式基線：PR [#244](https://github.com/hyc640110/family-universal-rebalance/pull/244) 已 Merge；`main`、`origin/main` 為 **`0fd1955bfe6267e55072bf2278114f70aa11f98e`**（`mergedAt: 2026-08-02T13:15:09Z`）。
+- 正式基線：PR [#246](https://github.com/hyc640110/family-universal-rebalance/pull/246) 已由使用者最終授權 Merge（ChatGPT 完成架構審查與人工財務案例驗收後正式核准，Claude Code 依既有政策執行 `gh pr merge --admin`）；`main`、`origin/main`、`HEAD` 為 **`c30db10b69f7f1b3a8c88390028f4abac46246a4`**（`mergedAt: 2026-08-04T16:49:54Z`）。
+- C3B 已完成：新增 `runtimeAttributionComposition.ts` runtime attribution composition layer。正式契約：`netWorthChange = ledgerContribution + derivedContribution + unexplainedResidual`；Ledger evidence 優先於 derived evidence；只有 C1／C2 reconciliation candidate 能產生 derived contribution；同一 transactionId 最多計算一次 derived contribution；沿用 C3A 的 `Asia/Taipei` calendar-day 日期契約（`opening < effectiveDate <= closing`，同日快照為合法 zero-length period，`opening > closing` 為 invalid／unavailable）。
+- adjustment 為 0、僅供診斷、不降低 residual、不提升 quality；internal-transfer 為 0；非 TWD 且無正式 FX conversion 時 fail-safe 排除、保留 diagnostic；`reconciled` 只代表 residual 落在 tolerance 內，不代表完整歸因、不代表使用者已確認所有來源；derived evidence 為 runtime-only，不得偽裝成 persisted `FinancialEvent`。
+- matched／duplicate／ambiguous／unsupported／invalid 一律不產生 derived contribution，延續 C3A 邊界，避免與 C1 Ledger double-count。**明確不包含**：schema、persistence、Firebase Ledger sync、migration、Backup schema change、Ledger write-back、AppState persistence change、AI Decision／Rebalance／Household Liquidity wiring、UI。Changed files 僅 `package.json`、`src/lib/netWorthAttribution.ts`、`src/lib/runtimeAttributionComposition.ts`、`tests/runtimeAttributionComposition.test.ts`。
+- Merge 前安全檢查：head SHA `98f2271d8ebfbbfc7c478cad6df74461088ce6c8` 與 CI run `30928298413`（`conclusion: success`）headSha 一致、changed files 未增加超範圍內容。Merge 後 Git 基線驗證：`git fetch` 確認 `origin/main` 已含本次 Merge，local `main` 正常 fast-forward 同步，`main`／`origin/main`／`HEAD` 三者一致；無 open PR、working tree 乾淨、既有固定 stash（6 筆）與 `.claude/` 皆未受影響。
+- `Deploy GitHub Pages` run `30931019567` success，headSha 與 merge commit 一致；Production／Preview `curl` 實測皆 HTTP 200，`deployment-environment` metadata 正確，以 `gh-pages` 分支內容核對 assets 路徑各自獨立（不同 JS hash）。
+- **UR-TODO-046 整體仍未完成；下一候選待唯讀判斷**：C3C presentation／使用者確認、Firebase Financial Event Ledger sync、split allocation、投資買賣／借款本息／FX 歸因等，或其他最新治理文件已定義項目。**若下一候選涉及 UI 財務呈現、Ledger 寫入、schema／persistence 變更、核心 attribution 結果改變、AI Decision／Rebalance 接線或啟用 Firebase Ledger sync，屬重大產品／核心財務語意事件，須另行拍板，不得自動開始。**
+
+---
+
+## 歷史交接快照：UR-TODO-046 C3A Pure Runtime Derived-Evidence Adapter 已完成（2026-08-02）
+
+- 正式基線：PR [#244](https://github.com/hyc640110/family-universal-rebalance/pull/244) 已 Merge；merge commit **`0fd1955bfe6267e55072bf2278114f70aa11f98e`**（`mergedAt: 2026-08-02T13:15:09Z`）。
 - C3A 已完成：新增純 `deriveRuntimeDerivedAttributionEvidence()`。它只消費 C1／C2 `candidate` reconciliation result，以 `Asia/Taipei` canonical calendar-day `openingSnapshot.date < effectiveDate <= closingSnapshot.date` 產出 runtime-only `DerivedAttributionEvidence`。
 - provenance 明確為 `derived-transaction`，不等同 Ledger-confirmed／user-confirmed event；保留 transactionId、effectiveDate、category、amount、signed contribution 與 `safe-taxonomy-candidate` basis。external income／expense、dividend 分別維持正負經濟符號；internal transfer、adjustment 均為零效果，不能被稱為 market effect。
 - matched／duplicate／ambiguous／unsupported／invalid 不會產生 derived evidence，避免與 C1 Ledger double-count。C3A 沒有呼叫或改變 `deriveNetWorthAttribution()`、quality、UI、Ledger、AppState、localStorage、Firebase、JSON Backup、schema、migration、legacy rewrite、AI Decision、Rebalance 或 Household Liquidity。
-- **UR-TODO-046 整體仍未完成；下一候選是 046-C3B**（Ledger contribution + derived contribution → 正式 attribution calculator）。它會改變使用者可見的財務歸因結果與 quality 語意，屬重大產品／核心財務語意事件；必須以最新 `origin/main` 重做唯讀架構審查，並回 ChatGPT／使用者完成產品契約確認，**不得自動開始**。
-- PR #244 CI Verification（head `1490e56264c4222d69a953d39ee24aebb1fcfb58`）成功；Merge 後 Pages workflow／Production 與 Preview 狀態須以 `003_CURRENT_STATUS.md` 的後續正式同步為準。
+- PR #244 CI Verification（head `1490e56264c4222d69a953d39ee24aebb1fcfb58`）成功；Merge 後 Pages workflow／Production 與 Preview 狀態已由 C3B 快照確認正常。
 
 ---
 
