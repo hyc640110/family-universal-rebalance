@@ -10,6 +10,8 @@ export type NetWorthAttributionEventDisposition = 'contributing' | 'excluded' | 
 export type NetWorthAttributionEventClassification = {
   id: string;
   type: FinancialEventType;
+  /** Runtime-only evidence provenance. Existing C1 calls always emit `ledger`. */
+  provenance: 'ledger' | 'derived-transaction';
   disposition: NetWorthAttributionEventDisposition;
   contribution: number;
 };
@@ -27,6 +29,7 @@ export type NetWorthAttributionDiagnostic = {
   code: NetWorthAttributionDiagnosticCode;
   eventId?: string;
   eventType?: FinancialEventType;
+  provenance?: 'ledger' | 'derived-transaction';
 };
 
 export type NetWorthAttributionInput = {
@@ -46,6 +49,23 @@ export type NetWorthAttribution = {
   diagnostics: NetWorthAttributionDiagnostic[];
 };
 
+/**
+ * A pure runtime input to the shared evaluator. It deliberately is not a
+ * FinancialEvent, so derived transaction evidence cannot appear persisted or
+ * user-confirmed as C1 Ledger data.
+ */
+export type NetWorthAttributionEvidence = {
+  id: string;
+  type: FinancialEventType;
+  status: FinancialEvent['status'];
+  amount: number;
+  provenance: 'ledger' | 'derived-transaction';
+};
+
+export type NetWorthAttributionEvidenceInput = Omit<NetWorthAttributionInput, 'events'> & {
+  evidence: readonly NetWorthAttributionEvidence[];
+};
+
 const ZERO_EFFECT_EVENT_TYPES = new Set<FinancialEventType>([
   'internal-transfer',
   'investment-buy',
@@ -63,46 +83,46 @@ function tolerance(input: number | undefined): number {
     : DEFAULT_NET_WORTH_ATTRIBUTION_ABSOLUTE_TOLERANCE;
 }
 
-function classifyEvent(event: FinancialEvent): { classification: NetWorthAttributionEventClassification; diagnostic?: NetWorthAttributionDiagnostic } {
+function classifyEvidence(event: NetWorthAttributionEvidence): { classification: NetWorthAttributionEventClassification; diagnostic?: NetWorthAttributionDiagnostic } {
   if (event.status !== 'posted') {
     return {
-      classification: { id: event.id, type: event.type, disposition: 'not-posted', contribution: 0 },
-      diagnostic: { code: 'not-posted-excluded', eventId: event.id, eventType: event.type }
+      classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'not-posted', contribution: 0 },
+      diagnostic: { code: 'not-posted-excluded', eventId: event.id, eventType: event.type, provenance: event.provenance }
     };
   }
 
   if (!Number.isFinite(event.amount) || event.amount <= 0) {
     return {
-      classification: { id: event.id, type: event.type, disposition: 'unsupported', contribution: 0 },
-      diagnostic: { code: 'invalid-event-amount-excluded', eventId: event.id, eventType: event.type }
+      classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'unsupported', contribution: 0 },
+      diagnostic: { code: 'invalid-event-amount-excluded', eventId: event.id, eventType: event.type, provenance: event.provenance }
     };
   }
 
   if (event.type === 'external-income' || event.type === 'dividend') {
-    return { classification: { id: event.id, type: event.type, disposition: 'contributing', contribution: event.amount } };
+    return { classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'contributing', contribution: event.amount } };
   }
 
   if (event.type === 'external-expense' || event.type === 'investment-fee') {
-    return { classification: { id: event.id, type: event.type, disposition: 'contributing', contribution: -event.amount } };
+    return { classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'contributing', contribution: -event.amount } };
   }
 
   if (ZERO_EFFECT_EVENT_TYPES.has(event.type)) {
     return {
-      classification: { id: event.id, type: event.type, disposition: 'excluded', contribution: 0 },
-      diagnostic: { code: 'excluded-from-net-worth-change', eventId: event.id, eventType: event.type }
+      classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'excluded', contribution: 0 },
+      diagnostic: { code: 'excluded-from-net-worth-change', eventId: event.id, eventType: event.type, provenance: event.provenance }
     };
   }
 
   if (event.type === 'adjustment') {
     return {
-      classification: { id: event.id, type: event.type, disposition: 'adjustment', contribution: 0 },
-      diagnostic: { code: 'adjustment-excluded', eventId: event.id, eventType: event.type }
+      classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'adjustment', contribution: 0 },
+      diagnostic: { code: 'adjustment-excluded', eventId: event.id, eventType: event.type, provenance: event.provenance }
     };
   }
 
   return {
-    classification: { id: event.id, type: event.type, disposition: 'unsupported', contribution: 0 },
-    diagnostic: { code: 'unsupported-event-excluded', eventId: event.id, eventType: event.type }
+    classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'unsupported', contribution: 0 },
+    diagnostic: { code: 'unsupported-event-excluded', eventId: event.id, eventType: event.type, provenance: event.provenance }
   };
 }
 
@@ -111,12 +131,12 @@ function classifyEvent(event: FinancialEvent): { classification: NetWorthAttribu
  * economic events and leaves all remaining change as an explicit unexplained residual.
  * The residual is never a market-effect or investment-return claim.
  */
-export function deriveNetWorthAttribution(input: NetWorthAttributionInput): NetWorthAttribution {
+export function deriveNetWorthAttributionFromEvidence(input: NetWorthAttributionEvidenceInput): NetWorthAttribution {
   const diagnostics: NetWorthAttributionDiagnostic[] = [];
   if (!validNetWorth(input.openingSnapshot)) diagnostics.push({ code: 'opening-snapshot-unavailable' });
   if (!validNetWorth(input.closingSnapshot)) diagnostics.push({ code: 'closing-snapshot-unavailable' });
 
-  const eventResults = input.events.map(classifyEvent);
+  const eventResults = input.evidence.map(classifyEvidence);
   const eventClassifications = eventResults.map(item => item.classification);
   diagnostics.push(...eventResults.flatMap(item => item.diagnostic ? [item.diagnostic] : []));
 
@@ -154,4 +174,22 @@ export function deriveNetWorthAttribution(input: NetWorthAttributionInput): NetW
     eventClassifications,
     diagnostics
   };
+}
+
+/**
+ * Pure C1-ledger attribution boundary. It accounts only for posted, safely classified
+ * economic events and leaves all remaining change as an explicit unexplained residual.
+ * The residual is never a market-effect or investment-return claim.
+ */
+export function deriveNetWorthAttribution(input: NetWorthAttributionInput): NetWorthAttribution {
+  return deriveNetWorthAttributionFromEvidence({
+    ...input,
+    evidence: input.events.map(event => ({
+      id: event.id,
+      type: event.type,
+      status: event.status,
+      amount: event.amount,
+      provenance: 'ledger' as const
+    }))
+  });
 }
