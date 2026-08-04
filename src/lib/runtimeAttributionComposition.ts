@@ -45,7 +45,7 @@ function periodFrom(input: RuntimeAttributionCompositionInput): Period | undefin
   const closingDate = input.closingSnapshot?.date;
   return isCanonicalCalendarDay(openingDate)
     && isCanonicalCalendarDay(closingDate)
-    && openingDate < closingDate
+    && openingDate <= closingDate
     ? { openingDate, closingDate }
     : undefined;
 }

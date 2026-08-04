@@ -136,6 +136,57 @@ test('Ledger 與 derived 共用 opening < effectiveDate <= closing 台北日曆�
   assert.equal(result.diagnostics.some(item => item.code === 'ledger-event-outside-period-excluded'), true);
 });
 
+test('同日且淨值相同的有效 snapshots 是 zero-length period，不得因日期相同而 unavailable', () => {
+  const result = compose({
+    openingSnapshot: snapshot('2026-08-02', 100),
+    closingSnapshot: snapshot('2026-08-02', 100)
+  });
+
+  assert.equal(result.netWorthChange, 0);
+  assert.equal(result.ledgerContribution, 0);
+  assert.equal(result.derivedContribution, 0);
+  assert.equal(result.unexplainedResidual, 0);
+  assert.equal(result.attributionQuality, 'snapshot-only');
+  assert.equal(result.diagnostics.some(item => item.code === 'invalid-attribution-period'), false);
+});
+
+test('同日 snapshot 淨值差額保留為 residual，Ledger 與 derived evidence 都不得進入空期間', () => {
+  const result = compose({
+    openingSnapshot: snapshot('2026-08-02', 100),
+    closingSnapshot: snapshot('2026-08-02', 120),
+    ledgerEvents: [ledgerEvent('same-day-ledger', 'external-income', { effectiveDate: '2026-08-02', amount: 20 })],
+    transactions: [transaction('same-day-derived', { amount: 20, occurredAt: '2026-08-01T16:00:00.000Z' })]
+  });
+
+  assert.equal(result.netWorthChange, 20);
+  assert.equal(result.ledgerContribution, 0);
+  assert.equal(result.derivedContribution, 0);
+  assert.equal(result.unexplainedResidual, 20);
+  assert.equal(result.attributionQuality, 'snapshot-only');
+  assert.deepEqual(result.eventClassifications, []);
+  assert.equal(result.diagnostics.some(item => item.code === 'ledger-event-outside-period-excluded'), true);
+});
+
+test('倒序或非 canonical 日期才是 invalid attribution period', () => {
+  const reverse = compose({
+    openingSnapshot: snapshot('2026-08-03', 100),
+    closingSnapshot: snapshot('2026-08-02', 120)
+  });
+  const invalidDate = compose({
+    openingSnapshot: snapshot('invalid-date', 100),
+    closingSnapshot: snapshot('2026-08-02', 120)
+  });
+
+  for (const result of [reverse, invalidDate]) {
+    assert.equal(result.netWorthChange, null);
+    assert.equal(result.ledgerContribution, null);
+    assert.equal(result.derivedContribution, null);
+    assert.equal(result.unexplainedResidual, null);
+    assert.equal(result.attributionQuality, 'unavailable');
+    assert.equal(result.diagnostics.some(item => item.code === 'invalid-attribution-period'), true);
+  }
+});
+
 test('external income、expense、dividend 的正負號正確；transfer 與 adjustment 都是零貢獻診斷', () => {
   const result = compose({
     closingSnapshot: snapshot('2026-08-05', 115),
