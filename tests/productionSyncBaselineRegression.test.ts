@@ -227,7 +227,7 @@ test('Preview and Production storage keys and Firebase paths remain isolated', (
   assert.match(previewEnv, /VITE_STORAGE_KEY=family-universal-rebalance-preview-v100-state/);
   assert.match(previewEnv, /VITE_FIREBASE_BASE_PATH=family-universal-rebalance-preview/);
   assert.match(appInfo, /family-universal-rebalance-v100-state/);
-  assert.match(app, /buildFirebaseSyncRoot\(config\.secretPath\)/);
+  assert.match(app, /buildFirebaseSyncRoot\(uid\)/);
 });
 
 test('Production regression path waits for Quote settlement and snapshots net worth before upload', () => {

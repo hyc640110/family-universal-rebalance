@@ -233,7 +233,7 @@ test('App upload, download, Backup, and reset flows enforce baseline lifecycle a
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /body: snapshot\.canonicalJson/);
   assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
-  assert.match(app, /uploadFirebase\(normalized\.firebase, requestSnapshot\)/);
+  assert.match(app, /uploadFirebase\(normalized\.firebase, requestSnapshot, session\.uid, session\.idToken\)/);
   assert.match(app, /baselineFingerprint: uploadedSnapshot\.fingerprint/);
   assert.match(app, /baselineFieldFingerprints: uploadedSnapshot\.fieldFingerprints/);
   assert.match(app, /baselineCanonicalSchema: uploadedSnapshot\.canonicalSchema/);
@@ -283,5 +283,5 @@ test('Preview and Production storage keys and Firebase path behavior remain isol
   assert.match(appInfo, /family-universal-rebalance-v100-state/);
   assert.match(previewEnv, /VITE_FIREBASE_BASE_PATH=family-universal-rebalance-preview/);
   assert.match(appInfo, /createEnvironmentBoundary\(import\.meta\.env\.VITE_DEPLOYMENT_ENVIRONMENT, import\.meta\.env\.VITE_FIREBASE_BASE_PATH\)/);
-  assert.match(app, /function syncPath\(config: FirebaseConfig\).*buildFirebaseSyncRoot\(config\.secretPath\)/s);
+  assert.match(app, /function syncPath\(uid: string\).*buildFirebaseSyncRoot\(uid\)/s);
 });

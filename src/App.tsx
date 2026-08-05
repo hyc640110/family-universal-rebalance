@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { Download, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_API_KEY, FIREBASE_AUTH_SESSION_STORAGE_KEY, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
@@ -65,6 +65,8 @@ import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewF
 import { FINANCIAL_EVENT_SCHEMA_VERSION, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation } from './lib/runtimeAttributionPresentation';
+import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
+import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
@@ -461,6 +463,12 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   return { state: normalizeState(legacyBackupState), netWorthSnapshotReadTimeView };
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
+/** UR-TODO-001: surfaces Anonymous Auth session status in the existing sync status rows, so a failed background sign-in is never silently invisible. */
+function firebaseAuthStatusText(auth: { status: 'pending' | 'ready' | 'error'; errorMessage: string | null }): string {
+  if (auth.status === 'pending') return '登入中…';
+  if (auth.status === 'error') return `❌ 匿名登入失敗：${auth.errorMessage || '未知錯誤'}`;
+  return '已建立匿名身分';
+}
 function readSyncMeta(state: AppState): SyncMeta { return sanitizeSyncMeta(state.syncMeta, state); }
 function localDirtyStatus(state: AppState) {
   return state.firebase.databaseURL ? '本機有新資料，請按「上傳雲端」同步到其他裝置' : '本機有新資料，尚未設定 Firebase，同步僅保存在本機';
@@ -477,12 +485,13 @@ function validateBeforeUpload(s: AppState) {
 function waitForDraftCommit() {
   return new Promise<void>(resolve => setTimeout(resolve, 0)).then(flushFrame).then(flushFrame);
 }
-function syncPath(config: FirebaseConfig) { return buildFirebaseSyncRoot(config.secretPath); }
-function syncUrl(config: FirebaseConfig) { const db = config.databaseURL.trim(); if (!db) throw new Error('請先輸入 Firebase URL'); return `${db.replace(/\/$/, '')}/${syncPath(config)}.json`; }
-async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
+/** UR-TODO-001: path is keyed by the Anonymous Auth uid, not the legacy secretPath (kept in FirebaseConfig for backward-compatible round-trip only, no longer used to build the path). */
+function syncPath(uid: string) { return buildFirebaseSyncRoot(uid); }
+function syncUrl(config: FirebaseConfig, uid: string, idToken: string) { return buildFirebaseSyncUrl(config.databaseURL, syncPath(uid), idToken); }
+async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>, uid: string, idToken: string) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config, uid, idToken), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
 function hasLocalFinancialEventLedger(state: AppState) { return state.financialEventSchemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION || state.financialEvents.length > 0 || state.financialEventAttributionStartDate !== undefined; }
 export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, current: AppState): AppReadState { assertNoOAuthSecrets(data); if (hasLocalFinancialEventLedger(current)) throw new Error('Financial Event Ledger 目前僅保存於本機與 JSON Backup；為避免 Firebase 下載替換 linked evidence，請先匯出備份或等待後續 Firebase Ledger 同步階段。'); const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return { state: normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }), netWorthSnapshotReadTimeView }; }
-async function downloadFirebase(config: FirebaseConfig, current: AppState): Promise<AppReadState> { const res = await fetch(syncUrl(config), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(config)}`); return stateFromFirebasePayload(data, config, current); }
+async function downloadFirebase(config: FirebaseConfig, current: AppState, uid: string, idToken: string): Promise<AppReadState> { const res = await fetch(syncUrl(config, uid, idToken), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(uid)}`); return stateFromFirebasePayload(data, config, current); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number | null; previousCloseDate?: string | null; previousCloseSource?: Quote['previousCloseSource']; previousCloseTrusted?: boolean; previousCloseReason?: string | null; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
   if (typeof d?.latestPrice !== 'number' && typeof d?.price !== 'number') return null;
@@ -1040,6 +1049,7 @@ function App() {
   }
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [analyticsView, setAnalyticsView] = useState<'performance' | 'risk'>('performance');
+  const [firebaseAuth, setFirebaseAuth] = useState<{ status: 'pending' | 'ready' | 'error'; session: FirebaseAuthSession | null; errorMessage: string | null }>({ status: 'pending', session: null, errorMessage: null });
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -1213,6 +1223,29 @@ function App() {
   const refreshQuotes = (manual = false) => quoteRefreshControllerRef.current?.refresh(manual);
   const assetsPullRefreshRef = useRef<ReturnType<typeof createAssetsPullToRefresh> | null>(null);
   if (!assetsPullRefreshRef.current) assetsPullRefreshRef.current = createAssetsPullToRefresh({ threshold: 72, onRefresh: () => { void refreshQuotes(true); } });
+  // UR-TODO-001: establishes (or refreshes) the Firebase Anonymous Auth session used to authorize
+  // RTDB requests. Runs invisibly in the background; failures surface only in the sync UI, they
+  // never block the rest of the app since all other features work purely off localStorage.
+  const ensureFirebaseAuthSessionFresh = async (): Promise<FirebaseAuthSession> => {
+    try {
+      const persisted = readPersistedFirebaseAuthSession(FIREBASE_AUTH_SESSION_STORAGE_KEY);
+      const session = await ensureFirebaseAnonymousSession({
+        apiKey: FIREBASE_API_KEY,
+        now: Date.now(),
+        persisted,
+        signUp: () => requestAnonymousSignUp(FIREBASE_API_KEY),
+        refresh: refreshToken => requestTokenRefresh(FIREBASE_API_KEY, refreshToken)
+      });
+      writePersistedFirebaseAuthSession(FIREBASE_AUTH_SESSION_STORAGE_KEY, session);
+      setFirebaseAuth({ status: 'ready', session, errorMessage: null });
+      return session;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setFirebaseAuth({ status: 'error', session: null, errorMessage: message });
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+  useEffect(() => { ensureFirebaseAuthSessionFresh().catch(() => {}); }, []);
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
@@ -1229,12 +1262,13 @@ function App() {
     updateSyncMeta(current => ({ ...current, lastLocalSaveAt: savedAt }));
     return normalized;
   };
-  const uploadCloud = async () => { 
+  const uploadCloud = async () => {
     if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
-    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' })); 
-    const normalized = await flushDrafts(); 
+    const session = await ensureFirebaseAuthSessionFresh();
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' }));
+    const normalized = await flushDrafts();
     const requestSnapshot = createSyncPayloadSnapshot(normalized);
-    const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot);
+    const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot, session.uid, session.idToken);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
     const syncedAt = now(); 
     setLastSavedAt(syncedAt); 
@@ -1264,10 +1298,11 @@ function App() {
       updatedAt: syncedAt
     });
   };
-  const downloadCloud = async () => { 
+  const downloadCloud = async () => {
     if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併。是否繼續？')) return;
-    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' })); 
-    const remoteResult = await downloadFirebase(state.firebase, stateRef.current);
+    const session = await ensureFirebaseAuthSessionFresh();
+    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' }));
+    const remoteResult = await downloadFirebase(state.firebase, stateRef.current, session.uid, session.idToken);
     const remote = remoteResult.state;
     netWorthSnapshotReadTimeViewRef.current = remoteResult.netWorthSnapshotReadTimeView;
     const downloadedAt = now(); 
@@ -2010,8 +2045,9 @@ function App() {
         </SectionCard>
         {isMobile && <SectionCard className="page-card" id="sync-section-mobile" title="同步與資料設定" isMobile={isMobile} collapsible open={sectionOpen('sync')} onToggle={() => toggleSection('sync')} summary={`上傳 ${metaTime(syncMeta.lastUploadAt)}｜下載 ${metaTime(syncMeta.lastDownloadAt)}`}>
           <p className="note">手機版快速同步只會在按鈕觸發時執行；完整 Firebase、備份與持股資產管理仍在「同步與資料」分頁。</p>
+          <p className="note">跨裝置同步暫時關閉：本次僅支援單一裝置的雲端備份。如需在不同裝置間搬移資料，請改用「匯出 JSON 備份」／「匯入 JSON 備份」；未來帳號升級功能上線後，將恢復跨裝置同步。</p>
           <div className="status-grid">
-            <p><span>目前同步代號</span><strong>{state.firebase.secretPath || FIREBASE_BASE_PATH}</strong></p>
+            <p><span>登入狀態</span><strong>{firebaseAuthStatusText(firebaseAuth)}</strong></p>
             <p><span>Firebase 設定</span><strong>{state.firebase.databaseURL.trim() ? '已設定' : '未設定'}</strong></p>
             <p><span>最後本機儲存</span><strong>{metaTime(syncMeta.lastLocalSaveAt || lastSavedAt)}</strong></p>
             <p><span>同步狀態</span><strong>{syncStatusText}</strong></p>
@@ -2045,9 +2081,9 @@ function App() {
         </Card>}
         <Card id="sync-section" title="同步與資料設定">
           <p className="note">目前同步方式為手動同步：修改資料後會先儲存在本機。要同步到其他裝置，請按「上傳雲端」。另一台裝置要取得最新資料，請按「下載雲端」。系統不會自動下載雲端資料，以避免覆蓋正在編輯的內容。</p>
+          <p className="note">跨裝置同步暫時關閉：本次僅支援單一裝置的雲端備份。如需在不同裝置間搬移資料，請改用「匯出 JSON 備份」／「匯入 JSON 備份」；未來帳號升級功能上線後，將恢復跨裝置同步。</p>
           <div className="params">
             <label>Firebase URL<DraftInput value={state.firebase.databaseURL} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, databaseURL: value } }))} /></label>
-            <label>同步代號<DraftInput value={state.firebase.secretPath} onCommit={value => setState(s => ({ ...s, firebase: { ...s.firebase, secretPath: value } }))} /></label>
             <label>Cloudflare Worker URL<input value={DEFAULT_WORKER_URL} readOnly /></label>
             <label>股價更新間隔秒數<DraftInput type="number" value={state.refreshSec} onCommit={value => setState(s => ({ ...s, refreshSec: Math.max(60, parsePositive(value, 60)) }))} /></label>
             <label><input type="checkbox" checked={state.autoSync} onChange={e => { const checked = e.currentTarget.checked; setState(s => ({ ...s, autoSync: checked })); }} /> 啟用 Firebase 手動同步設定</label>
@@ -2076,7 +2112,7 @@ function App() {
             <p><span>最後雲端下載</span><strong>{metaTime(syncMeta.lastDownloadAt)}</strong></p>
             <p><span>最後備份匯出</span><strong>{metaTime(syncMeta.lastBackupExportAt)}</strong></p>
             <p><span>最後備份匯入</span><strong>{metaTime(syncMeta.lastBackupImportAt)}</strong></p>
-            <p><span>目前同步代號</span><strong>{state.firebase.secretPath || 'family-universal-rebalance'}</strong></p>
+            <p><span>登入狀態</span><strong>{firebaseAuthStatusText(firebaseAuth)}</strong></p>
             <p><span>Firebase 設定</span><strong>{state.firebase.databaseURL.trim() ? '已設定' : '未設定'}</strong></p>
           </div>
           <p className="note">匯出、匯入與同步狀態只會更新本機資料，不會自動上傳或下載 Firebase。</p>
