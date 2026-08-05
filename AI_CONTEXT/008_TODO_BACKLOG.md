@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.63
+# Universal Rebalance Todo Backlog v1.64
 
 最後更新：2026-08-05
+
+2026-08-05 **UR-TODO-001（Firebase Realtime Database Security Rules Expiry）正式標記為已完成**。PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252)（`feat/ur-todo-001-firebase-anonymous-auth`）已由使用者手動 Merge，merge commit `2a038802aac1a345f5be2a5100913142d42d23a4`，`mergedAt: 2026-08-05T08:22:26Z`。**治理落差更正**：本文件先前記錄的 Firebase 專案資訊「`my-00662`／`my-00662-default-rtdb`」為錯誤記載，正確專案為 **`l-pro-web-app`**（`databaseURL: https://l-pro-web-app-default-rtdb.asia-southeast1.firebasedatabase.app`），已於本次一併更正下方 UR-TODO-001 正式條目內容；Console 端專案本來就是 `l-pro-web-app`，僅治理文件記錄有誤，未變更任何實際 Firebase 設定。**正式解法**：新增純 REST（非 `firebase` SDK）Firebase Anonymous Authentication，維持既有 raw `fetch()` 架構不變——`src/lib/firebaseAnonymousAuth.ts` 直接呼叫 Identity Toolkit／Secure Token API，App 啟動時背景自動建立或更新匿名 session（可注入依賴的純函式，含 session 新鮮度判斷、reuse／refresh／fallback-signup 分支）；`src/lib/environmentBoundary.ts` 的 `syncRoot()` 由 `secretPath` 改為 `uid`，路徑格式由 `{basePath}/{secretPath}` 改為 `{basePath}/users/{uid}`，滿足「路徑必須以匿名登入 uid 為基礎，未來 `linkWithCredential()` 升級 uid 不變、不需 migration」的產品要求；`src/lib/firebaseSyncUrl.ts` 組出帶 `?auth=<idToken>` 的 RTDB REST URL。Security Rules 已由使用者本人於 Firebase Console 套用（`$envPath` 萬用字元只鎖 `auth.uid === $uid`，不區分環境字串；Preview／Production 隔離仍由既有 App 層 `firebaseBasePath` 前綴機制負責，與 Rules 無關）。既有雲端舊資料（到期規則封鎖前的公開讀寫資料）依使用者拍板**視為已遺失，不做遷移**（過期 Rules 對所有人皆拒絕讀取，遷移在技術上須先由使用者自行於 Console 暫時重開舊路徑，非本次程式碼範圍）；使用者下次「上傳雲端」會直接把本機 localStorage 資料寫入新的 uid 路徑。UI 層：「同步代號」輸入欄位與兩處「目前同步代號」顯示已從介面隱藏（底層 `state.firebase.secretPath` 型別與資料完全保留，未刪除、未 migration，因為 uid 路徑生效後這個欄位已不影響資料實際存放位置，繼續顯示會誤導使用者）；「上傳雲端」／「下載雲端」按鈕旁新增跨裝置同步暫停提示（「跨裝置同步暫時關閉：本次僅支援單一裝置的雲端備份。如需在不同裝置間搬移資料，請改用「匯出 JSON 備份」／「匯入 JSON 備份」；未來帳號升級功能上線後，將恢復跨裝置同步。」）；新增「登入狀態」顯示列取代原「目前同步代號」位置，登入失敗時清楚顯示錯誤訊息（例如 `❌ 匿名登入失敗：...`），不靜默。**明確不包含**：Google 登入／OAuth 串接、`linkWithCredential()` 帳號升級 UI 或實際呼叫邏輯、帳號衝突合併邏輯、多裝置同時登入處理、任何 Household Liquidity 或其他核心財務公式變更。新增 `tests/firebaseAnonymousAuth.test.ts`（10 個測試）、`tests/firebaseSyncUrl.test.ts`（4 個測試），並更新 `tests/environmentBoundary.test.ts`、`tests/syncBaseline.test.ts`、`tests/productionSyncBaselineRegression.test.ts` 三個原本鎖定舊 `syncPath`／`uploadFirebase` 簽名的原始碼文字斷言；`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；`Deploy GitHub Pages` run `30988751844` success，headSha 與 merge commit 一致；Production／Preview `curl` 皆 HTTP 200。**使用者完成 Firebase Console 兩項設定（啟用「匿名」登入方式、套用新 Security Rules）後，已以真實 Firebase 後端複驗**（測試資料驗證後已清除）：全新使用者背景自動登入成功，Preview／Production 各自取得真實且互異的 uid；以 App 實際簽發的 uid／idToken 重放與程式碼相同的 RTDB REST 呼叫，上傳／下載成功且資料一致；用 Production 的 idToken 讀取 Preview 的 uid 路徑回傳 HTTP 401 Permission denied，證實 Rules 的 `auth.uid === $uid` 正確生效，跨使用者無法互相讀到對方資料。**UR-TODO-001 正式結案**；**下一潛在候選為 Google 登入／帳號升級（`linkWithCredential()`），屬重大產品語意事件，須另行拍板，本次未自動開始，未經授權不得開始。**詳見下方更新後的 **UR-TODO-001** 正式條目。
 
 2026-08-05 **UR-TODO-046-C3C-A（Runtime Attribution Provenance Card）與 UR-TODO-046-C3C-B（Session-only Mark-as-Reasonable Toggle）正式標記為已完成**。**C3C-A**：PR [#248](https://github.com/hyc640110/family-universal-rebalance/pull/248)（`feat/ur-todo-046-c3c-a-presentation`）已由使用者手動 Merge，merge commit `28c832b1020b8bd38845776d8177fa7f2e4c7994`。新增純顯示層 `src/lib/runtimeAttributionPresentation.ts`（`deriveRuntimeAttributionPresentation()`）與唯讀元件 `src/components/RuntimeAttributionProvenanceCard.tsx`，於分析頁「風險」視角、緊接「防守配置狀態」卡片之後呈現 `composeRuntimeNetWorthAttribution()` 的既有輸出，拆解 Ledger 已確認證據／衍生證據／未解釋殘差三層 provenance；`reconciled` 直接讀 `attributionQuality === 'reconciled'`；zero-length period（`openingSnapshot.date === closingSnapshot.date`）由呼叫端比較日期後標示「當日無比較區間」，非依賴計算函式回傳值；adjustment／internal-transfer 的 0 貢獻與 FX fail-safe 排除項目皆有人類可讀文字（不直接顯示 diagnostics 原始代碼）。比較期間固定採「最新兩筆淨資產快照」，與既有 `deriveHistoryStats()` 的 `todayChange` 同一慣例，未發明新快照挑選規則。**C3C-B**：PR [#250](https://github.com/hyc640110/family-universal-rebalance/pull/250)（`feat/ur-todo-046-c3c-b-session-confirm`）已由使用者手動 Merge，merge commit `d7fb5b44d4641c492c8b11b7871bf2f31891431f`，`mergedAt: 2026-08-05T02:54:55Z`。在 C3C-A 卡片新增「衍生證據逐筆清單」，每筆 derived evidence（`provenance==='derived-transaction' && disposition==='contributing'`）旁掛一個可重複切換的「標示為合理」toggle，純 component-local `useState`（比照 UR-TODO-045 `showAllHistoryGrid` 先例），toggle 邏輯抽成純函式 `src/lib/runtimeAttributionSessionMarks.ts`；Ledger evidence／zero-contribution／FX-excluded 三種既有清單不掛此互動。實機驗證：多筆 toggle 各自獨立切換、全程零 localStorage 寫入與零新增 network request、切換前後四個歸因數字完全不變（互動不觸發任何重新計算）、完整重新整理後所有標示清空且無「資料遺失」警告、390px 觸控目標達 44px。文案採「標示為合理」／「已標示｜我目前認為合理」，測試已斷言「已正式記帳」「已寫入 Ledger」「已永久確認」「已改變歷史資料」「已改變 attribution」「儲存」「送出」等禁用語意不出現。**兩者皆未新增 schema、persistence、localStorage、Firebase、JSON Backup 改動，未觸碰 `runtimeAttributionComposition.ts`／`netWorthAttribution.ts` 核心邏輯。UR-TODO-046 整體仍未完成**：下一潛在候選為 **046-C3C-C（Ledger 寫入／持久化）**，屬重大產品／核心財務語意事件，須另行拍板，本次未自動開始。詳見下方更新後的 **UR-TODO-046** 正式條目。
 
@@ -110,7 +112,7 @@
 
 2026-07-24 針對 UR-TODO-001 執行 Repository 唯讀盤點（未存取 Firebase Console），確認 App 未整合 Firebase Auth、Preview／Production 共用同一 Firebase 專案／RTDB 實例（僅靠路徑前綴隔離）、Database URL 與 secretPath 皆為使用者手動輸入；現行 Security Rules 內容與到期日期仍無法從 Repository 確認，需 Firebase Console 存取權限。狀態維持「待盤點」，詳見下方 UR-TODO-001 項目。
 
-2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001：專案 `my-00662`、資料庫 `my-00662-default-rtdb`，現行規則為 `now < 1785168000000`（到期日 2026-07-28）、到期前完全公開讀寫、到期後 Firebase 預設轉為全部拒絕（權限自然收斂，非資料外洩）。使用者拍板決策：不在到期前修改規則、接受自然到期、正式 Firebase Auth 方案列為未來獨立 Sprint。UR-TODO-001 狀態由「待盤點」更新為**「已盤點」**，正式解法仍為「待開發」，不得標記為「已完成」。
+2026-07-25 使用者本人於 Firebase Console 唯讀查證 UR-TODO-001：專案 `l-pro-web-app`（原記載「`my-00662`」為治理文件誤植，已於 2026-08-05 更正）、資料庫 `l-pro-web-app-default-rtdb`，現行規則為 `now < 1785168000000`（到期日 2026-07-28）、到期前完全公開讀寫、到期後 Firebase 預設轉為全部拒絕（權限自然收斂，非資料外洩）。使用者拍板決策：不在到期前修改規則、接受自然到期、正式 Firebase Auth 方案列為未來獨立 Sprint。UR-TODO-001 狀態由「待盤點」更新為**「已盤點」**，正式解法仍為「待開發」，不得標記為「已完成」。
 
 2026-07-25 落地 V7.0A（Foundation & Product Governance）：新增 `016_Product_Decisions.md`（永久產品治理決策）、`017_Design_System.md`、`018_Dashboard_UX_Guideline.md`（骨架，內容待補完）、`019_Idea_Pool.md`（空白，含收錄規則）；`013_HOUSEHOLD_LIQUIDITY_SPEC.md` 升版為 v4.0（新增與產品版本 V7.0B 的對應說明，核心內容未變）。本文件新增「新想法先進 Idea Pool」規則，未改動任何既有 UR-TODO 的優先級或狀態，不新增任何 UR-TODO 項目。
 
@@ -183,9 +185,9 @@
 ### UR-TODO-001 Firebase Realtime Database Security Rules Expiry
 
 - 優先級：P0
-- 狀態：**已盤點**（Rules 內容與到期日已由使用者本人於 Firebase Console 查證確認；正式解法〔Firebase Auth 整合〕仍為**待開發**，尚未排入 Sprint，不得標記為「已完成」）
+- 狀態：**已完成**（2026-08-05，PR #252；正式解法〔Firebase Anonymous Auth 整合〕已完成並經使用者於 Console 套用 Rules 後實機複驗成功，詳見下方 2026-08-05 段落）
 - 提出日期：2026-07-22
-- 問題：`my-00662-default-rtdb` 測試模式用戶端存取權限即將到期。
+- 問題：`l-pro-web-app-default-rtdb`（原記載「`my-00662-default-rtdb`」為治理文件誤植，已於 2026-08-05 更正）測試模式用戶端存取權限已到期。
 - 可能影響：
   - 雲端上傳
   - 雲端下載
@@ -207,10 +209,14 @@
   - 不公開資料
   - 無資料遺失
 
-**2026-07-25 Firebase Console 唯讀查證結論（使用者本人於 Firebase Console 查證，非 Repository 唯讀盤點得出）：**
+**2026-08-05 正式解法已完成，UR-TODO-001 正式結案：**
 
-- 專案：`my-00662`，資料庫：`my-00662-default-rtdb`
-- 現行規則（確認日 2026-07-25）：
+PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已由使用者手動 Merge，merge commit `2a038802aac1a345f5be2a5100913142d42d23a4`，`mergedAt: 2026-08-05T08:22:26Z`。新增純 REST（非 `firebase` SDK）Firebase Anonymous Authentication，維持既有 raw `fetch()` 架構：`src/lib/firebaseAnonymousAuth.ts` 直接呼叫 Identity Toolkit／Secure Token API 建立與更新匿名 session；`src/lib/environmentBoundary.ts` 的 `syncRoot()` 由 `secretPath` 改為 `uid`，路徑格式改為 `{basePath}/users/{uid}`，滿足「路徑以 uid 為基礎、未來 `linkWithCredential()` 升級不需 migration」的產品要求；`src/lib/firebaseSyncUrl.ts` 組出帶 `?auth=<idToken>` 的 RTDB REST URL。使用者已於 Firebase Console 套用新 Security Rules（`$envPath` 萬用字元只鎖 `auth.uid === $uid`）並啟用「匿名」登入方式；既有雲端舊資料依使用者拍板視為已遺失、不做遷移。**實機以真實 Firebase 後端複驗**：全新使用者背景自動登入成功並取得真實 uid；以實際簽發的 uid／idToken 重放 RTDB REST 呼叫，上傳／下載成功且資料一致；跨 uid 存取回傳 HTTP 401 Permission denied，證實 Rules 正確生效。詳細變更範圍、測試清單與明確排除項目見 `003_CURRENT_STATUS.md` 最上方 2026-08-05 記錄。**下一潛在候選為 Google 登入／帳號升級（`linkWithCredential()`），屬重大產品語意事件，須另行拍板，未經授權不得開始。**
+
+**2026-07-25 Firebase Console 唯讀查證結論（使用者本人於 Firebase Console 查證，非 Repository 唯讀盤點得出，歷史記錄）：**
+
+- 專案：`l-pro-web-app`（原記載「`my-00662`」為治理文件誤植，已於 2026-08-05 更正），資料庫：`l-pro-web-app-default-rtdb`
+- 現行規則（確認日 2026-07-25，查證當時內容）：
   ```
   ".read": "now < 1785168000000"
   ".write": "now < 1785168000000"
@@ -245,7 +251,7 @@
 2. **中期（正式方案）**：App 目前完全無 Firebase Auth，若要以 `auth != null` 收斂權限，須先在 App 內新增登入機制（可能沿用現有 Gmail／Google OAuth 身份，或另外導入 Firebase Anonymous／Email Auth），並在規則改動前後分別驗證 Preview／Production 的上傳／下載仍可運作，屬有實質開發工作量的 Sprint，非單純 Console 設定。
 3. **架構層考量**：因 Database URL 與 secretPath 皆為使用者輸入、且 Preview／Production 共用同一實例，任何規則收斂都須同時涵蓋兩個環境的路徑前綴（`family-universal-rebalance` 與 `family-universal-rebalance-preview`），並重新驗證 `environmentBoundary.ts` 的隔離防呆邏輯在新規則下仍然有效。
 
-三個方向的優先順序、時程與是否走 Console-only Hotfix 或正式 Sprint，於 2026-07-25 由使用者查閱 Firebase Console 後決定：**不在到期前修改規則，接受 2026-07-28 自然到期**，正式解法（Firebase Auth 整合）列為未來獨立 Sprint。狀態依此更新為「已盤點」，詳見上方 2026-07-25 段落；正式解法本身仍為「待開發」。
+三個方向的優先順序、時程與是否走 Console-only Hotfix 或正式 Sprint，於 2026-07-25 由使用者查閱 Firebase Console 後決定：**不在到期前修改規則，接受 2026-07-28 自然到期**，正式解法（Firebase Auth 整合）列為未來獨立 Sprint。**此段為歷史記錄：正式解法已於 2026-08-05 由 UR-TODO-001／PR #252 完成，詳見上方 2026-08-05 段落，狀態現為「已完成」。**
 
 ### UR-TODO-002 持股資產管理卡片 2.0 差異盤點
 

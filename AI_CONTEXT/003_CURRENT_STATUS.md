@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.76
+# Universal Rebalance Current Status v3.77
 
 最後更新：2026-08-05
+
+**UR-TODO-001 Firebase Anonymous Authentication 正式標記為已完成（2026-08-05）**：PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252)（`feat/ur-todo-001-firebase-anonymous-auth`）已由使用者手動 Merge，merge commit **`2a038802aac1a345f5be2a5100913142d42d23a4`**（`mergedAt: 2026-08-05T08:22:26Z`），為目前 `main`／`origin/main` 正式基線。**治理落差更正**：本文件與 `008_TODO_BACKLOG.md` 先前記錄的 Firebase 專案資訊「`my-00662`／`my-00662-default-rtdb`」為錯誤記載，正確專案為 **`l-pro-web-app`**，資料庫為 **`https://l-pro-web-app-default-rtdb.asia-southeast1.firebasedatabase.app`**；本次已一併更正下方第 10 節與 `008_TODO_BACKLOG.md` 對應內容，未變更任何實際 Firebase 設定本身（Console 端專案與資料庫本來就是 `l-pro-web-app`，僅治理文件記錄有誤）。新增純 REST（非 SDK）Firebase Anonymous Auth：App 啟動時背景自動建立或更新匿名 session（`src/lib/firebaseAnonymousAuth.ts`），所有雲端資料路徑改為以匿名登入 uid 為基礎（`{firebaseBasePath}/users/{uid}`，見 `src/lib/environmentBoundary.ts`），取代舊有以使用者手動輸入 `secretPath` 決定路徑的設計；Security Rules 已由使用者本人於 Console 套用新規則（`$envPath` 萬用字元只鎖 `auth.uid === $uid`，不區分環境字串，Preview／Production 隔離仍由既有 App 層 `firebaseBasePath` 前綴負責）。既有雲端舊資料（到期規則封鎖前的公開讀寫資料）依使用者拍板視為已遺失，不做遷移，使用者下次「上傳雲端」會直接寫入新的 uid 路徑。UI 層：「同步代號」欄位已從介面隱藏（底層 `state.firebase.secretPath` 型別與資料完全保留，未刪除、未 migration）；「上傳雲端」／「下載雲端」按鈕旁新增跨裝置同步暫停提示；新增「登入狀態」顯示列，失敗時清楚顯示錯誤訊息不靜默。**明確不包含**：Google 登入／OAuth 串接、`linkWithCredential()` 帳號升級 UI 或實際呼叫、帳號衝突合併邏輯、多裝置同時登入處理、任何 Household Liquidity 或其他核心財務公式變更。`npx tsc -b`、`npm run test:ci`（含新增 2 個測試檔、修改 3 個既有測試檔）、Production／Preview build 皆成功；`Deploy GitHub Pages` run `30988751844` success，headSha 與 merge commit 一致；Production／Preview `curl` 皆 HTTP 200。**實機以真實 Firebase 後端驗證**（使用者完成 Console 兩項設定〔啟用匿名登入、套用新 Rules〕後複驗，測試資料驗證後已清除）：全新使用者背景自動登入成功，取得真實且互異的 uid（Preview／Production 各自獨立）；以 App 實際簽發的 uid／idToken 重放與程式碼相同的 RTDB REST 呼叫，上傳／下載成功且資料一致；跨 uid 存取測試回傳 HTTP 401 Permission denied，證實 Rules 的 `auth.uid === $uid` 正確生效。**UR-TODO-001 正式結案**；下一潛在候選為 Google 登入／帳號升級（`linkWithCredential()`），屬重大產品語意事件，須另行拍板，本次未自動開始。
 
 **UR-TODO-046-C3C-A／C3C-B 已完成（2026-08-05）**：PR [#248](https://github.com/hyc640110/family-universal-rebalance/pull/248)（`feat/ur-todo-046-c3c-a-presentation`，merge commit `28c832b1020b8bd38845776d8177fa7f2e4c7994`）與 PR [#250](https://github.com/hyc640110/family-universal-rebalance/pull/250)（`feat/ur-todo-046-c3c-b-session-confirm`，merge commit **`d7fb5b44d4641c492c8b11b7871bf2f31891431f`**，`mergedAt: 2026-08-05T02:54:55Z`）皆已由使用者手動 Merge，`d7fb5b4` 為目前 `main`／`origin/main` 正式基線。**C3C-A** 新增唯讀 `RuntimeAttributionProvenanceCard`（分析頁「風險」視角，緊接「防守配置狀態」卡片之後），純顯示層消費既有 `composeRuntimeNetWorthAttribution()` 輸出，拆解 Ledger 已確認證據／衍生證據／未解釋殘差三層 provenance；比較期間固定為「最新兩筆淨資產快照」（與 `deriveHistoryStats()` 的 `todayChange` 同一慣例）；zero-length period、adjustment／internal-transfer 0 貢獻、FX fail-safe 排除文案皆由呼叫端／presentation 層以人類可讀文字呈現，不暴露原始 diagnostics 代碼。**C3C-B** 在每筆「衍生證據」旁新增可重複切換的「標示為合理」toggle：純 component-local React state（比照 UR-TODO-045 `showAllHistoryGrid` 先例），不寫入 Ledger、schema、persistence、localStorage、Firebase、JSON Backup；toggle 互動不觸發任何重新計算；完整重新整理後所有標示清空、無「資料遺失」警告；文案避免「儲存」「送出」等持久化聯想字樣，已用測試斷言「已正式記帳」「已寫入 Ledger」等禁用語意不出現。兩者皆未觸碰 `runtimeAttributionComposition.ts`／`netWorthAttribution.ts` 核心邏輯，`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；`Deploy GitHub Pages` run `30970718416` success，headSha 與合併後 `main` 一致；Production／Preview `curl` 皆 HTTP 200。**UR-TODO-046 整體仍未完成**：下一潛在候選為 **046-C3C-C（Ledger 寫入／持久化）**，屬重大產品／核心財務語意事件，須另行拍板，本次未自動開始。
 
@@ -298,9 +300,11 @@ Dashboard 與 `aiDecision.ts` 未直接修改，因既有 App 已將 producer �
 - **Sprint 2（Liquidity Data Provenance & Migration）：部分完成** — PR #104、#105 已合併 provenance／schema／migration／round-trip 與 Plan Input 持久化；尚未接入任何正式 consumer，對應 UR-TODO-007（部分完成，詳見 `008_TODO_BACKLOG.md`）。
 - **下一個建議 Sprint：Sprint 3 — Rebalance & Trade Execution Integration**（對應 UR-TODO-008，`013 v3.0` 第 12～14、23、30 節），前提是先完成第 11 節「現行下一步」列出的文件同步與 P0 唯讀盤點。
 
-## 10. 緊急外部風險
+## 10. 緊急外部風險（已解除，僅保留歷史記錄）
 
-Firebase Realtime Database `my-00662-default-rtdb` 測試模式用戶端存取權限將於 **2026-07-28** 到期（UR-TODO-001，P0，狀態：**已盤點**，Rules 與到期日已於 2026-07-25 由使用者本人在 Firebase Console 查證確認；正式解法仍為**待開發**，未排入 Sprint）。
+**本節記錄的風險已於 2026-08-05 由 UR-TODO-001 正式解決，詳見本文件最上方 2026-08-05 記錄；以下內容保留為歷史脈絡，不代表現況。**
+
+Firebase Realtime Database `l-pro-web-app-default-rtdb`（本節原記載專案名稱「`my-00662-default-rtdb`」為治理文件誤植，已於 2026-08-05 更正；Console 端專案本來就是 `l-pro-web-app`，從未實際使用過 `my-00662`）測試模式用戶端存取權限已於 **2026-07-28** 到期（UR-TODO-001，P0，正式解法已完成，見上方最新記錄）。
 
 到期後預期影響：
 
@@ -327,8 +331,8 @@ Firebase Realtime Database `my-00662-default-rtdb` 測試模式用戶端存取�
 
 使用者本人於 Firebase Console 唯讀查證（非 Repository 唯讀盤點得出），完整結論詳見 `008_TODO_BACKLOG.md` UR-TODO-001，本節摘要：
 
-- 專案：`my-00662`，資料庫：`my-00662-default-rtdb`
-- 現行規則：`".read": "now < 1785168000000"`／`".write": "now < 1785168000000"` → **到期日 2026-07-28**（查證日 2026-07-25，距今僅 3 天）
+- 專案：`l-pro-web-app`（原記載「`my-00662`」為治理文件誤植，已於 2026-08-05 更正），資料庫：`l-pro-web-app-default-rtdb`
+- 現行規則（查證當時）：`".read": "now < 1785168000000"`／`".write": "now < 1785168000000"` → **到期日 2026-07-28**（查證日 2026-07-25，距今僅 3 天）
 - 到期前：完全公開讀寫，無任何條件限制；到期後：Firebase 預設自動轉為全部拒絕（deny all）
 
 **使用者決策（已拍板）：**
