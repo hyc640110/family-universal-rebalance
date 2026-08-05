@@ -7,6 +7,7 @@ import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
 import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
+import RuntimeAttributionProvenanceCard from './components/RuntimeAttributionProvenanceCard';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -62,6 +63,8 @@ import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from '
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
 import { FINANCIAL_EVENT_SCHEMA_VERSION, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
+import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
+import { deriveRuntimeAttributionPresentation } from './lib/runtimeAttributionPresentation';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
@@ -1350,6 +1353,22 @@ function App() {
     canExecute: householdLiquidityForRebalance.canExecuteBuy,
     blockingReasons: householdLiquidityForRebalance.blockingReasons
   }), [m, rb.mode, householdLiquidityForRebalance]);
+  // UR-TODO-046-C3C-A: read-only provenance card only; reuses the same latest-two-snapshot
+  // pair already used by deriveHistoryStats' todayChange, no new snapshot-selection rule.
+  const runtimeAttributionOpeningSnapshot = netWorthHistory.length >= 2 ? netWorthHistory[netWorthHistory.length - 2] : null;
+  const runtimeAttributionClosingSnapshot = netWorthHistory.length >= 1 ? netWorthHistory[netWorthHistory.length - 1] : null;
+  const runtimeAttributionComposition = useMemo(() => composeRuntimeNetWorthAttribution({
+    openingSnapshot: runtimeAttributionOpeningSnapshot,
+    closingSnapshot: runtimeAttributionClosingSnapshot,
+    ledgerEvents: state.financialEvents,
+    transactions: state.transactions,
+    accounts: state.accounts
+  }), [runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot, state.financialEvents, state.transactions, state.accounts]);
+  const runtimeAttributionPresentation = useMemo(() => deriveRuntimeAttributionPresentation({
+    composition: runtimeAttributionComposition,
+    openingSnapshot: runtimeAttributionOpeningSnapshot,
+    closingSnapshot: runtimeAttributionClosingSnapshot
+  }), [runtimeAttributionComposition, runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1861,6 +1880,7 @@ function App() {
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} diagnostics={householdLiquidityDiagnosticPresentation} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="淨值成長來源歸因"><RuntimeAttributionProvenanceCard presentation={runtimeAttributionPresentation} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />
