@@ -8,6 +8,8 @@ import {
 } from '../lib/runtimeAttributionPresentation';
 import type { NetWorthAttributionQuality } from '../lib/netWorthAttribution';
 import { toggleRuntimeAttributionMark } from '../lib/runtimeAttributionSessionMarks';
+import { displayAmount } from '../lib/amountVisibility';
+import { useAmountsHidden } from './layout/AmountVisibilityContext';
 
 /** UR-TODO-046-C3C-C: the confirm callback either succeeds (row is appended to state.financialEvents by the caller) or explicitly rejects with a human-readable reason — there is no silent failure. */
 export type RuntimeAttributionConfirmOutcome = { rejected: false } | { rejected: true; reason: string };
@@ -35,9 +37,10 @@ const qualityLabel: Record<NetWorthAttributionQuality, string> = {
 const provenanceLabel = { ledger: '「Ledger」已確認證據', 'derived-transaction': '「衍生」證據（尚未經 Ledger 確認）' } as const;
 
 function EvidenceItemRow({ item }: { item: RuntimeAttributionEvidenceItem }) {
+  const hidden = useAmountsHidden();
   return <li>
     <span className={`runtime-attribution-tag ${item.provenance === 'ledger' ? 'ledger' : 'derived'}`}>{provenanceLabel[item.provenance]}</span>
-    <span>{item.note}</span>
+    <span>{displayAmount(item.note, hidden)}</span>
   </li>;
 }
 
@@ -54,6 +57,7 @@ export default function RuntimeAttributionProvenanceCard({ presentation, onConfi
   onConfirmEvidence?: (item: RuntimeAttributionEvidenceItem) => RuntimeAttributionConfirmOutcome;
 }) {
   const { period, quality, reconciled, netWorthChange, ledgerContribution, derivedContribution, unexplainedResidual, derivedEvidenceItems, zeroContributionItems, fxExcludedItems } = presentation;
+  const hidden = useAmountsHidden();
   const [markedIds, setMarkedIds] = useState<ReadonlySet<string>>(new Set());
   const toggleMarked = (id: string) => setMarkedIds(current => toggleRuntimeAttributionMark(current, id));
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -95,22 +99,22 @@ export default function RuntimeAttributionProvenanceCard({ presentation, onConfi
     <div className="runtime-attribution-grid">
       <article>
         <small>淨值變動</small>
-        <strong>{formatRuntimeAttributionMoney(netWorthChange)}</strong>
+        <strong>{displayAmount(formatRuntimeAttributionMoney(netWorthChange), hidden)}</strong>
       </article>
       <article>
         <span className="runtime-attribution-tag ledger">{provenanceLabel.ledger}</span>
         <small>Ledger 貢獻</small>
-        <strong>{formatRuntimeAttributionMoney(ledgerContribution)}</strong>
+        <strong>{displayAmount(formatRuntimeAttributionMoney(ledgerContribution), hidden)}</strong>
       </article>
       <article>
         <span className="runtime-attribution-tag derived">{provenanceLabel['derived-transaction']}</span>
         <small>衍生貢獻</small>
-        <strong>{formatRuntimeAttributionMoney(derivedContribution)}</strong>
+        <strong>{displayAmount(formatRuntimeAttributionMoney(derivedContribution), hidden)}</strong>
       </article>
       <article>
         <span className="runtime-attribution-tag residual">未解釋殘差</span>
         <small>未解釋殘差</small>
-        <strong>{formatRuntimeAttributionMoney(unexplainedResidual)}</strong>
+        <strong>{displayAmount(formatRuntimeAttributionMoney(unexplainedResidual), hidden)}</strong>
       </article>
     </div>
 
@@ -123,8 +127,8 @@ export default function RuntimeAttributionProvenanceCard({ presentation, onConfi
         const marked = markedIds.has(item.id);
         return <li key={`${item.provenance}-${item.id}`} className="runtime-attribution-derived-evidence-item">
           <span className={`runtime-attribution-tag ${item.provenance === 'ledger' ? 'ledger' : 'derived'}`}>{provenanceLabel[item.provenance]}</span>
-          <span>{item.note}</span>
-          <strong>{formatRuntimeAttributionItemContribution(item)}</strong>
+          <span>{displayAmount(item.note, hidden)}</span>
+          <strong>{displayAmount(formatRuntimeAttributionItemContribution(item), hidden)}</strong>
           <button
             type="button"
             role="switch"
@@ -148,8 +152,8 @@ export default function RuntimeAttributionProvenanceCard({ presentation, onConfi
       <p className="runtime-attribution-derived-evidence-note">以下項目已於本次操作正式寫入記帳 Ledger，會被下一次「淨值成長來源歸因」計算為 Ledger 貢獻（因此已不再出現在上方「衍生證據」清單中）；此區塊本身仍只是本次瀏覽的畫面提示，重新整理後會清空，但記帳本身不會消失。</p>
       <ul>{confirmedReceipts.map(receipt => <li key={receipt.id} className="runtime-attribution-derived-evidence-item">
         <span className="runtime-attribution-tag ledger">{CONFIRMED_RECEIPT_LABEL}</span>
-        <span>{receipt.note}</span>
-        <strong>{formatRuntimeAttributionItemContribution({ id: receipt.id, provenance: 'ledger', contribution: receipt.contribution, note: receipt.note })}</strong>
+        <span>{displayAmount(receipt.note, hidden)}</span>
+        <strong>{displayAmount(formatRuntimeAttributionItemContribution({ id: receipt.id, provenance: 'ledger', contribution: receipt.contribution, note: receipt.note }), hidden)}</strong>
         <button type="button" className="runtime-attribution-confirm-button confirmed" disabled>{CONFIRMED_RECEIPT_LABEL}</button>
       </li>)}</ul>
     </aside>}

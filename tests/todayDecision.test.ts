@@ -101,8 +101,8 @@ test('首頁將六層結果作為唯一投資主決策，並將同步 dirty 降�
   assert.match(app, /syncReminder: syncBaselineDiagnostics\.dirty \? syncStatusText : null/);
   assert.match(page, /todayConclusion: string; syncReminder: string \| null/);
   assert.match(summary, /todayConclusion=\{todayConclusion\} syncReminder=\{syncReminder\}/);
-  assert.match(workflow, /<p className="eyebrow">今日建議結論<\/p><h3[^>]*>\{todayConclusion\}<\/h3>/);
-  assert.match(workflow, /syncReminder && <p className="daily-decision-sync-reminder"><strong>資料同步提醒<\/strong>\{syncReminder\}<\/p>/);
+  assert.match(workflow, /<p className="eyebrow">今日建議結論<\/p><h3[^>]*>\{displayEmbeddedAmounts\(todayConclusion, hidden\)\}<\/h3>/);
+  assert.match(workflow, /syncReminder && <p className="daily-decision-sync-reminder"><strong>資料同步提醒<\/strong>\{displayEmbeddedAmounts\(syncReminder, hidden\)\}<\/p>/);
   assert.doesNotMatch(workflow, /<h3[^>]*>\{workflow\.conclusion\.title\}<\/h3>/);
   assert.match(css, /\.daily-decision-sync-reminder\{[^}]*font-size:12px/);
   assert.match(css, /@media \(max-width:700px\)\{[\s\S]*?\.daily-decision-workflow-status/);
