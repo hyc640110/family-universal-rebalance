@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   deriveRuntimeAttributionPresentation,
+  formatRuntimeAttributionItemContribution,
   formatRuntimeAttributionMoney,
   RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON,
   RUNTIME_ATTRIBUTION_RECONCILED_DISCLAIMER
@@ -101,10 +102,33 @@ test('adjustment and internal-transfer events surface as zero-contribution items
     closingSnapshot: snapshot('2026-08-05')
   });
   assert.equal(result.zeroContributionItems.length, 2);
-  assert.ok(result.zeroContributionItems.some(item => item.id === 'adj-1' && item.label.includes('僅供參考')));
-  assert.ok(result.zeroContributionItems.some(item => item.id === 'xfer-1' && item.label.includes('僅供參考')));
+  assert.ok(result.zeroContributionItems.some(item => item.id === 'adj-1' && item.note.includes('僅供參考') && item.contribution === 0));
+  assert.ok(result.zeroContributionItems.some(item => item.id === 'xfer-1' && item.note.includes('僅供參考') && item.contribution === 0));
   assert.ok(!result.zeroContributionItems.some(item => item.id === 'income-1'));
   assert.ok(!result.zeroContributionItems.some(item => item.id === 'buy-1'));
+});
+
+test('derivedEvidenceItems only includes contributing derived-transaction rows, never ledger evidence or zero/excluded dispositions', () => {
+  const result = deriveRuntimeAttributionPresentation({
+    composition: baseComposition({
+      eventClassifications: [
+        { id: 'derived-income-1', type: 'external-income', provenance: 'derived-transaction', disposition: 'contributing', contribution: 15_000 },
+        { id: 'derived-dividend-1', type: 'dividend', provenance: 'derived-transaction', disposition: 'contributing', contribution: 3_000 },
+        { id: 'ledger-income-1', type: 'external-income', provenance: 'ledger', disposition: 'contributing', contribution: 20_000 },
+        { id: 'derived-adj-1', type: 'adjustment', provenance: 'derived-transaction', disposition: 'adjustment', contribution: 0 },
+        { id: 'derived-unsupported-1', type: 'investment-buy', provenance: 'derived-transaction', disposition: 'excluded', contribution: 0 }
+      ]
+    }),
+    openingSnapshot: snapshot('2026-08-01'),
+    closingSnapshot: snapshot('2026-08-05')
+  });
+  assert.equal(result.derivedEvidenceItems.length, 2);
+  assert.deepEqual(result.derivedEvidenceItems.map(item => item.id).sort(), ['derived-dividend-1', 'derived-income-1']);
+  assert.ok(result.derivedEvidenceItems.every(item => item.provenance === 'derived-transaction'));
+  const income = result.derivedEvidenceItems.find(item => item.id === 'derived-income-1')!;
+  assert.equal(income.contribution, 15_000);
+  assert.equal(income.type, 'external-income');
+  assert.equal(income.note, '外部收入');
 });
 
 test('currency-unsupported diagnostics translate into a human-readable FX exclusion reason, not raw codes', () => {
@@ -120,7 +144,8 @@ test('currency-unsupported diagnostics translate into a human-readable FX exclus
     closingSnapshot: snapshot('2026-08-05')
   });
   assert.equal(result.fxExcludedItems.length, 2);
-  assert.ok(result.fxExcludedItems.every(item => item.reason === RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON));
+  assert.ok(result.fxExcludedItems.every(item => item.note === RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON));
+  assert.ok(result.fxExcludedItems.every(item => item.contribution === null));
   assert.deepEqual(result.fxExcludedItems.map(item => ({ id: item.id, provenance: item.provenance })).sort((a, b) => a.id.localeCompare(b.id)), [
     { id: 'ledger-fx-1', provenance: 'ledger' },
     { id: 'txn-fx-1', provenance: 'derived-transaction' }
@@ -139,4 +164,10 @@ test('formatRuntimeAttributionMoney formats known signed amounts and reports una
   assert.equal(formatRuntimeAttributionMoney({ status: 'known', value: -1_234 }), '-1,234 元');
   assert.equal(formatRuntimeAttributionMoney({ status: 'known', value: 0 }), '0 元');
   assert.equal(formatRuntimeAttributionMoney({ status: 'unavailable', value: null }), '資料不足');
+});
+
+test('formatRuntimeAttributionItemContribution treats null contribution as insufficient data, distinct from a genuine 0', () => {
+  assert.equal(formatRuntimeAttributionItemContribution({ id: 'a', provenance: 'derived-transaction', contribution: 15_000, note: '' }), '+15,000 元');
+  assert.equal(formatRuntimeAttributionItemContribution({ id: 'b', provenance: 'ledger', contribution: 0, note: '' }), '0 元');
+  assert.equal(formatRuntimeAttributionItemContribution({ id: 'c', provenance: 'ledger', contribution: null, note: '' }), '資料不足');
 });
