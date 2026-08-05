@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-04T16:55:47.478620+00:00
+Generated UTC: 2026-08-05T02:00:38.705500+00:00
 
 ## Manifest
 
@@ -15,7 +15,7 @@ Generated UTC: 2026-08-04T16:55:47.478620+00:00
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
-- `007_GIT_WORKFLOW.md` — SHA-256 `adab19507b430c1f96c575bd161bb49cbe9fd0523dd05f0a86c1c1e7fa274666`
+- `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
 - `008_TODO_BACKLOG.md` — SHA-256 `6d8b1bd5a4e08500e2179a71c6ee653bda494eac14c75eef73ee2447e513875a`
 - `009_CHANGELOG.md` — SHA-256 `c6811fccb602a54f7672f65b80cbe7c7136868bb8f6c248b45aabb1c0242621f`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
@@ -2565,7 +2565,7 @@ AI 第一次接手時，應實際掃描並補齊：
 5. 必須提供 Preview。
 6. 使用者驗收後才改為 Ready for review。
 7. 由使用者自行 Merge。
-8. AI 不可自行 Merge。
+8. AI 不可自行 Merge。**例外：符合 §8.2「低風險 PR 自動 Merge 規則」四類範圍且滿足全部必要條件者，AI 可自行完成 Merge，不需逐次請示；其餘一律適用本條原則。**
 9. 不直接修改正式 GitHub Pages。
 10. Preview 與 Production 必須隔離。
 11. 不任意變更既有資料格式。
@@ -2777,7 +2777,57 @@ Sprint：（對應的產品版本／Sprint 名稱，例如「V7.0B 子 PR 5b／5
 - 本 Repository 僅有一名 collaborator（Repository 擁有者本人），沒有第二人可提供必要的 PR 核准。`enforce_admins: false` 是刻意保留的繞過閥。
 - **純治理文件同步 PR**（變更範圍僅限 `AI_CONTEXT/**/*.md` 與 `AI_CONTEXT/EXPORTS/` Bundle）維持既有自動 Merge 政策：CI Verification 的 `verify` 檢查通過、機械式路徑檢查確認範圍相符後，AI 可自行將 PR 轉為 Ready for review 並完成 Merge，不需要等候使用者。
 - 由於必要核准無法被第二人滿足，實際執行 Merge 時可能需要使用 `gh pr merge <PR> --merge --admin` 以管理員權限繞過保護規則。**這已經過使用者明確授權（2026-07-30 確認「選項 A」），不需要每次重新請示**，但每一次實際使用 `--admin` 繞過保護規則，都必須在回報內容中明確告知使用者，不得靜默執行。
-- 一般功能／程式碼 PR **不適用**此自動 Merge 與 `--admin` 繞過安排，仍須依既有規則由使用者驗收後親自決定是否 Merge。
+- 一般功能／程式碼 PR **不適用**此自動 Merge 與 `--admin` 繞過安排，仍須依既有規則由使用者驗收後親自決定是否 Merge。**2026-08-05 更新：此條「一般功能／程式碼 PR 一律人工手動 Merge」的舊政策，已由下方 §8.2 取代（放寬為四類低風險範圍可自動 Merge）；本節（8.1）純治理文件同步的既有自動 Merge 安排維持不變、不受影響，8.2 是額外新增的範圍，不是修改本節內容。**
+
+### 8.2 低風險 PR 自動 Merge 規則（2026-08-05 起）
+
+**背景**：8.1 原本只允許「純治理文件同步 PR」自動 Merge，其餘一律要求使用者手動驗收與 Merge。使用者於 2026-08-05 正式拍板放寬此範圍，新增三類低風險程式碼 PR 也可由 AI 自行完成 Draft → CI/Tests → Ready for review → 最後機械式安全檢查 → Merge 整段流程，不需要每次逐一請示；但核心財務公式、schema／persistence、Ledger、Firebase／sync、AI Decision／Rebalance 核心接線等重大事件範圍完全不受影響，仍必須停止並取得使用者授權。
+
+**一、可自行 Merge 的低風險變更**
+
+若 PR 完成後同時符合以下任一類，屬於本節適用範圍：
+
+1. 純治理文件更新（`AI_CONTEXT/**/*.md`、Full／Lite Bundle、Changelog、Current Status、Todo Backlog、Handover）——與 8.1 範圍相同。
+2. 小型 UI 修正（純文字／標籤／排版／收合展開，不影響資料模型、計算結果或持久化）。
+3. 小型測試補強（characterization／regression tests，不改正式產品行為）。
+4. 純函式／helper 小修正（不改 schema／persistence／核心財務公式／跨模組產品契約）。
+
+**二、自動 Merge 前必要條件（須全部成立，缺一即不得自動 Merge）**
+
+- Base 為最新 `main`。
+- PR head SHA 未意外改變。
+- CI／required checks 全部成功。
+- TypeScript 通過。
+- 必要測試全部通過（含新增測試已掛進 `test:ci`，見 §6）。
+- Production／Preview build 通過（若適用）。
+- `git diff --check` 通過。
+- Changed files 完全在預期範圍內，無非預期檔案。
+- 無 secret／credential 混入。
+- 無非預期的 schema／persistence／migration／deployment 變更。
+- 無新的重大風險或尚未拍板的產品決策。
+
+若 Branch Protection 只因需要 approval 而阻擋，且本 PR 已確認屬本節低風險自動 Merge 範圍，可沿用 8.1 既有的 `gh pr merge --admin` 流程；每次實際使用都必須在回報中明確告知，不得靜默執行。
+
+**三、不得自行 Merge 的重大事件**
+
+遇到以下任一情況，必須停止並取得使用者明確授權，不適用本節：
+
+核心財務公式變更、attribution／reconciliation／rebalance 結果改變、schema 新增或修改、persistence 變更、migration、legacy rewrite、Ledger 寫入／永久採納、Firebase／sync protocol 變更、Backup／Import／Export 契約變更、AI Decision／Rebalance 核心接線、權限／安全／OAuth／憑證相關、Production 部署策略變更、大型跨模組重構、可能造成資料遺失或不可逆影響、使用者尚未拍板的產品語意。
+
+遇到重大事件時，AI 必須輸出「【需要使用者最終 Merge 決策】」並停止，不得自行 Merge。
+
+**四、執行方式**
+
+低風險 PR 不需要因為每一個小步驟（開分支、寫程式、跑測試、開 PR、轉 Ready、Merge、Merge 後驗證）而分別停下來詢問使用者；應完成整個開發、驗證、Ready、Merge、Merge 後驗證及必要治理同步後，再一次回報。只有發現重大事件（見上方三）、非預期 changed files、CI／Tests 無法解決、基線不一致，或產品契約不明確時，才中途停止並詢問使用者。
+
+**五、透明度要求**
+
+無論是否使用 `--admin` 繞過 Branch Protection，每次依本節自動 Merge 完成後的回報都必須明確列出：
+
+- 變更摘要（changed files、變更內容）。
+- 判定為低風險的具體依據：符合上方「一、可自行 Merge 的低風險變更」四類中的哪一類、如何逐項確認符合「二、自動 Merge 前必要條件」。
+
+不得靜默執行、不得省略此段說明。
 
 ---
 
