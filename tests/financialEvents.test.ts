@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeFinancialEventLedger } from '../src/lib/financialEvents';
+import { appendFinancialEvent, createFinancialEventId, FINANCIAL_EVENT_SCHEMA_VERSION, normalizeFinancialEventLedger, type FinancialEvent } from '../src/lib/financialEvents';
 import type { FinancialTransaction } from '../src/lib/transactions';
 
 const audit = {
@@ -161,4 +161,91 @@ test('manual event 不得以 transactionId 假裝已完成 reconciliation', () =
 
   assert.deepEqual(result.events, []);
   assert.equal(result.skipped.length, 1);
+});
+
+// UR-TODO-046-C3C-C: 'attribution-confirmation' 是加法式擴充，共用 'linked-transaction' 的 taxonomy 驗證路徑。
+test('attribution-confirmation source 走與 linked-transaction 相同的 taxonomy 驗證，schemaVersion 仍為 1', () => {
+  const transaction = { ...context.transactionsById.get('tx-a')!, id: 'income', type: 'income' as const, categoryId: 'income-salary', amount: 100 };
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [{
+    id: 'confirmation-1', type: 'external-income', status: 'posted', source: 'attribution-confirmation',
+    effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income', note: '', ...audit
+  }] }, { ...context, transactionIds: new Set(['income']), transactionsById: new Map([['income', transaction]]) });
+
+  assert.equal(result.schemaVersion, FINANCIAL_EVENT_SCHEMA_VERSION);
+  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 1, '新增 source 值不應觸發 schema version bump（詳見 financialEvents.ts 常數旁註解：bump 會讓既有使用者的空 Ledger 被視為 opaque，永久擋下 Firebase 下載）');
+  assert.deepEqual(result.events.map(event => event.id), ['confirmation-1']);
+  assert.equal(result.skipped.length, 0);
+});
+
+test('attribution-confirmation 事件同樣受 taxonomy 驗證與重複消費防呆約束', () => {
+  const transaction = { ...context.transactionsById.get('tx-a')!, id: 'income', type: 'income' as const, categoryId: 'income-dividend', amount: 100 };
+  const wrongTaxonomy = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [{
+    id: 'confirmation-wrong-type', type: 'external-income', status: 'posted', source: 'attribution-confirmation',
+    effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income', note: '', ...audit
+  }] }, { ...context, transactionIds: new Set(['income']), transactionsById: new Map([['income', transaction]]) });
+  assert.deepEqual(wrongTaxonomy.events, [], 'income-dividend 交易不得被確認成 external-income 事件');
+  assert.equal(wrongTaxonomy.skipped.length, 1);
+
+  const duplicateConsumption = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'confirmation-a', type: 'dividend', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income', note: '', ...audit },
+    { id: 'confirmation-b', type: 'dividend', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income', note: '', ...audit }
+  ] }, { ...context, transactionIds: new Set(['income']), transactionsById: new Map([['income', transaction]]) });
+  assert.deepEqual(duplicateConsumption.events.map(event => event.id), ['confirmation-a']);
+  assert.equal(duplicateConsumption.skipped.length, 1);
+});
+
+test('legacy fixture（僅含 manual／linked-transaction，無 attribution-confirmation）在擴充後正規化結果逐位元不變', () => {
+  const legacyRaw = {
+    financialEventSchemaVersion: 1,
+    financialEventAttributionStartDate: '2026-08-02',
+    financialEvents: [{
+      id: 'event-dividend', type: 'dividend', status: 'posted', source: 'linked-transaction',
+      effectiveDate: '2026-08-02', occurredAt: '2026-08-02T09:00:00.000Z', amount: 900, currency: 'TWD',
+      accountId: 'bank-a', assetSymbol: '00865B', transactionId: 'tx-a', note: '', ...audit
+    }, {
+      id: 'manual-note', type: 'adjustment', status: 'posted', source: 'manual',
+      effectiveDate: '2026-08-02', amount: 1, currency: 'TWD', accountId: 'bank-a', note: '手動調整', ...audit
+    }]
+  };
+
+  const result = normalizeFinancialEventLedger(legacyRaw, context);
+
+  assert.equal(result.schemaVersion, 1);
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.skipped, []);
+  assert.deepEqual(result.events.map(event => ({ id: event.id, source: event.source, type: event.type })), [
+    { id: 'event-dividend', source: 'linked-transaction', type: 'dividend' },
+    { id: 'manual-note', source: 'manual', type: 'adjustment' }
+  ]);
+});
+
+test('createFinancialEventId 產生非空、彼此不同的字串', () => {
+  const first = createFinancialEventId();
+  const second = createFinancialEventId();
+  assert.equal(typeof first, 'string');
+  assert.ok(first.length > 0);
+  assert.notEqual(first, second);
+});
+
+test('appendFinancialEvent 是 forward-only：允許新增，拒絕以相同 id 覆寫既有事件', () => {
+  const existing: FinancialEvent = {
+    id: 'evt-1', type: 'external-income', status: 'posted', source: 'attribution-confirmation',
+    effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income',
+    note: '', ...audit
+  };
+  const appended = appendFinancialEvent([existing], {
+    ...existing, id: 'evt-2', transactionId: 'income-2', amount: 200
+  });
+  assert.equal(appended.rejected, false);
+  if (!appended.rejected) {
+    assert.equal(appended.events.length, 2);
+    assert.deepEqual(appended.events.map(event => event.id), ['evt-1', 'evt-2']);
+    assert.notEqual(appended.events, [existing], '不得原地修改既有陣列');
+  }
+
+  const rejected = appendFinancialEvent([existing], { ...existing, amount: 999 });
+  assert.equal(rejected.rejected, true);
+  if (rejected.rejected) {
+    assert.match(rejected.reason, /forward-only|不允許覆寫/);
+  }
 });

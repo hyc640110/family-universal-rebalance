@@ -64,10 +64,12 @@ import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, norm
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
 import { FINANCIAL_EVENT_SCHEMA_VERSION, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
-import { deriveRuntimeAttributionPresentation } from './lib/runtimeAttributionPresentation';
+import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
+import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
+import type { RuntimeAttributionConfirmOutcome } from './components/RuntimeAttributionProvenanceCard';
 import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
 import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
-import { isCanonicalCalendarDay } from './lib/calendarDay';
+import { canonicalCalendarDay, isCanonicalCalendarDay } from './lib/calendarDay';
 import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
@@ -1419,6 +1421,29 @@ function App() {
     openingSnapshot: runtimeAttributionOpeningSnapshot,
     closingSnapshot: runtimeAttributionClosingSnapshot
   }), [runtimeAttributionComposition, runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot]);
+  /**
+   * UR-TODO-046-C3C-C: the sole write path from the provenance card to
+   * state.financialEvents. item.id is a transactionId for every
+   * derived-transaction row (see runtimeAttributionComposition.ts), so the
+   * underlying FinancialTransaction is looked up here rather than duplicating
+   * amount/effectiveDate/accountId/currency into the presentation layer —
+   * effectiveDate and amount are both already deterministic functions of that
+   * transaction (canonicalCalendarDay(occurredAt), transaction.amount).
+   */
+  const confirmAttributionEvidence = (item: RuntimeAttributionEvidenceItem): RuntimeAttributionConfirmOutcome => {
+    const transaction = state.transactions.find(candidate => candidate.id === item.id);
+    if (!transaction || !item.type) return { rejected: true, reason: '找不到對應的交易資料，可能是這筆交易已被刪除或修改，請重新整理後再試一次。' };
+    let effectiveDate: string;
+    try { effectiveDate = canonicalCalendarDay(transaction.occurredAt); } catch { return { rejected: true, reason: '交易日期無效，無法確認記帳。' }; }
+    const result = confirmAttributionEvidenceAndAppend({
+      evidence: { transactionId: transaction.id, effectiveDate, category: item.type, amount: transaction.amount },
+      transaction,
+      now: now()
+    }, state.financialEvents);
+    if (result.rejected) return result;
+    setState(current => ({ ...current, financialEvents: result.events }));
+    return { rejected: false };
+  };
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1937,7 +1962,7 @@ function App() {
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} diagnostics={householdLiquidityDiagnosticPresentation} /></Card>}
-        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="淨值成長來源歸因"><RuntimeAttributionProvenanceCard presentation={runtimeAttributionPresentation} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="淨值成長來源歸因"><RuntimeAttributionProvenanceCard presentation={runtimeAttributionPresentation} onConfirmEvidence={confirmAttributionEvidence} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />

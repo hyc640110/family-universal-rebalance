@@ -9,6 +9,22 @@ import {
 import type { NetWorthAttributionQuality } from '../lib/netWorthAttribution';
 import { toggleRuntimeAttributionMark } from '../lib/runtimeAttributionSessionMarks';
 
+/** UR-TODO-046-C3C-C: the confirm callback either succeeds (row is appended to state.financialEvents by the caller) or explicitly rejects with a human-readable reason — there is no silent failure. */
+export type RuntimeAttributionConfirmOutcome = { rejected: false } | { rejected: true; reason: string };
+
+type ConfirmedReceipt = { id: string; note: string; contribution: number | null };
+
+/**
+ * DRAFT WORDING — pending user review (see UR-TODO-046-C3C-C dev instructions:
+ * "不得自行決定「確認並正式記帳」按鈕的最終文案，需提出草案供使用者審查後才能定案").
+ * Do not treat these strings as final; they exist so the feature is reviewable
+ * end-to-end in this Draft PR.
+ */
+const CONFIRM_BUTTON_LABEL = '確認並正式記帳';
+const CONFIRM_DIALOG_TEXT = (note: string) =>
+  `即將把「${note}」正式寫入記帳 Ledger。\n\n這是不可逆的正式記帳動作，且與上方「標示為合理」的隨手標記不同：\n・重新整理頁面後不會消失\n・會被記入下次「淨值成長來源歸因」的計算\n・本次不提供撤銷功能\n\n確定要正式記帳嗎？`;
+const CONFIRMED_RECEIPT_LABEL = '已記帳';
+
 const qualityLabel: Record<NetWorthAttributionQuality, string> = {
   unavailable: '資料不足',
   'snapshot-only': '僅有快照差額，尚無可歸因事件',
@@ -32,17 +48,40 @@ function EvidenceItemRow({ item }: { item: RuntimeAttributionEvidenceItem }) {
  * changes reconciliation/attribution inputs or output. A page reload always
  * resets it, by construction (there is nowhere it could be read back from).
  */
-export default function RuntimeAttributionProvenanceCard({ presentation }: { presentation: RuntimeAttributionPresentation }) {
+export default function RuntimeAttributionProvenanceCard({ presentation, onConfirmEvidence }: {
+  presentation: RuntimeAttributionPresentation;
+  /** Absent in read-only contexts (e.g. characterization tests) — the confirm button only renders when this is provided. */
+  onConfirmEvidence?: (item: RuntimeAttributionEvidenceItem) => RuntimeAttributionConfirmOutcome;
+}) {
   const { period, quality, reconciled, netWorthChange, ledgerContribution, derivedContribution, unexplainedResidual, derivedEvidenceItems, zeroContributionItems, fxExcludedItems } = presentation;
   const [markedIds, setMarkedIds] = useState<ReadonlySet<string>>(new Set());
   const toggleMarked = (id: string) => setMarkedIds(current => toggleRuntimeAttributionMark(current, id));
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  /**
+   * Session-local "receipt" list, captured at confirm time. Once a row is
+   * confirmed, the next recompute reclassifies its transaction as matched by
+   * the C1 Ledger and it naturally drops out of derivedEvidenceItems — this
+   * list is what lets the card still show an explicit "已記帳" acknowledgement
+   * for it instead of the row silently vanishing. It is not persisted and
+   * resets on reload, same as everything else in this component.
+   */
+  const [confirmedReceipts, setConfirmedReceipts] = useState<ConfirmedReceipt[]>([]);
+
+  const handleConfirm = (item: RuntimeAttributionEvidenceItem) => {
+    if (!onConfirmEvidence || !item.type) return;
+    if (!window.confirm(CONFIRM_DIALOG_TEXT(item.note))) return;
+    const outcome = onConfirmEvidence(item);
+    if (outcome.rejected) { setConfirmError(outcome.reason); return; }
+    setConfirmError(null);
+    setConfirmedReceipts(current => [...current, { id: item.id, note: item.note, contribution: item.contribution }]);
+  };
 
   return <section className="runtime-attribution-card" aria-label="淨值成長來源歸因">
     <header className="runtime-attribution-heading">
       <div>
-        <p className="eyebrow">唯讀｜UR-TODO-046-C3C-A／B</p>
+        <p className="eyebrow">UR-TODO-046-C3C-A／B／C</p>
         <h2>淨值成長來源歸因</h2>
-        <p>比較最新兩筆淨資產快照，拆解 Ledger 已確認證據、衍生證據與未解釋殘差；本卡片不提供任何記帳、編輯或刪除操作。</p>
+        <p>比較最新兩筆淨資產快照，拆解 Ledger 已確認證據、衍生證據與未解釋殘差；本卡片僅能對衍生證據逐筆「確認並正式記帳」，不提供編輯、刪除或撤銷操作。</p>
       </div>
       <strong className={`runtime-attribution-quality ${quality}`}>{qualityLabel[quality]}</strong>
     </header>
@@ -93,8 +132,26 @@ export default function RuntimeAttributionProvenanceCard({ presentation }: { pre
             className={`runtime-attribution-mark-toggle${marked ? ' active' : ''}`}
             onClick={() => toggleMarked(item.id)}
           >{marked ? '已標示｜我目前認為合理' : '標示為合理'}</button>
+          {onConfirmEvidence && <button
+            type="button"
+            className="runtime-attribution-confirm-button"
+            onClick={() => handleConfirm(item)}
+          >{CONFIRM_BUTTON_LABEL}</button>}
         </li>;
       })}</ul>
+    </aside>}
+
+    {confirmError && <p className="runtime-attribution-confirm-error" role="alert">{confirmError}</p>}
+
+    {confirmedReceipts.length > 0 && <aside className="runtime-attribution-derived-evidence">
+      <strong>本次已正式記帳</strong>
+      <p className="runtime-attribution-derived-evidence-note">以下項目已於本次操作正式寫入記帳 Ledger，會被下一次「淨值成長來源歸因」計算為 Ledger 貢獻（因此已不再出現在上方「衍生證據」清單中）；此區塊本身仍只是本次瀏覽的畫面提示，重新整理後會清空，但記帳本身不會消失。</p>
+      <ul>{confirmedReceipts.map(receipt => <li key={receipt.id} className="runtime-attribution-derived-evidence-item">
+        <span className="runtime-attribution-tag ledger">{CONFIRMED_RECEIPT_LABEL}</span>
+        <span>{receipt.note}</span>
+        <strong>{formatRuntimeAttributionItemContribution({ id: receipt.id, provenance: 'ledger', contribution: receipt.contribution, note: receipt.note })}</strong>
+        <button type="button" className="runtime-attribution-confirm-button confirmed" disabled>{CONFIRMED_RECEIPT_LABEL}</button>
+      </li>)}</ul>
     </aside>}
 
     {zeroContributionItems.length > 0 && <aside className="runtime-attribution-zero-contribution">

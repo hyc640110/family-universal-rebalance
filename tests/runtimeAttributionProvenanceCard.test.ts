@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import RuntimeAttributionProvenanceCard from '../src/components/RuntimeAttributionProvenanceCard';
-import type { RuntimeAttributionPresentation } from '../src/lib/runtimeAttributionPresentation';
+import RuntimeAttributionProvenanceCard, { type RuntimeAttributionConfirmOutcome } from '../src/components/RuntimeAttributionProvenanceCard';
+import type { RuntimeAttributionEvidenceItem, RuntimeAttributionPresentation } from '../src/lib/runtimeAttributionPresentation';
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -23,7 +23,8 @@ function basePresentation(overrides: Partial<RuntimeAttributionPresentation> = {
   };
 }
 
-const render = (presentation: RuntimeAttributionPresentation) => renderToStaticMarkup(createElement(RuntimeAttributionProvenanceCard, { presentation }));
+const render = (presentation: RuntimeAttributionPresentation, onConfirmEvidence?: (item: RuntimeAttributionEvidenceItem) => RuntimeAttributionConfirmOutcome) =>
+  renderToStaticMarkup(createElement(RuntimeAttributionProvenanceCard, { presentation, ...(onConfirmEvidence ? { onConfirmEvidence } : {}) }));
 
 test('renders one independent toggle per derived evidence item, defaulting to unmarked', () => {
   const html = render(basePresentation({
@@ -65,4 +66,45 @@ test('the derived-evidence explanation text is present verbatim and never claims
   for (const forbidden of ['已正式記帳', '已寫入 Ledger', '已永久確認', '已改變歷史資料', '已改變 attribution', '儲存', '送出']) {
     assert.doesNotMatch(html, new RegExp(forbidden), `forbidden wording "${forbidden}" must not appear anywhere on the card`);
   }
+});
+
+// UR-TODO-046-C3C-C
+test('確認按鈕只在有提供 onConfirmEvidence 時才渲染，且每列衍生證據各自獨立一顆', () => {
+  const items = [
+    { id: 'txn-1', type: 'external-income' as const, provenance: 'derived-transaction' as const, contribution: 15_000, note: '外部收入' },
+    { id: 'txn-2', type: 'dividend' as const, provenance: 'derived-transaction' as const, contribution: 3_000, note: '股息' }
+  ];
+
+  const withoutCallback = render(basePresentation({ derivedEvidenceItems: items }));
+  assert.doesNotMatch(withoutCallback, /runtime-attribution-confirm-button/, '沒有提供 onConfirmEvidence 時不得渲染確認按鈕');
+
+  const withCallback = render(basePresentation({ derivedEvidenceItems: items }), () => ({ rejected: false }));
+  const confirmButtonMatches = [...withCallback.matchAll(/class="runtime-attribution-confirm-button"[^>]*>確認並正式記帳<\/button>/g)];
+  assert.equal(confirmButtonMatches.length, 2, '每一列衍生證據都應有各自獨立的確認按鈕');
+});
+
+test('確認按鈕與「標示為合理」toggle 使用不同的 CSS class（視覺上明顯不同），且不影響既有 toggle 渲染', () => {
+  const html = render(basePresentation({
+    derivedEvidenceItems: [{ id: 'txn-1', type: 'external-income', provenance: 'derived-transaction', contribution: 15_000, note: '外部收入' }]
+  }), () => ({ rejected: false }));
+
+  assert.match(html, /runtime-attribution-mark-toggle/);
+  assert.match(html, /runtime-attribution-confirm-button/);
+  const markClass = html.match(/class="runtime-attribution-mark-toggle[^"]*"/)?.[0];
+  const confirmClass = html.match(/class="runtime-attribution-confirm-button[^"]*"/)?.[0];
+  assert.notEqual(markClass, confirmClass);
+});
+
+test('一開始不渲染「本次已正式記帳」清單或錯誤訊息（尚未有任何互動）', () => {
+  const html = render(basePresentation({
+    derivedEvidenceItems: [{ id: 'txn-1', type: 'external-income', provenance: 'derived-transaction', contribution: 15_000, note: '外部收入' }]
+  }), () => ({ rejected: false }));
+  assert.doesNotMatch(html, /本次已正式記帳/);
+  assert.doesNotMatch(html, /runtime-attribution-confirm-error/);
+});
+
+test('card 標頭文案已更新為反映「確認並正式記帳」能力，不再宣稱完全唯讀', () => {
+  const html = render(basePresentation({ derivedEvidenceItems: [] }));
+  assert.match(html, /確認並正式記帳/);
+  assert.doesNotMatch(html, /不提供任何記帳、編輯或刪除操作/);
 });
