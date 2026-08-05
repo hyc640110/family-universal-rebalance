@@ -7,15 +7,20 @@ import RecommendationCard from '../components/RecommendationCard';
 import ClecRuleSummaryCard from '../components/ClecRuleSummaryCard';
 import type { ClecRuleOutput } from '../lib/clecStrategyRules';
 import type { RebalanceExecutionEligibilityOutput } from '../lib/rebalanceExecutionEligibility';
+import { displayAmount } from '../lib/amountVisibility';
+import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 type View = ReturnType<typeof deriveRebalanceRecommendation>;
-const money = (value: number | null) => value === null ? '不可計算' : `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
-const signedMoney = (value: number | null) => value === null ? '不可計算' : `${value > 0 ? '+' : value < 0 ? '-' : ''}${money(value)}`;
+const rawMoney = (value: number | null) => value === null ? '不可計算' : `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
+const rawSignedMoney = (value: number | null) => value === null ? '不可計算' : `${value > 0 ? '+' : value < 0 ? '-' : ''}${rawMoney(value)}`;
 const pct = (value: number | null) => value === null || !Number.isFinite(value) ? '不可計算' : `${value.toFixed(1)}%`;
 
 const recommendationCategories: RecommendationCategory[] = ['rebalance', 'cash', 'concentration', 'leverage', 'risk'];
 
 export default function RebalanceRecommendationPage({ view, recommendations, rule, eligibility }: { view: View; recommendations: RecommendationModel[]; rule: ClecRuleOutput; eligibility: RebalanceExecutionEligibilityOutput }) {
+  const hidden = useAmountsHidden();
+  const money = (value: number | null) => displayAmount(rawMoney(value), hidden);
+  const signedMoney = (value: number | null) => displayAmount(rawSignedMoney(value), hidden);
   const actionLabel = (row: RebalanceRecommendationRow) => row.action === 'buy' ? '理論增加' : row.action === 'sell' ? '理論減少' : row.action === 'blocked' ? '已停止計算' : '維持';
   return <PageFrame page="tools" title="再平衡建議中心" description="以本機資料計算個別標的理論再平衡金額；不自動下單、不預測價格或時機。">
     <section className="recommendation-summary"><article className={view.canRecommend ? 'good' : 'bad'}><small>建議狀態</small><strong>{view.canRecommend ? '可產生理論建議' : '資料不足，已停止計算'}</strong><span>{view.canRecommend ? '所有資料品質 gate 已通過。' : view.blockingReasons[0]}</span></article><article><small>目前模式</small><strong>{view.mode === 'standard' ? '標準再平衡' : '只買不賣'}</strong><span>{view.mode === 'standard' ? '買入與減少金額分開呈現。' : '最大缺口優先分配預算。'}</span></article><article><small>再平衡門檻</small><strong>{view.thresholdReached ? '已達門檻' : '未達執行門檻'}</strong><span>偏離 {pct(view.allocationDeviation)}｜超過 {pct(view.thresholdGap)}</span></article><article><small>最高優先限制</small><strong>{view.blockingReasons.length ? '請先修正資料' : '資料品質正常'}</strong><span>{view.blockingReasons.length ? view.blockingReasons.length + ' 項停止原因' : '可檢視理論金額差額。'}</span></article></section>

@@ -70,6 +70,8 @@ import type { RuntimeAttributionConfirmOutcome } from './components/RuntimeAttri
 import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
 import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './lib/calendarDay';
+import { AmountVisibilityContext, useAmountsHidden } from './components/layout/AmountVisibilityContext';
+import { displayAmount, displayEmbeddedAmounts } from './lib/amountVisibility';
 import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
@@ -679,6 +681,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const hidden = useAmountsHidden();
   const total = Math.max(0, num(m.totalAssets));
   const growthWeight = total > 0 ? num(m.growth) / total * 100 : 0;
   const defensiveWeight = total > 0 ? num(m.defensive) / total * 100 : 0;
@@ -702,7 +705,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   if (items.length === 0) return <div className="allocation-empty">尚無可計入資產配置的市值資料。</div>;
   return <div className="allocation-chart">
     <div className="allocation-summary" aria-label="資產配置摘要">
-      <div><small>總資產</small><strong>{money(total)}</strong></div>
+      <div><small>總資產</small><strong>{displayAmount(money(total), hidden)}</strong></div>
       <div><small>成長</small><strong>{allocationPct(growthWeight)}</strong></div>
       <div><small>防守</small><strong>{allocationPct(defensiveWeight)}</strong></div>
     </div>
@@ -714,7 +717,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
             {segments.map(segment => <circle key={segment.symbol} className={`allocation-segment ${activeSymbol === segment.symbol ? 'active' : ''}`} cx="60" cy="60" r={radius} stroke={segment.color} strokeDasharray={`${segment.dash} ${circumference - segment.dash}`} strokeDashoffset={-segment.offset} onMouseEnter={() => setHoveredSymbol(segment.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onClick={() => activate(segment.symbol)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(segment.symbol); } }} role="button" tabIndex={0}><title>{`${segment.name} ${pct(segment.percent)}`}</title></circle>)}
           </g>
         </svg>
-        <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : money(total)}</strong></div>
+        <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : displayAmount(money(total), hidden)}</strong></div>
       </div>
       <div className={`allocation-legend ${showAll ? 'is-expanded' : ''}`}>
         {items.map(item => <button type="button" className={`allocation-legend-item ${activeSymbol === item.symbol ? 'active' : ''}`} key={item.symbol} onMouseEnter={() => setHoveredSymbol(item.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onFocus={() => setHoveredSymbol(item.symbol)} onBlur={() => setHoveredSymbol(null)} onClick={() => activate(item.symbol)}>
@@ -738,6 +741,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
   onRemove: (symbol: SymbolCode) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
+  const hidden = useAmountsHidden();
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
   const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
@@ -747,18 +751,18 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
         <h3 className="holding-title"><span className="holding-name" title={row.quote.name}>{row.quote.name}</span><span className="holding-symbol">{row.symbol}</span></h3>
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
-      <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{row.avgCost.toFixed(2)} 元</strong></p>
-      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
-      <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
-      <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
-      <p className={`holding-card-detail holding-card-unrealized-pnl holding-card-unrealized-pnl-${tone(row.pnl)}`}><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
+      <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{displayAmount(`${row.avgCost.toFixed(2)} 元`, hidden)}</strong></p>
+      <p className="holding-card-detail holding-card-price"><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{displayAmount(`${row.quote.price.toFixed(2)} 元`, hidden)}{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
+      <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{displayAmount(quoteHeadline.amountText, hidden)}</strong></p>
+      <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{displayAmount(money(row.marketValue), hidden)}</strong></p>
+      <p className={`holding-card-detail holding-card-unrealized-pnl holding-card-unrealized-pnl-${tone(row.pnl)}`}><span>未實現損益</span><strong className={tone(row.pnl)}><span>{displayAmount(signedMoney(row.pnl), hidden)}</span><span>{signedPct(pnlPct)}</span></strong></p>
       <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>
     </div>
     {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
     {isEditing && <div className="holding-editor">
       <div className="holding-editor-summary" aria-label="持股詳細資料">
-        <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
-        <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
+        <p><span>總投入成本</span><strong>{displayAmount(money(row.cost), hidden)}</strong></p>
+        <p><span>未實現損益</span><strong className={tone(row.pnl)}>{displayAmount(signedMoney(row.pnl), hidden)} / {signedPct(pnlPct)}</strong></p>
         <p><span>目前比例</span><strong>{compactWeight}</strong></p>
       </div>
       <div className="holding-editor-grid">
@@ -809,6 +813,7 @@ function SectionCard({ id, title, children, action, style, className = '', isMob
   </section>;
 }
 function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: string; items: OrderSuggestion[]; actionLabel: string; emptyText: string }) {
+  const hidden = useAmountsHidden();
   return <div className="order-section">
     <h3>{title}</h3>
     {items.length === 0 ? <p className="note">{emptyText}</p> : <div className="order-list">
@@ -817,8 +822,8 @@ function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: 
         <div className="order-body">
           <h4>{item.symbol} <span>{item.name}</span></h4>
           <div className="order-grid">
-            <p><span>{actionLabel}金額</span><strong>{formatCurrency(item.amount)}</strong></p>
-            <p><span>目前價格</span><strong>{item.price > 0 ? item.price.toFixed(2) : '價格不足'}</strong></p>
+            <p><span>{actionLabel}金額</span><strong>{displayAmount(formatCurrency(item.amount), hidden)}</strong></p>
+            <p><span>目前價格</span><strong>{item.price > 0 ? displayAmount(item.price.toFixed(2), hidden) : '價格不足'}</strong></p>
             <p><span>{actionLabel === '加碼' ? '約可買' : '約可賣'}</span><strong>{item.conversionText}</strong></p>
             <p><span>目標比例</span><strong>{pct(item.targetPercent)}</strong></p>
           </div>
@@ -828,6 +833,7 @@ function OrderSuggestionList({ title, items, actionLabel, emptyText }: { title: 
   </div>;
 }
 function SkippedSellList({ items }: { items: OrderSuggestion[] }) {
+  const hidden = useAmountsHidden();
   return <div className="order-section order-muted">
     <h3>超標資產暫不處理</h3>
     <p className="note">只買不賣模式不提供賣出建議；以下資產目前超標，暫不加碼。</p>
@@ -837,8 +843,8 @@ function SkippedSellList({ items }: { items: OrderSuggestion[] }) {
         <div className="order-body">
           <h4>{item.symbol} <span>{item.name}</span></h4>
           <div className="order-grid">
-            <p><span>超標金額</span><strong>{formatCurrency(item.amount)}</strong></p>
-            <p><span>目前價格</span><strong>{item.price > 0 ? item.price.toFixed(2) : '價格不足'}</strong></p>
+            <p><span>超標金額</span><strong>{displayAmount(formatCurrency(item.amount), hidden)}</strong></p>
+            <p><span>目前價格</span><strong>{item.price > 0 ? displayAmount(item.price.toFixed(2), hidden) : '價格不足'}</strong></p>
             <p><span>模式處理</span><strong>暫不賣出，也不加碼</strong></p>
             <p><span>目標比例</span><strong>{pct(item.targetPercent)}</strong></p>
           </div>
@@ -848,6 +854,7 @@ function SkippedSellList({ items }: { items: OrderSuggestion[] }) {
   </div>;
 }
 function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
+  const hidden = useAmountsHidden();
   return <div className={`order-section defensive-reminder ${reminder.status}`}>
     <h3>防守資產補足提醒</h3>
     <p className="note">{reminder.message}</p>
@@ -858,7 +865,7 @@ function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
         <div className="order-grid">
           <p><span>防守股票目前比例</span><strong>{pct(reminder.currentWeight)}</strong></p>
           <p><span>防守股票目標合計</span><strong>{pct(reminder.targetPercent)}</strong></p>
-          <p><span>{reminder.status === 'over' ? '高於目標金額' : '防守資產缺口金額'}</span><strong>{formatCurrency(item.amount)}</strong></p>
+          <p><span>{reminder.status === 'over' ? '高於目標金額' : '防守資產缺口金額'}</span><strong>{displayAmount(formatCurrency(item.amount), hidden)}</strong></p>
           <p><span>約可買股數</span><strong>{reminder.status === 'under' ? item.conversionText : '目前不需補買'}</strong></p>
         </div>
       </div>
@@ -866,6 +873,7 @@ function DefensiveReminderCard({ reminder }: { reminder: DefensiveReminder }) {
   </div>;
 }
 function TradeStepList({ steps, currentWeights }: { steps: TradeStep[]; currentWeights: Record<string, number> }) {
+  const hidden = useAmountsHidden();
   return <div className="trade-step-list">
     {steps.map(step => <article className={`trade-step ${step.action === '買入' ? 'buy' : step.action === '賣出' ? 'sell' : 'hold'}`} key={`${step.order}-${step.symbol}-${step.action}`}>
       <div className="order-rank">{step.order}</div>
@@ -873,7 +881,7 @@ function TradeStepList({ steps, currentWeights }: { steps: TradeStep[]; currentW
         <h3>步驟 {step.order}：{step.action} {step.symbol} <span>{step.name}</span></h3>
         <div className="order-grid">
           <p><span>操作類型</span><strong>{step.action}</strong></p>
-          <p><span>建議金額</span><strong>{step.amount > 0 ? formatCurrency(step.amount) : '0.0 萬元'}</strong></p>
+          <p><span>建議金額</span><strong>{displayAmount(step.amount > 0 ? formatCurrency(step.amount) : '0.0 萬元', hidden)}</strong></p>
           <p><span>預估股數</span><strong>{step.shares === null ? step.conversionText : step.conversionText}</strong></p>
           <p><span>操作前比例</span><strong>{step.symbol === '整體配置' ? '—' : pct(currentWeights[step.symbol] ?? 0)}</strong></p>
           <p><span>執行後預估配置比例</span><strong>{step.projectedWeight > 0 ? pct(step.projectedWeight) : '維持現況'}</strong></p>
@@ -884,17 +892,19 @@ function TradeStepList({ steps, currentWeights }: { steps: TradeStep[]; currentW
   </div>;
 }
 function AnalyticsSummary({ rb, orderHelper, dipStatus }: { rb: ReturnType<typeof rebalance>; orderHelper: OrderHelper; dipStatus: string }) {
+  const hidden = useAmountsHidden();
   return <div className="analytics-summary-grid">
     <div><small>再平衡狀態</small><strong className={rb.thresholdReached ? 'warn' : 'good'}>{rb.thresholdStatus}</strong></div>
     <div><small>目前偏離目標</small><strong className={tone(rb.deviation)}>{rb.deviationText}</strong></div>
     <div><small>成長資產</small><strong>{pct(rb.stockRow.currentWeight)} <em>/ {rb.stockRow.targetText}</em></strong></div>
     <div><small>防守資產</small><strong>{pct(rb.defensiveRow.currentWeight)} <em>/ {rb.defensiveRow.targetText}</em></strong></div>
-    <div><small>本次建議操作金額</small><strong>{formatCurrency(orderHelper.totalBuyAmount)}</strong></div>
+    <div><small>本次建議操作金額</small><strong>{displayAmount(formatCurrency(orderHelper.totalBuyAmount), hidden)}</strong></div>
     <div><small>逢低加碼訊號</small><strong className={dipStatus.includes('已觸發') ? 'warn' : 'hold'}>{dipStatus}</strong></div>
   </div>;
 }
 function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance> }) {
   const [view, setView] = useState<'assets' | 'classes'>('assets');
+  const hidden = useAmountsHidden();
   return <>
     <AllocationContextNotice context="analysis" showCta />
     <div className="analytics-view-toggle" role="group" aria-label="資產配置分析視角">
@@ -902,8 +912,8 @@ function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>;
       <button type="button" className={view === 'classes' ? 'active' : ''} onClick={() => setView('classes')}>成長／防守配置</button>
     </div>
     {view === 'assets' ? <AllocationDonut m={m} /> : <div className="allocation-class-grid">
-      <article><h3>成長資產</h3><p><span>目前比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.stockRow.targetText}</strong></p><p><span>差異</span><strong className={rb.stockRow.tone}>{rb.stockRow.deviationText}</strong></p><b className={rb.stockRow.tone}>{rb.stockRow.action}</b></article>
-      <article><h3>防守資產</h3><p><span>目前比例</span><strong>{pct(rb.defensiveRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.defensiveRow.targetText}</strong></p><p><span>差異</span><strong className={rb.defensiveRow.tone}>{rb.defensiveRow.deviationText}</strong></p><b className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></article>
+      <article><h3>成長資產</h3><p><span>目前比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.stockRow.targetText}</strong></p><p><span>差異</span><strong className={rb.stockRow.tone}>{rb.stockRow.deviationText}</strong></p><b className={rb.stockRow.tone}>{displayEmbeddedAmounts(rb.stockRow.action, hidden)}</b></article>
+      <article><h3>防守資產</h3><p><span>目前比例</span><strong>{pct(rb.defensiveRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.defensiveRow.targetText}</strong></p><p><span>差異</span><strong className={rb.defensiveRow.tone}>{rb.defensiveRow.deviationText}</strong></p><b className={rb.defensiveRow.tone}>{displayEmbeddedAmounts(rb.defensiveRow.action, hidden)}</b></article>
     </div>}
   </>;
 }
@@ -919,36 +929,40 @@ function dipFundingMessage(status: DipFundingStatus): string {
   }
 }
 function DipFundingSummary({ row, investableCash, executableBudget, externalFundingRequired }: { row: DipAlertRow; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null }) {
+  const hidden = useAmountsHidden();
   if (!row.triggered) return null;
   if (row.fundingStatus === 'executable') {
-    return <div className="dip-funding-metrics"><p><span>可投資現金</span><strong>{money(investableCash ?? 0)}</strong></p><p><span>本次可執行加碼</span><strong>{money(executableBudget ?? 0)}</strong></p><p><span>未滿足理論需求</span><strong>{money(externalFundingRequired ?? 0)}</strong></p></div>;
+    return <div className="dip-funding-metrics"><p><span>可投資現金</span><strong>{displayAmount(money(investableCash ?? 0), hidden)}</strong></p><p><span>本次可執行加碼</span><strong>{displayAmount(money(executableBudget ?? 0), hidden)}</strong></p><p><span>未滿足理論需求</span><strong>{displayAmount(money(externalFundingRequired ?? 0), hidden)}</strong></p></div>;
   }
   return <p className="dip-funding-note">{dipFundingMessage(row.fundingStatus)}</p>;
 }
 function DipOpportunityAnalysis({ rows, investableCash, executableBudget, externalFundingRequired, onOpenAssets }: { rows: DipAlertRow[]; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null; onOpenAssets: () => void }) {
+  const hidden = useAmountsHidden();
   const enabledRows = rows.filter(row => row.setting.enabled).sort((a, b) => Number(b.triggered) - Number(a.triggered) || num(a.drawdownPct ?? 0) - num(b.drawdownPct ?? 0));
   if (!enabledRows.length) return <div className="analytics-empty"><p>目前沒有啟用逢低加碼提醒的資產。</p><button type="button" onClick={onOpenAssets}>前往資產頁設定</button></div>;
   return <div className="dip-opportunity-list">
     {enabledRows.map((row, index) => <article className={`dip-opportunity-card ${row.triggered ? 'triggered' : ''}`} key={row.symbol}>
       <div><h3>{index + 1}. {row.symbol} <span>{row.name}</span></h3><b className={row.triggered ? 'warn' : 'hold'}>{row.triggered ? '已達逢低加碼觀察條件' : '持續觀察'}</b></div>
-      <div className="dip-opportunity-metrics"><p><span>最新價格</span><strong>{row.price > 0 ? `${row.price.toFixed(2)} 元` : '價格不足'}</strong></p><p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? `${row.setting.referencePrice.toFixed(2)} 元` : '尚未設定'}</strong></p><p><span>距高點跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p><p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p></div>
+      <div className="dip-opportunity-metrics"><p><span>最新價格</span><strong>{row.price > 0 ? displayAmount(`${row.price.toFixed(2)} 元`, hidden) : '價格不足'}</strong></p><p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? displayAmount(`${row.setting.referencePrice.toFixed(2)} 元`, hidden) : '尚未設定'}</strong></p><p><span>距高點跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p><p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p></div>
       <DipFundingSummary row={row} investableCash={investableCash} executableBudget={executableBudget} externalFundingRequired={externalFundingRequired} />
     </article>)}
   </div>;
 }
 function AnalyticsDetails({ m, rb, health, quoteSummaryText, latestQuoteTime, onCopy, copyStatus }: { m: ReturnType<typeof calculateMetrics>; rb: ReturnType<typeof rebalance>; health: InvestmentHealth; quoteSummaryText: string; latestQuoteTime: string; onCopy: () => void; copyStatus: string }) {
+  const hidden = useAmountsHidden();
   return <div className="analytics-details-list">
     <details><summary>計算方式</summary><p>目前比例、目標比例與偏離幅度皆直接使用共用再平衡資料。成長資產目前 {pct(rb.stockRow.currentWeight)}，目標 {rb.stockRow.targetText}；防守資產目前 {pct(rb.defensiveRow.currentWeight)}，目標 {rb.defensiveRow.targetText}。</p></details>
     <details><summary>風險提醒</summary><p><strong className={health.tone}>{health.status}</strong>：{health.reason}</p><p>{health.suggestion}</p></details>
-    <details><summary>詳細分析資料／除錯資訊</summary><p>股價狀態：{quoteSummaryText}。最近更新：{latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}。總資產：{money(m.totalAssets)}。</p><button type="button" className="small" onClick={onCopy}>{copyStatus}</button></details>
+    <details><summary>詳細分析資料／除錯資訊</summary><p>股價狀態：{quoteSummaryText}。最近更新：{latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}。總資產：{displayAmount(money(m.totalAssets), hidden)}。</p><button type="button" className="small" onClick={onCopy}>{copyStatus}</button></details>
   </div>;
 }
 function DipAlertCard({ row, investableCash, executableBudget, externalFundingRequired, onChange }: { row: DipAlertRow; investableCash: number | null; executableBudget: number | null; externalFundingRequired: number | null; onChange: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void }) {
+  const hidden = useAmountsHidden();
   return <article className={`dip-alert-item ${row.triggered ? 'triggered' : ''}`}>
     <div className="dip-alert-head">
       <div>
         <h3>{row.symbol} <span>{row.name}</span></h3>
-        <p>目前價格：{row.price > 0 ? row.price.toFixed(2) : '價格不足'}</p>
+        <p>目前價格：{row.price > 0 ? displayAmount(row.price.toFixed(2), hidden) : '價格不足'}</p>
       </div>
       <label className="dip-toggle"><input type="checkbox" checked={row.setting.enabled} onChange={e => { const checked = e.currentTarget.checked; onChange(row.symbol, { enabled: checked }); }} /> 啟用</label>
     </div>
@@ -961,7 +975,7 @@ function DipAlertCard({ row, investableCash, executableBudget, externalFundingRe
       </label>
     </div>
     <div className="dip-alert-result">
-      <p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? row.setting.referencePrice.toFixed(2) : '尚未設定'}</strong></p>
+      <p><span>波段最高價</span><strong>{row.setting.referencePrice > 0 ? displayAmount(row.setting.referencePrice.toFixed(2), hidden) : '尚未設定'}</strong></p>
       <p><span>目前跌幅</span><strong className={row.drawdownPct !== null && row.drawdownPct <= 0 ? 'down' : ''}>{row.drawdownPct === null ? '尚未設定有效波段最高價' : signedPct(row.drawdownPct)}</strong></p>
       <p><span>提醒門檻</span><strong>{pct(row.setting.thresholdPct)}</strong></p>
       <p><span>狀態</span><strong className={row.triggered ? 'warn' : ''}>{row.status}</strong></p>
@@ -987,13 +1001,14 @@ const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fal
 
 const accountTypeLabel: Record<FinancialAccountType, string> = { cash: '現金', bank: '銀行', securities: '證券', creditCard: '信用卡', loan: '貸款', mortgage: '房貸', eWallet: '電子錢包', other: '其他' };
 function FinancialAccountList({ accounts, isMobile, onCreate, onUpdate, onDeactivate, onRestore, onDelete }: { accounts: FinancialAccount[]; isMobile: boolean; onCreate: () => void; onUpdate: (id: string, patch: Partial<FinancialAccount>) => void; onDeactivate: (id: string) => void; onRestore: (id: string) => void; onDelete: (id: string) => void }) {
+  const hidden = useAmountsHidden();
   return <div className="financial-account-list">
     <p className="note">帳戶是現金與淨資產的唯一計算來源。舊版現金項目已安全保留作相容資料，不再重複計算；derived 餘額會等待後續交易／持股來源接入。</p>
     {!accounts.length && <p className="note">尚無帳戶，可先新增一個手動餘額帳戶。</p>}
     {accounts.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)).map(account => {
       const balance = getFinancialAccountBalance(account);
       return <article className={`financial-account-card${account.isActive ? '' : ' is-inactive'}`} key={account.id}>
-        <header><div><strong>{account.name}</strong><span>{accountTypeLabel[account.type]}｜{account.balanceMode === 'manual' ? '手動餘額' : '衍生餘額'}｜{account.isActive ? '啟用中' : '已停用'}</span></div><b>{balance.status === 'available' ? money(balance.value ?? 0) : '尚未可用'}</b></header>
+        <header><div><strong>{account.name}</strong><span>{accountTypeLabel[account.type]}｜{account.balanceMode === 'manual' ? '手動餘額' : '衍生餘額'}｜{account.isActive ? '啟用中' : '已停用'}</span></div><b>{balance.status === 'available' ? displayAmount(money(balance.value ?? 0), hidden) : '尚未可用'}</b></header>
         <div className="financial-account-fields">
           <label>名稱<DraftInput value={account.name} onCommit={value => onUpdate(account.id, { name: value || '未命名帳戶' })} /></label>
           <label>類型<select value={account.type} onChange={event => onUpdate(account.id, { type: event.currentTarget.value as FinancialAccountType })}>{FINANCIAL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{accountTypeLabel[type]}</option>)}</select></label>
@@ -1012,7 +1027,7 @@ function FinancialAccountList({ accounts, isMobile, onCreate, onUpdate, onDeacti
 
 function TransactionList({ accounts, transactions, onCreate, onDelete, onUpdate }: { accounts: FinancialAccount[]; transactions: FinancialTransaction[]; onCreate: (input: Partial<FinancialTransaction>) => void; onDelete: (id: string) => void; onUpdate: (id: string, patch: Partial<FinancialTransaction>) => void }) {
   const [accountId, setAccountId] = useState(''); const [transferAccountId, setTransferAccountId] = useState(''); const [type, setType] = useState<TransactionType>('expense'); const [amount, setAmount] = useState(''); const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10)); const [description, setDescription] = useState(''); const [merchant, setMerchant] = useState(''); const [categoryId, setCategoryId] = useState('expense-other'); const [note, setNote] = useState(''); const [status, setStatus] = useState<TransactionStatus>('posted'); const [excluded, setExcluded] = useState(false); const [editingId, setEditingId] = useState<string | null>(null); const [message, setMessage] = useState(''); const [accountFilter, setAccountFilter] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
-  const active = accounts.filter(account => account.isActive); const summary = transactionCashFlowSummary(transactions); const money = formatTransactionAmount;
+  const active = accounts.filter(account => account.isActive); const summary = transactionCashFlowSummary(transactions); const hidden = useAmountsHidden(); const money = (n: number) => displayAmount(formatTransactionAmount(n), hidden);
   const reset = () => { setEditingId(null); setAccountId(''); setTransferAccountId(''); setType('expense'); setAmount(''); setOccurredAt(new Date().toISOString().slice(0, 10)); setDescription(''); setMerchant(''); setCategoryId('expense-other'); setNote(''); setStatus('posted'); setExcluded(false); setMessage(''); };
   const changeType = (nextType: TransactionType) => { setType(nextType); setCategoryId(current => normalizeTransactionCategory(nextType, current)); };
   const save = () => { const numeric = Number(amount); if (type === 'transfer') { const error = validateTransferAccounts(accountId, transferAccountId, numeric, accounts); if (error) { setMessage(error); return; } } else if (!active.some(account => account.id === accountId) || !(numeric > 0)) { setMessage('請選擇有效啟用帳戶並輸入大於 0 的金額'); return; } const input = { accountId, transferAccountId: type === 'transfer' ? transferAccountId : undefined, type, amount: numeric, occurredAt: `${occurredAt}T00:00:00.000Z`, description, merchant, categoryId: type === 'transfer' ? 'transfer' : categoryId, note, status, excluded }; if (editingId) onUpdate(editingId, input); else onCreate(input); reset(); };
@@ -1073,6 +1088,12 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  /** 介面小改進 1/5: 全站隱藏金額，純畫面 state，不寫入 localStorage／Firebase／Backup，重新整理一律回到預設「顯示」。 */
+  const [hideAmounts, setHideAmounts] = useState(false);
+  /** Shadows the module-scope formatters for the rest of this component's body only — every existing `money(x)`/`formatCurrency(x)`/`signedMoney(x)` call site directly inside App()'s own JSX picks up masking with no further changes; sibling components defined above App() keep their own closures and are handled individually via useAmountsHidden(). */
+  const money = (n: number) => displayAmount(formatWan(n), hideAmounts);
+  const formatCurrency = money;
+  const signedMoney = (n: number) => displayAmount(signedWan(n), hideAmounts);
   const [uiState, setUiState] = useState<UiState>(() => readUiState());
   const [initialRead] = useState(() => readStateWithSnapshotView());
   const [state, setStateValue] = useState<AppState>(() => initialRead.state);
@@ -1715,7 +1736,7 @@ function App() {
     });
     
     text += `\n⚠️ 提示：Firebase 雲端備份仍需透過「同步與資料設定」手動操作。`;
-    return text;
+    return displayEmbeddedAmounts(text, hideAmounts);
   };
 
   const handleCopy = async (e?: React.MouseEvent) => {
@@ -1924,7 +1945,8 @@ function App() {
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
-    <AppLayout>
+    <AmountVisibilityContext.Provider value={hideAmounts}>
+    <AppLayout hideAmounts={hideAmounts} onToggleHideAmounts={() => setHideAmounts(current => !current)}>
       {currentPage === 'home' && <header id="overview-section" className="hero">
         <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>
         <div className="hero-actions" aria-label="首頁快速操作">
@@ -2029,7 +2051,7 @@ function App() {
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
           <div className="status-grid">
             {orderHelper.mode === 'buy-only' && <>
-              <p><span>只買不賣可用加碼預算</span><strong>{budgetWanOf(orderHelper.buyOnlyBudget).toLocaleString('zh-TW')} 萬<br /><small>約 {formatCurrency(orderHelper.buyOnlyBudget)}</small></strong></p>
+              <p><span>只買不賣可用加碼預算</span><strong>{displayAmount(`${budgetWanOf(orderHelper.buyOnlyBudget).toLocaleString('zh-TW')} 萬`, hideAmounts)}<br /><small>約 {formatCurrency(orderHelper.buyOnlyBudget)}</small></strong></p>
               <p><span>本次實際可加碼上限</span><strong>{formatCurrency(orderHelper.buyOnlyLimit)}</strong></p>
             </>}
             <p><span>目前現金總額</span><strong>{formatCurrency(orderHelper.cash)}</strong></p>
@@ -2060,7 +2082,7 @@ function App() {
             <label>只買不賣可用加碼預算（萬）<DraftInput type="number" min="0" step="0.1" inputMode="decimal" value={budgetWanOf(state.buyOnlyBudget)} onCommit={value => setState(s => ({ ...s, buyOnlyBudget: budgetFromWan(value) }))} /><small>預設 10 萬；輸入 10 代表約 10.0 萬元。</small></label>
           </div>
           <div className="rebalance-alert"><p><span>再平衡模式</span><strong>{rb.modeLabel}</strong></p><p><span>目前偏離目標</span><strong className={tone(rb.deviation)}>{rebalanceDeviationText}</strong></p><p><span>再平衡門檻</span><strong>{pct(rb.threshold)}</strong></p><p><span>狀態</span><strong>{rb.thresholdStatus}</strong></p></div>
-          <div className="rebalance-summary"><div><small>成長資產</small><b>{rb.stockAction}</b></div><div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{rb.defensiveAction}</b></div>{rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}</div>
+          <div className="rebalance-summary"><div><small>成長資產</small><b>{displayEmbeddedAmounts(rb.stockAction, hideAmounts)}</b></div><div><small>防守資產</small><b>目前 {money(rb.defensiveCurrent)}｜目標 {money(rb.defensiveTarget)}｜{displayEmbeddedAmounts(rb.defensiveAction, hideAmounts)}</b></div>{rb.nonStrategy.map(item => <div key={item}><small>實際持股</small><b>{item}</b></div>)}</div>
           {decisionSummary.triggeredDipAlerts.length > 0 && <div className="decision-callout"><h3>逢低加碼觀察標的</h3>{decisionSummary.triggeredDipAlerts.map(row => <p key={row.symbol}><strong>{row.symbol} {row.name}</strong> 目前跌幅 {row.drawdownPct === null ? '—' : signedPct(row.drawdownPct)}，門檻 {pct(row.setting.thresholdPct)}。</p>)}</div>}
           <div className="table rebalance-table"><div className="row head"><span>項目</span><span>目前比例</span><span>目標比例</span><span>偏離幅度</span><span>門檻</span><span>建議</span></div><div className="row"><span data-label="項目">{rb.stockRow.symbol}</span><span data-label="目前比例">{pct(rb.stockRow.currentWeight)}</span><span data-label="目標比例">{rb.stockRow.targetText}</span><span data-label="偏離幅度">{rb.stockRow.deviationText}</span><span data-label="門檻">{rb.stockRow.thresholdText}</span><b data-label="建議" className={rb.stockRow.tone}>{rb.stockRow.action}</b></div><div className="rebalance-group"><div className="row group-main"><span data-label="項目">{rb.defensiveRow.symbol}</span><span data-label="目前比例">{pct(rb.defensiveRow.currentWeight)}</span><span data-label="目標比例">{rb.defensiveRow.targetText}</span><span data-label="偏離幅度">{rb.defensiveRow.deviationText}</span><span data-label="門檻">{rb.defensiveRow.thresholdText}</span><b data-label="建議" className={rb.defensiveRow.tone}>{rb.defensiveRow.action}</b></div>{rb.defensiveDetails.map(r => <div className="row sub-row" key={r.symbol}><span data-label="項目">{r.symbol}</span><span data-label="目前比例">{pct(r.currentWeight)}</span><span data-label="目標比例">{r.targetText}</span><span data-label="偏離幅度">{r.deviationText}</span><span data-label="門檻">{r.thresholdText}</span><b data-label="建議" className="hold">{r.action}</b></div>)}</div></div>
         </SectionCard>
@@ -2390,6 +2412,7 @@ function App() {
       </footer>
       </SettingsPage>}
     </AppLayout>
+    </AmountVisibilityContext.Provider>
   );
 }
 export default App;
