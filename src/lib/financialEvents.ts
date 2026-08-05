@@ -1,6 +1,21 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import type { FinancialTransaction } from './transactions';
 
+/**
+ * UR-TODO-046-C3C-C decision: adding the 'attribution-confirmation' source
+ * value deliberately does NOT bump this constant. Every existing user's
+ * persisted state already carries financialEventSchemaVersion: 1 with an
+ * empty financialEvents array. Bumping this constant would make
+ * normalizeFinancialEventLedger() treat that (still-empty) v1 payload as
+ * opaque future data on next read — and critically, App.tsx's
+ * hasLocalFinancialEventLedger() / stateFromFirebasePayload() would then
+ * treat every existing user as "has a local Ledger", permanently blocking
+ * Firebase download for accounts that have never written a single event.
+ * A new enum value on an already-versioned field is additive per 013 §29.2
+ * ("採加法式欄位"); it does not change the FinancialEvent object shape, so it
+ * does not warrant a version bump. Bump this only for a structural change
+ * (field added/removed/retyped).
+ */
 export const FINANCIAL_EVENT_SCHEMA_VERSION = 1;
 
 export type FinancialEventType =
@@ -17,7 +32,15 @@ export type FinancialEventType =
   | 'adjustment';
 
 export type FinancialEventStatus = 'pending' | 'posted' | 'void';
-export type FinancialEventSource = 'manual' | 'linked-transaction';
+/**
+ * UR-TODO-046-C3C-C: 'attribution-confirmation' is an additive extension of the
+ * v1 source domain (not a schema version bump — see createFinancialEventId /
+ * appendFinancialEvent doc comments for why). It marks an event created when
+ * the user explicitly confirmed a C3B/C3C-A derived-transaction attribution
+ * evidence row, distinct from 'manual' (free-form entry) and
+ * 'linked-transaction' (any other linked event).
+ */
+export type FinancialEventSource = 'manual' | 'linked-transaction' | 'attribution-confirmation';
 
 export type FinancialEvent = {
   id: string;
@@ -68,7 +91,9 @@ const EVENT_TYPES = new Set<FinancialEventType>([
   'adjustment'
 ]);
 const EVENT_STATUSES = new Set<FinancialEventStatus>(['pending', 'posted', 'void']);
-const EVENT_SOURCES = new Set<FinancialEventSource>(['manual', 'linked-transaction']);
+const EVENT_SOURCES = new Set<FinancialEventSource>(['manual', 'linked-transaction', 'attribution-confirmation']);
+/** Both sources are inherently tied to one transactionId and share the same linkedTransactionReason() taxonomy check. */
+const TRANSACTION_LINKED_SOURCES = new Set<FinancialEventSource>(['linked-transaction', 'attribution-confirmation']);
 const LOAN_EVENT_TYPES = new Set<FinancialEventType>([
   'loan-disbursement',
   'loan-principal-payment',
@@ -107,7 +132,8 @@ function skip(skipped: string[], index: number, reason: string): undefined {
   return undefined;
 }
 
-function linkedTransactionReason(
+/** Exported for reuse by the C3C-C attribution-confirmation → FinancialEvent converter, which must apply the identical taxonomy check before allowing a write. */
+export function linkedTransactionReason(
   type: FinancialEventType,
   status: FinancialEventStatus,
   amount: number,
@@ -181,10 +207,10 @@ function normalizeEvent(
 
   const transactionId = optionalText(record.transactionId);
   if (source === 'manual' && transactionId) return skip(skipped, index, 'manual event 不得設定 transactionId');
-  if (source === 'linked-transaction') {
-    if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, 'linked-transaction 必須連結既有 transactionId');
+  if (TRANSACTION_LINKED_SOURCES.has(source as FinancialEventSource)) {
+    if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, `${source} 必須連結既有 transactionId`);
     const transaction = context.transactionsById.get(transactionId);
-    if (!transaction) return skip(skipped, index, 'linked-transaction 缺少可驗證的 transaction 資料');
+    if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
     const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction);
     if (reason) return skip(skipped, index, reason);
     if (status !== 'void' && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
@@ -249,4 +275,34 @@ export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEv
     skipped,
     supported: true
   };
+}
+
+/**
+ * UR-TODO-046-C3C-C: matches the createTransactionId()/createFinancialAccountId()
+ * convention (crypto.randomUUID with a deterministic-shape fallback for
+ * environments without it).
+ */
+export function createFinancialEventId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export type AppendFinancialEventResult =
+  | { rejected: false; events: FinancialEvent[] }
+  | { rejected: true; reason: string };
+
+/**
+ * UR-TODO-046-C3C-C: the only sanctioned write path for state.financialEvents.
+ * Enforces the forward-only contract at write time (normalizeFinancialEventLedger
+ * only rejects duplicate ids found *within the same read*, it has no way to
+ * compare against "what was already persisted" — this function is the actual
+ * append-only guard): a new event may only be appended, never used to replace
+ * an existing id. There is deliberately no update/delete counterpart in this
+ * Sprint (void/undo is an explicit Remaining Boundary).
+ */
+export function appendFinancialEvent(existingEvents: readonly FinancialEvent[], event: FinancialEvent): AppendFinancialEventResult {
+  if (existingEvents.some(existing => existing.id === event.id)) {
+    return { rejected: true, reason: `事件 id「${event.id}」已存在，Ledger 為 forward-only，不允許覆寫既有事件。` };
+  }
+  return { rejected: false, events: [...existingEvents, event] };
 }

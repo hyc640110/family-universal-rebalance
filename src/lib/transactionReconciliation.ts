@@ -42,6 +42,16 @@ type Candidate = { eventType: TransactionReconciliationEventType } | { reason: T
 const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund', 'income-other']);
 const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-housing', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
 const CURRENCY_CODE = /^[A-Z]{3}$/;
+/**
+ * UR-TODO-046-C3C-C: both sources represent a real link to one transactionId
+ * (see financialEvents.ts's identically-named set). Without this, a
+ * newly-confirmed 'attribution-confirmation' event would never satisfy
+ * isEventForTransaction() below, so its transaction would stay a 'candidate'
+ * forever — producing derived evidence for the same transaction the Ledger
+ * event already covers, double-counting it across ledgerContribution and
+ * derivedContribution.
+ */
+const TRANSACTION_LINKED_SOURCES = new Set<FinancialEvent['source']>(['linked-transaction', 'attribution-confirmation']);
 
 function calendarDay(value: string): string | undefined {
   try {
@@ -86,7 +96,7 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
 
 function isEventForTransaction(event: FinancialEvent, transaction: FinancialTransaction, eventType: TransactionReconciliationEventType): boolean {
   const date = calendarDay(transaction.occurredAt);
-  if (!date || transaction.excluded || event.source !== 'linked-transaction' || event.status !== transaction.status || event.status === 'void') return false;
+  if (!date || transaction.excluded || !TRANSACTION_LINKED_SOURCES.has(event.source) || event.status !== transaction.status || event.status === 'void') return false;
   if (event.transactionId !== transaction.id || event.type !== eventType || event.accountId !== transaction.accountId) return false;
   if (event.amount !== transaction.amount || event.currency !== transaction.currency || event.effectiveDate !== date) return false;
   return eventType !== 'internal-transfer' || event.counterpartyAccountId === transaction.transferAccountId;

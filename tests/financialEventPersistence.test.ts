@@ -113,6 +113,65 @@ test('legacy Backup Full Restore 明確清空目前 Ledger', async () => {
   assert.equal(restored.financialEventAttributionStartDate, undefined);
 });
 
+// UR-TODO-046-C3C-C: 'attribution-confirmation' 是加法式擴充，須通過與既有 source 相同的三路 persistence 驗證。
+const confirmationEvent = {
+  id: 'event-confirmation',
+  type: 'external-income',
+  status: 'posted',
+  source: 'attribution-confirmation',
+  effectiveDate: '2026-08-05',
+  amount: 30_000,
+  currency: 'TWD',
+  accountId: 'bank-a',
+  transactionId: 'tx-income',
+  note: 'UR-TODO-046-C3C-C：使用者於「淨值成長來源歸因」卡片按下「確認並正式記帳」（2026-08-05T12:00:00.000Z）',
+  createdAt: '2026-08-05T12:00:00.000Z',
+  updatedAt: '2026-08-05T12:00:00.000Z'
+};
+
+async function stateWithConfirmationLedger() {
+  const { normalizeState } = await loadAppPersistence();
+  return normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
+    transactions: [{ id: 'tx-income', accountId: 'bank-a', type: 'income', status: 'posted', source: 'manual', amount: 30_000, currency: 'TWD', categoryId: 'income-salary', description: '', merchant: '', note: '', occurredAt: '2026-08-05T00:00:00.000Z', excluded: false }],
+    financialEventSchemaVersion: 1,
+    financialEvents: [confirmationEvent]
+  });
+}
+
+test('attribution-confirmation 事件在 localStorage 正規化與 JSON Backup round-trip 中逐位元保留，schemaVersion 仍為 1', async () => {
+  const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
+  const localState = await stateWithConfirmationLedger();
+  const backup = backupPayload(localState, {});
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
+
+  for (const state of [localState, restored]) {
+    assert.equal(state.financialEventSchemaVersion, 1);
+    assert.deepEqual(state.financialEvents, [confirmationEvent]);
+  }
+});
+
+test('attribution-confirmation 事件仍不進入 Firebase canonical payload（延續 C1 決策：Ledger 尚未接 Firebase sync）', async () => {
+  const localState = await stateWithConfirmationLedger();
+  const firebasePayload = canonicalSyncPayload(localState);
+  assert.equal('financialEvents' in firebasePayload, false);
+  assert.equal('financialEventSchemaVersion' in firebasePayload, false);
+});
+
+test('本機已有 attribution-confirmation 事件時，Firebase download 仍 fail-safe 拒絕（沿用既有 hasLocalFinancialEventLedger 防護）', async () => {
+  const { stateFromFirebasePayload, normalizeState } = await loadAppPersistence();
+  const current = await stateWithConfirmationLedger();
+  const remote = canonicalSyncPayload(normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '遠端銀行', type: 'bank', manualBalance: 0 })],
+    transactions: []
+  }));
+
+  assert.throws(
+    () => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current),
+    /Financial Event Ledger/
+  );
+});
+
 test('future Ledger 讀取、正規化與 Backup 輸出不會降級已知 Ledger payload', async () => {
   const { backupPayload, normalizeState } = await loadAppPersistence();
   const future = {
