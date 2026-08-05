@@ -14,6 +14,17 @@ const ZERO_CONTRIBUTION_LABEL: Partial<Record<FinancialEventType, string>> = {
   'internal-transfer': '帳戶間轉帳（0 貢獻，僅供參考）'
 };
 
+const FINANCIAL_EVENT_TYPE_LABEL: Partial<Record<FinancialEventType, string>> = {
+  'external-income': '外部收入',
+  'external-expense': '外部支出',
+  dividend: '股息',
+  'investment-fee': '投資手續費'
+};
+
+function financialEventTypeLabel(type: FinancialEventType): string {
+  return FINANCIAL_EVENT_TYPE_LABEL[type] ?? type;
+}
+
 export type RuntimeAttributionPresentationValue = {
   status: 'known' | 'unavailable';
   value: number | null;
@@ -28,17 +39,20 @@ export type RuntimeAttributionPeriodPresentation = {
   hasComparablePeriod: boolean;
 };
 
-export type RuntimeAttributionZeroContributionItem = {
+/**
+ * Shared shape for every itemized provenance row on the card (derived
+ * evidence, zero-contribution items, FX-excluded items). `contribution` is
+ * `null` when the amount was never computed (e.g. FX-excluded), never
+ * coerced to 0 — it is only `0` when the underlying classification is a
+ * genuine zero-effect disposition (adjustment / internal-transfer).
+ */
+export type RuntimeAttributionEvidenceItem = {
   id: string;
-  type: FinancialEventType;
+  /** Undefined for rows sourced from diagnostics only (e.g. FX-excluded), which carry no event type. */
+  type?: FinancialEventType;
   provenance: 'ledger' | 'derived-transaction';
-  label: string;
-};
-
-export type RuntimeAttributionExcludedItem = {
-  id: string;
-  provenance: 'ledger' | 'derived-transaction';
-  reason: string;
+  contribution: number | null;
+  note: string;
 };
 
 export type RuntimeAttributionPresentation = {
@@ -49,8 +63,10 @@ export type RuntimeAttributionPresentation = {
   ledgerContribution: RuntimeAttributionPresentationValue;
   derivedContribution: RuntimeAttributionPresentationValue;
   unexplainedResidual: RuntimeAttributionPresentationValue;
-  zeroContributionItems: RuntimeAttributionZeroContributionItem[];
-  fxExcludedItems: RuntimeAttributionExcludedItem[];
+  /** Individual contributing derived-transaction evidence rows — the only rows eligible for a C3C-B "mark as reasonable" toggle. */
+  derivedEvidenceItems: RuntimeAttributionEvidenceItem[];
+  zeroContributionItems: RuntimeAttributionEvidenceItem[];
+  fxExcludedItems: RuntimeAttributionEvidenceItem[];
 };
 
 function presentNumber(value: number | null): RuntimeAttributionPresentationValue {
@@ -62,7 +78,8 @@ function presentNumber(value: number | null): RuntimeAttributionPresentationValu
  * composeRuntimeNetWorthAttribution) plus the caller's chosen opening/closing
  * snapshots into a display-only presentation. It performs no financial
  * calculation: the zero-length-period flag is a plain date comparison the
- * composition itself does not expose.
+ * composition itself does not expose, and every itemized row below is a
+ * direct read of composition.eventClassifications / composition.diagnostics.
  */
 export function deriveRuntimeAttributionPresentation(input: {
   composition: RuntimeAttributionComposition;
@@ -75,19 +92,24 @@ export function deriveRuntimeAttributionPresentation(input: {
   const isZeroLengthPeriod = openingDate !== null && closingDate !== null && openingDate === closingDate;
   const hasComparablePeriod = openingDate !== null && closingDate !== null && openingDate !== closingDate;
 
-  const zeroContributionItems: RuntimeAttributionZeroContributionItem[] = composition.eventClassifications.flatMap(item => {
+  const derivedEvidenceItems: RuntimeAttributionEvidenceItem[] = composition.eventClassifications.flatMap(item => {
+    if (item.provenance !== 'derived-transaction' || item.disposition !== 'contributing') return [];
+    return [{ id: item.id, type: item.type, provenance: item.provenance, contribution: item.contribution, note: financialEventTypeLabel(item.type) }];
+  });
+
+  const zeroContributionItems: RuntimeAttributionEvidenceItem[] = composition.eventClassifications.flatMap(item => {
     const isAdjustment = item.disposition === 'adjustment' && item.type === 'adjustment';
     const isInternalTransfer = item.disposition === 'excluded' && item.type === 'internal-transfer';
     if (!isAdjustment && !isInternalTransfer) return [];
-    return [{ id: item.id, type: item.type, provenance: item.provenance, label: ZERO_CONTRIBUTION_LABEL[item.type] ?? '0 貢獻，僅供參考' }];
+    return [{ id: item.id, type: item.type, provenance: item.provenance, contribution: 0, note: ZERO_CONTRIBUTION_LABEL[item.type] ?? '0 貢獻，僅供參考' }];
   });
 
-  const fxExcludedItems: RuntimeAttributionExcludedItem[] = composition.diagnostics.flatMap((diagnostic): RuntimeAttributionExcludedItem[] => {
+  const fxExcludedItems: RuntimeAttributionEvidenceItem[] = composition.diagnostics.flatMap((diagnostic): RuntimeAttributionEvidenceItem[] => {
     if (diagnostic.code === 'ledger-event-currency-unsupported' && diagnostic.eventId) {
-      return [{ id: diagnostic.eventId, provenance: 'ledger', reason: RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON }];
+      return [{ id: diagnostic.eventId, provenance: 'ledger', contribution: null, note: RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON }];
     }
     if (diagnostic.code === 'derived-transaction-currency-unsupported' && diagnostic.transactionId) {
-      return [{ id: diagnostic.transactionId, provenance: 'derived-transaction', reason: RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON }];
+      return [{ id: diagnostic.transactionId, provenance: 'derived-transaction', contribution: null, note: RUNTIME_ATTRIBUTION_FX_EXCLUDED_REASON }];
     }
     return [];
   });
@@ -100,6 +122,7 @@ export function deriveRuntimeAttributionPresentation(input: {
     ledgerContribution: presentNumber(composition.ledgerContribution),
     derivedContribution: presentNumber(composition.derivedContribution),
     unexplainedResidual: presentNumber(composition.unexplainedResidual),
+    derivedEvidenceItems,
     zeroContributionItems,
     fxExcludedItems
   };
@@ -109,4 +132,9 @@ export function formatRuntimeAttributionMoney(value: RuntimeAttributionPresentat
   if (value.status === 'unavailable' || value.value === null) return '資料不足';
   const sign = value.value > 0 ? '+' : '';
   return `${sign}${new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 }).format(value.value)} 元`;
+}
+
+/** Formats an itemized row's contribution; `null` (never computed) reads as insufficient data, distinct from a genuine 0. */
+export function formatRuntimeAttributionItemContribution(item: RuntimeAttributionEvidenceItem): string {
+  return formatRuntimeAttributionMoney(item.contribution === null ? { status: 'unavailable', value: null } : { status: 'known', value: item.contribution });
 }
