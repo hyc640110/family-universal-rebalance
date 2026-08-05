@@ -2,7 +2,9 @@ import type { HouseholdLiquidityOutput } from './householdLiquidity';
 
 export type RiskLevel = 0 | 1 | 2 | 3;
 export type RiskAsset = { symbol: string; name: string; assetClass: 'growth' | 'defensive'; marketValue: number };
-export type RiskLoan = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; remainingMonths?: number; paidMonths?: number; totalMonths?: number };
+// UR-TODO-041: `asOf` is a pure passthrough for the standalone loan-data-staleness presentation
+// (see loanDataFreshness.ts) — it is never read by any calculation in this file.
+export type RiskLoan = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; remainingMonths?: number; paidMonths?: number; totalMonths?: number; asOf?: string };
 // UR-TODO-009 sub-PR 3 (013 §22): the cash-safety fields below must come from the Household Liquidity core model
 // (monthlyEssentialExpenses already includes living expenses, not just loan payments), never be recomputed locally.
 export type RiskLiquidityContext = Pick<HouseholdLiquidityOutput, 'monthlyEssentialExpenses' | 'minimumSafetyCash' | 'stableSafetyCash' | 'safetyCashShortfall' | 'investableCash' | 'dataCompleteness' | 'confidence' | 'blockingReasons'>;

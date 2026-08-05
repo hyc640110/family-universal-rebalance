@@ -210,3 +210,13 @@ test('23. V7.0B sub-PR 1 (UR-TODO-008): only App.tsx (buy-only budget wiring) co
   assert.ok(consumers.every(file => !readFileSync(file, 'utf8').includes('householdLiquidityInputAdapter')));
   assert.ok(readFileSync(wiredException, 'utf8').includes('householdLiquidityInputAdapter'));
 });
+
+test('24. UR-TODO-041: a stray `asOf` on a loan source (Plan A staleness data) never reaches HouseholdLoan or changes deriveHouseholdLiquidity output', () => {
+  const loan = { id: 'loan-1', monthlyPayment: 5_000 };
+  const staleLoanSource = { ...loan, asOf: '2020-01-01' } as typeof loan; // simulates App.tsx passing the full LoanItem through
+  const withoutAsOf = buildHouseholdLiquidityInput(sources({ loans: [loan] }));
+  const withAsOf = buildHouseholdLiquidityInput(sources({ loans: [staleLoanSource] }));
+  assert.deepEqual(withAsOf.loans, withoutAsOf.loans);
+  assert.deepEqual(Object.keys(withAsOf.loans[0]).sort(), ['loanId', 'monthlyPayment']);
+  assert.deepEqual(deriveHouseholdLiquidity(withAsOf), deriveHouseholdLiquidity(withoutAsOf));
+});

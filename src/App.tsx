@@ -67,6 +67,8 @@ import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionCompo
 import { deriveRuntimeAttributionPresentation } from './lib/runtimeAttributionPresentation';
 import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
 import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
+import { isCanonicalCalendarDay } from './lib/calendarDay';
+import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
@@ -90,7 +92,7 @@ export type Quote = { symbol: SymbolCode; name: string; price: number; previousC
 type AssetClass = 'growth' | 'defensive';
 export type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
-type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number };
+type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number; asOf?: string };
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
 type AllocationRoleBySymbol = Record<string, AllocationRole>;
@@ -317,9 +319,14 @@ function sanitizeCashItem(c: CashItem): CashItem | null {
   if ([c?.id, c?.name, c?.note].some(hasRemovedSymbol)) return null;
   return { id: c.id || uid(), name: c.name || '現金', amount: Math.max(0, num(Number(c.amount))), note: c.note || '' };
 }
+// UR-TODO-041: `asOf` defaults to today only when missing/invalid, and never overwrites an
+// already-valid value — a one-time migration for existing loans without asOf and a safety net
+// for corrupted input, not a recurring reset. localSnapshotDate() is the same Asia/Taipei
+// canonical calendar-day producer used throughout the app (e.g. AI Decision `asOf`).
 function sanitizeLoanItem(l: LoanItem): LoanItem {
   const totalMonths = l.totalMonths === undefined || l.totalMonths === null ? undefined : Math.max(0, num(Number(l.totalMonths)));
-  return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths };
+  const asOf = isCanonicalCalendarDay(l.asOf) ? l.asOf : localSnapshotDate();
+  return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths, asOf };
 }
 function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
@@ -1015,7 +1022,15 @@ function TransactionList({ accounts, transactions, onCreate, onDelete, onUpdate 
 
 
 function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: (items: SetStateAction<LoanItem[]>) => void; isMobile: boolean }) {
-  const update = (id: string, patch: Partial<LoanItem>) => setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...patch } : item)));
+  // UR-TODO-041: editing any of the loan's own amount/period fields counts as reviewing the
+  // record, so it also refreshes `asOf` — the user shouldn't see a stale-data warning on a loan
+  // they just edited. Editing `name` alone does not, since it isn't a financial-data review.
+  const AMOUNT_FIELD_KEYS: (keyof LoanItem)[] = ['principal', 'annualRate', 'monthlyPayment', 'startDate', 'totalMonths'];
+  const update = (id: string, patch: Partial<LoanItem>) => {
+    const touchesAmountField = AMOUNT_FIELD_KEYS.some(key => key in patch);
+    const withAsOf = touchesAmountField ? { ...patch, asOf: localSnapshotDate() } : patch;
+    setItems(items => items.map(item => sanitizeLoanItem(item.id === id ? { ...item, ...withAsOf } : item)));
+  };
   const remove = (item: LoanItem) => {
     if (window.confirm(`確定要刪除借款項目「${item.name || '未命名'}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
   };
@@ -1411,6 +1426,13 @@ function App() {
     deviation: rb.deviation, defensiveTarget: rb.defensiveTarget, defensiveCurrent: rb.defensiveCurrent,
     thresholdReached: rb.thresholdReached, threshold: rb.threshold, mode: rb.mode
   }), [m, rb]);
+  // UR-TODO-041: "我已確認這筆資料仍正確" — updates only this loan's asOf to today; never touches
+  // monthlyPayment or any other field, and stays entirely within LoanItem/localStorage/Firebase/
+  // Backup (no household liquidity core input, no blockingReasons, no dataCompleteness).
+  const confirmLoanDataFresh = (loanId: string) => setState(s => ({
+    ...s,
+    loans: s.loans.map(loan => loan.id === loanId ? sanitizeLoanItem({ ...loan, asOf: localSnapshotDate() }) : loan)
+  }));
   const riskInput = useMemo(() => ({
     assets: m.rows.map(row => ({ symbol: row.symbol, name: row.name, assetClass: row.assetClass, marketValue: row.marketValue })),
     loans: state.loans.map(loan => ({ ...loan, remainingMonths: loanPeriodSummary(loan).remaining, paidMonths: loanPeriodSummary(loan).paid })),
@@ -2061,7 +2083,7 @@ function App() {
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} fundingInput={{ totalLiquidCash: householdLiquidityForRebalance.totalLiquidCash, protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash, externalContribution: state.cashFlowProfile?.externalContribution, plannedWithdrawal: state.cashFlowProfile?.plannedWithdrawal }} />}
-      {isRiskCenter && <RiskCenterPage input={riskInput} diagnostics={householdLiquidityDiagnosticPresentation} />}
+      {isRiskCenter && <RiskCenterPage input={riskInput} diagnostics={householdLiquidityDiagnosticPresentation} today={localSnapshotDate()} onConfirmLoanFresh={confirmLoanDataFresh} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} loans={state.loans.map(({ id, name }) => ({ id, name }))} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
       {isNetWorthHistory && <NetWorthHistoryPage history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} />}
