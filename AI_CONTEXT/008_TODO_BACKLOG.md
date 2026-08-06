@@ -1,6 +1,16 @@
-# Universal Rebalance Todo Backlog v1.65
+# Universal Rebalance Todo Backlog v1.66
 
-最後更新：2026-08-05
+最後更新：2026-08-07
+
+2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成**。PR #260～#266 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `cbe176d`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
+- 回退 PR #257「隱藏金額」功能（使用者確認不需要）。
+- 修正 `exportBackup`／`importBackup`／`resetState` 回饋訊息被 `syncStatusText` 優先權邏輯靜默覆蓋的真實 Bug。
+- 統一按鈕視覺、ImportCenter 六個動作點新增成功/失敗/取消回饋、交易列按鈕靠右對齊。
+- 按鈕高度不一致問題三輪排查，最終根因為「匯入 JSON 備份」原本是 `<label>` 包 `<input>`，與另兩顆 `<button>` 元素種類不同（非 CSS 屬性問題），已改為真正 `<button>` 觸發隱藏 input。
+- **基礎設施變更**：GitHub Pages 部署機制已從 legacy 分支建置改為 Actions-based（`actions/deploy-pages`），因 legacy 系統於本輪連續故障（建置失敗、卡死不動）。**未來若 Production／Preview 長時間未反映最新部署，應先查 `gh api repos/hyc640110/family-universal-rebalance/pages` 的 `build_type` 是否仍為 `workflow`、以及最近一次 `Deploy GitHub Pages` run 是否成功，不應假設是舊有 legacy 建置故障重演。**
+- **待辦**：使用者仍需於真機最終覆核按鈕高度問題（PR #266）是否徹底解決；若仍有殘留，應優先排查是否還有其他未發現的元素種類/DOM 結構差異。
+
+**方法論教訓（供未來類似「自動化測試一致、真機不一致」情境參考）**：連續多輪 CSS 屬性層面修正（font-size、appearance、em 相對 height）在桌機與所有自動化檢查中皆顯示 `getComputedStyle()` 完全一致，但真機持續出現差異，且「哪個元素有問題」在使用者早期回報中一度被誤認為輪替（後經使用者更正，實際上從未輪替）。真正根因是被比較的元素底層 HTML 種類本身不同（`<button>` vs `<label>` 包 `<input>`）。**教訓：跨元素種類的視覺對齊問題，若 CSS 數值調整無法在真機收斂，應優先檢查 DOM 元素種類是否本身不同，而非持續在屬性數值上打轉。**
 
 2026-08-05 **UR-TODO-046-C3C-C（Financial Event Ledger 寫入／持久化，歸因確認）正式標記為已完成**。PR [#255](https://github.com/hyc640110/family-universal-rebalance/pull/255)（`feat/ur-todo-046-c3c-c-ledger-write`）已由使用者手動 Merge，merge commit `b424eb42da80fb7d7d1e53a49eddb656cd8553aa`，`mergedAt: 2026-08-05T13:26:13Z`，為目前 `main`／`origin/main` 正式基線。將 C3C-B 的 session-only「標示為合理」正式落地為 `FinancialEvent`：`FinancialEventSource` 加法式擴充新增 `'attribution-confirmation'`（刻意不 bump schema version，理由詳見下方 UR-TODO-046 條目與程式碼註解——bump 會讓所有既有使用者的空 Ledger 被誤判版本不符、永久擋下 Firebase 下載）；新增 `createFinancialEventId()`、`appendFinancialEvent()` forward-only 寫入防呆、`runtimeAttributionConfirmation.ts` 轉換函式（重用既有 taxonomy 驗證）。**開發中發現並修正一個必要連帶缺口**：`transactionReconciliation.ts` 的 `isEventForTransaction()` 原本只認 `'linked-transaction'`，已修正為同時接受 `'attribution-confirmation'`，避免新確認事件與衍生證據對同一筆交易雙重計算。UI 新增獨立於 C3C-B toggle 的「確認並正式記帳」按鈕（視覺明顯區隔），沿用既有 `window.confirm()` 不可逆動作慣例。新增 26 個測試，`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；`Deploy GitHub Pages` run `31010188315` success，headSha 與 merge commit 一致；Production／Preview `curl` 皆 HTTP 200。**明確不包含**：撤銷／void、批次確認、Firebase Ledger sync、任何核心 attribution 公式變更；三者皆維持既有已知缺口，非新發現。**UR-TODO-046 整體仍未完成**：撤銷／void、Firebase Ledger sync、split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 仍待未來獨立排程與產品決策，皆屬重大事件，不得自動開始。詳見下方更新後的 **UR-TODO-046** 正式條目。
 
