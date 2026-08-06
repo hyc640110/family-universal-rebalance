@@ -33,19 +33,25 @@ h3{margin:0 0 10px}
 .tabs{display:flex;gap:10px;align-items:center;margin:14px 0 18px}
 .tabs span{margin-left:auto;color:#9fb3c8;font-size:12px;text-align:right}
 .tabs .sync-bar{font-size:14px;line-height:1.8;max-width:620px}
-/* Three separate browser quirks stacked up to make <button> render taller/wider-inconsistent than a
-   visually-identical <label class="file"> (e.g. the 匯出/匯入 JSON 備份 pair), even though both use this
-   exact same rule:
+/* Several separate browser quirks stacked up to make <button>/<label class="file">/<button.danger>
+   (e.g. the 匯出/匯入 JSON 備份/重設 trio) render at inconsistent heights, even though all three hit this
+   exact same rule with identical computed padding/line-height/font-size/appearance in every desktop and
+   automated check:
    1. font-size — <label class="file"> independently picks up 12px from the generic `label{font-size:12px}`
       rule below (a direct selector match on the element itself, not inheritance), so `font-size:inherit`
       on <button> alone can't converge on the same value; both need an explicit, shared size here.
    2. appearance:auto — <button> keeps native form-control chrome/intrinsic sizing unless explicitly
       stripped with appearance:none (plus -webkit- for older Safari).
-   3. even with (1) and (2) fixed, <button> can still report a taller intrinsic content box than the
-      identical padding/line-height/font-size would produce on a non-control element — an explicit
-      `height` (not just min-height, which only sets a floor) is what actually pins it, computed the
-      same way the box would naturally size itself: line-height + top/bottom padding. */
-button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;font-size:var(--font-interactive-small);padding:10px 16px;height:calc(1.3em + 20px);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
+   3. mobile Safari/Chrome Android's automatic text-size-adjust boosting (see the html{} rule above) can
+      still apply a different scale factor per element based on text length/DOM shape even after (1) and
+      (2) are fixed — a 2-character label ("重設") vs a longer mixed CJK+Latin one ("匯出 JSON 備份") is
+      exactly the kind of difference that heuristic keys off. A `height` expressed in `em` (relative to
+      font-size) still rides along with whatever scale factor the browser applies to that element, so two
+      buttons with the SAME calc() can render at DIFFERENT actual heights on a real device even though
+      text-size-adjust:100% is set. Using a fixed px height instead severs that dependency entirely — the
+      box height no longer moves no matter what a given browser decides to do with that element's font
+      rendering. (10px vertical padding + 1.3 × 13px line-height, pre-computed as a literal value.) */
+button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;font-size:var(--font-interactive-small);padding:10px 16px;height:37px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
 button:hover,.file:hover{filter:brightness(1.12)}
 button:disabled{cursor:not-allowed;opacity:.45;filter:none}
 button.active{background:#3b82f6}
