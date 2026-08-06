@@ -1,35 +1,63 @@
 name: Deploy GitHub Pages
 
+# Migrated from the legacy branch-based Pages build (Deploy from a branch / gh-pages)
+# to the Actions-based Pages deployment API (actions/upload-pages-artifact +
+# actions/deploy-pages). The legacy build pipeline started failing outright
+# ("Page build failed", then builds stuck indefinitely in "building") independent
+# of anything in this repo's content, with no actionable error detail available —
+# this is the officially-recommended replacement and bypasses that pipeline
+# entirely. Requires the repo's Settings → Pages → Source to be set to
+# "GitHub Actions" (not "Deploy from a branch").
+#
+# Every run builds BOTH production (always from main) and Preview (from whichever
+# ref triggered the run) and deploys them together as a single combined artifact,
+# because actions/deploy-pages replaces the whole site on each deploy — there is
+# no equivalent of the old keep_files-based partial update. This preserves the
+# original safety property: a workflow_dispatch run against a feature branch
+# never puts that branch's code on Production; Production always tracks main.
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (Production source)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+
+      - name: Checkout triggering ref (Preview source)
+        uses: actions/checkout@v4
+        with:
+          path: preview-src
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Install dependencies
+      - name: Install dependencies (main)
+        working-directory: main-src
         run: |
           npm config set registry https://registry.npmjs.org/
           npm ci --include=dev --no-audit --no-fund
 
-      - name: Verify Node/npm runtime and installed dev tooling
+      - name: Verify Node/npm runtime and installed dev tooling (main)
+        working-directory: main-src
         run: |
           node --version
           npm --version
@@ -37,42 +65,50 @@ jobs:
           test -x node_modules/.bin/tsx
           node_modules/.bin/tsx --version
 
-      - name: Run CI regression test gate
+      - name: Run CI regression test gate (main)
+        working-directory: main-src
         run: npm run test:ci
 
-      - name: Build production Vite app
-        if: github.event_name == 'push'
+      - name: Build production Vite app (main)
+        working-directory: main-src
         run: npm run build
 
-      - name: Build Preview Vite app
+      - name: Install dependencies (preview ref)
+        working-directory: preview-src
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm ci --include=dev --no-audit --no-fund
+
+      - name: Run CI regression test gate (preview ref)
+        working-directory: preview-src
+        run: npm run test:ci
+
+      - name: Build Preview Vite app (preview ref)
+        working-directory: preview-src
         run: npm run build:preview
 
-      - name: Add Preview to the production Pages bundle
-        if: github.event_name == 'push'
+      - name: Combine production and Preview into one Pages bundle
         run: |
-          rm -rf ./dist/preview
-          mkdir -p ./dist/preview
-          cp -R ./dist-preview/. ./dist/preview/
+          rm -rf combined
+          mkdir -p combined
+          cp -R main-src/dist/. combined/
+          rm -rf combined/preview
+          mkdir -p combined/preview
+          cp -R preview-src/dist-preview/. combined/preview/
+          touch combined/.nojekyll
 
-      - name: Add nojekyll marker to the production Pages bundle
-        if: github.event_name == 'push'
-        run: touch ./dist/.nojekyll
-
-      - name: Deploy production and Preview to gh-pages branch
-        if: github.event_name == 'push'
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          force_orphan: true
+          path: combined
 
-      - name: Deploy only Preview to gh-pages branch
-        if: github.event_name == 'workflow_dispatch'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist-preview
-          publish_branch: gh-pages
-          destination_dir: preview
-          keep_files: true
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
