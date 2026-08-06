@@ -8,6 +8,7 @@ import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
 import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
 import RuntimeAttributionProvenanceCard from './components/RuntimeAttributionProvenanceCard';
+import TargetValuePair from './components/TargetValuePair';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -912,8 +913,8 @@ function AllocationAnalysis({ m, rb }: { m: ReturnType<typeof calculateMetrics>;
       <button type="button" className={view === 'classes' ? 'active' : ''} onClick={() => setView('classes')}>成長／防守配置</button>
     </div>
     {view === 'assets' ? <AllocationDonut m={m} /> : <div className="allocation-class-grid">
-      <article><h3>成長資產</h3><p><span>目前比例</span><strong>{pct(rb.stockRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.stockRow.targetText}</strong></p><p><span>差異</span><strong className={rb.stockRow.tone}>{rb.stockRow.deviationText}</strong></p><b className={rb.stockRow.tone}>{displayEmbeddedAmounts(rb.stockRow.action, hidden)}</b></article>
-      <article><h3>防守資產</h3><p><span>目前比例</span><strong>{pct(rb.defensiveRow.currentWeight)}</strong></p><p><span>目標比例</span><strong>{rb.defensiveRow.targetText}</strong></p><p><span>差異</span><strong className={rb.defensiveRow.tone}>{rb.defensiveRow.deviationText}</strong></p><b className={rb.defensiveRow.tone}>{displayEmbeddedAmounts(rb.defensiveRow.action, hidden)}</b></article>
+      <article><h3>成長資產</h3><TargetValuePair currentLabel="目前比例" currentValue={pct(rb.stockRow.currentWeight)} targetLabel="目標比例" targetValue={rb.stockRow.targetText} /><p><span>差異</span><strong className={rb.stockRow.tone}>{rb.stockRow.deviationText}</strong></p><b className={rb.stockRow.tone}>{displayEmbeddedAmounts(rb.stockRow.action, hidden)}</b></article>
+      <article><h3>防守資產</h3><TargetValuePair currentLabel="目前比例" currentValue={pct(rb.defensiveRow.currentWeight)} targetLabel="目標比例" targetValue={rb.defensiveRow.targetText} /><p><span>差異</span><strong className={rb.defensiveRow.tone}>{rb.defensiveRow.deviationText}</strong></p><b className={rb.defensiveRow.tone}>{displayEmbeddedAmounts(rb.defensiveRow.action, hidden)}</b></article>
     </div>}
   </>;
 }
