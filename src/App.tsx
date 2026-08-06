@@ -9,6 +9,7 @@ import AllocationContextNotice from './components/AllocationContextNotice';
 import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
 import RuntimeAttributionProvenanceCard from './components/RuntimeAttributionProvenanceCard';
 import TargetValuePair from './components/TargetValuePair';
+import CollapseEyeIcon from './components/CollapseEyeIcon';
 import HomePage from './pages/HomePage';
 import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -805,7 +806,7 @@ function SectionCard({ id, title, children, action, style, className = '', isMob
     <div className="section-toggle-row">
       <button type="button" className="section-toggle" aria-expanded={open} aria-controls={contentId} onClick={onToggle}>
         <span className="section-toggle-title">{title}{status && <span className="section-toggle-status">{status}</span>}</span>
-        <b aria-hidden="true">{open ? '收合 ▲' : '展開 ▼'}</b>
+        <b aria-hidden="true" className="section-toggle-eye">{open ? '收合' : '展開'} <CollapseEyeIcon open={open} /></b>
       </button>
       {action && <div className="section-card-action">{action}</div>}
     </div>

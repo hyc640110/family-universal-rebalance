@@ -4,6 +4,7 @@ import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import type { InvestmentActionCenterModel } from '../lib/investmentActionCenter';
 import type { InvestmentActionExplanation } from '../lib/investmentActionExplainability';
+import CollapseEyeIcon from '../components/CollapseEyeIcon';
 
 const statusText = (status: InvestmentActionCenterModel['actions'][number]['status']) => status === 'unavailable' ? '資料不足' : status === 'blocked' ? '暫時無法判斷' : '待查看';
 
@@ -24,6 +25,6 @@ export default function InvestmentActionCenterPage({ model, explanations }: { mo
 }
 function ActionItem({ action, explanation, expanded, onToggle, featured = false }: { action: InvestmentActionCenterModel['actions'][number]; explanation?: InvestmentActionExplanation; expanded: boolean; onToggle: () => void; featured?: boolean }) {
   const controlsId = `action-explanation-${action.id}`;
-  const content = <><div><small>{featured ? '主要下一步' : `${statusText(action.status)}｜優先順序 ${action.priority}`}</small><h3>{action.title}</h3><p>{action.description}</p></div><div className="investment-action-controls"><button type="button" aria-expanded={expanded} aria-controls={controlsId} onClick={onToggle}>{expanded ? '收合原因' : '為什麼出現？'}</button><Link to={action.route} aria-label={action.ariaLabel} title={action.titleAttribute}>{action.actionLabel}</Link></div>{expanded && explanation && <div className="investment-action-explanation" id={controlsId}><p><b>來源模組：</b>{explanation.sourceLabel}</p><p><b>優先原因：</b>{explanation.reasonSummary}</p><ul>{explanation.evidenceItems.map(item => <li key={item.id}><span>{item.label}</span><strong>{item.valueText}</strong></li>)}</ul></div>}</>;
+  const content = <><div><small>{featured ? '主要下一步' : `${statusText(action.status)}｜優先順序 ${action.priority}`}</small><h3>{action.title}</h3><p>{action.description}</p></div><div className="investment-action-controls"><button type="button" className="investment-action-toggle-eye" aria-expanded={expanded} aria-controls={controlsId} onClick={onToggle}>{expanded ? '收合原因' : '為什麼出現？'} <CollapseEyeIcon open={expanded} /></button><Link to={action.route} aria-label={action.ariaLabel} title={action.titleAttribute}>{action.actionLabel}</Link></div>{expanded && explanation && <div className="investment-action-explanation" id={controlsId}><p><b>來源模組：</b>{explanation.sourceLabel}</p><p><b>優先原因：</b>{explanation.reasonSummary}</p><ul>{explanation.evidenceItems.map(item => <li key={item.id}><span>{item.label}</span><strong>{item.valueText}</strong></li>)}</ul></div>}</>;
   return featured ? <section className="investment-action-primary" aria-labelledby="investment-action-primary-title"><div><p className="eyebrow">主要下一步</p><h2 id="investment-action-primary-title">{action.title}</h2><p>{action.reason}</p></div>{content}</section> : <li className={action.status}>{content}</li>;
 }
