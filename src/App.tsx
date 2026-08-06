@@ -1189,6 +1189,14 @@ function App() {
    * syncStatusText's baseline/dirty precedence logic overrides syncMeta.status in the common case
    * (dirty local edits, or no baseline yet), which silently swallowed this feedback before. */
   const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
+  /** Real <button> triggering a hidden <input type="file">, not a <label> wrapping it — a <label>
+   * is a structurally different element from the sibling <button>s in the same .actions row (extra
+   * child node, different default box/appearance behavior), which is exactly the kind of DOM-shape
+   * difference mobile browsers' per-element text/box rendering heuristics can key off. Matching CSS
+   * on a <label> can converge in every desktop/automated check and still drift on a real device;
+   * using the same element type for all three buttons removes the difference at the source instead
+   * of chasing whichever one renders short this round. */
+  const importFileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { writeUiState(uiState); }, [uiState]);
   const effectiveDisplayMode = isMobile ? 'compact' : uiState.displayMode;
   useEffect(() => { document.documentElement.dataset.displayMode = effectiveDisplayMode; }, [effectiveDisplayMode]);
@@ -2201,7 +2209,8 @@ function App() {
           <p className="note">匯出備份與匯入還原只處理本機資料，不會自動觸發 Firebase 上傳或下載。</p>
           <div className="actions">
             <button onClick={exportBackup}>匯出 JSON 備份</button>
-            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { void importBackup(e.currentTarget.files?.[0], e.currentTarget); }} /></label>
+            <input ref={importFileInputRef} type="file" accept="application/json" className="visually-hidden-file-input" onChange={e => { void importBackup(e.currentTarget.files?.[0], e.currentTarget); }} />
+            <button type="button" onClick={() => importFileInputRef.current?.click()}>匯入 JSON 備份</button>
             <button className="danger" onClick={resetState}>重設</button>
           </div>
           {backupFeedback && <p className={`backup-feedback ${backupFeedback.tone}`} role={backupFeedback.tone === 'error' ? 'alert' : 'status'}>{backupFeedback.text}</p>}
