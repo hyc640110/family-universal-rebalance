@@ -5,10 +5,8 @@ import { Eye, EyeOff } from 'lucide-react';
  *
  * Pure presentational icon swap — replaces the ▲/▼ glyph position only;
  * the existing 收合／展開 text labels are kept as-is by each caller.
- * Reuses the exact same lucide-react icons/size as
- * AmountVisibilityToggle.tsx (Eye = open/visible, EyeOff = closed/hidden)
- * so the two features share one consistent icon language, without adding
- * any new dependency.
+ * Reuses lucide-react Eye/EyeOff (Eye = open/visible, EyeOff = closed/hidden)
+ * without adding any new dependency.
  *
  * Scope (2026-08-06 使用者拍板): only applied to SectionCard (App.tsx, 19
  * call sites via this one shared component) and 3 independently-defined

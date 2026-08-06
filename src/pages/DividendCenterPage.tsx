@@ -6,11 +6,9 @@ import { dividendIntelligence } from '../lib/dividendIntelligence';
 import { dividendAssetReferenceOptions, type DividendAssetReferenceHolding, type DividendAssetReferenceOption } from '../lib/dividendAssetReferences';
 import type { FinancialAccount } from '../lib/financialAccounts';
 import type { FinancialTransaction } from '../lib/transactions';
-import { displayAmount } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 type HoldingOption = DividendAssetReferenceHolding & { assetClass?: 'growth' | 'defensive' };
-const rawMoney = (value: number, currency = 'TWD') => `${currency === 'TWD' && Math.abs(value) >= 10000 ? `${(value / 10000).toLocaleString('zh-TW', { maximumFractionDigits: 2 })} 萬` : value.toLocaleString('zh-TW', { maximumFractionDigits: 2 })} ${currency === 'TWD' ? '元' : currency}`;
+const money = (value: number, currency = 'TWD') => `${currency === 'TWD' && Math.abs(value) >= 10000 ? `${(value / 10000).toLocaleString('zh-TW', { maximumFractionDigits: 2 })} 萬` : value.toLocaleString('zh-TW', { maximumFractionDigits: 2 })} ${currency === 'TWD' ? '元' : currency}`;
 const optionalNumber = (value: string) => value.trim() === '' ? undefined : Number(value);
 const inputDate = (transaction: FinancialTransaction) => dividendDate(transaction);
 
@@ -19,7 +17,6 @@ export function DividendAssetReferenceSelect({ value, options, onChange }: { val
 }
 
 export default function DividendCenterPage({ accounts, holdings, transactions, onCreate, onUpdate, onDelete }: { accounts: FinancialAccount[]; holdings: HoldingOption[]; transactions: FinancialTransaction[]; onCreate: (input: Partial<FinancialTransaction>) => void; onUpdate: (id: string, patch: Partial<FinancialTransaction>) => void; onDelete: (id: string) => void }) {
-  const hidden = useAmountsHidden(); const money = (value: number, currency = 'TWD') => displayAmount(rawMoney(value, currency), hidden);
   const today = taipeiDate(); const activeAccounts = accounts.filter(account => account.isActive); const [editing, setEditing] = useState<FinancialTransaction | null>(null); const [accountId, setAccountId] = useState(''); const [occurredAt, setOccurredAt] = useState(today); const [assetSymbol, setAssetSymbol] = useState(''); const [assetName, setAssetName] = useState(''); const [amount, setAmount] = useState(''); const [grossAmount, setGrossAmount] = useState(''); const [withholdingTax, setWithholdingTax] = useState(''); const [note, setNote] = useState(''); const [message, setMessage] = useState(''); const [year, setYear] = useState<'all' | 'current' | number>('all'); const [assetFilter, setAssetFilter] = useState('');
   const selectedAccount = activeAccounts.find(account => account.id === accountId); const selectedCurrency = selectedAccount?.currency || 'TWD';
   const assetOptions = useMemo(() => dividendAssetReferenceOptions(holdings, transactions), [holdings, transactions]);

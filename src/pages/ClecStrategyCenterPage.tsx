@@ -4,16 +4,11 @@ import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import type { ClecStrategyCenterResult, ClecStrategyDefinition } from '../lib/clecStrategy';
 import type { ClecRuleOutput } from '../lib/clecStrategyRules';
 import { clecRuleActionLabel, clecRuleDecisionStatusLabel } from '../lib/clecRuleSummaryPresentation';
-import { displayAmount, displayEmbeddedAmounts } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 const pct = (value: number | null) => value === null || !Number.isFinite(value) ? '不可計算' : `${value.toFixed(1)}%`;
 const statusLabel = (status: ClecStrategyDefinition['specificationStatus']) => status === 'implemented' ? '已可可靠計算' : status === 'verified-partial' ? '僅部分核對' : '公式未核實';
-const rawMoneyOrUnavailable = (value: number | null) => value === null ? '未提供' : new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value);
 
 export default function ClecStrategyCenterPage({ view, rule }: { view: ClecStrategyCenterResult; rule: ClecRuleOutput }) {
-  const hidden = useAmountsHidden();
-  const moneyOrUnavailable = (value: number | null) => displayAmount(rawMoneyOrUnavailable(value), hidden);
   const executable = view.strategies.filter(item => item.id === 'standard' || item.id === 'buy-only');
   const pending = view.strategies.filter(item => !['current-target-gap', 'standard', 'buy-only'].includes(item.id));
   return <PageFrame page="tools" title="CLEC 再平衡策略中心" description="查看目標配置來源、既有可計算方式與 CLEC 策略規格狀態；未核實公式不會試算或自動交易。">
@@ -34,10 +29,10 @@ export default function ClecStrategyCenterPage({ view, rule }: { view: ClecStrat
         <div><dt>預計提領資金</dt><dd>{moneyOrUnavailable(rule.financialSummary.plannedWithdrawal)}</dd></div><div><dt>現金儲備</dt><dd>{moneyOrUnavailable(rule.financialSummary.cashReserve)}</dd></div>
         <div><dt>負債</dt><dd>{moneyOrUnavailable(rule.financialSummary.debtBalance)}</dd></div><div><dt>槓桿曝險</dt><dd>{rule.financialSummary.leverageExposure === null ? '未提供' : rule.financialSummary.leverageExposure.toFixed(2)}</dd></div>
       </dl>
-      <p className="clec-rule-summary">{displayEmbeddedAmounts(rule.summary, hidden)}</p>
-      {rule.blockingIssues.length > 0 && <List title="blockingIssues" rows={rule.blockingIssues.map(item => displayEmbeddedAmounts(item, hidden))} empty="無。" />}
-      {rule.warnings.length > 0 && <List title="風險／資料時效警示" rows={rule.warnings.map(item => displayEmbeddedAmounts(item, hidden))} empty="無。" />}
-      <List title="reasonCodes 與判定理由" rows={rule.explanationItems.map(item => displayEmbeddedAmounts(`${item.code}｜${item.title}：${item.detail}${item.assets.length ? `（${item.assets.join('、')}）` : ''}`, hidden))} empty="目前沒有額外規則理由。" />
+      <p className="clec-rule-summary">{rule.summary}</p>
+      {rule.blockingIssues.length > 0 && <List title="blockingIssues" rows={rule.blockingIssues} empty="無。" />}
+      {rule.warnings.length > 0 && <List title="風險／資料時效警示" rows={rule.warnings} empty="無。" />}
+      <List title="reasonCodes 與判定理由" rows={rule.explanationItems.map(item => `${item.code}｜${item.title}：${item.detail}${item.assets.length ? `（${item.assets.join('、')}）` : ''}`)} empty="目前沒有額外規則理由。" />
       <p><b>affectedAssets：</b>{rule.affectedAssets.length ? rule.affectedAssets.join('、') : '無'}</p>
     </section>
     <section className="clec-section"><header><p className="eyebrow">既有引擎</p><h2>可可靠計算的方式</h2></header><div className="clec-strategy-grid">{executable.map(item => <StrategyCard key={item.id} item={item} />)}</div></section>
@@ -52,3 +47,4 @@ function StrategyCard({ item }: { item: ClecStrategyDefinition }) {
   return <article className={`clec-card clec-strategy-card ${item.executable ? 'is-executable' : 'is-pending'}`}><header><h3>{item.name}</h3><span>{statusLabel(item.specificationStatus)}</span></header><p>{item.summary}</p><p><b>可執行：</b>{item.executable ? '是，使用既有引擎' : '否'}</p><List title="已核對內容" rows={item.verifiedRules} empty="目前沒有足以視為正式公式的已核對規則。" /><List title="尚缺公式／規則" rows={item.missingRules} empty="無。" /><List title="所需資料" rows={item.requiredInputs} empty="無。" /><List title="限制說明" rows={item.limitations} empty="無。" />{HAS_SIMULATION_TEMPLATE.has(item.id) && <Link className="clec-secondary-link" to="/tools/allocation-simulator">前往配置模擬器試算相關權重樣板</Link>}</article>;
 }
 function List({ title, rows, empty }: { title: string; rows: string[]; empty: string }) { return <div><h4>{title}</h4>{rows.length ? <ul className="clec-list">{rows.map(row => <li key={row}>{row}</li>)}</ul> : <p className="note">{empty}</p>}</div>; }
+const moneyOrUnavailable = (value: number | null) => value === null ? '未提供' : new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value);
