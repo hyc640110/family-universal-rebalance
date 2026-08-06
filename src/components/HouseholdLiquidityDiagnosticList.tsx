@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { HouseholdLiquidityDiagnosticPresentation } from '../lib/householdLiquidityDiagnosticPresentation';
+import CollapseEyeIcon from './CollapseEyeIcon';
 
 type Props = Readonly<{
   title: string;
@@ -21,7 +22,7 @@ export default function HouseholdLiquidityDiagnosticList({ title, presentation }
     <strong>{title}</strong>
     <ul>{visible.map(renderItem)}</ul>
     {additional.length > 0 && <>
-      <button type="button" className="household-liquidity-diagnostics-toggle" aria-expanded={expanded} onClick={() => setExpanded(current => !current)}>{expanded ? '收合' : '展開全部'}</button>
+      <button type="button" className="household-liquidity-diagnostics-toggle" aria-expanded={expanded} onClick={() => setExpanded(current => !current)}>{expanded ? '收合' : '展開全部'} <CollapseEyeIcon open={expanded} /></button>
       {expanded && <ul>{additional.map(renderItem)}</ul>}
     </>}
   </aside>;
