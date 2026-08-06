@@ -1,5 +1,11 @@
 :root{font-family:Inter,'Noto Sans TC',system-ui,sans-serif;color:#eaf3ff;background:#071221;--font-eyebrow:12px;--font-badge:13px;--font-helper:14px;--font-caption:12px;--font-interactive-small:13px;--font-form-label:14px}
 *{box-sizing:border-box}
+/* Form controls don't inherit font-family from ancestors by default (browser UA stylesheet behavior) —
+   without this, <button>/<input>/<select>/<textarea> render in the browser's default UI font instead of
+   the site's Inter/Noto Sans TC stack, which is invisible until a button sits next to a same-styled
+   non-control element (e.g. <button> vs <label class="file"> in the same .actions row) and the two
+   render at different sizes despite identical CSS. */
+button,input,select,textarea{font-family:inherit}
 body{margin:0;background:linear-gradient(135deg,#07111f,#0b1b31);min-height:100vh}
 main{max-width:1320px;margin:auto;padding:28px}
 .hero{display:flex;justify-content:space-between;gap:24px;align-items:center;background:linear-gradient(135deg,#142f5d,#0d1e37);border:1px solid #1d3d66;border-radius:24px;padding:34px;margin-bottom:18px;box-shadow:0 20px 80px #0005}
@@ -547,6 +553,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .backup-feedback{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;line-height:1.5}
 .backup-feedback.success{border:1px solid #2f855a;background:#0f2e21;color:#9ae6b4}
 .backup-feedback.error{border:1px solid #9f3030;background:#3a1218;color:#fecaca}
+.backup-feedback.cancelled{border:1px solid #315b8d;background:#0b2745;color:#bfdbfe}
 
 /* UR-TODO-048 phase C: session-only CLEC 442/433 weight-template picker inside the existing Allocation Simulator. */
 .allocation-preset-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between}.allocation-preset-controls label,.allocation-preset-roles label{display:grid;gap:6px;color:#cfe4ff;font-size:13px}.allocation-preset-controls select,.allocation-preset-roles select{min-height:38px;border:1px solid #315b8d;border-radius:8px;background:#09182a;color:#eaf3ff;padding:7px}.allocation-preset-controls p{margin:0}.allocation-preset-controls small,.allocation-preset-roles small{display:block;color:#9fb3c8}.allocation-preset-roles{display:grid;gap:8px}.allocation-preset-roles label{grid-template-columns:minmax(0,1fr) minmax(132px,180px);align-items:center;padding:10px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}.allocation-preset-roles b{display:block;color:#eaf3ff}.allocation-preset-roles span{min-width:0}.allocation-preset-roles small{color:#b6c7da;font-size:13px;line-height:1.4;overflow-wrap:anywhere}.allocation-preset-preview{display:grid;gap:7px;padding:12px;border:1px solid #315b8d;border-radius:10px;background:#0b2037}.allocation-preset-preview.bad{border-color:#b98032}.allocation-preset-preview h3,.allocation-preset-preview p{margin:0}.allocation-preset-preview p:not(.warning-message){display:flex;justify-content:space-between;gap:10px;color:#cfe4ff}.allocation-preset-preview strong{color:#eaf3ff}.allocation-preset-preview .warning-message{margin:0}

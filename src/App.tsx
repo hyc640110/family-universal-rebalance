@@ -1180,7 +1180,7 @@ function App() {
   /** UR-TODO: backup/export/import/reset feedback, deliberately independent of syncMeta.status —
    * syncStatusText's baseline/dirty precedence logic overrides syncMeta.status in the common case
    * (dirty local edits, or no baseline yet), which silently swallowed this feedback before. */
-  const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
   useEffect(() => { writeUiState(uiState); }, [uiState]);
   const effectiveDisplayMode = isMobile ? 'compact' : uiState.displayMode;
   useEffect(() => { document.documentElement.dataset.displayMode = effectiveDisplayMode; }, [effectiveDisplayMode]);
@@ -1868,11 +1868,21 @@ function App() {
       setBackupFeedback({ tone: 'error', text: error instanceof Error ? `匯出失敗：${error.message}` : '匯出失敗，請重試一次。' });
     }
   };
-  const importBackup = async (f?: File) => {
+  const importBackup = async (f?: File, input?: HTMLInputElement) => {
     if (!f) return;
-    if (!window.confirm('匯入備份會覆蓋目前本機資料，但不會自動上傳雲端。是否繼續？')) return;
     try {
+      if (!window.confirm('匯入備份會覆蓋目前本機資料，但不會自動上傳雲端。是否繼續？')) {
+        // No read has started yet at this point, so clearing here is always safe (unlike the
+        // post-read resets below) and lets the user immediately re-pick the same file if needed.
+        if (input) input.value = '';
+        setBackupFeedback({ tone: 'cancelled', text: '已取消匯入，本機資料未變更。' });
+        return;
+      }
       const raw = JSON.parse(await f.text());
+      // Reset the input only after the read has actually completed — resetting it while f.text()
+      // is still in flight is a known WebKit/iOS risk for files from security-scoped providers
+      // (iCloud/Files app) and can leave the read promise permanently pending.
+      if (input) input.value = '';
       const accountImport = raw && typeof raw === 'object' ? normalizeFinancialAccounts((raw as Partial<BackupPayload>).accounts) : { skipped: [] };
       const importedAt = now();
       const restoredResult = stateFromBackup(raw, stateRef.current);
@@ -1899,6 +1909,9 @@ function App() {
       updateSyncMeta(current => ({ ...current, baselineFingerprint: undefined, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true }));
       setBackupFeedback({ tone: 'success', text: `已匯入備份：${tw(importedAt)}${skippedAccountMessage}` });
     } catch (error) {
+      // Safe to reset here too: by the time we reach catch, the read attempt (successful or not)
+      // has already settled, so there is no in-flight read left for an early reset to disrupt.
+      if (input) input.value = '';
       setBackupFeedback({ tone: 'error', text: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' });
     }
   };
@@ -2180,7 +2193,7 @@ function App() {
           <p className="note">匯出備份與匯入還原只處理本機資料，不會自動觸發 Firebase 上傳或下載。</p>
           <div className="actions">
             <button onClick={exportBackup}>匯出 JSON 備份</button>
-            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { importBackup(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>
+            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { void importBackup(e.currentTarget.files?.[0], e.currentTarget); }} /></label>
             <button className="danger" onClick={resetState}>重設</button>
           </div>
           {backupFeedback && <p className={`backup-feedback ${backupFeedback.tone}`} role={backupFeedback.tone === 'error' ? 'alert' : 'status'}>{backupFeedback.text}</p>}
