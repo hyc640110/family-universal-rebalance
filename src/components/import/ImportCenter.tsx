@@ -33,7 +33,13 @@ type ImportCenterProps = {
   onPresets: (presets: ImportPreset[]) => void;
 };
 
+type Feedback = { tone: 'success' | 'error' | 'cancelled'; text: string } | null;
+
 const formatTimestamp = (iso: string) => new Date(iso).toLocaleString('zh-TW');
+/** Same success/error/cancelled feedback pattern as the JSON 備份 fix (independent per-zone state,
+ * rendered right next to the buttons that triggered it, role="status"/"alert" per tone). */
+const FeedbackLine = ({ feedback }: { feedback: Feedback }) => feedback ? <p className={`import-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'}>{feedback.text}</p> : null;
+
 export default function ImportCenter({ accounts, transactions, sessions, presets, onCommit, onRollback, onPresets }: ImportCenterProps) {
   const [accountId, setAccountId] = useState('');
   const [fileName, setFileName] = useState('');
@@ -46,7 +52,14 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const [dateFormat, setDateFormat] = useState<'ymd' | 'mdy' | 'dmy'>('ymd');
   const [preview, setPreview] = useState<ImportPreviewRow[]>([]);
   const [presetName, setPresetName] = useState('');
-  const [message, setMessage] = useState('');
+  // Covers 選擇檔案／切換工作表 (physically adjacent triggers, same file-loading flow).
+  const [fileFeedback, setFileFeedback] = useState<Feedback>(null);
+  // Covers 產生匯入預覽.
+  const [previewFeedback, setPreviewFeedback] = useState<Feedback>(null);
+  // Covers 儲存 preset／套用 preset (physically adjacent, same preset-management block).
+  const [presetFeedback, setPresetFeedback] = useState<Feedback>(null);
+  // Covers 正式批次匯入已選列.
+  const [commitFeedback, setCommitFeedback] = useState<Feedback>(null);
   const targets = accounts.filter(account => account.isActive && ['cash', 'bank', 'creditCard', 'eWallet', 'securities'].includes(account.type));
   const account = targets.find(item => item.id === accountId);
 
@@ -57,10 +70,10 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       const names = Object.keys(next[0]?.raw || {});
       const compatible = keep && Object.values(mapping).filter(value => typeof value === 'string').every(value => !value || names.includes(value));
       setSheetName(sheet.sheet); setRecords(next); setHeaders(names); setMapping(compatible ? mapping : guessImportMapping(names)); setPreview([]);
-      setMessage(`${sheet.sheet}：${next.length} 筆資料列${compatible ? '，保留相容 mapping。' : '，請確認欄位對應。'}`);
+      setFileFeedback({ tone: 'success', text: `${sheet.sheet}：${next.length} 筆資料列${compatible ? '，保留相容 mapping。' : '，請確認欄位對應。'}` });
     } catch (error) {
       setSheetName(sheet.sheet); setRecords([]); setHeaders([]); setPreview([]);
-      setMessage(`${sheet.sheet} 無可匯入資料：${error instanceof Error ? error.message : '解析失敗'}`);
+      setFileFeedback({ tone: 'error', text: `${sheet.sheet} 無可匯入資料：${error instanceof Error ? error.message : '解析失敗'}` });
     }
   };
 
@@ -74,37 +87,48 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       const usable = nextSheets.filter(sheet => sheet.data.length > 1 && sheet.data[0].some(value => String(value ?? '').trim()));
       if (!usable.length) throw new Error('檔案沒有有效工作表');
       setFileName(file.name); setFileType(kind); setSheets(nextSheets); selectSheet(usable[0]);
-    } catch (error) { setMessage(error instanceof Error ? error.message : '檔案解析失敗'); }
+    } catch (error) { setFileFeedback({ tone: 'error', text: error instanceof Error ? error.message : '檔案解析失敗' }); }
   };
 
   const makePreview = () => {
     try {
       const next = buildImportPreview(records, mapping, account, transactions, dateFormat);
-      setPreview(next); setMessage(`預覽完成：有效 ${next.filter(row => !row.error).length}，錯誤 ${next.filter(row => row.error).length}。`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : '欄位對應無效'); }
+      setPreview(next); setPreviewFeedback({ tone: 'success', text: `預覽完成：有效 ${next.filter(row => !row.error).length}，錯誤 ${next.filter(row => row.error).length}。` });
+    } catch (error) { setPreviewFeedback({ tone: 'error', text: error instanceof Error ? error.message : '欄位對應無效' }); }
   };
 
   const savePreset = () => {
     const name = presetName.trim();
-    if (!name) return setMessage('請輸入 preset 名稱');
+    if (!name) { setPresetFeedback({ tone: 'error', text: '請輸入 preset 名稱' }); return; }
     const existing = presets.find(preset => preset.name === name);
-    if (existing && !window.confirm(`「${name}」已存在，是否覆蓋？`)) return;
+    if (existing && !window.confirm(`「${name}」已存在，是否覆蓋？`)) {
+      setPresetFeedback({ tone: 'cancelled', text: '已取消儲存，preset 未變更。' });
+      return;
+    }
     const nowValue = new Date().toISOString();
     const preset: ImportPreset = {
       id: existing?.id || `preset-${crypto.randomUUID?.() ?? Date.now().toString(36)}`, name, mapping, dateFormat, defaultCurrency: account?.currency,
       createdAt: existing?.createdAt || nowValue, updatedAt: nowValue, schemaVersion: IMPORT_SCHEMA_VERSION
     };
-    onPresets([...presets.filter(item => item.id !== preset.id), preset]); setMessage(`已儲存 preset「${name}」`);
+    onPresets([...presets.filter(item => item.id !== preset.id), preset]); setPresetFeedback({ tone: 'success', text: `已儲存 preset「${name}」` });
   };
 
   const applyPreset = (preset: ImportPreset) => {
     const applied = applyMappingPreset(preset, headers);
-    if (applied.error) return setMessage(applied.error);
-    setMapping(applied.mapping); setDateFormat(applied.dateFormat); setPreview([]); setMessage(`已套用 preset「${preset.name}」，請重新產生預覽。`);
+    if (applied.error) { setPresetFeedback({ tone: 'error', text: applied.error }); return; }
+    setMapping(applied.mapping); setDateFormat(applied.dateFormat); setPreview([]); setPresetFeedback({ tone: 'success', text: `已套用 preset「${preset.name}」，請重新產生預覽。` });
+  };
+
+  const renamePreset = (preset: ImportPreset) => {
+    const name = window.prompt('新名稱', preset.name)?.trim();
+    if (!name) return;
+    if (presets.some(item => item.name === name && item.id !== preset.id)) { setPresetFeedback({ tone: 'error', text: 'preset 名稱已存在' }); return; }
+    onPresets(presets.map(item => item.id === preset.id ? { ...item, name, updatedAt: new Date().toISOString() } : item));
+    setPresetFeedback({ tone: 'success', text: `已重新命名為「${name}」` });
   };
 
   const commit = () => {
-    if (!account || !fileType || !preview.length) return;
+    if (!account || !fileType || !preview.length) { setCommitFeedback({ tone: 'error', text: '缺少匯入帳戶或有效預覽資料，請重新選擇帳戶並產生預覽。' }); return; }
     const id = createImportSessionId();
     const imported = createImportTransactions(preview, account, id);
     const timestamp = new Date().toISOString();
@@ -115,7 +139,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       skippedRows: preview.filter(row => !row.selected || Boolean(row.error)).length, mapping, source: fileType === 'csv' ? 'csv' : 'excel',
       createdAt: timestamp, schemaVersion: IMPORT_SCHEMA_VERSION, warnings: preview.filter(row => row.warning).map(row => `第 ${row.rowNumber} 列：${row.warning}`), status: 'imported'
     }, imported);
-    setPreview([]); setRecords([]); setMessage(`已匯入 ${imported.length} 筆交易。`);
+    setPreview([]); setRecords([]); setCommitFeedback({ tone: 'success', text: `已匯入 ${imported.length} 筆交易。` });
   };
 
   const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
@@ -129,11 +153,14 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       <label>日期格式<select value={dateFormat} onChange={event => setDateFormat(event.currentTarget.value as 'ymd' | 'mdy' | 'dmy')}><option value="ymd">YYYY/MM/DD</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
       {field('交易日期', 'occurredAt')}{field('單一金額', 'amount')}{field('收入', 'credit')}{field('支出', 'debit')}{field('描述', 'description')}{field('商家／對象', 'merchant')}{field('類別', 'categoryId')}{field('外部 ID', 'externalId')}
     </div>
-    {message && <p className="note">{message}</p>}
+    <FeedbackLine feedback={fileFeedback} />
     <div className="financial-account-fields"><label>Preset 名稱<input value={presetName} onChange={event => setPresetName(event.currentTarget.value)} /></label><button className="small" type="button" onClick={savePreset}>儲存／覆蓋 preset</button></div>
-    {presets.map(preset => <p className="note" key={preset.id}>{preset.name}｜更新 {formatTimestamp(preset.updatedAt)} <button className="small" type="button" onClick={() => applyPreset(preset)}>套用</button><button className="small" type="button" onClick={() => { const name = window.prompt('新名稱', preset.name)?.trim(); if (name && !presets.some(item => item.name === name && item.id !== preset.id)) onPresets(presets.map(item => item.id === preset.id ? { ...item, name, updatedAt: new Date().toISOString() } : item)); else if (name) setMessage('preset 名稱已存在'); }}>重新命名</button><button className="danger small" type="button" onClick={() => onPresets(presets.filter(item => item.id !== preset.id))}>刪除</button></p>)}
+    {presets.map(preset => <p className="note" key={preset.id}>{preset.name}｜更新 {formatTimestamp(preset.updatedAt)} <button className="small" type="button" onClick={() => applyPreset(preset)}>套用</button><button className="small" type="button" onClick={() => renamePreset(preset)}>重新命名</button><button className="danger small" type="button" onClick={() => onPresets(presets.filter(item => item.id !== preset.id))}>刪除</button></p>)}
+    <FeedbackLine feedback={presetFeedback} />
     {records.length > 0 && <button className="small" type="button" onClick={makePreview}>產生匯入預覽</button>}
+    <FeedbackLine feedback={previewFeedback} />
     {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: event.currentTarget.checked } : item))} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" onClick={commit}>正式批次匯入已選列</button></>}
+    <FeedbackLine feedback={commitFeedback} />
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => onRollback(session.id)}>撤銷</button>}</p>)}
     <ToolQuickNavigation current="import-transactions" showAssetsReturn />
   </div>;
