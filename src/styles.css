@@ -1,22 +1,13 @@
 :root{font-family:Inter,'Noto Sans TC',system-ui,sans-serif;color:#eaf3ff;background:#071221;--font-eyebrow:12px;--font-badge:13px;--font-helper:14px;--font-caption:12px;--font-interactive-small:13px;--font-form-label:14px}
 /* Mobile Safari and Chrome Android apply automatic "text size adjust" / font-boosting to text
-   nodes as a post-layout readability heuristic — it runs OUTSIDE the CSS cascade, computed
-   per-element from each element's DOM structure and containing-block width, so two elements with
-   byte-identical computed font-size/line-height/padding (verified via getComputedStyle) can still
-   paint at different heights on a real device. This is invisible in desktop browsers, desktop
-   DevTools' responsive/device-toolbar mode, and Chromium mobile-UA emulation — none of them run
-   the heuristic — which is why <button>/<label class="file"> measured identical in every
-   automation/desktop check here but still differed on a real phone. Disabling it is the standard,
-   widely-recommended fix (also in most CSS resets) and does not change any user's actual font size,
-   only whether the browser is allowed to silently inflate it further per-element. */
+   nodes as a post-layout readability heuristic, outside the CSS cascade — invisible in desktop
+   browsers, desktop DevTools responsive mode, and Chromium mobile-UA emulation. Disabling it is
+   the standard, widely-recommended fix (also in most CSS resets) and does not change any user's
+   actual font size, only whether the browser is allowed to silently inflate it further. */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 *{box-sizing:border-box}
-/* Form controls don't inherit font-family (or font-size — Chromium's UA stylesheet hardcodes
-   button/input/select to 13.3333px regardless of ancestors) from ancestors by default. Without this,
-   <button>/<input>/<select>/<textarea> render in the browser's default UI font/size instead of the
-   site's own type scale, which is invisible until a button sits next to a same-styled non-control
-   element (e.g. <button> vs <label class="file"> in the same .actions row) and the two render at
-   different sizes despite otherwise-identical CSS. */
+/* Form controls don't inherit font-family/font-size from ancestors by default (Chromium's UA
+   stylesheet hardcodes button/input/select to its own values regardless of ancestors). */
 button,input,select,textarea{font-family:inherit;font-size:inherit}
 body{margin:0;background:linear-gradient(135deg,#07111f,#0b1b31);min-height:100vh}
 main{max-width:1320px;margin:auto;padding:28px}
@@ -33,29 +24,24 @@ h3{margin:0 0 10px}
 .tabs{display:flex;gap:10px;align-items:center;margin:14px 0 18px}
 .tabs span{margin-left:auto;color:#9fb3c8;font-size:12px;text-align:right}
 .tabs .sync-bar{font-size:14px;line-height:1.8;max-width:620px}
-/* Several separate browser quirks stacked up to make <button>/<label class="file">/<button.danger>
-   (e.g. the 匯出/匯入 JSON 備份/重設 trio) render at inconsistent heights, even though all three hit this
-   exact same rule with identical computed padding/line-height/font-size/appearance in every desktop and
-   automated check:
-   1. font-size — <label class="file"> independently picks up 12px from the generic `label{font-size:12px}`
-      rule below (a direct selector match on the element itself, not inheritance), so `font-size:inherit`
-      on <button> alone can't converge on the same value; both need an explicit, shared size here.
-   2. appearance:auto — <button> keeps native form-control chrome/intrinsic sizing unless explicitly
-      stripped with appearance:none (plus -webkit- for older Safari).
-   3. mobile Safari/Chrome Android's automatic text-size-adjust boosting (see the html{} rule above) can
-      still apply a different scale factor per element based on text length/DOM shape even after (1) and
-      (2) are fixed — a 2-character label ("重設") vs a longer mixed CJK+Latin one ("匯出 JSON 備份") is
-      exactly the kind of difference that heuristic keys off. A `height` expressed in `em` (relative to
-      font-size) still rides along with whatever scale factor the browser applies to that element, so two
-      buttons with the SAME calc() can render at DIFFERENT actual heights on a real device even though
-      text-size-adjust:100% is set. Using a fixed px height instead severs that dependency entirely — the
-      box height no longer moves no matter what a given browser decides to do with that element's font
-      rendering. (10px vertical padding + 1.3 × 13px line-height, pre-computed as a literal value.) */
-button,.file{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;font-size:var(--font-interactive-small);padding:10px 16px;height:37px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
-button:hover,.file:hover{filter:brightness(1.12)}
+/* The 匯出/匯入/重設 button trio in the 備份 / 還原 card went through several rounds of mobile-only
+   height mismatches that never reproduced in any desktop or automated check (getComputedStyle always
+   showed identical padding/line-height/font-size/appearance across all three). Each round "fixed" one
+   symptom (font-size, appearance:auto, em-relative height) and a different button would come up short
+   next time — because 匯入 was structurally a <label class="file"> wrapping a hidden <input type="file">,
+   not a <button> like its two siblings. That's a genuine DOM-shape difference (extra child node,
+   different default box/appearance handling), exactly the kind of thing mobile browsers' per-element
+   rendering heuristics can key off even when every CSS property matches on paper. Root fix: 匯入 is now
+   a real <button> that triggers a hidden file input via ref (see App.tsx) — all three are the same
+   element type, so there is no structural difference left to drift. appearance:none/-webkit-appearance:
+   none strips native <button> chrome (which otherwise resists explicit height); the fixed px height (not
+   em-relative) keeps the box size independent of whatever a given browser does with font rendering. */
+button{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;font-size:var(--font-interactive-small);padding:10px 16px;height:37px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
+button:hover{filter:brightness(1.12)}
 button:disabled{cursor:not-allowed;opacity:.45;filter:none}
 button.active{background:#3b82f6}
 button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
+.visually-hidden-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .danger{background:#7f1d1d}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .stat,.card,.holding{background:#102033;border:1px solid #1d3d66;border-radius:14px;padding:16px}
@@ -291,7 +277,6 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 .params{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .asset-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-bottom:12px}
-.file input{display:none}
 .list{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
 .list-row{display:grid;gap:8px;background:#09182a;border-radius:10px;padding:10px;align-items:end;min-width:720px}
 .cash-list .list-row{grid-template-columns:1.1fr 1fr 1.4fr auto}
@@ -341,7 +326,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .tabs span{width:100%;margin-left:0;text-align:left}
   .tabs .sync-bar{font-size:12px;line-height:1.65;max-width:none}
   .actions{width:100%}
-  .actions button,.actions .file{min-height:44px}
+  .actions button{min-height:44px}
   .order-section,.order-item{width:100%;min-width:0}
   .order-item{grid-template-columns:32px minmax(0,1fr);padding:10px}
   .order-body h4 span{display:block;margin-left:0;margin-top:3px}
@@ -399,7 +384,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   h1{font-size:1.65rem!important;line-height:1.2}
   h2{font-size:1rem;margin-bottom:10px}
   h3{font-size:1rem}
-  button,.file{min-height:42px;padding:9px 12px;font-size:.9rem!important}
+  button{min-height:42px;padding:9px 12px;font-size:.9rem!important}
   .collapsible-card{padding:0;overflow:hidden}
   .section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#102033;color:#eaf3ff;border-radius:12px;padding:13px 14px;text-align:left}
   .section-toggle span{font-size:1rem;font-weight:900;word-break:keep-all!important}
