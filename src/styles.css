@@ -1,4 +1,15 @@
 :root{font-family:Inter,'Noto Sans TC',system-ui,sans-serif;color:#eaf3ff;background:#071221;--font-eyebrow:12px;--font-badge:13px;--font-helper:14px;--font-caption:12px;--font-interactive-small:13px;--font-form-label:14px}
+/* Mobile Safari and Chrome Android apply automatic "text size adjust" / font-boosting to text
+   nodes as a post-layout readability heuristic — it runs OUTSIDE the CSS cascade, computed
+   per-element from each element's DOM structure and containing-block width, so two elements with
+   byte-identical computed font-size/line-height/padding (verified via getComputedStyle) can still
+   paint at different heights on a real device. This is invisible in desktop browsers, desktop
+   DevTools' responsive/device-toolbar mode, and Chromium mobile-UA emulation — none of them run
+   the heuristic — which is why <button>/<label class="file"> measured identical in every
+   automation/desktop check here but still differed on a real phone. Disabling it is the standard,
+   widely-recommended fix (also in most CSS resets) and does not change any user's actual font size,
+   only whether the browser is allowed to silently inflate it further per-element. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 *{box-sizing:border-box}
 /* Form controls don't inherit font-family (or font-size — Chromium's UA stylesheet hardcodes
    button/input/select to 13.3333px regardless of ancestors) from ancestors by default. Without this,
