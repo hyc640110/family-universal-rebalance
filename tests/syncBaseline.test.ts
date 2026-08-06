@@ -243,7 +243,9 @@ test('App upload, download, Backup, and reset flows enforce baseline lifecycle a
   assert.match(app, /baselineFingerprint: downloadedSnapshot\.fingerprint/);
   assert.match(app, /syncMeta: withoutSyncBaseline\(normalized\.syncMeta\)/);
   assert.match(app, /baselineFingerprint: undefined,[\s\S]*?source: '已從備份匯入'/);
-  assert.match(app, /已重設為預設資產；尚未建立同步基準/);
+  // Reset's user-facing confirmation is deliberately its own backupFeedback state, not syncMeta.status
+  // (see App upload/download/backup feedback isolation from syncStatusText's baseline/dirty precedence).
+  assert.match(app, /已重設為預設資產：/);
 });
 
 test('persistence effect cannot overwrite a newer stateRef baseline with an older render', () => {

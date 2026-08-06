@@ -1177,6 +1177,10 @@ function App() {
   const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
+  /** UR-TODO: backup/export/import/reset feedback, deliberately independent of syncMeta.status —
+   * syncStatusText's baseline/dirty precedence logic overrides syncMeta.status in the common case
+   * (dirty local edits, or no baseline yet), which silently swallowed this feedback before. */
+  const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
   useEffect(() => { writeUiState(uiState); }, [uiState]);
   const effectiveDisplayMode = isMobile ? 'compact' : uiState.displayMode;
   useEffect(() => { document.documentElement.dataset.displayMode = effectiveDisplayMode; }, [effectiveDisplayMode]);
@@ -1848,22 +1852,37 @@ function App() {
   };
   const metaTime = (iso?: string) => iso ? tw(iso) : '尚未執行';
   const exportBackup = () => {
-    const exportedAt = now();
-    const payload = { ...backupPayload(stateRef.current, quotes), exportedAt };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `family-universal-rebalance-backup-${backupStamp()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    updateSyncMeta(current => ({ ...current, lastBackupExportAt: exportedAt, status: `備份已匯出：${tw(exportedAt)}` }));
-  };
-  const importBackup = async (f?: File) => {
-    if (!f) return;
-    if (!window.confirm('匯入備份會覆蓋目前本機資料，但不會自動上傳雲端。是否繼續？')) return;
     try {
+      const exportedAt = now();
+      const payload = { ...backupPayload(stateRef.current, quotes), exportedAt };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `family-universal-rebalance-backup-${backupStamp()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      updateSyncMeta(current => ({ ...current, lastBackupExportAt: exportedAt }));
+      setBackupFeedback({ tone: 'success', text: `已匯出備份：${tw(exportedAt)}` });
+    } catch (error) {
+      setBackupFeedback({ tone: 'error', text: error instanceof Error ? `匯出失敗：${error.message}` : '匯出失敗，請重試一次。' });
+    }
+  };
+  const importBackup = async (f?: File, input?: HTMLInputElement) => {
+    if (!f) return;
+    try {
+      if (!window.confirm('匯入備份會覆蓋目前本機資料，但不會自動上傳雲端。是否繼續？')) {
+        // No read has started yet at this point, so clearing here is always safe (unlike the
+        // post-read resets below) and lets the user immediately re-pick the same file if needed.
+        if (input) input.value = '';
+        setBackupFeedback({ tone: 'cancelled', text: '已取消匯入，本機資料未變更。' });
+        return;
+      }
       const raw = JSON.parse(await f.text());
+      // Reset the input only after the read has actually completed — resetting it while f.text()
+      // is still in flight is a known WebKit/iOS risk for files from security-scoped providers
+      // (iCloud/Files app) and can leave the read promise permanently pending.
+      if (input) input.value = '';
       const accountImport = raw && typeof raw === 'object' ? normalizeFinancialAccounts((raw as Partial<BackupPayload>).accounts) : { skipped: [] };
       const importedAt = now();
       const restoredResult = stateFromBackup(raw, stateRef.current);
@@ -1877,8 +1896,7 @@ function App() {
           source: '已從備份匯入',
           lastLocalSaveAt: importedAt,
           lastBackupImportAt: importedAt,
-          dirty: true,
-          status: '已匯入備份；尚未建立此資料的同步基準'
+          dirty: true
         }
       });
       isApplyingRemoteRef.current = true;
@@ -1887,18 +1905,23 @@ function App() {
       setLastSavedAt(importedAt);
       const importedQuotes = raw && typeof raw === 'object' && (raw as Partial<BackupPayload>).quotes && typeof (raw as Partial<BackupPayload>).quotes === 'object' ? (raw as Partial<BackupPayload>).quotes as Record<SymbolCode, Quote> : null;
       if (importedQuotes) setQuotes(current => mergeQuoteMap(current, importedQuotes));
-      const skippedAccountMessage = accountImport.skipped.length ? `｜略過 ${accountImport.skipped.length} 筆無法恢復的帳戶資料` : '';
-      updateSyncMeta(current => ({ ...current, baselineFingerprint: undefined, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true, status: `已匯入備份；尚未建立同步基準${skippedAccountMessage}` }));
+      const skippedAccountMessage = accountImport.skipped.length ? `；已略過 ${accountImport.skipped.length} 筆無法恢復的帳戶資料` : '';
+      updateSyncMeta(current => ({ ...current, baselineFingerprint: undefined, source: '已從備份匯入', lastLocalSaveAt: importedAt, lastBackupImportAt: importedAt, dirty: true }));
+      setBackupFeedback({ tone: 'success', text: `已匯入備份：${tw(importedAt)}${skippedAccountMessage}` });
     } catch (error) {
-      updateSyncMeta(current => ({ ...current, status: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' }));
+      // Safe to reset here too: by the time we reach catch, the read attempt (successful or not)
+      // has already settled, so there is no in-flight read left for an early reset to disrupt.
+      if (input) input.value = '';
+      setBackupFeedback({ tone: 'error', text: error instanceof Error ? error.message : '匯入備份失敗，請確認 JSON 格式。' });
     }
   };
   const resetState = () => {
     if (!window.confirm('重設會清除目前本機資料並恢復預設資產。此動作不可復原。請確認是否繼續。')) return;
     const resetAt = now();
-    setState({ ...defaultState, syncMeta: { ...defaultSyncMeta(), source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產；尚未建立同步基準' } });
+    setState({ ...defaultState, syncMeta: { ...defaultSyncMeta(), source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt } });
     setLastSavedAt(resetAt);
-    updateSyncMeta(current => ({ ...current, source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt, status: '已重設為預設資產；尚未建立同步基準' }));
+    updateSyncMeta(current => ({ ...current, source: '本機資料', baselineFingerprint: undefined, dirty: true, lastLocalSaveAt: resetAt }));
+    setBackupFeedback({ tone: 'success', text: `已重設為預設資產：${tw(resetAt)}` });
   };
   const exportDamagedLocalData = () => {
     if (!startupWarning?.raw) return;
@@ -2170,9 +2193,10 @@ function App() {
           <p className="note">匯出備份與匯入還原只處理本機資料，不會自動觸發 Firebase 上傳或下載。</p>
           <div className="actions">
             <button onClick={exportBackup}>匯出 JSON 備份</button>
-            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { importBackup(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>
+            <label className="file">匯入 JSON 備份<input type="file" accept="application/json" onChange={e => { void importBackup(e.currentTarget.files?.[0], e.currentTarget); }} /></label>
             <button className="danger" onClick={resetState}>重設</button>
           </div>
+          {backupFeedback && <p className={`backup-feedback ${backupFeedback.tone}`} role={backupFeedback.tone === 'error' ? 'alert' : 'status'}>{backupFeedback.text}</p>}
         </Card>
         <Card className="legacy-settings-asset-manager" title="持股資產管理">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。</p>
