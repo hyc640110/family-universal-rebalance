@@ -3,15 +3,12 @@ import { Link } from 'react-router-dom';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import { DEFAULT_WEALTH_GOAL, deriveWealthGoalProjection, calculateRequiredMonthlyContribution, normalizeWealthGoalSettings, type WealthGoalSettings } from '../lib/wealthGoal';
-import { displayAmount } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 import TargetValuePair from '../components/TargetValuePair';
 
-const rawMoney=(v:number)=>`${(Math.abs(v)/10000).toLocaleString('zh-TW',{maximumFractionDigits:1})} 萬元`;
+const money=(v:number)=>`${(Math.abs(v)/10000).toLocaleString('zh-TW',{maximumFractionDigits:1})} 萬元`;
 const pct=(v:number)=>`${Number.isFinite(v)?v.toFixed(1):'0.0'}%`;
 
 export default function WealthGoalPage({ settings, totalAssets, debt, onSave }:{settings:WealthGoalSettings;totalAssets:number;debt:number;onSave:(s:WealthGoalSettings)=>void}) {
-  const hidden=useAmountsHidden(); const money=(v:number)=>displayAmount(rawMoney(v),hidden);
   const [draft,setDraft]=useState(settings); const net=totalAssets-debt; const projection=useMemo(()=>deriveWealthGoalProjection(net,draft),[net,draft]);
   const scenarios=[['保守',Math.max(-10,draft.annualReturnRate-3)],['基準',draft.annualReturnRate],['樂觀',Math.min(30,draft.annualReturnRate+3)]] as const;
   const required=projection.monthsToYear===null?null:calculateRequiredMonthlyContribution(net,draft,projection.monthsToYear);

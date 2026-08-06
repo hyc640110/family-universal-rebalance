@@ -6,14 +6,12 @@ import type { NetWorthSnapshot } from '../lib/netWorthHistory';
 import DailyAssetChangeCalendar from '../components/DailyAssetChangeCalendar';
 import TrendChart, { deriveSharedTrendDomain, type TrendDomain } from '../components/TrendChart';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeView, toCompleteNetWorthSnapshots, type NetWorthSnapshotReadTimeView } from '../lib/netWorthSnapshotReadBoundary';
-import { displayAmount } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 type View = 'performance' | 'risk';
 type Sort = 'contribution' | 'return-rate' | 'loss' | 'market-value';
 type Props = { assets: PerformanceAssetInput[]; history: NetWorthSnapshot[]; snapshotView?: NetWorthSnapshotReadTimeView; view: View; onViewChange: (view: View) => void };
 
-const rawMoney = (value: number | null) => {
+const money = (value: number | null) => {
   if (value === null || !Number.isFinite(value)) return '—';
   const sign = value > 0 ? '+' : value < 0 ? '-' : '';
   const absolute = Math.abs(value);
@@ -24,8 +22,6 @@ const tone = (value: number | null) => value === null ? 'hold' : value > 0 ? 'up
 const ratio = (value: number | null) => value === null ? '—' : `${(value * 100).toFixed(1)}%`;
 
 export default function PerformanceAnalyticsPage({ assets, history, snapshotView, view, onViewChange }: Props) {
-  const hidden = useAmountsHidden();
-  const money = (value: number | null) => displayAmount(rawMoney(value), hidden);
   const [sort, setSort] = useState<Sort>('contribution');
   const [showAllContributions, setShowAllContributions] = useState(false);
   const [historyRange, setHistoryRange] = useState<InvestmentPerformanceRange>('30d');
@@ -121,15 +117,9 @@ export default function PerformanceAnalyticsPage({ assets, history, snapshotView
 }
 
 function HistorySeries({ title, description, rows, stats, field, domain }: { title: string; description: string; rows: NetWorthSnapshot[]; stats: SeriesStats; field: 'investmentValue' | 'netWorth'; domain: TrendDomain }) {
-  const hidden = useAmountsHidden();
-  const money = (value: number | null) => displayAmount(rawMoney(value), hidden);
   return <section className="performance-chart"><div><h3>{title}</h3><p>{description}</p></div><TrendChart title={title.replace('趨勢','')} unit="單位：萬元" data={rows.map(row=>({date:row.date,value:row[field]}))} formatValue={value=>money(value)} axisScale={10000} domain={domain}/><div className="performance-chart-metrics"><Metric label="歷史最高值" value={money(stats.highest)} /><Metric label="距離高點" value={money(stats.distanceFromHigh)} className={tone(stats.distanceFromHigh)} /><Metric label="距高點幅度" value={percent(stats.distanceFromHighRate)} className={tone(stats.distanceFromHighRate)} /><Metric label="最大回撤" value={percent(stats.maxDrawdown)} className={tone(stats.maxDrawdown)} /></div></section>;
 }
 
-function PeriodSummary({ title, rows }: { title: string; rows: PeriodChange[] }) {
-  const hidden = useAmountsHidden();
-  const money = (value: number | null) => displayAmount(rawMoney(value), hidden);
-  const latest = rows[0]; return <section><h3>{title}</h3>{latest ? <><strong className={tone(latest.change)}>{money(latest.change)}</strong><p>{latest.key}｜{latest.startDate} → {latest.endDate}</p><small>期初 {money(latest.startValue)}｜期末 {money(latest.endValue)}</small></> : <p className="note">資料不足（期間內至少需要兩筆有效快照）。</p>}</section>;
-}
+function PeriodSummary({ title, rows }: { title: string; rows: PeriodChange[] }) { const latest = rows[0]; return <section><h3>{title}</h3>{latest ? <><strong className={tone(latest.change)}>{money(latest.change)}</strong><p>{latest.key}｜{latest.startDate} → {latest.endDate}</p><small>期初 {money(latest.startValue)}｜期末 {money(latest.endValue)}</small></> : <p className="note">資料不足（期間內至少需要兩筆有效快照）。</p>}</section>; }
 function Metric({ label, value, className = '' }: { label: string; value: string; className?: string }) { return <p><span>{label}</span><strong className={className}>{value}</strong></p>; }
 function Empty() { return <div className="analytics-empty"><p>尚無可分析的有效持股</p><span>股數為 0 的資產不會列入未實現報酬。</span></div>; }

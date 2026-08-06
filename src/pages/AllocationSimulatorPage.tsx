@@ -6,8 +6,6 @@ import AllocationContextNotice from '../components/AllocationContextNotice';
 import { getAllocationContext } from '../lib/allocationContext';
 import { deriveAllocationSimulatorFunding, type AllocationSimulatorFundingInput } from '../lib/allocationSimulatorFunding';
 import { allocationPresetLabel, deriveAllocationPresetPreview, normalizeAllocationPreset, roleLabel, type AllocationPreset, type AllocationRole } from '../lib/allocationPresets';
-import { displayAmount } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 type SimulatorRow = {
   symbol: string;
@@ -27,8 +25,8 @@ const MONEY_FLOOR = 1000;
  * synthetic key in the same targets record as real holdings, purely so its percentage can be included in
  * the same 100% allocation total. It never maps to a real symbol, Household Liquidity field, or trade. */
 const CASH_TARGET_KEY = '__cash__';
-const rawMoney = (value: number) => `${(Math.abs(Number.isFinite(value) ? value : 0) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
-const rawSignedMoney = (value: number) => `${value > 0 ? '+' : value < 0 ? '-' : ''}${rawMoney(value)}`;
+const money = (value: number) => `${(Math.abs(Number.isFinite(value) ? value : 0) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
+const signedMoney = (value: number) => `${value > 0 ? '+' : value < 0 ? '-' : ''}${money(value)}`;
 const pct = (value: number) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}%`;
 const safeNumber = (value: unknown) => {
   const parsed = Number(value);
@@ -53,9 +51,7 @@ const fundingMessage = (reason: string) => ({
   SIMULATION_FUNDING_DEPLETED_BY_WITHDRAWAL: '預計提領已耗盡可用模擬資金。'
 }[reason] ?? reason);
 
-function Donut({ title, items, total, centerLabel = '總資產', centerValue }: { title: string; items: { symbol: string; name: string; value: number }[]; total: number; centerLabel?: string; centerValue?: string }) {
-  const hidden = useAmountsHidden();
-  const resolvedCenterValue = centerValue ?? displayAmount(rawMoney(total), hidden);
+function Donut({ title, items, total, centerLabel = '總資產', centerValue = money(total) }: { title: string; items: { symbol: string; name: string; value: number }[]; total: number; centerLabel?: string; centerValue?: string }) {
   const visibleItems = items.filter(item => item.value > 0);
   const radius = 44;
   const circumference = 2 * Math.PI * radius;
@@ -75,7 +71,7 @@ function Donut({ title, items, total, centerLabel = '總資產', centerValue }: 
           <circle className="allocation-track" cx="60" cy="60" r={radius} />
           <g transform="rotate(-90 60 60)">{segments.map(item => <circle key={item.symbol} className="allocation-segment" cx="60" cy="60" r={radius} stroke={colorFor(item.symbol)} strokeDasharray={`${item.dash} ${circumference - item.dash}`} strokeDashoffset={-item.offset}><title>{`${item.name} ${pct(item.percent)}`}</title></circle>)}</g>
         </svg>
-        <div className="allocation-donut-center"><small>{centerLabel}</small><strong>{resolvedCenterValue}</strong></div>
+        <div className="allocation-donut-center"><small>{centerLabel}</small><strong>{centerValue}</strong></div>
       </div>
       <div className="allocation-legend">{segments.map(item => <div className="allocation-legend-item" key={item.symbol}><i style={{ backgroundColor: colorFor(item.symbol) }} /><span><b>{item.symbol === 'CASH' ? item.name : item.symbol}</b><small>{item.symbol === 'CASH' ? '' : item.name}</small></span><strong>{pct(item.percent)}</strong></div>)}</div>
     </div>}
@@ -83,9 +79,6 @@ function Donut({ title, items, total, centerLabel = '總資產', centerValue }: 
 }
 
 export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundingInput }: Props) {
-  const hidden = useAmountsHidden();
-  const money = (value: number) => displayAmount(rawMoney(value), hidden);
-  const signedMoney = (value: number) => displayAmount(rawSignedMoney(value), hidden);
   const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])));
   const [allowSafetyCashUsage, setAllowSafetyCashUsage] = useState(false);
   const resetTargets = () => setTargets({ ...Object.fromEntries(rows.map(row => [row.symbol, String(officialTarget(row))])), [CASH_TARGET_KEY]: '0' });

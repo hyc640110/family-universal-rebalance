@@ -3,11 +3,9 @@ import type { ReactNode } from 'react';
 /**
  * 介面小改進 2/5：目前值與目標值並排顯示。
  *
- * Pure presentational component — it never formats or masks values itself.
+ * Pure presentational component — it never formats values itself.
  * Callers pass already-formatted strings (via their own local money()/pct()
- * closures, which already apply amount-visibility masking when active), so
- * this component stays compatible with AmountVisibilityContext without
- * needing to know about it.
+ * closures).
  *
  * Scope note (2026-08-06 讀者確認): only applied to locations that already
  * had both a computed current value and target value available, where the

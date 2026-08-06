@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react';
 import { buildCalendarMonth, latestSnapshotMonth, shiftMonth, type DailyAssetChange, type DailyAssetChangeMode } from '../lib/dailyAssetChangeCalendar';
 import type { NetWorthSnapshot } from '../lib/netWorthHistory';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeView, toCompleteNetWorthSnapshots, type NetWorthSnapshotReadTimeView } from '../lib/netWorthSnapshotReadBoundary';
-import { useAmountsHidden } from './layout/AmountVisibilityContext';
-import { displayAmount } from '../lib/amountVisibility';
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 const modeLabel = (mode: DailyAssetChangeMode) => mode === 'netWorth' ? '淨資產' : '投資資產';
@@ -24,7 +22,6 @@ const percent = (value: number | null) => value === null || !Number.isFinite(val
 const tone = (change: DailyAssetChange | null) => !change || change.change === null ? 'neutral' : change.change > 0 ? 'positive' : change.change < 0 ? 'negative' : 'neutral';
 
 export default function DailyAssetChangeCalendar({ history, snapshotView }: { history: NetWorthSnapshot[]; snapshotView?: NetWorthSnapshotReadTimeView }) {
-  const hidden = useAmountsHidden();
   const [mode, setMode] = useState<DailyAssetChangeMode>('netWorth');
   const readView = useMemo(() => snapshotView ?? createNetWorthSnapshotReadTimeView(history), [history, snapshotView]);
   const completeHistory = useMemo(() => toCompleteNetWorthSnapshots(createNetWorthSnapshotConsumerRows(readView)), [readView]);
@@ -58,11 +55,11 @@ export default function DailyAssetChangeCalendar({ history, snapshotView }: { hi
           key={day.date}
           className={`daily-calendar-day ${day.dateState} ${tone(day.change)}${selectedDate === day.date ? ' selected' : ''}`}
           disabled={!day.change}
-          aria-label={day.change ? `${day.date}，${day.dateState === 'future' ? '未來日期快照，' : ''}${percent(day.change.changeRate)}，${displayAmount(compactMoney(day.change.change), hidden)}` : `${day.date}，當日無快照`}
+          aria-label={day.change ? `${day.date}，${day.dateState === 'future' ? '未來日期快照，' : ''}${percent(day.change.changeRate)}，${compactMoney(day.change.change)}` : `${day.date}，當日無快照`}
           onClick={() => day.change && setSelectedDate(day.date)}
         >
           <span className="daily-calendar-date">{day.day}</span>
-          {day.change && <><strong>{percent(day.change.changeRate)}</strong><small>{displayAmount(compactMoney(day.change.change), hidden)}</small></>}
+          {day.change && <><strong>{percent(day.change.changeRate)}</strong><small>{compactMoney(day.change.change)}</small></>}
         </button>)}
       </div>
     </div>
@@ -72,15 +69,14 @@ export default function DailyAssetChangeCalendar({ history, snapshotView }: { hi
 }
 
 function CalendarDetail({ change, mode, isFuture }: { change: DailyAssetChange; mode: DailyAssetChangeMode; isFuture: boolean }) {
-  const hidden = useAmountsHidden();
   return <section className="daily-calendar-detail" aria-label={`${change.date} 資產變動明細`}>
     <div className="daily-calendar-detail-heading"><div><small>選取日期</small><h3>{change.date}</h3></div><span>{modeLabel(mode)}</span></div>
     <div className="daily-calendar-detail-grid">
       <p><span>模式</span><strong>{modeLabel(mode)}</strong></p>
-      <p><span>當日值</span><strong>{displayAmount(money(change.value), hidden)}</strong></p>
+      <p><span>當日值</span><strong>{money(change.value)}</strong></p>
       <p><span>前一筆快照日期</span><strong>{change.previousDate || '—'}</strong></p>
-      <p><span>前一筆值</span><strong>{displayAmount(money(change.previousValue), hidden)}</strong></p>
-      <p><span>變動金額</span><strong className={tone(change)}>{displayAmount(money(change.change, true), hidden)}</strong></p>
+      <p><span>前一筆值</span><strong>{money(change.previousValue)}</strong></p>
+      <p><span>變動金額</span><strong className={tone(change)}>{money(change.change, true)}</strong></p>
       <p><span>變動百分比</span><strong className={tone(change)}>{percent(change.changeRate)}</strong></p>
       <p><span>比較基準</span><strong>{change.hasComparison ? '有前一筆有效快照' : '無比較基準'}</strong></p>
     </div>

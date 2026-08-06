@@ -4,8 +4,6 @@ import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import type { HouseholdLiquidityDiagnosticPresentation } from '../lib/householdLiquidityDiagnosticPresentation';
 import HouseholdLiquidityDiagnosticList from '../components/HouseholdLiquidityDiagnosticList';
-import { displayEmbeddedAmounts } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 const labels: Record<DecisionItem['severity'], string> = { critical: '需優先留意', warning: '需要留意', info: '資訊', normal: '正常', unavailable: '資料不足' };
 export default function AiDecisionCenterPage({ items, asOf, diagnostics }: { items: DecisionItem[]; asOf: string; diagnostics: HouseholdLiquidityDiagnosticPresentation }) {
@@ -18,7 +16,4 @@ export default function AiDecisionCenterPage({ items, asOf, diagnostics }: { ite
     <ToolQuickNavigation current="ai-decision" />
   </PageFrame>;
 }
-function DecisionCard({ item, diagnostics, featured = false }: { item: DecisionItem; diagnostics: HouseholdLiquidityDiagnosticPresentation; featured?: boolean }) {
-  const hidden = useAmountsHidden();
-  return <article className={`ai-decision-card ${featured ? 'featured' : ''}`}><header><span className={`ai-severity ${item.severity}`}>{labels[item.severity]}</span><h2>{item.title}</h2></header><p className="ai-conclusion">{displayEmbeddedAmounts(item.conclusion, hidden)}</p><p>{displayEmbeddedAmounts(item.reason, hidden)}</p><details><summary>判定依據</summary><dl>{item.evidence.map(row => <div key={`${row.label}-${row.value}`}><dt>{row.label}</dt><dd>{displayEmbeddedAmounts(row.value, hidden)}<small>{row.source}{row.asOf ? `｜${row.asOf}` : ''}</small></dd></div>)}</dl></details>{item.id === 'cash' && <HouseholdLiquidityDiagnosticList title="待補齊的資料來源" presentation={diagnostics} />}{item.action && <Link className="ai-decision-link" to={item.action.to}>{item.action.label}</Link>}</article>;
-}
+function DecisionCard({ item, diagnostics, featured = false }: { item: DecisionItem; diagnostics: HouseholdLiquidityDiagnosticPresentation; featured?: boolean }) { return <article className={`ai-decision-card ${featured ? 'featured' : ''}`}><header><span className={`ai-severity ${item.severity}`}>{labels[item.severity]}</span><h2>{item.title}</h2></header><p className="ai-conclusion">{item.conclusion}</p><p>{item.reason}</p><details><summary>判定依據</summary><dl>{item.evidence.map(row => <div key={`${row.label}-${row.value}`}><dt>{row.label}</dt><dd>{row.value}<small>{row.source}{row.asOf ? `｜${row.asOf}` : ''}</small></dd></div>)}</dl></details>{item.id === 'cash' && <HouseholdLiquidityDiagnosticList title="待補齊的資料來源" presentation={diagnostics} />}{item.action && <Link className="ai-decision-link" to={item.action.to}>{item.action.label}</Link>}</article>; }

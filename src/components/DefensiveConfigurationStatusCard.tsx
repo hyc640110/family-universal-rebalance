@@ -1,13 +1,15 @@
 import type { DefensiveConfigurationPresentation, DefensiveConfigurationPresentationValue } from '../lib/defensiveConfigurationPresentation';
 import type { HouseholdLiquidityDiagnosticPresentation } from '../lib/householdLiquidityDiagnosticPresentation';
-import { displayAmount } from '../lib/amountVisibility';
-import { useAmountsHidden } from './layout/AmountVisibilityContext';
 import HouseholdLiquidityDiagnosticList from './HouseholdLiquidityDiagnosticList';
 
 type Props = {
   presentation: DefensiveConfigurationPresentation;
   diagnostics: HouseholdLiquidityDiagnosticPresentation;
 };
+
+const money = (value: DefensiveConfigurationPresentationValue) => value.status === 'known' && value.value !== null
+  ? new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value.value)
+  : '資料不足';
 
 const percent = (value: DefensiveConfigurationPresentationValue) => value.status === 'known' && value.value !== null
   ? `${value.value.toFixed(1)}%`
@@ -20,10 +22,6 @@ const methodLabel = (method: DefensiveConfigurationPresentation['execution']['me
 };
 
 export default function DefensiveConfigurationStatusCard({ presentation, diagnostics }: Props) {
-  const hidden = useAmountsHidden();
-  const money = (value: DefensiveConfigurationPresentationValue) => displayAmount(value.status === 'known' && value.value !== null
-    ? new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(value.value)
-    : '資料不足', hidden);
   const { execution, theory } = presentation;
 
   return <section className="defensive-configuration-card" aria-label="防守配置狀態">

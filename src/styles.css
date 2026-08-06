@@ -461,13 +461,6 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
 }
 
-/* 介面小改進 1/5: fixed floating "hide amounts" toggle, same bottom-right corner on desktop and
-   mobile (no existing every-page element could host it without squeezing existing layout).
-   z-index above both .desktop-sidebar (70) and .mobile-page-nav (80). */
-.amount-visibility-toggle{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:90;display:grid;place-items:center;width:48px;height:48px;border:1px solid #315b8d;border-radius:999px;background:#0b2745;color:#bfdbfe;box-shadow:0 10px 24px #0007}
-.amount-visibility-toggle.active{border-color:#b7791f;background:#7c5a12;color:#fff7e6}
-@media (max-width: 1023px){.amount-visibility-toggle{bottom:calc(78px + env(safe-area-inset-bottom))}}
-
 /* V3.1 application navigation */
 .app-shell{min-height:100vh}
 .app-content{width:min(1180px,calc(100% - 260px));max-width:none;margin:0 24px 0 236px;padding:28px 0 56px}

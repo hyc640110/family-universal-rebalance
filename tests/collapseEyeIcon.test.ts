@@ -19,7 +19,7 @@ test('CollapseEyeIcon 圖示為裝飾性（aria-hidden），不重複朗讀已�
   assert.match(html, /aria-hidden="true"/);
 });
 
-test('CollapseEyeIcon 與 AmountVisibilityToggle 使用相同尺寸設定（size=20），維持全站圖示語言一致', () => {
+test('CollapseEyeIcon 使用 size=20 圖示尺寸，維持全站圖示語言一致', () => {
   const html = renderToStaticMarkup(createElement(CollapseEyeIcon, { open: true }));
   assert.match(html, /width="20"/);
   assert.match(html, /height="20"/);

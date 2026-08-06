@@ -6,8 +6,6 @@ import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence
 import type { DailyDecisionWorkflow } from '../lib/dailyDecisionWorkflow';
 import type { InvestmentOpportunity } from '../lib/investmentOpportunities';
 import InvestmentIntelligenceSummary from '../components/InvestmentIntelligenceSummary';
-import { displayAmount, displayEmbeddedAmounts } from '../lib/amountVisibility';
-import { useAmountsHidden } from '../components/layout/AmountVisibilityContext';
 
 type DecisionItem = { title: string; reason: string; to: string };
 type DashboardData = {
@@ -24,7 +22,7 @@ type DashboardData = {
 };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
-const rawMoney = (value: number | null | undefined, signed = false) => {
+const money = (value: number | null | undefined, signed = false) => {
   const amount = finite(value); if (amount === null) return '—';
   const abs = Math.abs(amount); const body = abs < 10000 ? `${abs.toLocaleString('zh-TW')} 元` : `${(abs / 10000).toLocaleString('zh-TW', { maximumFractionDigits: 1 })} 萬元`;
   return `${signed && amount > 0 ? '+' : amount < 0 ? '-' : ''}${body}`;
@@ -34,8 +32,6 @@ const tone = (value: number | null | undefined) => { const amount = finite(value
 const quoteTime = (value: string | null) => value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'short', timeStyle: 'short', hour12: false }).format(new Date(value)) : '—';
 
 export default function DashboardDecisionPage({ data }: { data: DashboardData }) {
-  const hidden = useAmountsHidden();
-  const money = (value: number | null | undefined, signed = false) => displayAmount(rawMoney(value, signed), hidden);
   const allocationTotal = Math.max(0, (data.growthRatio ?? 0) + (data.defensiveRatio ?? 0));
   const growthWidth = allocationTotal > 0 ? Math.min(100, Math.max(0, (data.growthRatio ?? 0) / allocationTotal * 100)) : 0;
   const complementaryReminders = data.reminders.filter(item => !['quotes', 'sync', 'rebalance'].includes(item.key));
@@ -71,7 +67,7 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
 
     <section className="dashboard-reminders-card" aria-labelledby="dashboard-reminders-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">重要提醒</p><h2 id="dashboard-reminders-title">需要確認的資料與狀態</h2></div><Link className="dashboard-text-link" to="/settings">同步與設定</Link></div>
-      {complementaryReminders.length === 0 ? <p className="dashboard-empty-state">報價、同步與配置狀態已整合於「今日投資狀態」。</p> : <ul className="dashboard-reminder-list">{complementaryReminders.map(item => <li key={item.key} className={item.tone}><strong>{item.title}</strong><span>{displayEmbeddedAmounts(item.detail, hidden)}</span></li>)}</ul>}
+      {complementaryReminders.length === 0 ? <p className="dashboard-empty-state">報價、同步與配置狀態已整合於「今日投資狀態」。</p> : <ul className="dashboard-reminder-list">{complementaryReminders.map(item => <li key={item.key} className={item.tone}><strong>{item.title}</strong><span>{item.detail}</span></li>)}</ul>}
     </section>
   </PageFrame>;
 }
