@@ -2,13 +2,13 @@
 
 最後更新：2026-08-07
 
-2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成**。PR #260～#266 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `cbe176d`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
+2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成，使用者已於真機完成最終覆核並確認**。PR #260～#267 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `9dd703f`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
 - 回退 PR #257「隱藏金額」功能（使用者確認不需要）。
 - 修正 `exportBackup`／`importBackup`／`resetState` 回饋訊息被 `syncStatusText` 優先權邏輯靜默覆蓋的真實 Bug。
 - 統一按鈕視覺、ImportCenter 六個動作點新增成功/失敗/取消回饋、交易列按鈕靠右對齊。
-- 按鈕高度不一致問題三輪排查，最終根因為「匯入 JSON 備份」原本是 `<label>` 包 `<input>`，與另兩顆 `<button>` 元素種類不同（非 CSS 屬性問題），已改為真正 `<button>` 觸發隱藏 input。
+- 按鈕高度不一致問題三輪排查，最終根因為「匯入 JSON 備份」原本是 `<label>` 包 `<input>`，與另兩顆 `<button>` 元素種類不同（非 CSS 屬性問題），已改為真正 `<button>` 觸發隱藏 input。**使用者已於真機（Production）確認三顆按鈕高度完全一致，問題徹底解決。**
 - **基礎設施變更**：GitHub Pages 部署機制已從 legacy 分支建置改為 Actions-based（`actions/deploy-pages`），因 legacy 系統於本輪連續故障（建置失敗、卡死不動）。**未來若 Production／Preview 長時間未反映最新部署，應先查 `gh api repos/hyc640110/family-universal-rebalance/pages` 的 `build_type` 是否仍為 `workflow`、以及最近一次 `Deploy GitHub Pages` run 是否成功，不應假設是舊有 legacy 建置故障重演。**
-- **待辦**：使用者仍需於真機最終覆核按鈕高度問題（PR #266）是否徹底解決；若仍有殘留，應優先排查是否還有其他未發現的元素種類/DOM 結構差異。
+- **本輪工作正式結案，無殘留待辦。**
 
 **方法論教訓（供未來類似「自動化測試一致、真機不一致」情境參考）**：連續多輪 CSS 屬性層面修正（font-size、appearance、em 相對 height）在桌機與所有自動化檢查中皆顯示 `getComputedStyle()` 完全一致，但真機持續出現差異，且「哪個元素有問題」在使用者早期回報中一度被誤認為輪替（後經使用者更正，實際上從未輪替）。真正根因是被比較的元素底層 HTML 種類本身不同（`<button>` vs `<label>` 包 `<input>`）。**教訓：跨元素種類的視覺對齊問題，若 CSS 數值調整無法在真機收斂，應優先檢查 DOM 元素種類是否本身不同，而非持續在屬性數值上打轉。**
 

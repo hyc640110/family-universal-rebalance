@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-06T23:48:13.905566+00:00
+Generated UTC: 2026-08-07T10:51:02.136379+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `82e0f6c56a93d00803fa6c13a6c22196317ee0e112816f2d80b7ada9d3e20560`
-- `008_TODO_BACKLOG.md` — SHA-256 `506630b7c8d93fe82215830562307d94c10d72a6e71e27509cc5e3d01a0a9bfe`
+- `003_CURRENT_STATUS.md` — SHA-256 `6ee6b01d37c1f0506d16335838b373dc5130c15c1cde9cfb4a7086d80dbd7af3`
+- `008_TODO_BACKLOG.md` — SHA-256 `ab9d4abe5a6ef5cd0153a06df6499dd625728a90f692d6c9484ecbb52c4863da`
 - `012_AI_HANDOVER.md` — SHA-256 `440c0396ec78864651148848b2e545360f087f2e046d91364e69eeee3af58b8c`
 
 ---
@@ -439,7 +439,9 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 - **PR #265／#266**：按鈕高度不一致問題經過三輪排查才找到真正根因——**每一輪自動化／桌機檢查都顯示三顆按鈕 `getComputedStyle()` 完全一致，但真機測試持續不一致，且「哪一顆矮」在前兩輪之間變動過（使用者事後更正：實際上從頭到尾都是「匯入 JSON 備份」，非真的輪替）**。PR #265 先排除 `height:calc(1.3em+20px)` 仍是 em 相對計算的可能性，改為固定像素值；PR #266 找到**真正根因**：「匯入 JSON 備份」原本是 `<label className="file">` 包住隱藏 `<input type="file">`，跟另外兩顆 `<button>` 元素種類本身不同（結構性差異，非 CSS 屬性可完全壓制），已改為真正的 `<button type="button">` 透過 `ref` 觸發隱藏 input，三者現在是完全相同的元素種類。**教訓記錄供未來參考**：跨元素種類（`<button>` vs `<label>`／`<input>`／其他表單控制項）視覺對齊問題，若 CSS 屬性層面反覆調整仍無法在真機收斂，應優先檢查底層 HTML 元素種類是否本身不同，而非持續在 CSS 數值上打轉——多輪自動化測試「一致」但真機「不一致」本身就是強烈訊號。
 - **CI／部署過程中另發現一次性 GitHub Actions 平台容量問題**（PR #266 的 CI 連續 3 次「job was not acquired by Runner」失敗，與 Pages 建置故障為不同層面的暫時性平台問題，非本 repo 設定造成），已於使用者授權後以 `--admin` 繞過（本機已確認 `test:ci` 全數通過），後續 retry 已恢復正常。
 
-以上全部變更皆為純呈現層／CI 基礎設施修正，**未觸碰任何資料模型、計算邏輯或持久化格式**。`npx tsc -b`、`npm run test:ci`、Production／Preview build 於每一輪皆確認通過；Production／Preview `curl` 最終確認皆 HTTP 200 且服務最新版本（CSS 資產 hash `index-CXUnBESy.css`）。**尚待使用者於真機最終覆核 PR #266 是否徹底解決按鈕高度問題**；若真機仍有殘留差異，應優先假設還有其他未發現的元素種類/結構差異，而非再次調整 CSS 數值。
+以上全部變更皆為純呈現層／CI 基礎設施修正，**未觸碰任何資料模型、計算邏輯或持久化格式**。`npx tsc -b`、`npm run test:ci`、Production／Preview build 於每一輪皆確認通過；Production／Preview `curl` 最終確認皆 HTTP 200 且服務最新版本（CSS 資產 hash `index-CXUnBESy.css`）。
+
+**使用者已於真機（Production）完成最終覆核並確認（2026-08-07）**：「匯入 JSON 備份」按鈕已與「匯出 JSON 備份」「重設」兩顆完全對齊，三者高度一致，PR #266 的結構性根因修正（改為真正 `<button>` 觸發隱藏 `<input>`）確認徹底解決此問題。**本輪工作（PR #260～#267）正式結案**，無殘留待辦。
 
 **UR-TODO-046-C3C-C Financial Event Ledger 寫入／持久化（歸因確認）正式標記為已完成（2026-08-05）**：PR [#255](https://github.com/hyc640110/family-universal-rebalance/pull/255)（`feat/ur-todo-046-c3c-c-ledger-write`）已由使用者手動 Merge，merge commit **`b424eb42da80fb7d7d1e53a49eddb656cd8553aa`**（`mergedAt: 2026-08-05T13:26:13Z`），為目前 `main`／`origin/main` 正式基線。將 C3C-B 的 session-only「標示為合理」正式落地為 `FinancialEvent` 寫入路徑，與 C3C-B 既有 toggle 並存：`FinancialEventSource` 加法式擴充新增 `'attribution-confirmation'`，**刻意不 bump `FINANCIAL_EVENT_SCHEMA_VERSION`**——唯讀盤點確認若 bump，會讓所有既有使用者本機已帶 `financialEventSchemaVersion: 1` 的空 Ledger 被 `hasLocalFinancialEventLedger()` 誤判為版本不符，永久擋下 Firebase 下載；新增列舉值屬純加法式擴充、未改變物件形狀，依 `013_HOUSEHOLD_LIQUIDITY_SPEC.md` §29.2 判斷不需要版本 bump。新增 `createFinancialEventId()`（比照既有慣例）、`appendFinancialEvent()`（forward-only 寫入防呆，僅允許 append、相同 id 一律拒絕，本次不實作撤銷／void）、`src/lib/runtimeAttributionConfirmation.ts`（重用既有 `linkedTransactionReason()` taxonomy 驗證，確保轉換出的事件必能通過下一次讀取驗證，失敗會明確拒絕並附原因）。**開發中發現並修正一個必要的連帶缺口**（唯讀盤點階段未發現）：`src/lib/transactionReconciliation.ts` 的 `isEventForTransaction()` 原本寫死只認 `'linked-transaction'`，若不修正，新確認事件永遠不會被判定為 `matched`，會與同一筆交易的衍生證據雙重計算；已修正為同時接受兩種 source，範圍限定在此判斷式，未觸碰其餘 reconciliation 邏輯或核心 attribution 公式。UI 新增獨立於 C3C-B toggle 的「確認並正式記帳」按鈕（矩形、琥珀色實色，與既有藥丸形／深藍 toggle 視覺明顯區隔），沿用本專案既有 `window.confirm()` 不可逆動作確認慣例，對話框明確標示「不可逆」「不提供撤銷」；確認成功後該筆證據因重新計算自然從「衍生證據」清單移除，並新增獨立「本次已正式記帳」session-only 收據清單供畫面回饋。**按鈕與對話框文案為草案，PR 內已明確標註待審查，使用者於 Preview 驗收後直接指示 Merge**（視為已接受草案內容，本次未再另行調整文案）。新增 26 個測試（含核心連帶效果驗證：確認後交易變成 `matched`、`ledgerContribution` 與 `derivedContribution` 加總在確認前後相等），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；`Deploy GitHub Pages` run `31010188315` success，headSha 與 merge commit 一致；Production／Preview `curl` 皆 HTTP 200。**實機驗證**（隔離本機 dev server，虛構測試資料）：確認動作觸發 localStorage 正確寫入 `source: 'attribution-confirmation'` 事件；完整重新整理後 Ledger 貢獻持久化不變（與 C3C-B 的 session-only 行為形成對比）；確認前後四個歸因數字加總一致（實測 12,345 元由「衍生貢獻」轉為「Ledger 貢獻」，總額不變）；兩筆交易各自獨立確認、正負號正確；390px 無橫向溢出，兩顆按鈕皆 44px 觸控高度、顏色與外形明顯不同；console 全程無錯誤。**明確不包含**：撤銷／void、批次確認、Firebase Ledger sync（`financialEvents` 依 C1 既有決策仍不進 Firebase canonical payload，本次未變更此決策）、任何核心 attribution 公式變更；未影響 Household Liquidity、AI Decision、Rebalance、Dashboard（全庫搜尋確認三者皆不 import `financialEvents`）。**UR-TODO-046 整體仍未完成**：撤銷／void、Firebase Ledger sync、split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 仍待未來獨立排程與產品決策，皆屬重大事件，不得因本次完成而自行標記整體已完成。
 
@@ -1020,13 +1022,13 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 最後更新：2026-08-07
 
-2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成**。PR #260～#266 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `cbe176d`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
+2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成，使用者已於真機完成最終覆核並確認**。PR #260～#267 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `9dd703f`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
 - 回退 PR #257「隱藏金額」功能（使用者確認不需要）。
 - 修正 `exportBackup`／`importBackup`／`resetState` 回饋訊息被 `syncStatusText` 優先權邏輯靜默覆蓋的真實 Bug。
 - 統一按鈕視覺、ImportCenter 六個動作點新增成功/失敗/取消回饋、交易列按鈕靠右對齊。
-- 按鈕高度不一致問題三輪排查，最終根因為「匯入 JSON 備份」原本是 `<label>` 包 `<input>`，與另兩顆 `<button>` 元素種類不同（非 CSS 屬性問題），已改為真正 `<button>` 觸發隱藏 input。
+- 按鈕高度不一致問題三輪排查，最終根因為「匯入 JSON 備份」原本是 `<label>` 包 `<input>`，與另兩顆 `<button>` 元素種類不同（非 CSS 屬性問題），已改為真正 `<button>` 觸發隱藏 input。**使用者已於真機（Production）確認三顆按鈕高度完全一致，問題徹底解決。**
 - **基礎設施變更**：GitHub Pages 部署機制已從 legacy 分支建置改為 Actions-based（`actions/deploy-pages`），因 legacy 系統於本輪連續故障（建置失敗、卡死不動）。**未來若 Production／Preview 長時間未反映最新部署，應先查 `gh api repos/hyc640110/family-universal-rebalance/pages` 的 `build_type` 是否仍為 `workflow`、以及最近一次 `Deploy GitHub Pages` run 是否成功，不應假設是舊有 legacy 建置故障重演。**
-- **待辦**：使用者仍需於真機最終覆核按鈕高度問題（PR #266）是否徹底解決；若仍有殘留，應優先排查是否還有其他未發現的元素種類/DOM 結構差異。
+- **本輪工作正式結案，無殘留待辦。**
 
 **方法論教訓（供未來類似「自動化測試一致、真機不一致」情境參考）**：連續多輪 CSS 屬性層面修正（font-size、appearance、em 相對 height）在桌機與所有自動化檢查中皆顯示 `getComputedStyle()` 完全一致，但真機持續出現差異，且「哪個元素有問題」在使用者早期回報中一度被誤認為輪替（後經使用者更正，實際上從未輪替）。真正根因是被比較的元素底層 HTML 種類本身不同（`<button>` vs `<label>` 包 `<input>`）。**教訓：跨元素種類的視覺對齊問題，若 CSS 數值調整無法在真機收斂，應優先檢查 DOM 元素種類是否本身不同，而非持續在屬性數值上打轉。**
 
