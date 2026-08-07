@@ -42,7 +42,7 @@ test('normal workflow stays empty and homepage plus action center share the cent
   const model = deriveInvestmentActionCenter(normal, deriveInvestmentOpportunities(normal));
   assert.deepEqual(model.actions, []); assert.equal(model.primaryAction, null); assert.equal(model.summary.title, '今日無需進行投資操作');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  const homepage = readFileSync(new URL('../src/components/InvestmentOpportunityList.tsx', import.meta.url), 'utf8');
+  const homepage = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
   const page = readFileSync(new URL('../src/pages/InvestmentActionCenterPage.tsx', import.meta.url), 'utf8');
   const modelSource = readFileSync(new URL('../src/lib/investmentActionCenter.ts', import.meta.url), 'utf8');
   assert.match(app, /deriveInvestmentActionCenter\(dailyDecisionWorkflow, investmentOpportunities\)/); assert.match(homepage, /INVESTMENT_DECISION_ROUTES\.investmentActionCenter/);

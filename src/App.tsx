@@ -1157,6 +1157,7 @@ function App() {
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
   const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
+  const [showHeroInfo, setShowHeroInfo] = useState(false);
   const updateRemoteMeta = (value: RemoteMeta | null) => setState(current => ({ ...current, remoteMeta: value }));
   const [accountWarning, setAccountWarning] = useState('');
   const [loadedAt] = useState(now());
@@ -1966,13 +1967,14 @@ function App() {
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
     <AppLayout>
-      {currentPage === 'home' && <header id="overview-section" className="hero">
-        <div><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>
+      {currentPage === 'home' && <header id="overview-section" className="hero hero-compact">
         <div className="hero-actions" aria-label="首頁快速操作">
           <button className="hero-refresh" onClick={() => { void refreshQuotes(true); }} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
           <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
           <button className="hero-transfer" onClick={runHomeUpload} disabled={Boolean(isHomeSyncing)}><Upload size={15} aria-hidden="true" /><span>{isHomeSyncing === 'upload' ? '上傳中…' : '上傳'}</span></button>
         </div>
+        <button type="button" className="small hero-info-toggle" aria-expanded={showHeroInfo} onClick={() => setShowHeroInfo(current => !current)}>{showHeroInfo ? '收合' : '關於'} <CollapseEyeIcon open={showHeroInfo} /></button>
+        {showHeroInfo && <div className="hero-info"><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>}
       </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
@@ -1984,16 +1986,11 @@ function App() {
         </div>
       </Card>}
       {currentPage === 'home' && <DashboardDecisionPage data={{
-        total: m.totalAssets, net: m.netWorth, cash: m.cash, debt: m.debt,
-        dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, monthChange: investmentDashboard.monthChange, yearChange: investmentDashboard.yearChange, lastQuoteAt: investmentDashboard.lastQuoteAt,
-        decision: investmentDashboard.decision, growthRatio: investmentDashboard.growthRatio, defensiveRatio: investmentDashboard.defensiveRatio, cashRatio: investmentDashboard.cashRatio,
+        total: m.totalAssets, net: m.netWorth,
+        dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, lastQuoteAt: investmentDashboard.lastQuoteAt,
         allocationDeviation: investmentDashboard.allocationDeviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
         riskLabel: riskMetrics.overallLabel, reminders: investmentDashboard.reminders,
-        cashSafety: riskMetrics.cashSafetyMonths === null ? '資料不足' : `${riskMetrics.cashSafetyMonths.toFixed(1)} 個月安全存量`,
-        cashStatus: riskMetrics.cashSafetyMonths === null ? '資料不足' : m.cash >= riskMetrics.stableCashTarget ? '正常' : m.cash >= riskMetrics.minimumCashTarget ? '留意' : '警告',
-        market: marketSnapshot,
         intelligence: investmentIntelligence,
-        workflow: dailyDecisionWorkflow,
         opportunities: investmentOpportunities,
         todayConclusion: todayDecision.conclusion,
         syncReminder: syncBaselineDiagnostics.dirty ? syncStatusText : null,
