@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-07T15:49:21.377380+00:00
+Generated UTC: 2026-08-07T15:57:42.163004+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-07T15:49:21.377380+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `34464f0323cdf5e09c2e654588e32a27ac0aaf9343684549b0c67f0a4092fcad`
+- `003_CURRENT_STATUS.md` — SHA-256 `de11114bca51e85548eadcebca9a148515afc062a0b847aa1e0402b0f79860a4`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `a2cfdede55b9049f0ef9f42d8267a3e3b6c35d8b9bd4f3100a2d158258d3e567`
+- `008_TODO_BACKLOG.md` — SHA-256 `e424a486499d33998b72988d332431ece143da186ff400ea61bdee29bcefa635`
 - `009_CHANGELOG.md` — SHA-256 `c6811fccb602a54f7672f65b80cbe7c7136868bb8f6c248b45aabb1c0242621f`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.83
+# Universal Rebalance Current Status v3.84
 
 最後更新：2026-08-07
+
+**UR-TODO-050（`deploy.yml` Preview 部署 race condition，方案 B）Draft PR 已開啟、待驗收，尚未 Merge、正式基線仍為下方 `92bb4f1`**。改為 `push` 到 `main` 時不重建 Preview（改沿用最近一次成功 `workflow_dispatch` run 的 Pages artifact 中的 `preview/` 資料夾），只有 `workflow_dispatch` 才重新建置 Preview；因 `actions/deploy-pages` 無 partial update、每次都完整取代整個網站，若單純跳過建置會讓 Preview 變 404，故改用 reuse 舊 artifact 的方式維持 Preview 內容不變。**語意變化：往後驗收 PR 前需先觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再覆蓋正在驗收中的 Preview。**`workflow_dispatch` 路徑已手動驗證正常；push 路徑（reuse 邏輯）需在本 PR Merge 後、下一次真實 main push 才能完整驗證。詳見 `008_TODO_BACKLOG.md` UR-TODO-050 條目。
 
 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式完成，目前 `main`／`origin/main` 正式基線為 `92bb4f1`（[PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275) merge commit）**。使用者提供首頁截圖指出希望移除「收合」按鈕與其下方行銷文案區塊（App 副標、說明文字、Build time），開發前唯讀盤點確認 `CollapseEyeIcon` 為全站共用元件（不觸碰其他呼叫點）、`APP_SUBTITLE` 僅此處讀取、版本號與 Build time 在側欄及設定頁「版本與除錯」區塊另有獨立顯示、不受影響。範圍限於移除 `App.tsx` 該一處呼叫點與對應的死 CSS，「更新股價／下載／上傳」三顆按鈕不變。`npx tsc -b`、`test:ci`（824 項）、Production／Preview build 皆成功。使用者於 Preview 以真實裝置（桌機＋手機）驗收通過後直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見 `008_TODO_BACKLOG.md` UR-TODO-052 條目。
 
@@ -2905,9 +2907,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.70
+# Universal Rebalance Todo Backlog v1.71
 
 最後更新：2026-08-07
+
+2026-08-07 **UR-TODO-050（`deploy.yml` Preview 部署 race condition）方案 B，Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`infra/ur-todo-050-preview-race-condition-fix` 分支，基準 `origin/main` HEAD `ffd73cf`）。開發前唯讀盤點發現關鍵限制：`actions/deploy-pages` 每次都會完整取代整個網站（無 partial update），所以「push 到 main 不重建 Preview」若只是單純跳過建置步驟，會讓下次 push 部署的 artifact 完全不含 `/preview/`，Preview 會變成 404 而非「維持原樣」，不符合「既有 Preview 內容不受影響」的驗收條件。改採：`push` 事件不重建 Preview，改為下載最近一次成功 `workflow_dispatch` run 的 Pages artifact、取出其中的 `preview/` 資料夾原封不動沿用；`workflow_dispatch` 事件才照舊重新建置 Preview；完全找不到先前 dispatch 記錄時 fallback 為暫時鏡射 main 進 `/preview/`，避免真的 404。確認 `ci.yml`（Branch Protection 的 `verify` check）為完全獨立 workflow，不受影響。**語意變化**：往後驗收 PR 前都需要先手動（或請 Claude Code）觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再意外覆蓋正在驗收中的 Preview。`.github/workflows/deploy.yml` 已以 `js-yaml` 驗證語法合法；`workflow_dispatch` 路徑已於本次分支手動觸發驗證正常重建 Preview；**push 路徑（reuse 邏輯）需在 Merge 後、下一次真實 main push 發生時才能完整驗證**，本次 PR 的 Merge 本身即為第一次真實驗證機會。**待 Preview 驗證與使用者確認，驗收通過後才可 Merge，本次未自行 Merge。** 詳見下方更新後的 **UR-TODO-050** 正式條目。
 
 2026-08-07 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式標記為已完成**。已由使用者手動 Merge [PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275)（`feat/ur-todo-052-remove-hero-marketing-block`），merge commit `92bb4f17b6b579b5023c72833aec77ff5d30bc5a`，為目前 `main`／`origin/main` 正式基線。使用者提供首頁截圖，紅框標示希望移除「收合」按鈕（帶眼睛圖示）與其下方行銷文案區塊（「家庭多資產配置管理」／「即時股價｜動態再平衡｜Firebase 雲端同步」／「Build time: unavailable」）。開發前唯讀盤點確認：`CollapseEyeIcon` 為全站共用元件（19＋3 個其他呼叫點），本次僅移除 `App.tsx` 這一個呼叫點，元件本體不觸碰；`APP_SUBTITLE` 全庫僅此處讀取，`APP_VERSION`／`APP_NAME`／`APP_BUILD_TIME`／`APP_GIT_COMMIT` 皆在側欄與「版本與除錯」設定區塊獨立顯示、不受影響；`showHeroInfo` state 僅此處使用。範圍：`src/App.tsx` 移除 hero 標頭「關於／收合」切換按鈕與 `.hero-info` 行銷文案區塊；`src/styles.css` 清理對應死 CSS（`.hero-info-toggle`、`.hero-info`、`.build-info`）；「更新股價／下載／上傳」三顆按鈕與其容器完全不變。`npx tsc -b`、`npm run test:ci`（824 項全數通過）、Production／Preview build 皆成功；Preview 部署後使用者以真實裝置（桌機＋手機）驗收通過，直接指示 Merge。因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見下方更新後的 **UR-TODO-052** 正式條目。
 
@@ -3634,7 +3638,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-050 `deploy.yml` Preview 部署會被非相關 main push 覆蓋（race condition）
 
 - 優先級：待評估
-- 狀態：待評估
+- 狀態：**開發中／Draft PR 已開啟，待驗收**（方案 B）
 - 提出日期：2026-08-07
 - 提出依據：UR-TODO-030（首頁 30 秒決策中心精簡，PR #268）Preview 驗收過程中意外發現，與 UR-TODO-030 本身變更範圍無關；唯讀比對確認此為 `deploy.yml` 自 [PR #264](https://github.com/hyc640110/family-universal-rebalance/pull/264)（Actions-based Pages 部署遷移）就存在的既有設計，本次僅是第一次因驗收過程恰好遇上而被發現。
 - 問題：`deploy.yml` 對 `push: branches: [main]` 與 `workflow_dispatch` 兩種觸發方式都會重新建置並部署整個 combined Pages artifact（Production ＋ Preview）；其中 Preview 的來源固定是「觸發這次 run 的 ref」——對 `push` 事件而言該 ref 就是 `main` 本身。因此只要在某個 Draft PR 以 `workflow_dispatch` 手動部署 Preview 完成、尚未 Merge 期間，若有任何其他 PR 這時 merge 到 main（觸發 push 事件），該次 push 觸發的部署會把 `/preview/` 整個重新蓋成 main 目前內容，導致原本要驗收的 Preview 分支內容消失，使用者會看到「舊版」畫面，且找不到明顯原因（部署本身皆回報成功，不是失敗）。
@@ -3646,6 +3650,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   2. 方案 B：`push` 到 `main` 時只重建／部署 Production，`/preview/` 只在 `workflow_dispatch` 觸發時更新；代表「Preview」語意由「與 Production 同步」改為「上次手動驗收的某個分支」，需要先想清楚這個語意轉變是否可接受。
   3. 方案 C：每個 Draft PR 使用獨立路徑（例如 `/preview/pr-<number>/`），互不覆蓋；改動範圍較大，需另外規劃 URL 規則與 PR 關閉後的清理機制。
 - 依賴：無，與 UR-TODO-037（Branch Protection／GitHub Environment）系列相關但可獨立排程，不互相阻擋。
+- **2026-08-07 使用者拍板採方案 B，開發中**（`infra/ur-todo-050-preview-race-condition-fix` 分支，基準 `origin/main` HEAD `ffd73cf`）。開發前唯讀盤點確認：
+  1. Production／Preview 共用同一個 `build` job，最後由單一 `actions/deploy-pages@v4` 部署成一個會**完整取代整個網站**的合併 artifact（no partial/incremental update，`deploy.yml` 原本註解已明講）——因此「push 到 main 時不重建 Preview」不能只是加一個 `if:` 條件跳過建置，否則下一次 push 部署的 artifact 會完全不含 `/preview/`，讓 Preview 變成 404，而不是「維持原樣」，違反驗收條件「既有 Preview 內容不受影響、不被覆蓋」。
+  2. Preview 目前只由 `workflow_dispatch` 觸發更新（實務上是 Claude Code 依使用者指示執行 `gh workflow run deploy.yml --ref <branch>`），`push` 事件則是任何 PR Merge 到 main 時自動觸發，兩者共用同一支 workflow、同一組觸發條件。
+  3. `ci.yml`（Branch Protection 要求的 `verify` check）是完全獨立的 workflow 檔案，只在 `pull_request` 事件觸發，與 `deploy.yml` 毫無關聯，本次變更不影響。
+- **實作方案（方案 B 的正確版本）**：Production 每次 `push`／`workflow_dispatch` 都照舊從 `main` 重新建置。Preview 只在 `workflow_dispatch` 才重新建置／測試；`push` 事件改為用 `gh run list --workflow=deploy.yml --event=workflow_dispatch --status=success` 找出最近一次成功的 `workflow_dispatch` run，透過 `actions/download-artifact@v4`（指定 `run-id`）下載該次的 `github-pages` Pages artifact（`.tar` 格式，需自行 `tar -xf` 還原），取出其中的 `preview/` 資料夾原封不動放進本次合併 artifact，而不是重新建置。若完全找不到任何先前成功的 `workflow_dispatch` run（例如本次修改剛上線的第一次 push），才 fallback 為把 `main` 的 build 產物暫時鏡射進 `/preview/`，確保不會出現完全空白的 404。新增 `permissions.actions: read` 供讀取／下載其他 run 的 artifact。
+- **語意變化（給未來所有驗收流程參考）**：Preview 不再是「與 main 保持同步、只是偶爾手動刷新」，而是「永遠等於上一次明確 `workflow_dispatch` 部署的內容，直到下一次明確 dispatch 為止」——**往後每次要驗收某個 PR，都需要先請 Claude Code（或自行）執行一次 `workflow_dispatch` 才能確保 Preview 反映該 PR 的最新內容；反之，日常的 main push（例如其他 PR 合併、純文件同步）不會再意外刷新或蓋掉正在驗收中的 Preview。**
+- 驗證：`.github/workflows/deploy.yml` 以 `npx js-yaml` 確認語法合法。**push 路徑（reuse 邏輯本身）需要在 Merge 後、下一次真實 main push 發生時才能完整驗證**（本次 PR 若被 Merge，其自身的 Merge 就是第一次真實驗證機會，需事後回頭確認 Preview 未被覆蓋且未變成 404）；`workflow_dispatch` 路徑（Preview 正常重建）已於本次 Draft PR 對應分支手動觸發驗證。
 
 ### UR-TODO-051 交易匯入中心「撤銷」按鈕撤銷失敗時完全靜默無回饋
 
