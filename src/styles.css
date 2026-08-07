@@ -16,9 +16,8 @@ main{max-width:1320px;margin:auto;padding:28px}
 .hero-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:44px;padding:9px 10px;white-space:nowrap}
 .hero-actions .hero-refresh{background:#2563eb}.hero-actions .hero-transfer{background:#173b66;color:#dbeafe;border:1px solid #315b8d}
 .hero-actions svg{flex:0 0 auto}.is-spinning{animation:button-spin .8s linear infinite}@keyframes button-spin{to{transform:rotate(360deg)}}
-.hero-compact{flex-direction:column;align-items:stretch;gap:10px}.hero-compact .hero-actions{width:100%}.hero-info-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:6px}.hero-info{padding-top:10px;border-top:1px solid #1d3d66}
+.hero-compact{flex-direction:column;align-items:stretch;gap:10px}.hero-compact .hero-actions{width:100%}
 .eyebrow{letter-spacing:.18em;color:#93c5fd;font-weight:800}
-.build-info{color:#9fb3c8;font-size:13px;margin:.75em 0 0}
 h1{font-size:42px;margin:.2em 0}
 h2{font-size:18px;margin:0 0 16px}
 h3{margin:0 0 10px}

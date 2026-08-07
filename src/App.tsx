@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { Download, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_SUBTITLE, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_API_KEY, FIREBASE_AUTH_SESSION_STORAGE_KEY, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, buildFirebaseSyncRoot, FIREBASE_API_KEY, FIREBASE_AUTH_SESSION_STORAGE_KEY, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
@@ -1157,7 +1157,6 @@ function App() {
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
   const [isHomeSyncing, setIsHomeSyncing] = useState<'upload' | 'download' | null>(null);
-  const [showHeroInfo, setShowHeroInfo] = useState(false);
   const updateRemoteMeta = (value: RemoteMeta | null) => setState(current => ({ ...current, remoteMeta: value }));
   const [accountWarning, setAccountWarning] = useState('');
   const [loadedAt] = useState(now());
@@ -1973,8 +1972,6 @@ function App() {
           <button className="hero-transfer" onClick={runHomeDownload} disabled={Boolean(isHomeSyncing)}><Download size={15} aria-hidden="true" /><span>{isHomeSyncing === 'download' ? '下載中…' : '下載'}</span></button>
           <button className="hero-transfer" onClick={runHomeUpload} disabled={Boolean(isHomeSyncing)}><Upload size={15} aria-hidden="true" /><span>{isHomeSyncing === 'upload' ? '上傳中…' : '上傳'}</span></button>
         </div>
-        <button type="button" className="small hero-info-toggle" aria-expanded={showHeroInfo} onClick={() => setShowHeroInfo(current => !current)}>{showHeroInfo ? '收合' : '關於'} <CollapseEyeIcon open={showHeroInfo} /></button>
-        {showHeroInfo && <div className="hero-info"><p className="eyebrow">{APP_VERSION}</p><h1>{APP_NAME}</h1><h3>{APP_SUBTITLE}</h3><p>即時股價｜動態再平衡｜Firebase 雲端同步</p><p className="build-info">Build time：{APP_BUILD_TIME}</p></div>}
       </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
