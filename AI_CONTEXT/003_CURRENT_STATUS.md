@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.85
+# Universal Rebalance Current Status v3.86
 
-最後更新：2026-08-07
+最後更新：2026-08-08
+
+**UR-TODO-049（交易匯入中心匯入預覽勾選框點擊觸發 ErrorBoundary crash）修復完成，Draft PR 已開啟、待驗收，尚未 Merge、正式基線仍為下方 `f489225`**。開發前唯讀盤點以 jsdom＋`react-dom/client` 真實重現原本的 crash（原生 `.click()`），確認成因為 `event.currentTarget` 在延遲執行的 `setPreview` updater 內已失效；修復為先同步擷取 `checked` 區域變數再於 updater 內使用。新增 `jsdom` devDependency 與對應迴歸測試，已驗證測試在修復前失敗、修復後通過。`npx tsc -b`、`test:ci`（825 項）、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 以真實原生點擊驗證不再崩潰。**待 Preview 部署（需先觸發 `workflow_dispatch`）與使用者真實裝置驗收。**詳見 `008_TODO_BACKLOG.md` UR-TODO-049 條目。
 
 **UR-TODO-050（`deploy.yml` Preview 部署 race condition，方案 B）正式完成，目前 `main`／`origin/main` 正式基線為 `f489225`（[PR #278](https://github.com/hyc640110/family-universal-rebalance/pull/278) 熱修 merge commit）**。改為 `push` 到 `main` 時不重建 Preview（改沿用最近一次成功 `workflow_dispatch` run 的 Pages artifact 中的 `preview/` 資料夾），只有 `workflow_dispatch` 才重新建置 Preview；因 `actions/deploy-pages` 無 partial update、每次都完整取代整個網站，若單純跳過建置會讓 Preview 變 404，故改用 reuse 舊 artifact 的方式維持 Preview 內容不變。**[PR #277](https://github.com/hyc640110/family-universal-rebalance/pull/277) Merge 後第一次真實 push 部署實際失敗**（`gh run list` 因無法自動偵測 repo 而報錯，導致該次 push 對應的 Production 部署未更新，僅暫時停留在上一 commit，全程可正常瀏覽、無中斷），已依使用者指示主動回報並以 PR #278 熱修（加上明確 `--repo` 旗標，reuse 路徑全程 `continue-on-error` 且 fallback 改為直接檢查產物是否存在），熱修 Merge 後的 push 部署完整成功，Production／Preview 皆確認正確。**語意變化：往後驗收 PR 前需先觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再覆蓋正在驗收中的 Preview。**詳見 `008_TODO_BACKLOG.md` UR-TODO-050 條目（含完整故障與熱修記錄）。
 
