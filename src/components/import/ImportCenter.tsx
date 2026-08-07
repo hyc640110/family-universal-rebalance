@@ -62,6 +62,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const [commitFeedback, setCommitFeedback] = useState<Feedback>(null);
   const targets = accounts.filter(account => account.isActive && ['cash', 'bank', 'creditCard', 'eWallet', 'securities'].includes(account.type));
   const account = targets.find(item => item.id === accountId);
+  const selectedRowCount = preview.filter(row => row.selected && !row.error).length;
 
   const selectSheet = (sheet: Sheet, keep = false) => {
     try {
@@ -131,6 +132,11 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     if (!account || !fileType || !preview.length) { setCommitFeedback({ tone: 'error', text: '缺少匯入帳戶或有效預覽資料，請重新選擇帳戶並產生預覽。' }); return; }
     const id = createImportSessionId();
     const imported = createImportTransactions(preview, account, id);
+    if (!imported.length) { setCommitFeedback({ tone: 'error', text: '目前沒有可匯入的列（已勾選且無錯誤），請重新確認勾選內容。' }); return; }
+    if (!window.confirm(`即將正式匯入 ${imported.length} 筆交易至「${account.name}」。匯入後可用「撤銷」復原，但只要其中任一筆事後被編輯過，整批就無法再撤銷。是否繼續？`)) {
+      setCommitFeedback({ tone: 'cancelled', text: '已取消匯入，尚未寫入任何交易。' });
+      return;
+    }
     const timestamp = new Date().toISOString();
     onCommit({
       id, fileName, fileType, importedAt: timestamp, accountId: account.id, totalRows: preview.length,
@@ -159,7 +165,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <FeedbackLine feedback={presetFeedback} />
     {records.length > 0 && <button className="small" type="button" onClick={makePreview}>產生匯入預覽</button>}
     <FeedbackLine feedback={previewFeedback} />
-    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: event.currentTarget.checked } : item))} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" onClick={commit}>正式批次匯入已選列</button></>}
+    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: event.currentTarget.checked } : item))} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
     <FeedbackLine feedback={commitFeedback} />
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => onRollback(session.id)}>撤銷</button>}</p>)}
     <ToolQuickNavigation current="import-transactions" showAssetsReturn />
