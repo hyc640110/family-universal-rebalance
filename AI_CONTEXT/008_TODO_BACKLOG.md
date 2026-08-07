@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.70
+# Universal Rebalance Todo Backlog v1.71
 
 最後更新：2026-08-07
+
+2026-08-07 **UR-TODO-050（`deploy.yml` Preview 部署 race condition）方案 B，Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`infra/ur-todo-050-preview-race-condition-fix` 分支，基準 `origin/main` HEAD `ffd73cf`）。開發前唯讀盤點發現關鍵限制：`actions/deploy-pages` 每次都會完整取代整個網站（無 partial update），所以「push 到 main 不重建 Preview」若只是單純跳過建置步驟，會讓下次 push 部署的 artifact 完全不含 `/preview/`，Preview 會變成 404 而非「維持原樣」，不符合「既有 Preview 內容不受影響」的驗收條件。改採：`push` 事件不重建 Preview，改為下載最近一次成功 `workflow_dispatch` run 的 Pages artifact、取出其中的 `preview/` 資料夾原封不動沿用；`workflow_dispatch` 事件才照舊重新建置 Preview；完全找不到先前 dispatch 記錄時 fallback 為暫時鏡射 main 進 `/preview/`，避免真的 404。確認 `ci.yml`（Branch Protection 的 `verify` check）為完全獨立 workflow，不受影響。**語意變化**：往後驗收 PR 前都需要先手動（或請 Claude Code）觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再意外覆蓋正在驗收中的 Preview。`.github/workflows/deploy.yml` 已以 `js-yaml` 驗證語法合法；`workflow_dispatch` 路徑已於本次分支手動觸發驗證正常重建 Preview；**push 路徑（reuse 邏輯）需在 Merge 後、下一次真實 main push 發生時才能完整驗證**，本次 PR 的 Merge 本身即為第一次真實驗證機會。**待 Preview 驗證與使用者確認，驗收通過後才可 Merge，本次未自行 Merge。** 詳見下方更新後的 **UR-TODO-050** 正式條目。
 
 2026-08-07 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式標記為已完成**。已由使用者手動 Merge [PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275)（`feat/ur-todo-052-remove-hero-marketing-block`），merge commit `92bb4f17b6b579b5023c72833aec77ff5d30bc5a`，為目前 `main`／`origin/main` 正式基線。使用者提供首頁截圖，紅框標示希望移除「收合」按鈕（帶眼睛圖示）與其下方行銷文案區塊（「家庭多資產配置管理」／「即時股價｜動態再平衡｜Firebase 雲端同步」／「Build time: unavailable」）。開發前唯讀盤點確認：`CollapseEyeIcon` 為全站共用元件（19＋3 個其他呼叫點），本次僅移除 `App.tsx` 這一個呼叫點，元件本體不觸碰；`APP_SUBTITLE` 全庫僅此處讀取，`APP_VERSION`／`APP_NAME`／`APP_BUILD_TIME`／`APP_GIT_COMMIT` 皆在側欄與「版本與除錯」設定區塊獨立顯示、不受影響；`showHeroInfo` state 僅此處使用。範圍：`src/App.tsx` 移除 hero 標頭「關於／收合」切換按鈕與 `.hero-info` 行銷文案區塊；`src/styles.css` 清理對應死 CSS（`.hero-info-toggle`、`.hero-info`、`.build-info`）；「更新股價／下載／上傳」三顆按鈕與其容器完全不變。`npx tsc -b`、`npm run test:ci`（824 項全數通過）、Production／Preview build 皆成功；Preview 部署後使用者以真實裝置（桌機＋手機）驗收通過，直接指示 Merge。因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見下方更新後的 **UR-TODO-052** 正式條目。
 
@@ -727,7 +729,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-050 `deploy.yml` Preview 部署會被非相關 main push 覆蓋（race condition）
 
 - 優先級：待評估
-- 狀態：待評估
+- 狀態：**開發中／Draft PR 已開啟，待驗收**（方案 B）
 - 提出日期：2026-08-07
 - 提出依據：UR-TODO-030（首頁 30 秒決策中心精簡，PR #268）Preview 驗收過程中意外發現，與 UR-TODO-030 本身變更範圍無關；唯讀比對確認此為 `deploy.yml` 自 [PR #264](https://github.com/hyc640110/family-universal-rebalance/pull/264)（Actions-based Pages 部署遷移）就存在的既有設計，本次僅是第一次因驗收過程恰好遇上而被發現。
 - 問題：`deploy.yml` 對 `push: branches: [main]` 與 `workflow_dispatch` 兩種觸發方式都會重新建置並部署整個 combined Pages artifact（Production ＋ Preview）；其中 Preview 的來源固定是「觸發這次 run 的 ref」——對 `push` 事件而言該 ref 就是 `main` 本身。因此只要在某個 Draft PR 以 `workflow_dispatch` 手動部署 Preview 完成、尚未 Merge 期間，若有任何其他 PR 這時 merge 到 main（觸發 push 事件），該次 push 觸發的部署會把 `/preview/` 整個重新蓋成 main 目前內容，導致原本要驗收的 Preview 分支內容消失，使用者會看到「舊版」畫面，且找不到明顯原因（部署本身皆回報成功，不是失敗）。
@@ -739,6 +741,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   2. 方案 B：`push` 到 `main` 時只重建／部署 Production，`/preview/` 只在 `workflow_dispatch` 觸發時更新；代表「Preview」語意由「與 Production 同步」改為「上次手動驗收的某個分支」，需要先想清楚這個語意轉變是否可接受。
   3. 方案 C：每個 Draft PR 使用獨立路徑（例如 `/preview/pr-<number>/`），互不覆蓋；改動範圍較大，需另外規劃 URL 規則與 PR 關閉後的清理機制。
 - 依賴：無，與 UR-TODO-037（Branch Protection／GitHub Environment）系列相關但可獨立排程，不互相阻擋。
+- **2026-08-07 使用者拍板採方案 B，開發中**（`infra/ur-todo-050-preview-race-condition-fix` 分支，基準 `origin/main` HEAD `ffd73cf`）。開發前唯讀盤點確認：
+  1. Production／Preview 共用同一個 `build` job，最後由單一 `actions/deploy-pages@v4` 部署成一個會**完整取代整個網站**的合併 artifact（no partial/incremental update，`deploy.yml` 原本註解已明講）——因此「push 到 main 時不重建 Preview」不能只是加一個 `if:` 條件跳過建置，否則下一次 push 部署的 artifact 會完全不含 `/preview/`，讓 Preview 變成 404，而不是「維持原樣」，違反驗收條件「既有 Preview 內容不受影響、不被覆蓋」。
+  2. Preview 目前只由 `workflow_dispatch` 觸發更新（實務上是 Claude Code 依使用者指示執行 `gh workflow run deploy.yml --ref <branch>`），`push` 事件則是任何 PR Merge 到 main 時自動觸發，兩者共用同一支 workflow、同一組觸發條件。
+  3. `ci.yml`（Branch Protection 要求的 `verify` check）是完全獨立的 workflow 檔案，只在 `pull_request` 事件觸發，與 `deploy.yml` 毫無關聯，本次變更不影響。
+- **實作方案（方案 B 的正確版本）**：Production 每次 `push`／`workflow_dispatch` 都照舊從 `main` 重新建置。Preview 只在 `workflow_dispatch` 才重新建置／測試；`push` 事件改為用 `gh run list --workflow=deploy.yml --event=workflow_dispatch --status=success` 找出最近一次成功的 `workflow_dispatch` run，透過 `actions/download-artifact@v4`（指定 `run-id`）下載該次的 `github-pages` Pages artifact（`.tar` 格式，需自行 `tar -xf` 還原），取出其中的 `preview/` 資料夾原封不動放進本次合併 artifact，而不是重新建置。若完全找不到任何先前成功的 `workflow_dispatch` run（例如本次修改剛上線的第一次 push），才 fallback 為把 `main` 的 build 產物暫時鏡射進 `/preview/`，確保不會出現完全空白的 404。新增 `permissions.actions: read` 供讀取／下載其他 run 的 artifact。
+- **語意變化（給未來所有驗收流程參考）**：Preview 不再是「與 main 保持同步、只是偶爾手動刷新」，而是「永遠等於上一次明確 `workflow_dispatch` 部署的內容，直到下一次明確 dispatch 為止」——**往後每次要驗收某個 PR，都需要先請 Claude Code（或自行）執行一次 `workflow_dispatch` 才能確保 Preview 反映該 PR 的最新內容；反之，日常的 main push（例如其他 PR 合併、純文件同步）不會再意外刷新或蓋掉正在驗收中的 Preview。**
+- 驗證：`.github/workflows/deploy.yml` 以 `npx js-yaml` 確認語法合法。**push 路徑（reuse 邏輯本身）需要在 Merge 後、下一次真實 main push 發生時才能完整驗證**（本次 PR 若被 Merge，其自身的 Merge 就是第一次真實驗證機會，需事後回頭確認 Preview 未被覆蓋且未變成 404）；`workflow_dispatch` 路徑（Preview 正常重建）已於本次 Draft PR 對應分支手動觸發驗證。
 
 ### UR-TODO-051 交易匯入中心「撤銷」按鈕撤銷失敗時完全靜默無回饋
 

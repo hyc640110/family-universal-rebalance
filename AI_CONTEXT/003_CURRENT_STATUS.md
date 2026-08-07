@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v3.83
+# Universal Rebalance Current Status v3.84
 
 最後更新：2026-08-07
+
+**UR-TODO-050（`deploy.yml` Preview 部署 race condition，方案 B）Draft PR 已開啟、待驗收，尚未 Merge、正式基線仍為下方 `92bb4f1`**。改為 `push` 到 `main` 時不重建 Preview（改沿用最近一次成功 `workflow_dispatch` run 的 Pages artifact 中的 `preview/` 資料夾），只有 `workflow_dispatch` 才重新建置 Preview；因 `actions/deploy-pages` 無 partial update、每次都完整取代整個網站，若單純跳過建置會讓 Preview 變 404，故改用 reuse 舊 artifact 的方式維持 Preview 內容不變。**語意變化：往後驗收 PR 前需先觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再覆蓋正在驗收中的 Preview。**`workflow_dispatch` 路徑已手動驗證正常；push 路徑（reuse 邏輯）需在本 PR Merge 後、下一次真實 main push 才能完整驗證。詳見 `008_TODO_BACKLOG.md` UR-TODO-050 條目。
 
 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式完成，目前 `main`／`origin/main` 正式基線為 `92bb4f1`（[PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275) merge commit）**。使用者提供首頁截圖指出希望移除「收合」按鈕與其下方行銷文案區塊（App 副標、說明文字、Build time），開發前唯讀盤點確認 `CollapseEyeIcon` 為全站共用元件（不觸碰其他呼叫點）、`APP_SUBTITLE` 僅此處讀取、版本號與 Build time 在側欄及設定頁「版本與除錯」區塊另有獨立顯示、不受影響。範圍限於移除 `App.tsx` 該一處呼叫點與對應的死 CSS，「更新股價／下載／上傳」三顆按鈕不變。`npx tsc -b`、`test:ci`（824 項）、Production／Preview build 皆成功。使用者於 Preview 以真實裝置（桌機＋手機）驗收通過後直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見 `008_TODO_BACKLOG.md` UR-TODO-052 條目。
 
