@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-07T12:55:33.108475+00:00
+Generated UTC: 2026-08-07T15:09:35.273989+00:00
 
 ## Manifest
 
@@ -11,7 +11,7 @@ Generated UTC: 2026-08-07T12:55:33.108475+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `003_CURRENT_STATUS.md` — SHA-256 `6d457bbbd3c24d1952834b6bd16701966b2790ad08296795c9d8b568dfb24e1a`
-- `008_TODO_BACKLOG.md` — SHA-256 `0bb85f2e1bf5db98a1f5c51bb1b474f563705797595e0e542e379d95be6428c4`
+- `008_TODO_BACKLOG.md` — SHA-256 `d9ee464a9715a283ca2b49e482b218a5daf53f4b196698ef8737fd6305f33825`
 - `012_AI_HANDOVER.md` — SHA-256 `440c0396ec78864651148848b2e545360f087f2e046d91364e69eeee3af58b8c`
 
 ---
@@ -1020,9 +1020,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.67
+# Universal Rebalance Todo Backlog v1.68
 
 最後更新：2026-08-07
+
+2026-08-07 **治理落差補記：新增 UR-TODO-050（匯入「撤銷」按鈕撤銷失敗時靜默無回饋）**。此為 PR #270 開發前唯讀盤點時就已發現、使用者當下明確指示「另開 Todo 之後處理」的項目，先前僅記錄於 `003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md` 的完成摘要文字中（「明確不包含」段落），未正式建立獨立 UR-TODO 條目，本次於使用者要求盤點目前待辦事項時發現此落差並補齊。狀態「待評估」，與 UR-TODO-049（同一次盤點發現的另一個獨立問題——匯入預覽勾選框 crash）互不相關，不應合併處理。未修改 `src/`、`tests/`。
 
 2026-08-07 **交易匯入中心「正式批次匯入已選列」二次確認機制正式標記為已完成，並新增 UR-TODO-049（匯入預覽勾選框 crash）**。已由使用者手動 Merge [PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)（`fix/import-center-commit-confirm`），merge commit `642c1a60ec3a7e203878440ebe24a5ad7104bb29`，為目前 `main`／`origin/main` 正式基線。**背景**：唯讀盤點確認「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，點下去立刻寫入 `state.transactions`，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。**範圍**：`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認，文字明確帶出實際會寫入的筆數（以 `createImportTransactions(...).length` 而非 `preview.length` 計算，避免與未勾選／錯誤列混計）、目標帳戶名稱、以及撤銷的真實限制；取消時顯示「已取消匯入，尚未寫入任何交易。」（沿用既有 `savePreset`／`importBackup` 的 cancelled-tone feedback 慣例）；按鈕在可寫入列數為 0 時（全部取消勾選或皆為錯誤／重複列）直接 `disabled`，避免產生一筆 `importedRows: 0` 的空匯入紀錄。新增 5 個測試（`tests/importCenterCommitConfirmation.test.ts`），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證（桌機 1280px＋手機 390px）：確認視窗文字精確符合預期、取消與接受兩條路徑皆正確（取消不寫入、接受後正確寫入且可撤銷）、0 筆時按鈕確認 `disabled: true`、390px 無橫向溢出、console 全程無新增錯誤。**明確不包含**：「撤銷」按鈕本身在撤銷失敗時完全靜默無回饋的既有缺口（獨立問題，維持「待評估」，未來另行處理）。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認 `main` 分支在本次變更前就已存在、本次全程未觸碰）：以真實瀏覽器點擊（非程式化事件）取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截導致畫面整個被錯誤畫面取代，已新增 **UR-TODO-049** 記錄重現步驟與初步懷疑方向，供之後排入；本次未修復、未觸碰任何相關程式碼。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。
 
@@ -1739,6 +1741,22 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：本次盤點未修改任何程式碼、未嘗試修復，僅記錄重現步驟與初步懷疑方向。
 - 建議修正方向（未拍板，待排入時決策）：在 `onChange` handler 內、`setPreview` 呼叫之前，先把 `event.currentTarget.checked` 讀進一個區域變數，再於 updater function 中使用該變數，避免在延遲執行的 updater 內存取可能已失效的 event 物件。
 - 依賴：無，與 UR-TODO-046、UR-TODO-001 等系列無關，可獨立排程。
+
+### UR-TODO-050 交易匯入中心「撤銷」按鈕撤銷失敗時完全靜默無回饋
+
+- 優先級：**待評估**
+- 狀態：**待評估**
+- 提出日期：2026-08-07
+- 提出依據：交易匯入中心「正式批次匯入已選列」二次確認機制唯讀盤點（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270) 開發前）發現，使用者已明確指示「另開 Todo 之後處理，這次不動」；本條目為補記先前遺漏未正式建檔的部分。
+- 問題：`rollbackImport`（`src/App.tsx`）在下列情況會直接 `return current`（state 完全不變、靜默失敗），但呼叫端 `ImportCenter.tsx` 的「撤銷」按鈕（`onClick={() => onRollback(session.id)}`）**沒有接任何回傳值、沒有任何 feedback UI**——使用者點了「撤銷」，畫面上什麼都不會發生，也不會被告知失敗原因：
+  1. 該次匯入 session 底下已無任何交易可撤銷（`imported.length === 0`，例如全數已被個別刪除）。
+  2. **更常見**：只要匯入後有任何一筆交易事後被編輯過（`transaction.updatedAt !== transaction.createdAt`），`rollbackImport` 會擋下**整批** session 的撤銷，不是只擋被編輯的那一筆。
+- 對比：本專案其他寫入動作（`exportBackup`／`importBackup`／`resetState`／本次「正式批次匯入已選列」）皆有 `role="status"`／`role="alert"` 的成功／失敗／取消三態回饋；「撤銷」是目前已知唯一完全沒有任何回饋的寫入類按鈕。
+- 明確不包含：本次（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)）刻意不處理此問題，避免與二次確認機制的變更範圍混在一起；本條目純記錄，未修改任何程式碼。
+- 建議修正方向（未拍板，待排入時決策）：
+  - `rollbackImport` 回傳明確結果（例如 `boolean` 或 `{ok: boolean, reason?: string}`），取代目前的靜默 `return current`。
+  - `ImportCenter.tsx` 比照既有 `commitFeedback` 等 `Feedback` state 慣例，新增獨立的 rollback feedback 顯示區塊；失敗時明確告知原因（例如「此批交易已有部分被編輯，無法撤銷」），而非讓使用者以為點擊沒有反應。
+- 依賴：無，可獨立排程；與 UR-TODO-049（匯入預覽勾選框 crash）為同一次盤點發現的兩個獨立問題，互不相關，不應合併處理。
 
 ### UR-TODO-044 固定支出角色 fallback 靜默分類分歧與生活費重複計算風險
 
