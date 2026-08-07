@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-07T12:55:33.108475+00:00
+Generated UTC: 2026-08-07T14:04:08.541958+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-07T12:55:33.108475+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `6d457bbbd3c24d1952834b6bd16701966b2790ad08296795c9d8b568dfb24e1a`
+- `003_CURRENT_STATUS.md` — SHA-256 `9208256bfbc69cc5ccf5a753ee8e0727c8b6bbe2abbdfb6919bff0e168f83a9e`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `0bb85f2e1bf5db98a1f5c51bb1b474f563705797595e0e542e379d95be6428c4`
+- `008_TODO_BACKLOG.md` — SHA-256 `cc7a488931fb3eecae5b59ffc6e2e818f2511b4b37878fe8792f9aaa2f3741c7`
 - `009_CHANGELOG.md` — SHA-256 `c6811fccb602a54f7672f65b80cbe7c7136868bb8f6c248b45aabb1c0242621f`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -658,11 +658,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.80
+# Universal Rebalance Current Status v3.81
 
 最後更新：2026-08-07
 
-**交易匯入中心「正式批次匯入已選列」二次確認機制正式完成，目前 `main`／`origin/main` 正式基線為 `642c1a6`（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270) merge commit）**。唯讀盤點發現「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認（文字明確帶出實際寫入筆數、目標帳戶、撤銷限制），取消時顯示「已取消匯入，尚未寫入任何交易。」，按鈕在可寫入筆數為 0 時直接 `disabled`；新增 5 個測試，`npx tsc -b`、`test:ci`、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 實機驗證通過。**明確不包含**：「撤銷」按鈕本身撤銷失敗時靜默無回饋的既有缺口，維持獨立「待評估」狀態。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認變更前就已存在）：以真實瀏覽器點擊取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截，已新增 **UR-TODO-049** 記錄，本次未修復。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見 `008_TODO_BACKLOG.md` 對應段落與 UR-TODO-049 條目。
+**UR-TODO-030（首頁 30 秒決策中心精簡）正式完成，目前 `main`／`origin/main` 正式基線為 `cd89ad1`（[PR #268](https://github.com/hyc640110/family-universal-rebalance/pull/268) merge commit）**。首頁依三項使用者拍板保留內容重新設計：Hero 標頭收合（App 名稱／版號等品牌文字收合在「關於」按鈕後，更新股價／下載／上傳按鈕不受影響）；「今日投資狀態」精簡為狀態徽章＋摘要句＋今日建議結論，判斷流程步驟與機會清單移到既有投資行動中心；資產總覽精簡為總資產／淨資產／今日損益／今日損益率 4 格；投資健康度改為 1 行摘要＋風險中心連結；原「重要提醒」更名「狀態確認」並合併報價／同步／再平衡提醒與投資機會指標。詳細對照決策與搬移目的地見 `008_TODO_BACKLOG.md` UR-TODO-030 條目。**Preview 驗收過程中發現並排除兩個部署層問題**：`github-pages` Environment 的 Deployment branch policy 原僅允許 `main`／`gh-pages`，`workflow_dispatch` 部署 feature branch 連續被拒絕 3 次（`build` job 皆成功，僅 `deploy` job 被 Environment 分支政策擋下），使用者於網頁新增 `feat/*`／`fix/*`／`hotfix/*`／`docs/*`／`infra/*` 五條規則後恢復正常；另發現 `deploy.yml` 對 `push main` 事件也會重建 `/preview/`（Preview 內容固定來自「觸發這次 run 的 ref」），導致其他不相干 PR merge 到 main 會覆蓋尚未驗收完成的 Preview 分支內容，已新增 **UR-TODO-050** 追蹤（暫採方案 A：不修改 workflow，驗收時效性配合，之後找獨立 Sprint 評估是否改為方案 B／C）。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見 `008_TODO_BACKLOG.md` UR-TODO-030、UR-TODO-050 條目。
+
+**交易匯入中心「正式批次匯入已選列」二次確認機制正式完成，`main`／`origin/main` 前一正式基線為 `642c1a6`（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270) merge commit）**。唯讀盤點發現「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認（文字明確帶出實際寫入筆數、目標帳戶、撤銷限制），取消時顯示「已取消匯入，尚未寫入任何交易。」，按鈕在可寫入筆數為 0 時直接 `disabled`；新增 5 個測試，`npx tsc -b`、`test:ci`、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 實機驗證通過。**明確不包含**：「撤銷」按鈕本身撤銷失敗時靜默無回饋的既有缺口，維持獨立「待評估」狀態。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認變更前就已存在）：以真實瀏覽器點擊取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截，已新增 **UR-TODO-049** 記錄，本次未修復。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見 `008_TODO_BACKLOG.md` 對應段落與 UR-TODO-049 條目。
 
 **「隱藏金額」功能回退＋備份／匯入回饋一致性連續修正（7 支 PR，2026-08-06）正式完成，先前 `main`／`origin/main` 正式基線為 `cbe176d`（PR #266 merge commit）**。本輪起於使用者確認不需要「螢幕分享時隱藏金額」功能（PR #257），要求完整回退，過程中連帶發現並修正一系列真實回饋／版面一致性缺陷，全數皆由使用者於 Preview／Production 實機驗收後指示或授權 Merge（`gh pr merge --admin`，本 repo 單人協作、branch protection 無第二審核者，依 `007_GIT_WORKFLOW.md` §8.2 純小型 UI 修正／基礎設施修正政策執行，已於每次使用時明確揭露）：
 
@@ -2901,9 +2903,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.67
+# Universal Rebalance Todo Backlog v1.68
 
 最後更新：2026-08-07
+
+2026-08-07 **UR-TODO-030（首頁 30 秒決策中心精簡）正式標記為已完成，並新增 UR-TODO-050（`deploy.yml` Preview 部署會被非相關 main push 覆蓋，race condition）**。已由使用者手動 Merge [PR #268](https://github.com/hyc640110/family-universal-rebalance/pull/268)（`feat/ur-todo-030-homepage-simplification`），merge commit `cd89ad1c4ee17d23597f3a00e63c2acb1262cfb9`，為目前 `main`／`origin/main` 正式基線。**範圍**：依既有唯讀盤點與使用者逐項拍板的決策實作——Hero 標頭收合（App 名稱／版號／副標／Build time 收合在「關於」按鈕後，更新股價／下載／上傳三顆按鈕不受影響）；「今日投資狀態」採方案 B，首頁只保留整體狀態徽章＋摘要句＋今日建議結論標題，「每日判斷流程步驟」與「值得查看的機會」移到既有投資行動中心（`/tools/investment-action-center`，本來就是同一組 `dailyDecisionWorkflow`／`investmentOpportunities` 資料的另一種呈現，非新開發），4 格統計中「今日投資狀態」（與資產總覽今日損益重複）直接移除，「資料品質」拆解為投資組合風險與配置中心（品質問題部分，本來就已顯示）＋首頁狀態確認區塊（報價狀態部分），「市場資料」彙總句直接移除、市場頁維持現狀，「股息摘要」直接移除、股息中心本來就有完整對應內容；「資產與今日表現」精簡為總資產／淨資產／今日損益／今日損益率 4 格，本月／年度資產變動移除、改以淨資產歷史頁（read-time boundary 版本）為權威來源；「投資健康度」改為 1 行摘要＋「查看風險中心」連結（風險中心已完整涵蓋原 8 格內容，與分析頁防守配置狀態卡片欄位不同，不重複）；原「重要提醒」更名為「狀態確認」，合併 quotes／sync／rebalance 三類提醒（不再過濾）、最後股價更新、資料同步提醒文字、投資機會數量＋連結（輕量指標而非重複顯示完整卡片）。附帶移除 4 個因本次重構變成孤兒的呈現層元件（`InvestmentIntelligenceSummary.tsx`、`DailyDecisionWorkflow.tsx` 元件、`InvestmentOpportunityList.tsx`、`InvestmentOpportunityCard.tsx`，皆非 `src/lib/dailyDecisionWorkflow.ts` 資料層），同步更新 6 個相關特徵測試檔與 `scripts/stability-check.mjs` 內對「重要提醒」文案的過時斷言。`npx tsc -b`、`npm run test:ci` 全數通過，Production／Preview `vite build` 皆成功。**Preview 驗收過程中發現並排除一次部署層級的干擾**：`workflow_dispatch` 首次因 `github-pages` Environment 的 Deployment branch policy 只允許 `main`／`gh-pages` 兩個分支，被擋下 3 次（皆為 `build` job 成功、`deploy` job 因 Environment 分支政策被拒絕，非程式碼問題），使用者於 GitHub 網頁新增 `feat/*`／`fix/*`／`hotfix/*`／`docs/*`／`infra/*` 五條規則（對齊 `007_GIT_WORKFLOW.md` §4 既有 Branch 命名慣例）後即成功部署；成功部署後又被兩支不相干 PR（#270、#271）merge 到 main 觸發的 push 部署覆蓋 `/preview/`（詳見下方 **UR-TODO-050**），重新以 `workflow_dispatch` 部署後使用者於 Preview 實機驗收通過（桌機＋390px）。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見下方更新後的 **UR-TODO-030**、新增的 **UR-TODO-050** 正式條目。
 
 2026-08-07 **交易匯入中心「正式批次匯入已選列」二次確認機制正式標記為已完成，並新增 UR-TODO-049（匯入預覽勾選框 crash）**。已由使用者手動 Merge [PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)（`fix/import-center-commit-confirm`），merge commit `642c1a60ec3a7e203878440ebe24a5ad7104bb29`，為目前 `main`／`origin/main` 正式基線。**背景**：唯讀盤點確認「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，點下去立刻寫入 `state.transactions`，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。**範圍**：`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認，文字明確帶出實際會寫入的筆數（以 `createImportTransactions(...).length` 而非 `preview.length` 計算，避免與未勾選／錯誤列混計）、目標帳戶名稱、以及撤銷的真實限制；取消時顯示「已取消匯入，尚未寫入任何交易。」（沿用既有 `savePreset`／`importBackup` 的 cancelled-tone feedback 慣例）；按鈕在可寫入列數為 0 時（全部取消勾選或皆為錯誤／重複列）直接 `disabled`，避免產生一筆 `importedRows: 0` 的空匯入紀錄。新增 5 個測試（`tests/importCenterCommitConfirmation.test.ts`），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證（桌機 1280px＋手機 390px）：確認視窗文字精確符合預期、取消與接受兩條路徑皆正確（取消不寫入、接受後正確寫入且可撤銷）、0 筆時按鈕確認 `disabled: true`、390px 無橫向溢出、console 全程無新增錯誤。**明確不包含**：「撤銷」按鈕本身在撤銷失敗時完全靜默無回饋的既有缺口（獨立問題，維持「待評估」，未來另行處理）。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認 `main` 分支在本次變更前就已存在、本次全程未觸碰）：以真實瀏覽器點擊（非程式化事件）取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截導致畫面整個被錯誤畫面取代，已新增 **UR-TODO-049** 記錄重現步驟與初步懷疑方向，供之後排入；本次未修復、未觸碰任何相關程式碼。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。
 
@@ -3621,6 +3625,22 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 建議修正方向（未拍板，待排入時決策）：在 `onChange` handler 內、`setPreview` 呼叫之前，先把 `event.currentTarget.checked` 讀進一個區域變數，再於 updater function 中使用該變數，避免在延遲執行的 updater 內存取可能已失效的 event 物件。
 - 依賴：無，與 UR-TODO-046、UR-TODO-001 等系列無關，可獨立排程。
 
+### UR-TODO-050 `deploy.yml` Preview 部署會被非相關 main push 覆蓋（race condition）
+
+- 優先級：待評估
+- 狀態：待評估
+- 提出日期：2026-08-07
+- 提出依據：UR-TODO-030（首頁 30 秒決策中心精簡，PR #268）Preview 驗收過程中意外發現，與 UR-TODO-030 本身變更範圍無關；唯讀比對確認此為 `deploy.yml` 自 [PR #264](https://github.com/hyc640110/family-universal-rebalance/pull/264)（Actions-based Pages 部署遷移）就存在的既有設計，本次僅是第一次因驗收過程恰好遇上而被發現。
+- 問題：`deploy.yml` 對 `push: branches: [main]` 與 `workflow_dispatch` 兩種觸發方式都會重新建置並部署整個 combined Pages artifact（Production ＋ Preview）；其中 Preview 的來源固定是「觸發這次 run 的 ref」——對 `push` 事件而言該 ref 就是 `main` 本身。因此只要在某個 Draft PR 以 `workflow_dispatch` 手動部署 Preview 完成、尚未 Merge 期間，若有任何其他 PR 這時 merge 到 main（觸發 push 事件），該次 push 觸發的部署會把 `/preview/` 整個重新蓋成 main 目前內容，導致原本要驗收的 Preview 分支內容消失，使用者會看到「舊版」畫面，且找不到明顯原因（部署本身皆回報成功，不是失敗）。
+- 重現步驟（2026-08-07 UR-TODO-030 驗收過程實際發生）：`workflow_dispatch` 部署 `feat/ur-todo-030-homepage-simplification` 分支 Preview 於 `11:23 UTC` 成功 → 兩支不相干 PR（#270、#271）分別於 `12:52`、`12:57 UTC` merge 到 main，各自觸發一次 push 部署，皆把 `/preview/` 覆蓋回 main 內容 → 使用者於 `13:xx UTC` 驗收時發現畫面是舊版 → 排查過程排除瀏覽器快取、Service Worker（`public/sw.js` 本身為 cache-disabled 的純轉發實作，非成因）、CDN 快取（`index.html` 引用的 `<script>` hash 直接證實是 main 的 build 產物，非快取殘留）→ 重新以 `workflow_dispatch` 部署後才恢復正確。
+- 影響範圍：僅影響「Draft PR 使用 Preview 驗收」這個流程環節；不影響 Production（Production 一律固定從 `main` build，內容本來就正確，未曾出現本問題）；不影響已 Merge 的 PR 或任何持久化資料。
+- 明確不包含：本次未修改 `deploy.yml` 或任何 workflow 設定，僅記錄問題重現步驟與可能方向，未拍板任何修正方案。
+- 建議修正方向（未拍板，待排入時決策）：
+  1. **方案 A（暫定採用，目前不需修改 workflow）**：Preview 驗收時效性配合——驗收前留意近期是否有其他 PR 即將 merge，驗收完成後盡快決定 Merge 或至少完成記錄；若驗收途中被覆蓋，重新以 `workflow_dispatch` 觸發即可恢復。
+  2. 方案 B：`push` 到 `main` 時只重建／部署 Production，`/preview/` 只在 `workflow_dispatch` 觸發時更新；代表「Preview」語意由「與 Production 同步」改為「上次手動驗收的某個分支」，需要先想清楚這個語意轉變是否可接受。
+  3. 方案 C：每個 Draft PR 使用獨立路徑（例如 `/preview/pr-<number>/`），互不覆蓋；改動範圍較大，需另外規劃 URL 規則與 PR 關閉後的清理機制。
+- 依賴：無，與 UR-TODO-037（Branch Protection／GitHub Environment）系列相關但可獨立排程，不互相阻擋。
+
 ### UR-TODO-044 固定支出角色 fallback 靜默分類分歧與生活費重複計算風險
 
 - 優先級：P1
@@ -3726,7 +3746,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ### UR-TODO-030 首頁「重要提醒」重複性盤點
 - 優先級：P2
-- 狀態：待盤點
+- 狀態：**已完成**（2026-08-07，PR #268，merge commit `cd89ad1c4ee17d23597f3a00e63c2acb1262cfb9`）
 - 提出日期：2026-07-19
 - 問題：
   - 可能與「今日投資狀態」或其他決策卡片重複。
@@ -3752,6 +3772,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 此為 Sprint 6／UR-TODO-011（Cross-Module Presentation Consistency）階段的呈現層輸入，**非本次或 UR-TODO-009 範圍**，UR-TODO-009 開發時不得因此擴大或美化「今日投資狀態」現有版面。
 
 **2026-07-29 再次確認（PR #176／#177 治理同步之後的既有產品決策保留確認，本次不修改首頁 UI）：** 上述「30 秒決策中心」方向、只回答「今天是否需要做什麼」、三項建議保留內容、使用者很少查看目前首頁大量資訊、以及「今日投資狀態」兩個未拍板處理選項，**均為既有結論，本次唯讀確認仍完整有效、原文未被覆蓋或稀釋**。此項仍屬 Dashboard UX／UR-TODO-030 待盤點範圍，狀態維持「待盤點」；**與同時期進行的 UR-TODO-043-C2（純 `netWorthSnapshotNormalization` 契約）完全無關，不得因 043-C2 開發而順便處理首頁簡化，也不得反過來因首頁簡化規劃而擴大 043-C2 範圍。**
+
+**2026-08-07 正式完成（PR #268，merge commit `cd89ad1c4ee17d23597f3a00e63c2acb1262cfb9`）：** Claude Code 於 Review Mode 先完成唯讀盤點，逐一列出首頁全部區塊、對照三項建議保留內容給出移動／保留／收合建議，經使用者多輪追問補充（區塊 4／6 完整建議、「今日投資狀態」內部子區塊除方案 B 外的完整方案清單）後，使用者下達「開始開發」並逐項拍板 6 大決策；開發前依指示先完成全部搬移目的地頁面（投資行動中心、風險中心、市場頁、股息中心、投資組合風險與配置中心、淨資產歷史頁）唯讀盤點，發現 5 項不確定對應關係（今日投資狀態格重複、資料品質格無單一目的地、市場資料格目的地無彙總呈現、本月／年度資產變動兩處計算路徑不同、區塊 5 目的地選擇）逐項回報使用者確認後才動手，避免自行假設造成資料重複或遺漏。實作範圍與驗證內容見上方 2026-08-07 治理同步條目；驗收過程中額外排除的部署層問題（Environment 分支政策擋下 Preview 部署、Preview 被不相干 main push 覆蓋）已另立 **UR-TODO-050** 追蹤，不影響本項本身的完成判定。三項建議保留內容（今日是否需操作／精簡資產總覽／更新狀態）與「今日投資狀態」兩個未拍板選項皆已在本次開發中做出明確決策並實作，**UR-TODO-030 正式結案**。
 
 ### UR-TODO-031 投資健康度安全存量命名與說明
 - 優先級：P1
