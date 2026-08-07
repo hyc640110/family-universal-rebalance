@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.74
+# Universal Rebalance Todo Backlog v1.75
 
 最後更新：2026-08-08
+
+2026-08-08 **UR-TODO-051（交易匯入中心「撤銷」按鈕失敗時完全靜默無回饋）修復完成，Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`fix/ur-todo-051-import-rollback-feedback` 分支，基準 `origin/main` HEAD `ed6afba`）。開發前唯讀盤點確認：`rollbackImport` 除既有兩項限制（交易被編輯過、交易已被逐筆刪除）外無其他失敗情況；「回傳值被吞掉」的說法不準確，架構上 `rollbackImport` 與呼叫端 `onRollback` prop 原本就是 `void`，從未存在可回傳的結果。修復：新增純函式 `evaluateRollbackImport()` 把判斷邏輯（維持原有語意不變）抽出成可測試、回傳明確結果的獨立函式；`rollbackImport` 改為先同步取得結果（`stateRef.current` 由自訂 `setState` wrapper 同步維護，無 UR-TODO-049 那類時序風險），只有成功才實際搬移資料；`ImportCenter.tsx` 新增 `rollbackFeedback` state，沿用既有 `Feedback`／`FeedbackLine` 慣例，成功與兩種失敗原因（已編輯／已被逐筆刪除）皆有明確區分的訊息。新增 7 項測試（純函式 4 項＋jsdom 真實渲染點擊驗證畫面文字 3 項），已驗證在修復前的程式碼上會失敗、修復後通過。`npx tsc -b`、`npm run test:ci`（832 項全數通過）、Production／Preview build 皆成功；隔離本機 dev server 桌機 1280px＋手機 390px 皆以真實互動驗證成功／失敗兩種情境的畫面回饋正確，交易資料與 session 狀態在失敗時維持不變，console 全程無新增錯誤。**待 Preview 部署（依 UR-TODO-050 方案 B 需先觸發 `workflow_dispatch`）與使用者真實裝置驗收，驗收通過後才可 Merge，本次未自行 Merge。** 詳見下方更新後的 **UR-TODO-051** 正式條目。
 
 2026-08-08 **UR-TODO-049（交易匯入中心匯入預覽勾選框點擊觸發 ErrorBoundary crash）正式標記為已完成**。已由使用者手動 Merge [PR #280](https://github.com/hyc640110/family-universal-rebalance/pull/280)（`fix/ur-todo-049-import-checkbox-stale-event`），merge commit `685c2a6ccc89902bd65f9d618533c1899d760496`，為目前 `main`／`origin/main` 正式基線。開發前唯讀盤點以 jsdom＋`react-dom/client` 真實重現原本的 crash（原生 `.click()`，非程式化 `dispatchEvent`），確認使用者提出的成因假設（`event.currentTarget` 在延遲執行的 `setPreview` updater 內已失效）為真正根因；全庫搜尋確認 `src/` 內僅此一處有相同風險模式，無需回報其他檔案。修復：`onChange` handler 改為先同步擷取 `checked` 區域變數，再於 updater 內使用，不再於 updater 內存取 `event`。新增 `jsdom` devDependency（專案先前完全無 DOM 測試基礎設施，經評估認定唯有真實 DOM 才能誠實驗證此類時序缺陷，使用者已明確同意此範圍擴充）與 `tests/importCenterCheckboxRealClick.test.ts`，已驗證此測試在修復前的程式碼上確實失敗（拋出與 Production 完全相同的錯誤）、修復後通過。`npx tsc -b`、`npm run test:ci`（825 項全數通過）、Production／Preview build 皆成功；隔離本機 dev server 桌機 1280px＋手機 390px 以真實原生 `.click()` 連續切換多列勾選框驗證不再崩潰、狀態正確、無橫向溢出。依 UR-TODO-050 方案 B 新流程，Claude Code 先觸發一次 `workflow_dispatch` 刷新 Preview，使用者於 Preview 以真實裝置驗收通過後直接指示 Merge。因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。Merge 後觸發的 push 部署完整成功，正確沿用剛才那次 `workflow_dispatch` 的 Preview 內容（UR-TODO-050 reuse 邏輯的第三次連續成功驗證）；Production／Preview `curl` 實測皆 `HTTP 200`。詳見下方更新後的 **UR-TODO-049** 正式條目。
 
@@ -764,7 +766,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-051 交易匯入中心「撤銷」按鈕撤銷失敗時完全靜默無回饋
 
 - 優先級：**待評估**
-- 狀態：**待評估**
+- 狀態：**開發中／Draft PR 已開啟，待驗收**
 - 提出日期：2026-08-07
 - 提出依據：交易匯入中心「正式批次匯入已選列」二次確認機制唯讀盤點（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270) 開發前）發現，使用者已明確指示「另開 Todo 之後處理，這次不動」；本條目為補記先前遺漏未正式建檔的部分。**原暫定編號 UR-TODO-050 與並行進行的另一份治理同步（PR #268／#272，`deploy.yml` Preview 部署 race condition）撞號，已改用下一個可用編號 UR-TODO-051。**
 - 問題：`rollbackImport`（`src/App.tsx`）在下列情況會直接 `return current`（state 完全不變、靜默失敗），但呼叫端 `ImportCenter.tsx` 的「撤銷」按鈕（`onClick={() => onRollback(session.id)}`）**沒有接任何回傳值、沒有任何 feedback UI**——使用者點了「撤銷」，畫面上什麼都不會發生，也不會被告知失敗原因：
@@ -776,6 +778,18 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   - `rollbackImport` 回傳明確結果（例如 `boolean` 或 `{ok: boolean, reason?: string}`），取代目前的靜默 `return current`。
   - `ImportCenter.tsx` 比照既有 `commitFeedback` 等 `Feedback` state 慣例，新增獨立的 rollback feedback 顯示區塊；失敗時明確告知原因（例如「此批交易已有部分被編輯，無法撤銷」），而非讓使用者以為點擊沒有反應。
 - 依賴：無，可獨立排程；與 UR-TODO-049（匯入預覽勾選框 crash）為同一次盤點發現的兩個獨立問題，互不相關，不應合併處理。
+- **開發前唯讀盤點確認（2026-08-08）**：
+  1. `rollbackImport`（`src/App.tsx`）除既有兩項限制外，未發現其他會導致撤銷失敗的情況；帳戶被刪除不影響交易本身是否可撤銷（撤銷只操作 `transactions`／`importSessions`，不查驗 `accountId` 是否仍存在有效帳戶）。
+  2. 「撤銷」按鈕點擊路徑確認：`onRollback` prop 型別原為 `(sessionId: string) => void`，`rollbackImport` 本身也是 `void`（`setState(updater)` 的回傳值本來就是 `undefined`）——不是「回傳值被吞掉」，而是架構上從未存在任何可回傳的結果，呼叫端 `onClick={() => onRollback(session.id)}` 完全沒有東西可接。
+  3. 比照 PR #261／#262 既有 `Feedback`／`FeedbackLine` 慣例，沿用同一套 `{tone, text}` 狀態與 `role="status"`／`role="alert"` 語意化呈現，未另創新的呈現方式。
+- **修復（[PR #282](https://github.com/hyc640110/family-universal-rebalance/pull/282)）**：
+  - `src/lib/importCenter.ts` 新增純函式 `evaluateRollbackImport(transactions, sessionId): RollbackOutcome`，把「能不能撤銷」的判斷邏輯（維持原有語意，未變更行為本身）從 `setState` updater 內抽出成獨立、可單元測試的純函式，回傳 `{ok:true, count}` 或 `{ok:false, reason:'no-transactions'}` 或 `{ok:false, reason:'edited', editedCount, totalCount}`。
+  - `rollbackImport`（`App.tsx`）改為先呼叫 `evaluateRollbackImport(stateRef.current.transactions, sessionId)` 同步取得結果，只有 `ok:true` 才呼叫 `setState` 實際搬移資料，函式本身回傳 `RollbackOutcome` 給呼叫端。（`stateRef.current` 由本檔案自訂的 `setState` wrapper 同步維護，不是 React 原生 `useState` 的非同步 updater，讀取上沒有 UR-TODO-049 那類時序風險。）
+  - `ImportCenter.tsx` 新增 `rollbackFeedback` state（沿用既有 `Feedback`／`FeedbackLine` 型別與元件），`onClick` 改呼叫本地 `rollback(sessionId)`：成功顯示「已撤銷 N 筆交易。」，因交易被編輯失敗顯示「無法撤銷：本次匯入的交易中有 N 筆已被編輯過，請改為手動刪除。」，因交易已被逐筆刪除失敗顯示「無法撤銷：此批交易已不存在（可能已被逐筆刪除），沒有可撤銷的項目。」——兩種失敗原因文字明確區分，皆非籠統的「撤銷失敗」。
+  - **未變更**：`rollbackImport` 判斷邏輯本身（被編輯就整批擋下撤銷）維持原樣；未實作部分撤銷；未觸碰 UR-TODO-049 剛修復的勾選框邏輯；未觸碰「正式批次匯入已選列」的 `window.confirm()`。
+- **新增測試**：`tests/importCenterRollbackFeedback.test.ts`（4 項，純函式 `evaluateRollbackImport` 的成功／已編輯／已被逐筆刪除／不屬於此 session 四種情境）與 `tests/importCenterRollbackFeedbackDisplay.test.ts`（3 項，以 jsdom＋`react-dom/client` 渲染真實元件、點擊「撤銷」，確認畫面實際顯示的文字與 `role` 屬性正確，並斷言失敗訊息不是籠統的「撤銷失敗」）；皆已驗證在修復前的程式碼上會失敗（`onRollback` 舊型別為 `void`、`ImportCenter.tsx` 完全沒有 `rollbackFeedback`），修復後通過。
+- 驗證：`npx tsc -b`、`npm run test:ci`（832 項全數通過，含新增 7 項測試）、Production／Preview `vite build` 皆成功；隔離本機 dev server 桌機 1280px＋手機 390px 皆以真實互動驗證：(1) 正常撤銷（未編輯過任何交易）→ 確認顯示「已撤銷 N 筆交易。」（`role="status"`）；(2) 先編輯其中一筆交易的金額，再嘗試撤銷同批 → 確認顯示「無法撤銷：本次匯入的交易中有 1 筆已被編輯過，請改為手動刪除。」（`role="alert"`），且交易資料與 session 狀態皆維持不變（未被靜默改動）；以全新瀏覽器分頁排除 console 歷史殘留疑慮後確認皆無新增錯誤，390px 無橫向溢出。
+- **待使用者於 Preview 真機驗收與指示 Merge，本次未自行 Merge**；依 UR-TODO-050 方案 B 流程，驗收前先請 Claude Code 執行一次 `workflow_dispatch` 刷新 Preview。
 
 ### UR-TODO-052 移除首頁頂部行銷文案區塊與收合按鈕
 

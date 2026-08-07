@@ -18,7 +18,8 @@ import {
   type ImportMapping,
   type ImportPreset,
   type ImportPreviewRow,
-  type ImportSession
+  type ImportSession,
+  type RollbackOutcome
 } from '../../lib/importCenter';
 
 type Sheet = { sheet: string; data: Array<Array<unknown>> };
@@ -29,7 +30,7 @@ type ImportCenterProps = {
   sessions: ImportSession[];
   presets: ImportPreset[];
   onCommit: (session: ImportSession, imported: FinancialTransaction[]) => void;
-  onRollback: (sessionId: string) => void;
+  onRollback: (sessionId: string) => RollbackOutcome;
   onPresets: (presets: ImportPreset[]) => void;
 };
 
@@ -60,6 +61,9 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const [presetFeedback, setPresetFeedback] = useState<Feedback>(null);
   // Covers 正式批次匯入已選列.
   const [commitFeedback, setCommitFeedback] = useState<Feedback>(null);
+  // Covers 撤銷 (shared across all sessions in the 匯入紀錄 list, same as commitFeedback being
+  // shared across the single 正式批次匯入已選列 button — only one rollback action happens at a time).
+  const [rollbackFeedback, setRollbackFeedback] = useState<Feedback>(null);
   const targets = accounts.filter(account => account.isActive && ['cash', 'bank', 'creditCard', 'eWallet', 'securities'].includes(account.type));
   const account = targets.find(item => item.id === accountId);
   const selectedRowCount = preview.filter(row => row.selected && !row.error).length;
@@ -148,6 +152,13 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     setPreview([]); setRecords([]); setCommitFeedback({ tone: 'success', text: `已匯入 ${imported.length} 筆交易。` });
   };
 
+  const rollback = (sessionId: string) => {
+    const outcome = onRollback(sessionId);
+    if (outcome.ok) { setRollbackFeedback({ tone: 'success', text: `已撤銷 ${outcome.count} 筆交易。` }); return; }
+    if (outcome.reason === 'edited') { setRollbackFeedback({ tone: 'error', text: `無法撤銷：本次匯入的交易中有 ${outcome.editedCount} 筆已被編輯過，請改為手動刪除。` }); return; }
+    setRollbackFeedback({ tone: 'error', text: '無法撤銷：此批交易已不存在（可能已被逐筆刪除），沒有可撤銷的項目。' });
+  };
+
   const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
 
   return <div className="financial-account-list import-center">
@@ -167,7 +178,8 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <FeedbackLine feedback={previewFeedback} />
     {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => { const checked = event.currentTarget.checked; setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: checked } : item)); }} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
     <FeedbackLine feedback={commitFeedback} />
-    <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => onRollback(session.id)}>撤銷</button>}</p>)}
+    <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => rollback(session.id)}>撤銷</button>}</p>)}
+    <FeedbackLine feedback={rollbackFeedback} />
     <ToolQuickNavigation current="import-transactions" showAssetsReturn />
   </div>;
 }
