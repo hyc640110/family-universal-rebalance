@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.66
+# Universal Rebalance Todo Backlog v1.67
 
 最後更新：2026-08-07
+
+2026-08-07 **交易匯入中心「正式批次匯入已選列」二次確認機制正式標記為已完成，並新增 UR-TODO-049（匯入預覽勾選框 crash）**。已由使用者手動 Merge [PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)（`fix/import-center-commit-confirm`），merge commit `642c1a60ec3a7e203878440ebe24a5ad7104bb29`，為目前 `main`／`origin/main` 正式基線。**背景**：唯讀盤點確認「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，點下去立刻寫入 `state.transactions`，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。**範圍**：`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認，文字明確帶出實際會寫入的筆數（以 `createImportTransactions(...).length` 而非 `preview.length` 計算，避免與未勾選／錯誤列混計）、目標帳戶名稱、以及撤銷的真實限制；取消時顯示「已取消匯入，尚未寫入任何交易。」（沿用既有 `savePreset`／`importBackup` 的 cancelled-tone feedback 慣例）；按鈕在可寫入列數為 0 時（全部取消勾選或皆為錯誤／重複列）直接 `disabled`，避免產生一筆 `importedRows: 0` 的空匯入紀錄。新增 5 個測試（`tests/importCenterCommitConfirmation.test.ts`），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證（桌機 1280px＋手機 390px）：確認視窗文字精確符合預期、取消與接受兩條路徑皆正確（取消不寫入、接受後正確寫入且可撤銷）、0 筆時按鈕確認 `disabled: true`、390px 無橫向溢出、console 全程無新增錯誤。**明確不包含**：「撤銷」按鈕本身在撤銷失敗時完全靜默無回饋的既有缺口（獨立問題，維持「待評估」，未來另行處理）。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認 `main` 分支在本次變更前就已存在、本次全程未觸碰）：以真實瀏覽器點擊（非程式化事件）取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截導致畫面整個被錯誤畫面取代，已新增 **UR-TODO-049** 記錄重現步驟與初步懷疑方向，供之後排入；本次未修復、未觸碰任何相關程式碼。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。
 
 2026-08-07 **「隱藏金額」功能回退＋操作回饋一致性連續修正（非既有 UR-TODO 編號，由使用者直接下達指令）正式標記為已完成，使用者已於真機完成最終覆核並確認**。PR #260～#267 已由使用者手動指示／授權 Merge，`main`／`origin/main` 正式基線推進至 `9dd703f`。完整內容詳見 `003_CURRENT_STATUS.md` 最上方條目。摘要：
 - 回退 PR #257「隱藏金額」功能（使用者確認不需要）。
@@ -693,6 +695,28 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 驗證：`npx tsc -b` 通過；`test:ci` 全數通過（exit code 0，0 fail）；Production build 成功；本機以 `--mode preview-deploy` 啟動隔離 Preview 環境（未使用使用者實際 Production 資料），瀏覽器導覽至 `/tools/portfolio-risk`，確認「槓桿暴露」卡片「占總資產／0.0%／占總資產」列（原重複 key 觸發列）內容不變、`read_console_messages` 確認無任何「Encountered two children with the same key」警告。Merge 後 `Deploy GitHub Pages` workflow run `30688639249`（`conclusion: success`，headSha `e81259a` 與 merge commit 一致）；Production／Preview 本次以 `curl` 實測皆 `HTTP 200`，`deployment-environment` metadata 分別為 `production`／`preview`，資源路徑（`/assets/...` vs `/preview/assets/...`）未混用。
 - 依賴：無（獨立於 UR-TODO-009／013 家庭流動性系列）
 - 完成標準對照：程式碼完成（PR #209 已合併）、自動測試通過（`test:ci` 0 fail）、Preview 驗收通過（隔離瀏覽器實測 console 無警告、畫面內容不變）、PR Merge（#209 已由使用者手動 Merge）、Production 唯讀驗證通過（`Deploy GitHub Pages` workflow 成功、headSha 一致、HTTP 200、環境隔離正常）——**五項完成標準全數達成，正式標記為已完成**。
+
+### UR-TODO-049 交易匯入中心匯入預覽勾選框點擊會觸發 ErrorBoundary crash
+
+- 優先級：**待評估**
+- 狀態：**待評估**
+- 提出日期：2026-08-07
+- 提出依據：交易匯入中心「正式批次匯入已選列」二次確認機制開發（非既有 UR-TODO 編號，由使用者直接下達指令，[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)）驗收過程中，以真實瀏覽器點擊（非程式化事件）測試取消勾選匯入預覽列時意外觸發，與 PR #270 的實際變更範圍（`commit()` 內的 `window.confirm()` 與按鈕 `disabled` 邏輯）完全無關；唯讀比對確認 `main` 分支在 PR #270 之前就已存在此段程式碼、PR #270 全程未觸碰。
+- 問題：`src/components/import/ImportCenter.tsx` 匯入預覽列表的勾選框：
+
+  ```tsx
+  <input type="checkbox" checked={row.selected} disabled={Boolean(row.error)}
+    onChange={event => setPreview(current => current.map(item =>
+      item.rowNumber === row.rowNumber ? { ...item, selected: event.currentTarget.checked } : item))} />
+  ```
+
+  傳給 `setPreview` 的 state updater function 在其函式本體內讀取 `event.currentTarget.checked`；以真實瀏覽器點擊觸發（而非測試用的程式化 `dispatchEvent`）時會拋出 `TypeError: Cannot read properties of null (reading 'checked')`，被 `<ImportCenter>` 的父層 `ErrorBoundary` 攔截，畫面整個被錯誤畫面取代（「系統發生錯誤」），使用者必須「重新整理頁面」才能恢復，當下輸入的匯入設定（帳戶、檔案、mapping）全部遺失。
+- 重現步驟：交易匯入中心 → 選擇帳戶 → 上傳有效 CSV → 產生匯入預覽 → 以滑鼠實際點擊任一列的勾選框（取消或重新勾選皆會觸發）。
+- 影響範圍：僅限「產生匯入預覽」後、勾選框互動這一個路徑；不影響「正式批次匯入已選列」本身的確認流程（PR #270 新增的 `window.confirm()` 與 disable 邏輯皆在此 crash 之後才會執行到，兩者互不相關）；不影響已寫入的交易資料或既有匯入紀錄。
+- 懷疑成因（未深入除錯，待正式排入時確認）：`event.currentTarget` 是否會在 `setPreview` 的 updater function 實際執行時（可能被 React 排程延後至下一個 microtask／render 之後）已被瀏覽器或 React 事件系統清空為 `null`；需要確認是否為 React SyntheticEvent 生命週期問題，或其他成因。
+- 明確不包含：本次盤點未修改任何程式碼、未嘗試修復，僅記錄重現步驟與初步懷疑方向。
+- 建議修正方向（未拍板，待排入時決策）：在 `onChange` handler 內、`setPreview` 呼叫之前，先把 `event.currentTarget.checked` 讀進一個區域變數，再於 updater function 中使用該變數，避免在延遲執行的 updater 內存取可能已失效的 event 物件。
+- 依賴：無，與 UR-TODO-046、UR-TODO-001 等系列無關，可獨立排程。
 
 ### UR-TODO-044 固定支出角色 fallback 靜默分類分歧與生活費重複計算風險
 

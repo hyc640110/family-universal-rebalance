@@ -1,8 +1,10 @@
-# Universal Rebalance Current Status v3.79
+# Universal Rebalance Current Status v3.80
 
 最後更新：2026-08-07
 
-**「隱藏金額」功能回退＋備份／匯入回饋一致性連續修正（7 支 PR，2026-08-06）正式完成，目前 `main`／`origin/main` 正式基線為 `cbe176d`（PR #266 merge commit）**。本輪起於使用者確認不需要「螢幕分享時隱藏金額」功能（PR #257），要求完整回退，過程中連帶發現並修正一系列真實回饋／版面一致性缺陷，全數皆由使用者於 Preview／Production 實機驗收後指示或授權 Merge（`gh pr merge --admin`，本 repo 單人協作、branch protection 無第二審核者，依 `007_GIT_WORKFLOW.md` §8.2 純小型 UI 修正／基礎設施修正政策執行，已於每次使用時明確揭露）：
+**交易匯入中心「正式批次匯入已選列」二次確認機制正式完成，目前 `main`／`origin/main` 正式基線為 `642c1a6`（[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270) merge commit）**。唯讀盤點發現「正式批次匯入已選列」是交易匯入中心唯一沒有二次確認的批次寫入動作，且既有「撤銷」機制有真實限制——只要匯入後任一筆交易被編輯過，`rollbackImport` 會靜默擋下整批撤銷，沒有時效限制但可被單一筆編輯永久鎖死。`commit()`（`src/components/import/ImportCenter.tsx`）新增 `window.confirm()` 二次確認（文字明確帶出實際寫入筆數、目標帳戶、撤銷限制），取消時顯示「已取消匯入，尚未寫入任何交易。」，按鈕在可寫入筆數為 0 時直接 `disabled`；新增 5 個測試，`npx tsc -b`、`test:ci`、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 實機驗證通過。**明確不包含**：「撤銷」按鈕本身撤銷失敗時靜默無回饋的既有缺口，維持獨立「待評估」狀態。**驗收過程中意外發現一個與本次變更完全無關的既有 Bug**（唯讀確認變更前就已存在）：以真實瀏覽器點擊取消勾選匯入預覽列會觸發 `TypeError: Cannot read properties of null (reading 'checked')`，被 `ErrorBoundary` 攔截，已新增 **UR-TODO-049** 記錄，本次未修復。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見 `008_TODO_BACKLOG.md` 對應段落與 UR-TODO-049 條目。
+
+**「隱藏金額」功能回退＋備份／匯入回饋一致性連續修正（7 支 PR，2026-08-06）正式完成，先前 `main`／`origin/main` 正式基線為 `cbe176d`（PR #266 merge commit）**。本輪起於使用者確認不需要「螢幕分享時隱藏金額」功能（PR #257），要求完整回退，過程中連帶發現並修正一系列真實回饋／版面一致性缺陷，全數皆由使用者於 Preview／Production 實機驗收後指示或授權 Merge（`gh pr merge --admin`，本 repo 單人協作、branch protection 無第二審核者，依 `007_GIT_WORKFLOW.md` §8.2 純小型 UI 修正／基礎設施修正政策執行，已於每次使用時明確揭露）：
 
 - **PR #260**（`revert/ur-todo-hide-amounts-removal`）：完整移除 `AmountVisibilityContext`、浮動眼睛按鈕、`maskEmbeddedAmountsText()` 遮蔽邏輯，恢復 PR #257 合併前的金額顯示方式；PR #258（TargetValuePair）與 PR #259（CollapseEyeIcon）確認零程式碼耦合、完全不受影響。
 - **PR #261**：修正唯讀盤點發現的真實 Bug——`exportBackup`／`importBackup`／`resetState` 的成功/失敗訊息原本寫入 `syncMeta.status`，被 `syncStatusText` 的 baseline/dirty 優先權邏輯在常見情境（本機有未同步異動、或尚未建立同步基準）下靜默覆蓋，使用者幾乎看不到任何回饋。改為獨立的 `backupFeedback` state，緊鄰按鈕顯示，`role="status"`／`role="alert"` 語意化；`exportBackup` 補上先前完全沒有的 try/catch。
