@@ -77,7 +77,7 @@ import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
 import { EMPTY_TRANSACTION_SYNC_DIAGNOSTICS, deriveTransactionSyncDiagnostics, type TransactionSyncDiagnostics } from './lib/transactionSyncDiagnostics';
-import { IMPORT_SCHEMA_VERSION, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession } from './lib/importCenter';
+import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
@@ -1814,7 +1814,14 @@ function App() {
   const deleteTransaction = (id: string) => setState(current => ({ ...current, transactions: current.transactions.filter(transaction => transaction.id !== id) }));
   const updateTransaction = (id: string, patch: Partial<FinancialTransaction>) => setState(current => { try { return { ...current, transactions: current.transactions.map(transaction => transaction.id === id ? updateTransactionRecord(transaction, patch, current.accounts) : transaction) }; } catch { return current; } });
   const commitImport = (session: ImportSession, imported: FinancialTransaction[]) => setState(current => ({ ...current, transactions: [...current.transactions, ...imported], importSessions: [...current.importSessions, session].slice(-50) }));
-  const rollbackImport = (sessionId: string) => setState(current => { const imported = importedBySession(current.transactions, sessionId); if (!imported.length || imported.some(transaction => transaction.updatedAt !== transaction.createdAt)) return current; return { ...current, transactions: current.transactions.filter(transaction => !imported.some(item => item.id === transaction.id)), importSessions: current.importSessions.map(session => session.id === sessionId ? { ...session, status: 'reverted' } : session) }; });
+  const rollbackImport = (sessionId: string): RollbackOutcome => {
+    const outcome = evaluateRollbackImport(stateRef.current.transactions, sessionId);
+    if (outcome.ok) {
+      const imported = importedBySession(stateRef.current.transactions, sessionId);
+      setState(current => ({ ...current, transactions: current.transactions.filter(transaction => !imported.some(item => item.id === transaction.id)), importSessions: current.importSessions.map(session => session.id === sessionId ? { ...session, status: 'reverted' } : session) }));
+    }
+    return outcome;
+  };
   const updateDipAlert = (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => {
     const normalizedSymbol = normalizeSymbol(symbol);
     setState(s => ({
