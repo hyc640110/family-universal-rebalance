@@ -93,17 +93,13 @@ test('只有前 5 層皆不成立時才進入第 6 層的既有機會訊號或�
 test('首頁將六層結果作為唯一投資主決策，並將同步 dirty 降為次要提醒', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
-  const summary = readFileSync(new URL('../src/components/InvestmentIntelligenceSummary.tsx', import.meta.url), 'utf8');
-  const workflow = readFileSync(new URL('../src/components/DailyDecisionWorkflow.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 
   assert.match(app, /todayConclusion: todayDecision\.conclusion/);
   assert.match(app, /syncReminder: syncBaselineDiagnostics\.dirty \? syncStatusText : null/);
   assert.match(page, /todayConclusion: string; syncReminder: string \| null/);
-  assert.match(summary, /todayConclusion=\{todayConclusion\} syncReminder=\{syncReminder\}/);
-  assert.match(workflow, /<p className="eyebrow">今日建議結論<\/p><h3[^>]*>\{todayConclusion\}<\/h3>/);
-  assert.match(workflow, /syncReminder && <p className="daily-decision-sync-reminder"><strong>資料同步提醒<\/strong>\{syncReminder\}<\/p>/);
-  assert.doesNotMatch(workflow, /<h3[^>]*>\{workflow\.conclusion\.title\}<\/h3>/);
+  assert.match(page, /<p className="eyebrow">今日建議結論<\/p><h3>\{data\.todayConclusion\}<\/h3>/);
+  assert.match(page, /data\.syncReminder && <p className="daily-decision-sync-reminder"><strong>資料同步提醒<\/strong>\{data\.syncReminder\}<\/p>/);
+  assert.doesNotMatch(page, /workflow\.conclusion\.title/);
   assert.match(css, /\.daily-decision-sync-reminder\{[^}]*font-size:12px/);
-  assert.match(css, /@media \(max-width:700px\)\{[\s\S]*?\.daily-decision-workflow-status/);
 });

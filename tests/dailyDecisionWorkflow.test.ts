@@ -38,12 +38,13 @@ test('existing performance fallback stays a single linked workflow step', () => 
   assert.equal(result.steps.filter(step => step.isPrimaryNextStep).length, 1);
 });
 
-test('dashboard renders the pure model without hard-coded routes or transaction language', () => {
+test('dashboard renders the pure model without hard-coded routes or transaction language, and the step list lives in the Investment Action Center', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  const summary = readFileSync(new URL('../src/components/InvestmentIntelligenceSummary.tsx', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
+  const actionCenterModel = readFileSync(new URL('../src/lib/investmentActionCenter.ts', import.meta.url), 'utf8');
   const model = readFileSync(new URL('../src/lib/dailyDecisionWorkflow.ts', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-  assert.match(app, /deriveDailyDecisionWorkflow\(investmentIntelligence\)/); assert.match(summary, /DailyDecisionWorkflow/);
+  assert.match(app, /deriveDailyDecisionWorkflow\(investmentIntelligence\)/);
+  assert.match(actionCenterModel, /workflow\.steps/);
+  assert.doesNotMatch(page, /workflow\.steps|daily-decision-steps/);
   assert.match(model, /does not accept raw portfolio data/); assert.doesNotMatch(model, /localStorage|fetch\(/);
-  assert.match(css, /@media \(max-width:700px\).*?\.daily-decision-steps(?:,\.investment-opportunity-grid)?\{grid-template-columns:1fr/s);
 });

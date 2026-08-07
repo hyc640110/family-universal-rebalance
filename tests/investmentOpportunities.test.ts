@@ -28,12 +28,11 @@ test('unavailable remains explicit, routes and accessible labels transfer exactl
   assert.deepEqual(deriveInvestmentOpportunities(workflow(['completed', 'completed', 'completed', 'completed', 'completed'])), []);
 });
 
-test('homepage uses the model, reusable card, maximum of three items, and a mobile single column', () => {
+test('homepage points to the Investment Action Center instead of duplicating opportunity cards, capped at three per the model', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  const summary = readFileSync(new URL('../src/components/InvestmentIntelligenceSummary.tsx', import.meta.url), 'utf8');
-  const list = readFileSync(new URL('../src/components/InvestmentOpportunityList.tsx', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-  assert.match(app, /deriveInvestmentOpportunities\(dailyDecisionWorkflow\)/); assert.match(summary, /InvestmentOpportunityList/); assert.match(list, /InvestmentOpportunityCard/);
+  const page = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
+  assert.match(app, /deriveInvestmentOpportunities\(dailyDecisionWorkflow\)/);
+  assert.match(page, /INVESTMENT_DECISION_ROUTES\.investmentActionCenter/);
+  assert.doesNotMatch(page, /InvestmentOpportunityCard|opportunity\.title|opportunity\.description/);
   assert.match(readFileSync(new URL('../src/lib/investmentOpportunities.ts', import.meta.url), 'utf8'), /slice\(0, 3\)/);
-  assert.match(css, /@media \(max-width:700px\).*?\.investment-opportunity-grid\{grid-template-columns:1fr/s);
 });

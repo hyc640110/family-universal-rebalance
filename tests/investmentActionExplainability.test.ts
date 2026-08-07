@@ -15,7 +15,7 @@ test('only transfers deterministic Action Center output with bounded evidence', 
 
 test('UI uses a local disclosure control and homepage keeps full evidence out', () => {
   const page = readFileSync(new URL('../src/pages/InvestmentActionCenterPage.tsx', import.meta.url), 'utf8');
-  const home = readFileSync(new URL('../src/components/InvestmentOpportunityList.tsx', import.meta.url), 'utf8');
+  const home = readFileSync(new URL('../src/pages/DashboardDecisionPage.tsx', import.meta.url), 'utf8');
   assert.match(page, /aria-expanded=\{expanded\}/); assert.match(page, /aria-controls=\{controlsId\}/); assert.match(page, /為什麼出現？/); assert.match(page, /useState/);
   assert.doesNotMatch(home, /evidenceItems|InvestmentActionExplanation/);
 });
