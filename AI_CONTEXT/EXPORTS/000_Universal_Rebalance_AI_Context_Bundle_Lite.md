@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-07T16:19:15.734585+00:00
+Generated UTC: 2026-08-07T16:46:40.047889+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `13a338115a1f177d2255945cc0ac972a81d2ed90fe95fbe27d11563b2889538c`
-- `008_TODO_BACKLOG.md` — SHA-256 `d042cf581b8178c89c5c6dc8232a9d2d5e2d1c162635c835c2953f2343e1f82b`
+- `003_CURRENT_STATUS.md` — SHA-256 `f77d560d362674d854cb318ac61bce238bce2b3468e4c3392d25e4752ff6eb01`
+- `008_TODO_BACKLOG.md` — SHA-256 `1a29073b6debdbee8fa6367305585b96cb2359a6429ecfc33a76f77ba1a4cf92`
 - `012_AI_HANDOVER.md` — SHA-256 `440c0396ec78864651148848b2e545360f087f2e046d91364e69eeee3af58b8c`
 
 ---
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.85
+# Universal Rebalance Current Status v3.86
 
-最後更新：2026-08-07
+最後更新：2026-08-08
+
+**UR-TODO-049（交易匯入中心匯入預覽勾選框點擊觸發 ErrorBoundary crash）修復完成，Draft PR 已開啟、待驗收，尚未 Merge、正式基線仍為下方 `f489225`**。開發前唯讀盤點以 jsdom＋`react-dom/client` 真實重現原本的 crash（原生 `.click()`），確認成因為 `event.currentTarget` 在延遲執行的 `setPreview` updater 內已失效；修復為先同步擷取 `checked` 區域變數再於 updater 內使用。新增 `jsdom` devDependency 與對應迴歸測試，已驗證測試在修復前失敗、修復後通過。`npx tsc -b`、`test:ci`（825 項）、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 以真實原生點擊驗證不再崩潰。**待 Preview 部署（需先觸發 `workflow_dispatch`）與使用者真實裝置驗收。**詳見 `008_TODO_BACKLOG.md` UR-TODO-049 條目。
 
 **UR-TODO-050（`deploy.yml` Preview 部署 race condition，方案 B）正式完成，目前 `main`／`origin/main` 正式基線為 `f489225`（[PR #278](https://github.com/hyc640110/family-universal-rebalance/pull/278) 熱修 merge commit）**。改為 `push` 到 `main` 時不重建 Preview（改沿用最近一次成功 `workflow_dispatch` run 的 Pages artifact 中的 `preview/` 資料夾），只有 `workflow_dispatch` 才重新建置 Preview；因 `actions/deploy-pages` 無 partial update、每次都完整取代整個網站，若單純跳過建置會讓 Preview 變 404，故改用 reuse 舊 artifact 的方式維持 Preview 內容不變。**[PR #277](https://github.com/hyc640110/family-universal-rebalance/pull/277) Merge 後第一次真實 push 部署實際失敗**（`gh run list` 因無法自動偵測 repo 而報錯，導致該次 push 對應的 Production 部署未更新，僅暫時停留在上一 commit，全程可正常瀏覽、無中斷），已依使用者指示主動回報並以 PR #278 熱修（加上明確 `--repo` 旗標，reuse 路徑全程 `continue-on-error` 且 fallback 改為直接檢查產物是否存在），熱修 Merge 後的 push 部署完整成功，Production／Preview 皆確認正確。**語意變化：往後驗收 PR 前需先觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再覆蓋正在驗收中的 Preview。**詳見 `008_TODO_BACKLOG.md` UR-TODO-050 條目（含完整故障與熱修記錄）。
 
@@ -1026,9 +1028,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.72
+# Universal Rebalance Todo Backlog v1.73
 
-最後更新：2026-08-07
+最後更新：2026-08-08
+
+2026-08-08 **UR-TODO-049（交易匯入中心匯入預覽勾選框點擊觸發 ErrorBoundary crash）修復完成，Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`fix/ur-todo-049-import-checkbox-stale-event` 分支，基準 `origin/main` HEAD `c19e0db`）。開發前唯讀盤點以 jsdom＋`react-dom/client` 真實重現原本的 crash（原生 `.click()`，非程式化 `dispatchEvent`），確認使用者提出的成因假設（`event.currentTarget` 在延遲執行的 `setPreview` updater 內已失效）為真正根因；全庫搜尋確認 `src/` 內僅此一處有相同風險模式，無需回報其他檔案。修復：`onChange` handler 改為先同步擷取 `checked` 區域變數，再於 updater 內使用，不再於 updater 內存取 `event`。新增 `jsdom` devDependency（專案先前完全無 DOM 測試基礎設施，經評估認定唯有真實 DOM 才能誠實驗證此類時序缺陷）與 `tests/importCenterCheckboxRealClick.test.ts`，已驗證此測試在修復前的程式碼上確實失敗（拋出與 Production 完全相同的錯誤）、修復後通過。`npx tsc -b`、`npm run test:ci`（825 項全數通過）、Production／Preview build 皆成功；隔離本機 dev server 桌機 1280px＋手機 390px 以真實原生 `.click()` 連續切換多列勾選框驗證不再崩潰、狀態正確、無橫向溢出，並以全新瀏覽器分頁排除 console 歷史殘留疑慮後確認無新增錯誤。**待 Preview 部署（依 UR-TODO-050 方案 B 需先觸發 `workflow_dispatch`）與使用者真實裝置驗收，驗收通過後才可 Merge，本次未自行 Merge。** 詳見下方更新後的 **UR-TODO-049** 正式條目。
 
 2026-08-07 **UR-TODO-050（`deploy.yml` Preview 部署 race condition）方案 B 正式標記為已完成，含一次真實部署失敗與熱修的完整記錄**。已由使用者手動 Merge [PR #277](https://github.com/hyc640110/family-universal-rebalance/pull/277)（`infra/ur-todo-050-preview-race-condition-fix`，merge commit `702c0a1daa1faaf0f36f0a968aa75d5bc1a529d7`）。**核心設計**：`actions/deploy-pages` 每次都會完整取代整個網站（無 partial update），所以「push 到 main 不重建 Preview」不能只是跳過建置步驟（否則下次 push 部署的 artifact 會完全不含 `/preview/`，變 404 而非「維持原樣」）；改為 `push` 事件不重建 Preview，改下載最近一次成功 `workflow_dispatch` run 的 Pages artifact、取出 `preview/` 資料夾原封不動沿用，完全找不到先前 dispatch 記錄時才 fallback 鏡射 main。**PR #277 Merge 後第一次真實 push 部署（run `31196093740`）實際失敗**：`gh run list` 因無法自動偵測 repo（該步驟 cwd 是從未 checkout 過的 workspace 根目錄）而報錯，導致整個 build job 失敗、Production 該次未更新（僅暫時停留在上一 commit，全程可正常瀏覽、無使用者可見中斷）。依使用者「下一次 main push 主動回報」的指示立即回報並修正：[PR #278](https://github.com/hyc640110/family-universal-rebalance/pull/278) 熱修加上明確 `--repo` 旗標，並讓 reuse 路徑全程 `continue-on-error`、fallback 判斷改為直接檢查 `combined/preview/index.html` 是否存在，確保 reuse 輔助路徑永遠不可能再拖垮 Production 部署。PR #278 Merge 後的 push 部署（run `31196710309`）完整成功，Production／Preview 皆確認正確更新／維持不變。**語意變化**：往後驗收 PR 前都需要先手動（或請 Claude Code）觸發一次 `workflow_dispatch`，Preview 才會反映該 PR 內容；日常 main push 不會再意外覆蓋正在驗收中的 Preview。因 repo 僅一名協作者、branch protection 需要審核人數，兩支 PR 皆由 Claude Code 執行 `gh pr merge --admin`（已於每次使用時明確告知使用者）。詳見下方更新後的 **UR-TODO-050** 正式條目。
 
@@ -1735,7 +1739,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-049 交易匯入中心匯入預覽勾選框點擊會觸發 ErrorBoundary crash
 
 - 優先級：**待評估**
-- 狀態：**待評估**
+- 狀態：**開發中／Draft PR 已開啟，待驗收**
 - 提出日期：2026-08-07
 - 提出依據：交易匯入中心「正式批次匯入已選列」二次確認機制開發（非既有 UR-TODO 編號，由使用者直接下達指令，[PR #270](https://github.com/hyc640110/family-universal-rebalance/pull/270)）驗收過程中，以真實瀏覽器點擊（非程式化事件）測試取消勾選匯入預覽列時意外觸發，與 PR #270 的實際變更範圍（`commit()` 內的 `window.confirm()` 與按鈕 `disabled` 邏輯）完全無關；唯讀比對確認 `main` 分支在 PR #270 之前就已存在此段程式碼、PR #270 全程未觸碰。
 - 問題：`src/components/import/ImportCenter.tsx` 匯入預覽列表的勾選框：
@@ -1750,9 +1754,16 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 重現步驟：交易匯入中心 → 選擇帳戶 → 上傳有效 CSV → 產生匯入預覽 → 以滑鼠實際點擊任一列的勾選框（取消或重新勾選皆會觸發）。
 - 影響範圍：僅限「產生匯入預覽」後、勾選框互動這一個路徑；不影響「正式批次匯入已選列」本身的確認流程（PR #270 新增的 `window.confirm()` 與 disable 邏輯皆在此 crash 之後才會執行到，兩者互不相關）；不影響已寫入的交易資料或既有匯入紀錄。
 - 懷疑成因（未深入除錯，待正式排入時確認）：`event.currentTarget` 是否會在 `setPreview` 的 updater function 實際執行時（可能被 React 排程延後至下一個 microtask／render 之後）已被瀏覽器或 React 事件系統清空為 `null`；需要確認是否為 React SyntheticEvent 生命週期問題，或其他成因。
-- 明確不包含：本次盤點未修改任何程式碼、未嘗試修復，僅記錄重現步驟與初步懷疑方向。
+- 明確不包含（唯讀盤點階段）：本次盤點未修改任何程式碼、未嘗試修復，僅記錄重現步驟與初步懷疑方向。
 - 建議修正方向（未拍板，待排入時決策）：在 `onChange` handler 內、`setPreview` 呼叫之前，先把 `event.currentTarget.checked` 讀進一個區域變數，再於 updater function 中使用該變數，避免在延遲執行的 updater 內存取可能已失效的 event 物件。
 - 依賴：無，與 UR-TODO-046、UR-TODO-001 等系列無關，可獨立排程。
+- **開發前唯讀盤點確認成因與影響範圍（2026-08-08）**：
+  1. 以隔離本機 dev server 對現有（修復前）程式碼實際重現：以 jsdom + `react-dom/client` 渲染真實元件並呼叫原生 `HTMLInputElement.click()`（而非程式化 `dispatchEvent(new Event('change'))`），確認會拋出與 Production 完全相同的 `TypeError: Cannot read properties of null (reading 'checked')`，堆疊指向 `ImportCenter.tsx:168`——**懷疑成因確認為真正根因**：`event.currentTarget` 在傳給 `setPreview` 的 functional updater 內被讀取時已經是 `null`，因為 React 只在同步 dispatch 完成後才會清空 SyntheticEvent 的 `currentTarget`（這個行為在 React 17 移除 event pooling 後仍然存在，是刻意模擬原生 DOM `currentTarget` 只在 dispatch 階段有效的語意），而 updater 本身有可能在此之後才被 React 實際呼叫。
+  2. 全庫搜尋確認 `src/` 內僅此一處有「把 `event` 直接傳入延遲執行的 `setX(current => ...)` functional updater、於 updater 內部才讀取 `event.currentTarget`」這個模式；未發現其他檔案有同類風險，故本次修復範圍維持僅限本檔案，未發現需要另行回報的同類問題。
+- **修復（2026-08-08，[PR #280](https://github.com/hyc640110/family-universal-rebalance/pull/280)）**：`onChange` handler 改為先同步讀出 `const checked = event.currentTarget.checked`，再於 `setPreview` 的 updater 內使用這個已擷取的區域變數，不再於 updater 內存取 `event`。範圍僅 1 個 `onChange` handler，未觸碰其餘勾選框邏輯、「正式批次匯入已選列」的 `window.confirm()`（PR #270 範圍）或「撤銷」按鈕（UR-TODO-051 範圍）。
+- **新增測試（`tests/importCenterCheckboxRealClick.test.ts`）**：新增 `jsdom` 為 devDependency（專案先前完全沒有 DOM 測試基礎設施，僅靠 `react-dom/server` 的 `renderToStaticMarkup` 做靜態渲染斷言，無法重現此類「延遲執行 callback 內存取失效 event」的時序缺陷，經評估後認定唯有真實 DOM 環境才能誠實驗證此修復，故新增此依賴，範圍僅限這一個測試檔）；測試以 `react-dom/client` 掛載真實 `ImportCenter` 元件（含 `MemoryRouter`，因元件內部使用 `react-router-dom` 的 `Link`），完整走過選帳戶／上傳 CSV／產生預覽／原生 `.click()` 勾選框的真實互動路徑；**已驗證此測試在修復前的程式碼上會失敗**（拋出與 Production 完全相同的錯誤訊息與堆疊位置），**修復後通過**，證實為有效的迴歸測試而非空殼斷言。
+- 驗證：`npx tsc -b`、`npm run test:ci`（825 項全數通過，含新增迴歸測試）、Production／Preview `vite build` 皆成功；隔離本機 dev server 桌機 1280px＋手機 390px 皆以真實原生 `.click()`（透過 `element.click()` DOM API，非程式化 `dispatchEvent`）連續點擊多列勾選框（取消、重新勾選、連續切換），確認皆不再觸發 `ErrorBoundary`、`selected` 狀態正確反映每次切換、390px 無橫向溢出（`scrollWidth === clientWidth`）；以全新瀏覽器分頁排除瀏覽器 console 歷史訊息殘留疑慮後確認 console 全程無新增錯誤。
+- **待使用者於 Preview 真機驗收與指示 Merge，本次未自行 Merge**；依 UR-TODO-050 方案 B 的新流程，驗收前需先請 Claude Code 執行一次 `workflow_dispatch` 刷新 Preview。
 
 ### UR-TODO-050 `deploy.yml` Preview 部署會被非相關 main push 覆蓋（race condition）
 
