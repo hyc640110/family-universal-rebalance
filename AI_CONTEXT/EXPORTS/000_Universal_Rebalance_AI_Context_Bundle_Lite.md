@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-07T15:37:34.512522+00:00
+Generated UTC: 2026-08-07T15:49:21.377380+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `091aef7cfdd05ddb182731b7512ed3ad2acd0a14be2618f1591113d57ec8b4a8`
-- `008_TODO_BACKLOG.md` — SHA-256 `c6143a25e187dcfa6e695bdf246540496cc4a9472d7c8608ab28cce19f10f99f`
+- `003_CURRENT_STATUS.md` — SHA-256 `34464f0323cdf5e09c2e654588e32a27ac0aaf9343684549b0c67f0a4092fcad`
+- `008_TODO_BACKLOG.md` — SHA-256 `a2cfdede55b9049f0ef9f42d8267a3e3b6c35d8b9bd4f3100a2d158258d3e567`
 - `012_AI_HANDOVER.md` — SHA-256 `440c0396ec78864651148848b2e545360f087f2e046d91364e69eeee3af58b8c`
 
 ---
@@ -425,11 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.82
+# Universal Rebalance Current Status v3.83
 
 最後更新：2026-08-07
 
-**UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）Draft PR 已開啟、待 Preview 驗收，尚未 Merge、正式基線仍為下方 `cd89ad1`**。使用者提供首頁截圖指出希望移除「收合」按鈕與其下方行銷文案區塊（App 副標、說明文字、Build time），開發前唯讀盤點確認 `CollapseEyeIcon` 為全站共用元件（不觸碰其他呼叫點）、`APP_SUBTITLE` 僅此處讀取、版本號與 Build time 在側欄及設定頁「版本與除錯」區塊另有獨立顯示、不受影響。範圍限於移除 `App.tsx` 該一處呼叫點與對應的死 CSS，「更新股價／下載／上傳」三顆按鈕不變。`npx tsc -b`、`test:ci`（824 項）、Production／Preview build 皆成功，隔離本機 dev server 桌機＋390px 實機驗證通過。詳見 `008_TODO_BACKLOG.md` UR-TODO-052 條目。
+**UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式完成，目前 `main`／`origin/main` 正式基線為 `92bb4f1`（[PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275) merge commit）**。使用者提供首頁截圖指出希望移除「收合」按鈕與其下方行銷文案區塊（App 副標、說明文字、Build time），開發前唯讀盤點確認 `CollapseEyeIcon` 為全站共用元件（不觸碰其他呼叫點）、`APP_SUBTITLE` 僅此處讀取、版本號與 Build time 在側欄及設定頁「版本與除錯」區塊另有獨立顯示、不受影響。範圍限於移除 `App.tsx` 該一處呼叫點與對應的死 CSS，「更新股價／下載／上傳」三顆按鈕不變。`npx tsc -b`、`test:ci`（824 項）、Production／Preview build 皆成功。使用者於 Preview 以真實裝置（桌機＋手機）驗收通過後直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見 `008_TODO_BACKLOG.md` UR-TODO-052 條目。
 
 **UR-TODO-030（首頁 30 秒決策中心精簡）正式完成，目前 `main`／`origin/main` 正式基線為 `cd89ad1`（[PR #268](https://github.com/hyc640110/family-universal-rebalance/pull/268) merge commit）**。首頁依三項使用者拍板保留內容重新設計：Hero 標頭收合（App 名稱／版號等品牌文字收合在「關於」按鈕後，更新股價／下載／上傳按鈕不受影響）；「今日投資狀態」精簡為狀態徽章＋摘要句＋今日建議結論，判斷流程步驟與機會清單移到既有投資行動中心；資產總覽精簡為總資產／淨資產／今日損益／今日損益率 4 格；投資健康度改為 1 行摘要＋風險中心連結；原「重要提醒」更名「狀態確認」並合併報價／同步／再平衡提醒與投資機會指標。詳細對照決策與搬移目的地見 `008_TODO_BACKLOG.md` UR-TODO-030 條目。**Preview 驗收過程中發現並排除兩個部署層問題**：`github-pages` Environment 的 Deployment branch policy 原僅允許 `main`／`gh-pages`，`workflow_dispatch` 部署 feature branch 連續被拒絕 3 次（`build` job 皆成功，僅 `deploy` job 被 Environment 分支政策擋下），使用者於網頁新增 `feat/*`／`fix/*`／`hotfix/*`／`docs/*`／`infra/*` 五條規則後恢復正常；另發現 `deploy.yml` 對 `push main` 事件也會重建 `/preview/`（Preview 內容固定來自「觸發這次 run 的 ref」），導致其他不相干 PR merge 到 main 會覆蓋尚未驗收完成的 Preview 分支內容，已新增 **UR-TODO-050** 追蹤（暫採方案 A：不修改 workflow，驗收時效性配合，之後找獨立 Sprint 評估是否改為方案 B／C）。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見 `008_TODO_BACKLOG.md` UR-TODO-030、UR-TODO-050 條目。
 
@@ -1024,11 +1024,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.69
+# Universal Rebalance Todo Backlog v1.70
 
 最後更新：2026-08-07
 
-2026-08-07 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕），Draft PR 已開啟、待驗收**（Claude Code，Development Mode，`feat/ur-todo-052-remove-hero-marketing-block` 分支，基準 `origin/main` HEAD `cf8a207`）。使用者提供首頁截圖，紅框標示希望移除「收合」按鈕（帶眼睛圖示）與其下方行銷文案區塊（「家庭多資產配置管理」／「即時股價｜動態再平衡｜Firebase 雲端同步」／「Build time: unavailable」）。開發前唯讀盤點確認：`CollapseEyeIcon` 為全站共用元件（19＋3 個其他呼叫點），本次僅移除 `App.tsx` 這一個呼叫點，元件本體不觸碰；`APP_SUBTITLE` 全庫僅此處讀取，`APP_VERSION`／`APP_NAME`／`APP_BUILD_TIME`／`APP_GIT_COMMIT` 皆在側欄與「版本與除錯」設定區塊獨立顯示、不受影響；`showHeroInfo` state 僅此處使用。範圍：`src/App.tsx` 移除 hero 標頭「關於／收合」切換按鈕與 `.hero-info` 行銷文案區塊；`src/styles.css` 清理對應死 CSS（`.hero-info-toggle`、`.hero-info`、`.build-info`）；「更新股價／下載／上傳」三顆按鈕與其容器完全不變。`npx tsc -b`、`npm run test:ci`（824 項全數通過）、Production／Preview build 皆成功；隔離本機 dev server 桌機＋390px 實機驗證：行銷文案與收合按鈕已完全移除、標頭無殘留空白容器、無橫向溢出、console 無新增錯誤、側欄版本號顯示不受影響。**待 Preview 部署與使用者真實裝置驗收，驗收通過後才可 Merge，本次未自行 Merge。** 詳見下方新增的 **UR-TODO-052** 正式條目。
+2026-08-07 **UR-TODO-052（移除首頁頂部行銷文案區塊與收合按鈕）正式標記為已完成**。已由使用者手動 Merge [PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275)（`feat/ur-todo-052-remove-hero-marketing-block`），merge commit `92bb4f17b6b579b5023c72833aec77ff5d30bc5a`，為目前 `main`／`origin/main` 正式基線。使用者提供首頁截圖，紅框標示希望移除「收合」按鈕（帶眼睛圖示）與其下方行銷文案區塊（「家庭多資產配置管理」／「即時股價｜動態再平衡｜Firebase 雲端同步」／「Build time: unavailable」）。開發前唯讀盤點確認：`CollapseEyeIcon` 為全站共用元件（19＋3 個其他呼叫點），本次僅移除 `App.tsx` 這一個呼叫點，元件本體不觸碰；`APP_SUBTITLE` 全庫僅此處讀取，`APP_VERSION`／`APP_NAME`／`APP_BUILD_TIME`／`APP_GIT_COMMIT` 皆在側欄與「版本與除錯」設定區塊獨立顯示、不受影響；`showHeroInfo` state 僅此處使用。範圍：`src/App.tsx` 移除 hero 標頭「關於／收合」切換按鈕與 `.hero-info` 行銷文案區塊；`src/styles.css` 清理對應死 CSS（`.hero-info-toggle`、`.hero-info`、`.build-info`）；「更新股價／下載／上傳」三顆按鈕與其容器完全不變。`npx tsc -b`、`npm run test:ci`（824 項全數通過）、Production／Preview build 皆成功；Preview 部署後使用者以真實裝置（桌機＋手機）驗收通過，直接指示 Merge。因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` run `31194237652` success，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。詳見下方更新後的 **UR-TODO-052** 正式條目。
 
 2026-08-07 **UR-TODO-030（首頁 30 秒決策中心精簡）正式標記為已完成，並新增 UR-TODO-050（`deploy.yml` Preview 部署會被非相關 main push 覆蓋，race condition）**。已由使用者手動 Merge [PR #268](https://github.com/hyc640110/family-universal-rebalance/pull/268)（`feat/ur-todo-030-homepage-simplification`），merge commit `cd89ad1c4ee17d23597f3a00e63c2acb1262cfb9`，為目前 `main`／`origin/main` 正式基線。**範圍**：依既有唯讀盤點與使用者逐項拍板的決策實作——Hero 標頭收合（App 名稱／版號／副標／Build time 收合在「關於」按鈕後，更新股價／下載／上傳三顆按鈕不受影響）；「今日投資狀態」採方案 B，首頁只保留整體狀態徽章＋摘要句＋今日建議結論標題，「每日判斷流程步驟」與「值得查看的機會」移到既有投資行動中心（`/tools/investment-action-center`，本來就是同一組 `dailyDecisionWorkflow`／`investmentOpportunities` 資料的另一種呈現，非新開發），4 格統計中「今日投資狀態」（與資產總覽今日損益重複）直接移除，「資料品質」拆解為投資組合風險與配置中心（品質問題部分，本來就已顯示）＋首頁狀態確認區塊（報價狀態部分），「市場資料」彙總句直接移除、市場頁維持現狀，「股息摘要」直接移除、股息中心本來就有完整對應內容；「資產與今日表現」精簡為總資產／淨資產／今日損益／今日損益率 4 格，本月／年度資產變動移除、改以淨資產歷史頁（read-time boundary 版本）為權威來源；「投資健康度」改為 1 行摘要＋「查看風險中心」連結（風險中心已完整涵蓋原 8 格內容，與分析頁防守配置狀態卡片欄位不同，不重複）；原「重要提醒」更名為「狀態確認」，合併 quotes／sync／rebalance 三類提醒（不再過濾）、最後股價更新、資料同步提醒文字、投資機會數量＋連結（輕量指標而非重複顯示完整卡片）。附帶移除 4 個因本次重構變成孤兒的呈現層元件（`InvestmentIntelligenceSummary.tsx`、`DailyDecisionWorkflow.tsx` 元件、`InvestmentOpportunityList.tsx`、`InvestmentOpportunityCard.tsx`，皆非 `src/lib/dailyDecisionWorkflow.ts` 資料層），同步更新 6 個相關特徵測試檔與 `scripts/stability-check.mjs` 內對「重要提醒」文案的過時斷言。`npx tsc -b`、`npm run test:ci` 全數通過，Production／Preview `vite build` 皆成功。**Preview 驗收過程中發現並排除一次部署層級的干擾**：`workflow_dispatch` 首次因 `github-pages` Environment 的 Deployment branch policy 只允許 `main`／`gh-pages` 兩個分支，被擋下 3 次（皆為 `build` job 成功、`deploy` job 因 Environment 分支政策被拒絕，非程式碼問題），使用者於 GitHub 網頁新增 `feat/*`／`fix/*`／`hotfix/*`／`docs/*`／`infra/*` 五條規則（對齊 `007_GIT_WORKFLOW.md` §4 既有 Branch 命名慣例）後即成功部署；成功部署後又被兩支不相干 PR（#270、#271）merge 到 main 觸發的 push 部署覆蓋 `/preview/`（詳見下方 **UR-TODO-050**），重新以 `workflow_dispatch` 部署後使用者於 Preview 實機驗收通過（桌機＋390px）。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。詳見下方更新後的 **UR-TODO-030**、新增的 **UR-TODO-050** 正式條目。
 
@@ -1785,8 +1785,9 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-052 移除首頁頂部行銷文案區塊與收合按鈕
 
 - 優先級：P2
-- 狀態：**開發中／Draft PR 已開啟，待驗收**
+- 狀態：**已完成**（2026-08-07，[PR #275](https://github.com/hyc640110/family-universal-rebalance/pull/275)，merge commit `92bb4f17b6b579b5023c72833aec77ff5d30bc5a`）
 - 提出日期：2026-08-07
+- 完成日期：2026-08-07
 - 提出依據：使用者提供首頁截圖，紅框標示希望移除「收合」按鈕（帶眼睛圖示）與其下方的行銷文案區塊（「家庭多資產配置管理」標題＋「即時股價｜動態再平衡｜Firebase 雲端同步」說明文字＋「Build time: unavailable」），使用者直接下達開發指令。
 - 開發前唯讀盤點結論：
   1. **`CollapseEyeIcon` 為全站共用元件**（`src/components/CollapseEyeIcon.tsx`），除本次要移除的 hero-info 切換按鈕外，還被 `App.tsx`（`SectionCard` 共用元件，19 個呼叫點）與 `RiskCenterPage.tsx`／`InvestmentActionCenterPage.tsx`／`HouseholdLiquidityDiagnosticList.tsx` 三處獨立 toggle 使用；**本次僅移除 `App.tsx:1976` 這一個呼叫點（連同其外層按鈕），元件本體與其他呼叫點完全不觸碰**。
@@ -1796,6 +1797,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：不觸碰資產頁、分析頁或其他頁面；不修改任何資料模型、持久化或 App 版本號顯示邏輯（版本號在側欄與「版本與除錯」設定區塊維持原狀）；不影響已結案的 UR-TODO-030。
 - 驗證：`npx tsc -b`、`npm run test:ci`（824 項全數通過，無測試檔涉及此區塊、無需修改既有測試）、Production／Preview `vite build` 皆成功；隔離本機 dev server 實機驗證（桌機 1280px＋手機 390px）：確認首頁不再出現「家庭多資產配置管理」「即時股價｜動態再平衡｜Firebase 雲端同步」「Build time」文字，也無「關於」／「收合」按鈕；`.hero.hero-compact` 標頭只剩「更新股價／下載／上傳」三顆按鈕這一個子元素，無殘留空白容器；390px 無橫向溢出（`scrollWidth === clientWidth`）；console 全程無新增錯誤；側欄與設定頁「版本與除錯」區塊的版本號／Build time 顯示不受影響（唯讀確認 `Universal Rebalance V5.10.1` 仍正確顯示於側欄）。
 - 依賴：無，獨立於其他 UR-TODO 系列。
+- **正式結案（2026-08-07）**：使用者已於 Preview（`https://hyc640110.github.io/family-universal-rebalance/preview/`）以真實裝置驗收通過（桌機＋手機），直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。`Deploy GitHub Pages` workflow run `31194237652`（`event: push`）成功，headSha 與 merge commit 一致；Production `curl` 實測 `HTTP 200`，`deployment-environment` metadata 為 `production`。**UR-TODO-052 正式標記為已完成。**
 
 ### UR-TODO-044 固定支出角色 fallback 靜默分類分歧與生活費重複計算風險
 
