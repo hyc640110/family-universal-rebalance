@@ -10,6 +10,7 @@ import {
   shortSyncFingerprint,
   stableCanonicalJson,
   SYNC_CANONICAL_SCHEMA,
+  SYNCABLE_TOP_LEVEL_FIELDS,
   syncPayloadTopLevelDiff,
   syncPayloadFingerprint,
   withoutSyncBaseline
@@ -246,6 +247,42 @@ test('App upload, download, Backup, and reset flows enforce baseline lifecycle a
   // Reset's user-facing confirmation is deliberately its own backupFeedback state, not syncMeta.status
   // (see App upload/download/backup feedback isolation from syncStatusText's baseline/dirty precedence).
   assert.match(app, /已重設為預設資產：/);
+});
+
+// UR-TODO-046 Firebase Ledger Sync: financialEvents is the one syncable field that merges instead of
+// being overwritten. This checks the source-level wiring the same way the test above does for the
+// rest of the upload/download flow (this file has no fetch-mocking infra to exercise uploadCloud()
+// end to end — that path is covered at the pure-function/integration level in
+// financialEventLedgerMerge.test.ts and financialEventPersistence.test.ts instead).
+test('financialEvents/financialEventSchemaVersion are in the syncable whitelist', () => {
+  assert.ok((SYNCABLE_TOP_LEVEL_FIELDS as readonly string[]).includes('financialEvents'));
+  assert.ok((SYNCABLE_TOP_LEVEL_FIELDS as readonly string[]).includes('financialEventSchemaVersion'));
+});
+
+test('uploadCloud() reads the remote Ledger and merges before the PUT, and refuses to proceed on a merge failure', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(flushed\.firebase, session\.uid, session\.idToken\)/);
+  assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: flushed\.financialEventSchemaVersion, events: flushed\.financialEvents \}, remoteLedger\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
+  // The merged Ledger must be what actually gets uploaded and written back locally, not the
+  // pre-merge local-only array.
+  assert.match(app, /const normalized = \{ \.\.\.flushed, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome\.events \}/);
+  assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
+});
+
+test('downloadCloud confirm dialog explicitly names the Ledger merge exception (rest of the data is still a full overwrite)', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外/);
+});
+
+test('stateFromFirebasePayload merges the Ledger (union by id) instead of the old blanket reject, and refuses only on an unsupported schema version', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /hasLocalFinancialEventLedger/);
+  assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: current\.financialEventSchemaVersion, events: current\.financialEvents \}, remoteLedger\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
+  // droppedFinancialEventCount must be computed from stateRef.current/normalizeState's actual output,
+  // never assumed — a merged-in event can still be dropped by existing transactionId validation.
+  assert.match(app, /droppedFinancialEventCount: mergeOutcome\.events\.length - state\.financialEvents\.length/);
 });
 
 test('persistence effect cannot overwrite a newer stateRef baseline with an older render', () => {

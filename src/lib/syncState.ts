@@ -9,6 +9,8 @@ export const SYNCABLE_TOP_LEVEL_FIELDS = [
   'cashAccountMigrationVersion',
   'transactions',
   'transactionSchemaVersion',
+  'financialEventSchemaVersion',
+  'financialEvents',
   'importSessions',
   'importPresets',
   'importSchemaVersion',
