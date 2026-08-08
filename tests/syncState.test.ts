@@ -60,7 +60,11 @@ test('legacy Firebase payloads with stale or missing sync metadata remain compat
   assert.deepEqual(withoutSyncMetadata(legacyWithoutMeta), legacyWithoutMeta);
 });
 
-test('Firebase canonical payload 明確排除 local-only Ledger，Ledger 變更不會成為上傳內容', () => {
+// UR-TODO-046 Firebase Ledger Sync: financialEvents/financialEventSchemaVersion are now syncable
+// (merged, not overwritten — see App.tsx's uploadCloud/stateFromFirebasePayload and
+// financialEventLedgerMerge.test.ts for the merge logic itself). attributionStartDate was not part
+// of the approved merge scope and stays excluded, same as before this feature.
+test('Firebase canonical payload 含 financialEvents／financialEventSchemaVersion，Ledger 變更會使 payload dirty；attributionStartDate 仍不進入（本次範圍未涵蓋）', () => {
   const ledgerState = {
     ...baseState,
     financialEventSchemaVersion: 1,
@@ -70,8 +74,10 @@ test('Firebase canonical payload 明確排除 local-only Ledger，Ledger 變更�
 
   const payload = canonicalSyncPayload(ledgerState);
 
-  assert.equal('financialEventSchemaVersion' in payload, false);
+  assert.equal('financialEventSchemaVersion' in payload, true);
+  assert.equal(payload.financialEventSchemaVersion, 1);
+  assert.equal('financialEvents' in payload, true);
+  assert.deepEqual(payload.financialEvents, ledgerState.financialEvents);
   assert.equal('financialEventAttributionStartDate' in payload, false);
-  assert.equal('financialEvents' in payload, false);
-  assert.equal(hasSyncableStateChanged(baseState, ledgerState), false);
+  assert.equal(hasSyncableStateChanged(baseState, ledgerState), true);
 });

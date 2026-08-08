@@ -306,3 +306,47 @@ export function appendFinancialEvent(existingEvents: readonly FinancialEvent[], 
   }
   return { rejected: false, events: [...existingEvents, event] };
 }
+
+export type LedgerMergeOutcome =
+  | { ok: true; events: FinancialEvent[] }
+  | { ok: false; reason: string };
+
+/**
+ * UR-TODO-046 Firebase Ledger sync: takes the union of two Ledgers by id — every
+ * event unique to either side survives; a shared id (which under the
+ * forward-only contract should always be byte-identical on both sides)
+ * collapses to one. appendFinancialEvent() is not reusable here — it is a
+ * single-event, reject-on-collision guard, not a two-array union.
+ *
+ * Deliberately refuses to merge when either side's schemaVersion is not the
+ * currently-supported one: an opaque future-version Ledger's `events` are
+ * unvalidated raw data with no guaranteed shape (may not even have a
+ * reliable `.id`), so deduping against it would be unsafe. The caller is
+ * expected to treat a rejection here as a fail-safe that blocks the whole
+ * sync operation, same as this Ledger blocked all Firebase sync entirely
+ * before this feature existed.
+ *
+ * Output order is sorted (createdAt, then id) rather than left as
+ * insertion order — canonicalSyncJson() treats array order as
+ * business-significant, so a merge that produced a different order on every
+ * call would make the Ledger's sync fingerprint perpetually "dirty".
+ */
+export function mergeFinancialEventLedgers(
+  local: { schemaVersion: number; events: readonly FinancialEvent[] },
+  remote: { schemaVersion: number; events: readonly FinancialEvent[] }
+): LedgerMergeOutcome {
+  if (local.schemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION || remote.schemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION) {
+    return {
+      ok: false,
+      reason: `Financial Event Ledger schema 版本不受支援（本機 v${local.schemaVersion}／雲端 v${remote.schemaVersion}，目前支援 v${FINANCIAL_EVENT_SCHEMA_VERSION}），為避免資料損毀，本次同步已中止。請先將兩端 App 更新到同一個版本。`
+    };
+  }
+  const byId = new Map<string, FinancialEvent>();
+  for (const event of local.events) byId.set(event.id, event);
+  for (const event of remote.events) if (!byId.has(event.id)) byId.set(event.id, event);
+  const events = [...byId.values()].sort((a, b) => {
+    if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+  return { ok: true, events };
+}

@@ -64,7 +64,7 @@ import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/co
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
-import { FINANCIAL_EVENT_SCHEMA_VERSION, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
+import { FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
@@ -407,7 +407,9 @@ export function normalizeState(raw: unknown): AppState {
   const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
   return { ...normalized, syncMeta: { ...normalized.syncMeta, dirty: baseline.dirty } };
 }
-type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView };
+/** droppedFinancialEventCount is only ever set by stateFromFirebasePayload's Ledger merge (see its
+ * doc comment) — Backup restore and the local-storage read path don't merge, so it stays undefined there. */
+type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView; droppedFinancialEventCount?: number };
 function readStateWithSnapshotView(): AppReadState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -500,8 +502,40 @@ function waitForDraftCommit() {
 function syncPath(uid: string) { return buildFirebaseSyncRoot(uid); }
 function syncUrl(config: FirebaseConfig, uid: string, idToken: string) { return buildFirebaseSyncUrl(config.databaseURL, syncPath(uid), idToken); }
 async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>, uid: string, idToken: string) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config, uid, idToken), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
-function hasLocalFinancialEventLedger(state: AppState) { return state.financialEventSchemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION || state.financialEvents.length > 0 || state.financialEventAttributionStartDate !== undefined; }
-export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, current: AppState): AppReadState { assertNoOAuthSecrets(data); if (hasLocalFinancialEventLedger(current)) throw new Error('Financial Event Ledger 目前僅保存於本機與 JSON Backup；為避免 Firebase 下載替換 linked evidence，請先匯出備份或等待後續 Firebase Ledger 同步階段。'); const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(data); const remoteData = canonicalSyncPayload(data as Record<string, unknown>); return { state: normalizeState({ ...remoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } }), netWorthSnapshotReadTimeView }; }
+/** UR-TODO-046: read-only peek at the remote Ledger, used by uploadCloud() to merge before it
+ * overwrites the whole node with a PUT. Absence of either field (never-synced remote) reads as an
+ * empty, currently-supported Ledger — matching normalizeFinancialEventLedger's own default. */
+async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: string, idToken: string): Promise<{ schemaVersion: number; events: FinancialEvent[] }> {
+  const res = await fetch(syncUrl(config, uid, idToken), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Firebase ${res.status}`);
+  const data = await res.json();
+  const record = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+  return {
+    schemaVersion: typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION,
+    events: Array.isArray(record.financialEvents) ? record.financialEvents as FinancialEvent[] : []
+  };
+}
+/** UR-TODO-046: financialEvents is the one syncable field that merges (union by id) instead of being
+ * overwritten by the download — everything else in remoteData still fully replaces local. Refuses
+ * (throws, blocking the whole download) when either side's schemaVersion is unsupported, same
+ * fail-safe posture as the blanket block this replaced. A merged-in event whose transactionId isn't
+ * in *this* payload's (unmerged, fully-replaced) transactions is dropped by normalizeState's existing
+ * validation same as always — droppedFinancialEventCount surfaces that to the caller instead of
+ * letting it happen silently. */
+export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, current: AppState): AppReadState {
+  assertNoOAuthSecrets(data);
+  const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(data);
+  const remoteData = canonicalSyncPayload(data as Record<string, unknown>);
+  const remoteLedger = {
+    schemaVersion: typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION,
+    events: Array.isArray(remoteData.financialEvents) ? remoteData.financialEvents as FinancialEvent[] : []
+  };
+  const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
+  if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
+  const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome.events };
+  const state = normalizeState({ ...mergedRemoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } });
+  return { state, netWorthSnapshotReadTimeView, droppedFinancialEventCount: mergeOutcome.events.length - state.financialEvents.length };
+}
 async function downloadFirebase(config: FirebaseConfig, current: AppState, uid: string, idToken: string): Promise<AppReadState> { const res = await fetch(syncUrl(config, uid, idToken), { cache: 'no-store' }); if (!res.ok) throw new Error(`Firebase ${res.status}`); const data = await res.json(); if (!data) throw new Error(`找不到雲端資料：${syncPath(uid)}`); return stateFromFirebasePayload(data, config, current); }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number | null; previousCloseDate?: string | null; previousCloseSource?: Quote['previousCloseSource']; previousCloseTrusted?: boolean; previousCloseReason?: string | null; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
@@ -1305,17 +1339,25 @@ function App() {
     if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
     const session = await ensureFirebaseAuthSessionFresh();
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' }));
-    const normalized = await flushDrafts();
+    const flushed = await flushDrafts();
+    // UR-TODO-046: financialEvents is the one syncable field that merges instead of being overwritten
+    // by the upload — read the remote Ledger first so the PUT below carries the union, not just local's.
+    const remoteLedger = await fetchRemoteFinancialEventLedger(flushed.firebase, session.uid, session.idToken);
+    const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: flushed.financialEventSchemaVersion, events: flushed.financialEvents }, remoteLedger);
+    if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
+    const normalized = { ...flushed, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome.events };
     const requestSnapshot = createSyncPayloadSnapshot(normalized);
     const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot, session.uid, session.idToken);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
-    const syncedAt = now(); 
-    setLastSavedAt(syncedAt); 
+    const syncedAt = now();
+    setLastSavedAt(syncedAt);
     setState(current => {
       const outcome = deriveSuccessfulUploadResult(current, uploadedSnapshot);
       const changedFields = outcome.changedFields.length ? `｜差異欄位 ${outcome.changedFields.join('、')}` : '';
       return {
         ...current,
+        financialEventSchemaVersion: normalized.financialEventSchemaVersion,
+        financialEvents: normalized.financialEvents,
         syncMeta: sanitizeSyncMeta({
           ...current.syncMeta,
           source: '本機資料',
@@ -1324,12 +1366,21 @@ function App() {
           baselineCanonicalSchema: uploadedSnapshot.canonicalSchema,
           dirty: outcome.dirty,
           lastUploadAt: syncedAt,
-          status: outcome.dirty
+          status: (outcome.dirty
             ? `🎉 上傳成功，但上傳期間本機另有未上傳變更${changedFields}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
-            : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
+            : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`)
+            + `｜財務記帳事件 ${normalized.financialEvents.length} 筆（已與雲端合併）`
         }, current)
       };
     });
+    // Read after setState (its custom wrapper applies normalizeState synchronously — see its own
+    // comment) to detect any merged-in event normalizeState just dropped, e.g. a remote-only linked
+    // event whose transactionId isn't in this device's (unmerged) transactions — see
+    // mergeFinancialEventLedgers' doc comment for why this can't be prevented outright.
+    const droppedFinancialEventCount = mergeOutcome.events.length - stateRef.current.financialEvents.length;
+    if (droppedFinancialEventCount > 0) {
+      updateSyncMeta(current => ({ ...current, status: `${current.status}｜⚠️ ${droppedFinancialEventCount} 筆財務記帳事件未能通過驗證而暫時無法保留（常見原因：對應交易記錄尚未同步存在），請確認雙裝置交易資料已同步一致` }));
+    }
     updateRemoteMeta({
       holdingsCount: normalized.holdings.length,
       cashCount: normalized.cash.length,
@@ -1338,15 +1389,19 @@ function App() {
     });
   };
   const downloadCloud = async () => {
-    if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併。是否繼續？')) return;
+    if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外：這一項會自動與雲端既有紀錄合併，雙邊各自獨有的事件都會保留，不會互相覆蓋）。是否繼續？')) return;
     const session = await ensureFirebaseAuthSessionFresh();
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' }));
     const remoteResult = await downloadFirebase(state.firebase, stateRef.current, session.uid, session.idToken);
     const remote = remoteResult.state;
     netWorthSnapshotReadTimeViewRef.current = remoteResult.netWorthSnapshotReadTimeView;
-    const downloadedAt = now(); 
+    const downloadedAt = now();
     const downloadedSnapshot = createSyncPayloadSnapshot(remote);
     transactionBaselineRef.current = Array.isArray(downloadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(downloadedSnapshot.payload.transactions)) as unknown[] : [];
+    const droppedFinancialEventCount = remoteResult.droppedFinancialEventCount ?? 0;
+    const droppedFinancialEventNote = droppedFinancialEventCount > 0
+      ? `｜⚠️ ${droppedFinancialEventCount} 筆財務記帳事件未能通過驗證而暫時無法保留（常見原因：對應交易記錄尚未同步存在），請確認雙裝置交易資料已同步一致`
+      : '';
     const appliedRemote = normalizeState({
       ...remote,
       syncMeta: {
@@ -1357,7 +1412,7 @@ function App() {
         baselineCanonicalSchema: downloadedSnapshot.canonicalSchema,
         dirty: false,
         lastDownloadAt: downloadedAt,
-        status: `🎉 下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆`
+        status: `🎉 下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆｜財務記帳事件 ${remote.financialEvents.length} 筆（已與雲端合併）${droppedFinancialEventNote}`
       }
     });
     isApplyingRemoteRef.current = true; 
