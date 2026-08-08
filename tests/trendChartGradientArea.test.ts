@@ -11,6 +11,23 @@ const render = (data: { date: string; value: number }[], title = '淨資產') =>
 
 const countOccurrences = (html: string, needle: string) => html.split(needle).length - 1;
 
+function extractGradientRanges(html: string): Record<'up' | 'down', { y1: number; y2: number } | undefined> {
+  const ranges: Record<'up' | 'down', { y1: number; y2: number } | undefined> = { up: undefined, down: undefined };
+  for (const match of html.matchAll(/<linearGradient id="[^"]*-(up|down)"[^>]*y1="(-?\d+\.?\d*)"[^>]*y2="(-?\d+\.?\d*)"/g)) {
+    ranges[match[1] as 'up' | 'down'] = { y1: Number(match[2]), y2: Number(match[3]) };
+  }
+  return ranges;
+}
+
+function areaPathYValues(html: string, direction: 'up' | 'down'): number[] {
+  const values: number[] = [];
+  for (const match of html.matchAll(new RegExp(`<path d="([^"]+)" class="trend-area trend-area-${direction}"`, 'g'))) {
+    const numbers = match[1].match(/-?\d+\.?\d*/g)?.map(Number) ?? [];
+    for (let i = 1; i < numbers.length; i += 2) values.push(numbers[i]);
+  }
+  return values;
+}
+
 // UR-TODO-trend-baseline-fill: fill color is now relative to a fixed "today" baseline
 // (the last point's value) rather than each segment's own rise/fall — this fully replaces
 // the UR-TODO-027 per-segment logic, not an addition to it.
@@ -88,6 +105,27 @@ test('圖表下方新增基準說明文字，使用傳入的 title 動態組字�
   const investmentHtml = render([{ date: '2026-07-30', value: 100 }, { date: '2026-08-01', value: 120 }], '投資資產');
   assert.match(investmentHtml, /以今日投資資產為基準/);
   assert.doesNotMatch(investmentHtml, /以今日淨資產為基準/);
+});
+
+test('迴歸測試：紅／綠漸層座標範圍必須完整涵蓋該方向所有填色區域實際用到的 Y 座標，否則 SVG 預設 pad 規則會把範圍外的填色畫成透明——即使填色路徑本身幾何完全正確，畫面仍會呈現空白（此為實測 Preview 回饋發現的真實 Bug：綠色區域在明顯低於基準線時完全不顯示，紅色區域正常）', () => {
+  const html = render([
+    { date: '2026-07-11', value: 100 },
+    { date: '2026-07-12', value: 130 },
+    { date: '2026-07-13', value: 90 },
+    { date: '2026-07-14', value: 60 },
+    { date: '2026-07-15', value: 100 }
+  ]);
+  const gradients = extractGradientRanges(html);
+  for (const direction of ['up', 'down'] as const) {
+    const values = areaPathYValues(html, direction);
+    assert.ok(values.length > 0, `本測試資料應同時產生 ${direction} 方向的填色區域`);
+    const gradient = gradients[direction];
+    assert.ok(gradient, `${direction} 方向有填色區域卻沒有對應的漸層定義`);
+    const gradMin = Math.min(gradient.y1, gradient.y2), gradMax = Math.max(gradient.y1, gradient.y2);
+    const shapeMin = Math.min(...values), shapeMax = Math.max(...values);
+    assert.ok(shapeMin >= gradMin - 0.01, `${direction} 漸層下界 ${gradMin} 必須涵蓋填色區域最小 Y 座標 ${shapeMin}`);
+    assert.ok(shapeMax <= gradMax + 0.01, `${direction} 漸層上界 ${gradMax} 必須涵蓋填色區域最大 Y 座標 ${shapeMax}（原始 Bug：down 方向漸層誤用了 up 方向的範圍，導致明顯低於基準線的區域落在漸層範圍外變成透明）`);
+  }
 });
 
 test('保留既有單一連續折線 stroke 與資料點互動標記，本次改動不影響折線繪製方式本身', () => {
