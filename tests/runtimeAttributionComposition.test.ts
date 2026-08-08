@@ -257,3 +257,36 @@ test('composition 的台北日期邊界不依 runtime timezone 改變', () => {
   assert.deepEqual(outputs, [outputs[0], outputs[0], outputs[0]]);
   assert.match(outputs[0]!, /"derivedContribution":100/);
 });
+
+// UR-TODO-046 void
+test('作廢一筆 linked Ledger event 後，該事件不再貢獻，且原本被佔用的 transaction 重新開放給 derived-evidence 路徑', () => {
+  const result = compose({
+    closingSnapshot: snapshot('2026-08-05', 200),
+    ledgerEvents: [
+      ledgerEvent('linked-income', 'external-income', { source: 'linked-transaction', transactionId: 'already-linked' }),
+      ledgerEvent('void-1', 'adjustment', { source: 'void', voidedEventId: 'linked-income' })
+    ],
+    transactions: [transaction('already-linked')]
+  });
+
+  assert.equal(result.ledgerContribution, 0, '被作廢的事件不應再計入 Ledger 貢獻');
+  assert.equal(result.derivedContribution, 100, '交易應重新變回 candidate，改由 derived-evidence 路徑產生貢獻');
+  assert.equal(result.reconciliationResults.find(item => item.transactionId === 'already-linked')?.status, 'candidate');
+  assert.deepEqual(result.eventClassifications.map(item => item.id), ['already-linked'], '作廢標記事件本身與被作廢的原事件皆不應出現在 eventClassifications 中');
+});
+
+test('作廢標記事件本身不會產生任何 evidence（在 evidence 建立前就被過濾，不需要 netWorthAttribution.ts 額外處理）', () => {
+  const result = compose({
+    closingSnapshot: snapshot('2026-08-05', 100),
+    ledgerEvents: [ledgerEvent('void-orphan', 'adjustment', { source: 'void', voidedEventId: 'nonexistent-event' })]
+  });
+
+  assert.equal(result.ledgerContribution, 0);
+  assert.deepEqual(result.eventClassifications, []);
+});
+
+test('voidedEventId 指向不存在的事件時不會造成任何錯誤或副作用（純粹是無效果的孤兒標記）', () => {
+  assert.doesNotThrow(() => compose({
+    ledgerEvents: [ledgerEvent('void-orphan-2', 'adjustment', { source: 'void', voidedEventId: 'never-existed' })]
+  }));
+});

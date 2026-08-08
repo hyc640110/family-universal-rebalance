@@ -68,7 +68,8 @@ import { FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFi
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
-import type { RuntimeAttributionConfirmOutcome } from './components/RuntimeAttributionProvenanceCard';
+import { voidFinancialEventAndAppend } from './lib/financialEventVoid';
+import type { RuntimeAttributionConfirmOutcome, RuntimeAttributionVoidOutcome } from './components/RuntimeAttributionProvenanceCard';
 import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
 import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './lib/calendarDay';
@@ -1517,6 +1518,18 @@ function App() {
     }, state.financialEvents);
     if (result.rejected) return result;
     setState(current => ({ ...current, financialEvents: result.events }));
+    return { rejected: false, eventId: result.event.id };
+  };
+  /**
+   * UR-TODO-046 void: the sole write path for voiding a Ledger event. Appends
+   * a forward-only 'void' marker event rather than mutating eventId's own
+   * record — see financialEventVoid.ts and runtimeAttributionComposition.ts's
+   * voidedEventIds filtering for how this becomes visible to calculations.
+   */
+  const voidFinancialEvent = (eventId: string): RuntimeAttributionVoidOutcome => {
+    const result = voidFinancialEventAndAppend(state.financialEvents, { eventId, now: now() });
+    if (result.rejected) return result;
+    setState(current => ({ ...current, financialEvents: result.events }));
     return { rejected: false };
   };
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
@@ -2057,7 +2070,7 @@ function App() {
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="防守配置狀態"><DefensiveConfigurationStatusCard presentation={defensiveConfigurationPresentation} diagnostics={householdLiquidityDiagnosticPresentation} /></Card>}
-        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="淨值成長來源歸因"><RuntimeAttributionProvenanceCard presentation={runtimeAttributionPresentation} onConfirmEvidence={confirmAttributionEvidence} /></Card>}
+        {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics" title="淨值成長來源歸因"><RuntimeAttributionProvenanceCard presentation={runtimeAttributionPresentation} onConfirmEvidence={confirmAttributionEvidence} onVoidEvent={voidFinancialEvent} /></Card>}
         <SectionCard className="page-card for-home" id="overview-card" title="資產總覽" isMobile={isMobile} collapsible open={sectionOpen('overview')} onToggle={() => toggleSection('overview')} summary={`總資產 ${money(m.totalAssets)}｜防守 ${pct(m.defensiveRatio)}`}>
           <section className="grid stats">
             <Stat label="總資產" value={money(m.totalAssets)} />

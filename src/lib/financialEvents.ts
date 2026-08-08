@@ -39,8 +39,12 @@ export type FinancialEventStatus = 'pending' | 'posted' | 'void';
  * the user explicitly confirmed a C3B/C3C-A derived-transaction attribution
  * evidence row, distinct from 'manual' (free-form entry) and
  * 'linked-transaction' (any other linked event).
+ *
+ * UR-TODO-046 void: 'void' is the same kind of additive extension. It marks a
+ * forward-only "void marker" event — see voidedEventId below and
+ * financialEventVoid.ts — never a mutation of the event it voids.
  */
-export type FinancialEventSource = 'manual' | 'linked-transaction' | 'attribution-confirmation';
+export type FinancialEventSource = 'manual' | 'linked-transaction' | 'attribution-confirmation' | 'void';
 
 export type FinancialEvent = {
   id: string;
@@ -56,6 +60,8 @@ export type FinancialEvent = {
   assetSymbol?: string;
   loanId?: string;
   transactionId?: string;
+  /** Only present on a source: 'void' event — the id of the event it voids. Forward-only: the voided event itself is never mutated. */
+  voidedEventId?: string;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -91,7 +97,7 @@ const EVENT_TYPES = new Set<FinancialEventType>([
   'adjustment'
 ]);
 const EVENT_STATUSES = new Set<FinancialEventStatus>(['pending', 'posted', 'void']);
-const EVENT_SOURCES = new Set<FinancialEventSource>(['manual', 'linked-transaction', 'attribution-confirmation']);
+const EVENT_SOURCES = new Set<FinancialEventSource>(['manual', 'linked-transaction', 'attribution-confirmation', 'void']);
 /** Both sources are inherently tied to one transactionId and share the same linkedTransactionReason() taxonomy check. */
 const TRANSACTION_LINKED_SOURCES = new Set<FinancialEventSource>(['linked-transaction', 'attribution-confirmation']);
 const LOAN_EVENT_TYPES = new Set<FinancialEventType>([
@@ -121,7 +127,7 @@ function normalizeIsoTimestamp(value: unknown): string | undefined {
 
 function omitOptionalKnownFields(event: FinancialEvent): FinancialEvent {
   const mutable = event as Record<string, unknown>;
-  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId']) {
+  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'voidedEventId']) {
     if (mutable[key] === undefined) delete mutable[key];
   }
   return event;
@@ -130,6 +136,25 @@ function omitOptionalKnownFields(event: FinancialEvent): FinancialEvent {
 function skip(skipped: string[], index: number, reason: string): undefined {
   skipped.push(`financialEvents[${index}]：${reason}`);
   return undefined;
+}
+
+/**
+ * UR-TODO-046 void: scans raw (unvalidated) or already-normalized event
+ * records for 'void' markers and returns the set of event ids they void.
+ * Shared by normalizeFinancialEventLedger() (so a voided linked event's
+ * transactionId is freed up for a future re-confirmation instead of being
+ * permanently consumed — see normalizeEvent()'s consumedTransactionIds use
+ * below) and runtimeAttributionComposition.ts (so a voided event's own
+ * contribution and its transaction's reconciliation status both exclude it).
+ */
+export function collectVoidedEventIds(records: readonly Record<string, unknown>[]): Set<string> {
+  const voided = new Set<string>();
+  for (const record of records) {
+    if (record.source !== 'void') continue;
+    const target = typeof record.voidedEventId === 'string' ? record.voidedEventId.trim() : '';
+    if (target) voided.add(target);
+  }
+  return voided;
 }
 
 /** Exported for reuse by the C3C-C attribution-confirmation → FinancialEvent converter, which must apply the identical taxonomy check before allowing a write. */
@@ -166,6 +191,7 @@ function normalizeEvent(
   context: FinancialEventReferenceContext,
   knownIds: Set<string>,
   consumedTransactionIds: Set<string>,
+  voidedEventIds: ReadonlySet<string>,
   skipped: string[]
 ): FinancialEvent | undefined {
   const record = asRecord(raw);
@@ -213,9 +239,18 @@ function normalizeEvent(
     if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
     const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction);
     if (reason) return skip(skipped, index, reason);
-    if (status !== 'void' && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
-    if (status !== 'void') consumedTransactionIds.add(transactionId);
+    // UR-TODO-046 void: a voided event's own status is never mutated (forward-only), so a voided
+    // linked event must stop consuming its transactionId here too — otherwise the transactionId
+    // stays permanently claimed and a future re-confirmation of the same transaction would be
+    // silently dropped as a "duplicate" on the very next normalize pass.
+    const isVoided = voidedEventIds.has(id);
+    if (status !== 'void' && !isVoided && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
+    if (status !== 'void' && !isVoided) consumedTransactionIds.add(transactionId);
   }
+
+  const voidedEventId = optionalText(record.voidedEventId);
+  if (source === 'void' && !voidedEventId) return skip(skipped, index, 'void 事件必須指定 voidedEventId');
+  if (source !== 'void' && voidedEventId) return skip(skipped, index, '只有 void 事件可以設定 voidedEventId');
 
   const note = typeof record.note === 'string' ? record.note : '';
   const createdAt = normalizeIsoTimestamp(record.createdAt);
@@ -238,6 +273,7 @@ function normalizeEvent(
     ...(assetSymbol ? { assetSymbol } : {}),
     ...(loanId ? { loanId } : {}),
     ...(transactionId ? { transactionId } : {}),
+    ...(voidedEventId ? { voidedEventId } : {}),
     note,
     createdAt,
     updatedAt
@@ -263,8 +299,12 @@ export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEv
   const skipped: string[] = [];
   const knownIds = new Set<string>();
   const consumedTransactionIds = new Set<string>();
+  const rawEventRecords = Array.isArray(record.financialEvents)
+    ? record.financialEvents.map(event => asRecord(event)).filter((event): event is Record<string, unknown> => Boolean(event))
+    : [];
+  const voidedEventIds = collectVoidedEventIds(rawEventRecords);
   const events = Array.isArray(record.financialEvents)
-    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, skipped)).filter((event): event is FinancialEvent => Boolean(event))
+    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, voidedEventIds, skipped)).filter((event): event is FinancialEvent => Boolean(event))
     : [];
   const attributionStartDate = optionalText(record.financialEventAttributionStartDate);
 

@@ -97,3 +97,49 @@ test('output is sorted by createdAt, not by insertion order, so the sync fingerp
   if (!outcome.ok) return;
   assert.deepEqual(outcome.events.map(item => item.id), ['earlier', 'later']);
 });
+
+// UR-TODO-046 void: a void marker is structurally just another FinancialEvent, so the existing
+// union-by-id merge needs no changes to handle it correctly.
+test('一裝置作廢的事件標記，與另一裝置獨有的原始事件合併後兩者皆保留', () => {
+  const original = event({ id: 'original-1' });
+  const voidMarker = event({ id: 'void-1', type: 'adjustment', source: 'void', voidedEventId: 'original-1', createdAt: '2026-08-02T00:00:00.000Z' });
+  const outcome = mergeFinancialEventLedgers(
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original, voidMarker] },
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [] }
+  );
+  assert.equal(outcome.ok, true);
+  if (!outcome.ok) return;
+  assert.deepEqual(outcome.events.map(item => item.id).sort(), ['original-1', 'void-1']);
+});
+
+test('雙邊各自新增同一筆事件的作廢標記（相同 id，理論上應逐位元組相同）時合併不重複計入', () => {
+  const original = event({ id: 'original-1' });
+  const voidMarker = event({ id: 'void-1', type: 'adjustment', source: 'void', voidedEventId: 'original-1' });
+  const outcome = mergeFinancialEventLedgers(
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original, voidMarker] },
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original, voidMarker] }
+  );
+  assert.equal(outcome.ok, true);
+  if (!outcome.ok) return;
+  assert.deepEqual(outcome.events.map(item => item.id).sort(), ['original-1', 'void-1']);
+});
+
+test('作廢標記一旦存在於任一裝置，聯集合併保證它永遠不會在後續合併中消失（結構上不可能「復活」）', () => {
+  const original = event({ id: 'original-1' });
+  const voidMarker = event({ id: 'void-1', type: 'adjustment', source: 'void', voidedEventId: 'original-1' });
+  // Round 1: device A (which has the void marker) merges with device B (which doesn't yet).
+  const roundOne = mergeFinancialEventLedgers(
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original, voidMarker] },
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original] }
+  );
+  assert.equal(roundOne.ok, true);
+  if (!roundOne.ok) return;
+  // Round 2: a hypothetical third device that still only has the original, pre-void state, merges in.
+  const roundTwo = mergeFinancialEventLedgers(
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: roundOne.events },
+    { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [original] }
+  );
+  assert.equal(roundTwo.ok, true);
+  if (!roundTwo.ok) return;
+  assert.deepEqual(roundTwo.events.map(item => item.id).sort(), ['original-1', 'void-1'], '聯集合併從不移除元素，作廢標記不可能被「合併掉」');
+});
