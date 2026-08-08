@@ -78,15 +78,35 @@ export default function TrendChart({ title, unit, data, formatValue, axisScale =
   const plotted = valid.map((point, index) => ({ x: x(index), y: y(point.value) }));
   const segments = monotoneSegments(plotted);
   const path = monotonePath(plotted);
-  const baselineY = height - bottom;
-  // Each segment picks red/green from its own end-vs-start value, not the whole
-  // range's first/last point, so a mid-chart dip or rally shows its own color.
-  const areaSegments = segments.map((segment, index) => {
+  // UR-TODO-baseline-fill: today's value (the last point of whatever range is currently
+  // shown) is the fixed reference — it never shifts when the user switches 7/30/90-day
+  // ranges, since every range filter keeps the same latest point and only varies how far
+  // back it starts. Above this line fills red, below fills green; this fully replaces the
+  // old per-segment rise/fall coloring (UR-TODO-027), not an addition to it.
+  const todayValue = valid.at(-1)!.value;
+  const refY = y(todayValue);
+  const sideOf = (value: number) => value > todayValue ? 'above' as const : value < todayValue ? 'below' as const : 'on' as const;
+  // Monotone cubic interpolation never overshoots past its two endpoint values, so a
+  // segment whose endpoints straddle todayValue crosses it exactly once — safe to locate
+  // via linear interpolation on value (equivalent to pixel Y, since y() is an affine map).
+  const areaSegments = segments.flatMap((segment, index) => {
     const fromValue = valid[index].value, toValue = valid[index + 1].value;
-    const direction = toValue > fromValue ? 'up' as const : toValue < fromValue ? 'down' as const : null;
-    if (!direction) return null;
-    return { direction, d: `M ${segment.from.x} ${segment.from.y} ${segment.curve} L ${segment.to.x} ${baselineY} L ${segment.from.x} ${baselineY} Z` };
-  }).filter((segment): segment is { direction: 'up' | 'down'; d: string } => segment !== null);
+    const fromSide = sideOf(fromValue), toSide = sideOf(toValue);
+    if (fromSide === 'on' && toSide === 'on') return [];
+    if ((fromSide === 'above' && toSide === 'below') || (fromSide === 'below' && toSide === 'above')) {
+      const t = (todayValue - fromValue) / (toValue - fromValue);
+      const xCross = segment.from.x + t * (segment.to.x - segment.from.x);
+      const abovePoint = fromSide === 'above' ? segment.from : segment.to;
+      const belowPoint = fromSide === 'above' ? segment.to : segment.from;
+      return [
+        { direction: 'up' as const, d: `M ${abovePoint.x} ${abovePoint.y} L ${xCross} ${refY} L ${abovePoint.x} ${refY} Z` },
+        { direction: 'down' as const, d: `M ${xCross} ${refY} L ${belowPoint.x} ${belowPoint.y} L ${belowPoint.x} ${refY} Z` }
+      ];
+    }
+    const side = fromSide !== 'on' ? fromSide : toSide;
+    const direction = side === 'above' ? 'up' as const : 'down' as const;
+    return [{ direction, d: `M ${segment.from.x} ${segment.from.y} ${segment.curve} L ${segment.to.x} ${refY} L ${segment.from.x} ${refY} Z` }];
+  });
   const usedDirections = [...new Set(areaSegments.map(segment => segment.direction))];
   const spanDays = Math.max(0, (Date.parse(`${valid.at(-1)!.date}T00:00:00`) - Date.parse(`${valid[0].date}T00:00:00`)) / 86_400_000);
   const xTicks = selectTrendTickIndexes(valid);
@@ -94,5 +114,6 @@ export default function TrendChart({ title, unit, data, formatValue, axisScale =
   const yTicks = axis.ticks;
   const current = active === null ? valid.at(-1)! : valid[active];
   const summary = `${title}，期間 ${valid[0].date} 至 ${valid.at(-1)!.date}，由 ${formatValue(valid[0].value)} 變為 ${formatValue(valid.at(-1)!.value)}。`;
-  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{usedDirections.length > 0 && <defs>{usedDirections.map(direction => <linearGradient key={direction} id={`${gradientId}-${direction}`} x1="0" y1={top} x2="0" y2={baselineY} gradientUnits="userSpaceOnUse"><stop offset="0%" className={`trend-area-stop trend-area-stop-start trend-area-${direction}`}/><stop offset="100%" className={`trend-area-stop trend-area-stop-end trend-area-${direction}`}/></linearGradient>)}</defs>}{areaSegments.map((segment, index) => <path key={`area-${index}`} d={segment.d} className={`trend-area trend-area-${segment.direction}`} fill={`url(#${gradientId}-${segment.direction})`} stroke="none"/>)}{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={labelX} y={y(value)+4} textAnchor="start" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p></div>;
+  const baselineNote = `以今日${title}為基準：折線高於今日為紅色，低於今日為綠色，用以快速判斷目前是否處於相對低點。`;
+  return <div className={`trend-chart ${className}`}><div className="trend-chart-heading"><span>{unit}</span><span aria-live="polite">{current.date}｜{formatValue(current.value)}</span></div><div className="trend-chart-canvas" ref={canvasRef}><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} onMouseLeave={() => setActive(null)} onTouchEnd={() => setActive(null)}>{usedDirections.length > 0 && <defs>{usedDirections.map(direction => <linearGradient key={direction} id={`${gradientId}-${direction}`} x1="0" y1={direction === 'up' ? top : height - bottom} x2="0" y2={refY} gradientUnits="userSpaceOnUse"><stop offset="0%" className={`trend-area-stop trend-area-stop-start trend-area-${direction}`}/><stop offset="100%" className={`trend-area-stop trend-area-stop-end trend-area-${direction}`}/></linearGradient>)}</defs>}{areaSegments.map((segment, index) => <path key={`area-${index}`} d={segment.d} className={`trend-area trend-area-${segment.direction}`} fill={`url(#${gradientId}-${segment.direction})`} stroke="none"/>)}{yTicks.map(value => <g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className="trend-grid"/><text x={labelX} y={y(value)+4} textAnchor="start" className="trend-axis-label">{formatTrendAxisTick(value, axisScale)}</text></g>)}<line x1={left} x2={width-right} y1={refY} y2={refY} className="trend-baseline-line"/><text x={width-right} y={refY-4} textAnchor="end" className="trend-baseline-label">今日</text>{xTicks.map(index => <text key={index} x={x(index)} y={height-8} textAnchor="middle" className={`trend-axis-label${mobileTicks.has(index) ? '' : ' trend-tick-mobile-hidden'}`}>{longLabel(valid[index].date, spanDays)}</text>)}{valid.length > 1 && <path d={path} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/>}{valid.map((point,index)=><circle key={point.date} cx={x(index)} cy={y(point.value)} r={active===index||valid.length===1?4:2.5} className="trend-point" onMouseEnter={()=>setActive(index)} onTouchStart={()=>setActive(index)}><title>{`${point.date}\n${title}：${formatValue(point.value)}`}</title></circle>)}</svg></div><p className="trend-chart-summary">{summary}</p><p className="trend-chart-baseline-note">{baselineNote}</p></div>;
 }
