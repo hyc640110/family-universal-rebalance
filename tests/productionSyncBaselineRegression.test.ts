@@ -42,7 +42,6 @@ const productionEquivalentState = (overrides: Record<string, unknown> = {}) => (
   autoSync: false,
   autoSyncSec: 60,
   allocationPreset: 'custom',
-  allocationRoleBySymbol: {},
   rebalanceMode: 'buy-only',
   rebalanceThreshold: 5,
   buyOnlyBudget: 100000,

@@ -20,7 +20,6 @@ export const SYNCABLE_TOP_LEVEL_FIELDS = [
   'autoSync',
   'autoSyncSec',
   'allocationPreset',
-  'allocationRoleBySymbol',
   'rebalanceMode',
   'rebalanceThreshold',
   'buyOnlyBudget',
