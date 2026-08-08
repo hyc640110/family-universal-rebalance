@@ -249,3 +249,49 @@ test('appendFinancialEvent 是 forward-only：允許新增，拒絕以相同 id 
     assert.match(rejected.reason, /forward-only|不允許覆寫/);
   }
 });
+
+// UR-TODO-046 void
+test('void 事件必須指定 voidedEventId，且只有 void 事件可以設定這個欄位', () => {
+  const missingTarget = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'void-missing-target', type: 'adjustment', status: 'posted', source: 'void', effectiveDate: '2026-08-02', amount: 1, currency: 'TWD', accountId: 'bank-a', note: '', ...audit }
+  ] }, context);
+  assert.deepEqual(missingTarget.events, []);
+  assert.equal(missingTarget.skipped.length, 1);
+
+  const wrongSource = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'manual-with-voided-id', type: 'adjustment', status: 'posted', source: 'manual', voidedEventId: 'event-a', effectiveDate: '2026-08-02', amount: 1, currency: 'TWD', accountId: 'bank-a', note: '', ...audit }
+  ] }, context);
+  assert.deepEqual(wrongSource.events, []);
+  assert.equal(wrongSource.skipped.length, 1);
+});
+
+test('有效 void 事件正確通過正規化並保留 voidedEventId', () => {
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'void-a', type: 'adjustment', status: 'posted', source: 'void', voidedEventId: 'event-a', effectiveDate: '2026-08-02', amount: 1, currency: 'TWD', accountId: 'bank-a', note: '', ...audit }
+  ] }, context);
+  assert.equal(result.events.length, 1);
+  assert.equal(result.events[0]?.source, 'void');
+  assert.equal(result.events[0]?.voidedEventId, 'event-a');
+  assert.deepEqual(result.skipped, []);
+});
+
+test('未作廢時，同一 transactionId 仍然只能被一筆有效 linked event 消費（既有防重複邏輯不受影響）', () => {
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'event-a', type: 'dividend', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 900, currency: 'TWD', accountId: 'bank-a', assetSymbol: '00865B', transactionId: 'tx-a', note: '', ...audit },
+    { id: 'event-b', type: 'dividend', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 900, currency: 'TWD', accountId: 'bank-a', assetSymbol: '00865B', transactionId: 'tx-a', note: '', createdAt: '2026-08-03T00:01:00.000Z', updatedAt: '2026-08-03T00:01:00.000Z' }
+  ] }, context);
+
+  assert.deepEqual(result.events.map(event => event.id), ['event-a']);
+  assert.equal(result.skipped.length, 1);
+});
+
+test('作廢一筆 linked-transaction 事件後，同一 transactionId 可以被新事件重新連結（不會被消費追蹤誤擋）', () => {
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'event-a', type: 'dividend', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 900, currency: 'TWD', accountId: 'bank-a', assetSymbol: '00865B', transactionId: 'tx-a', note: '', ...audit },
+    { id: 'void-a', type: 'adjustment', status: 'posted', source: 'void', voidedEventId: 'event-a', effectiveDate: '2026-08-03', amount: 900, currency: 'TWD', accountId: 'bank-a', note: '', createdAt: '2026-08-03T00:00:00.000Z', updatedAt: '2026-08-03T00:00:00.000Z' },
+    { id: 'event-b', type: 'dividend', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 900, currency: 'TWD', accountId: 'bank-a', assetSymbol: '00865B', transactionId: 'tx-a', note: '', createdAt: '2026-08-03T00:01:00.000Z', updatedAt: '2026-08-03T00:01:00.000Z' }
+  ] }, context);
+
+  assert.deepEqual(result.skipped, [], '被作廢的原事件不應再阻擋同一 transactionId 的新連結事件');
+  assert.deepEqual(result.events.map(event => event.id).sort(), ['event-a', 'event-b', 'void-a'], '原事件、作廢標記與新事件三者皆應保留（forward-only：從不刪除）');
+});

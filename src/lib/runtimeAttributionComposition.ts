@@ -1,7 +1,7 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import { deriveRuntimeDerivedAttributionEvidence } from './derivedAttributionEvidence';
 import type { FinancialAccount } from './financialAccounts';
-import type { FinancialEvent } from './financialEvents';
+import { collectVoidedEventIds, type FinancialEvent } from './financialEvents';
 import {
   deriveNetWorthAttributionFromEvidence,
   type NetWorthAttribution,
@@ -83,8 +83,17 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const period = periodFrom(input);
   if (!period) return unavailableForInvalidPeriod(input);
 
+  // UR-TODO-046 void: a voided event is never mutated (forward-only) — a 'void' marker just
+  // references it by id. Filtering both the markers themselves and their targets out here, before
+  // evidence-building and reconciliation, means neither this function's own evidence pipeline nor
+  // netWorthAttribution.ts's core formula needs to know "voided" exists, and the voided event's
+  // transaction is freed back to 'candidate' so its economic effect can still surface via the
+  // derived-evidence fallback path instead of silently disappearing.
+  const voidedEventIds = collectVoidedEventIds(input.ledgerEvents);
+  const effectiveLedgerEvents = input.ledgerEvents.filter(event => event.source !== 'void' && !voidedEventIds.has(event.id));
+
   const diagnostics: RuntimeAttributionCompositionDiagnostic[] = [];
-  const ledgerEvidence: NetWorthAttributionEvidence[] = input.ledgerEvents.flatMap(event => {
+  const ledgerEvidence: NetWorthAttributionEvidence[] = effectiveLedgerEvents.flatMap(event => {
     if (!inPeriod(event.effectiveDate, period)) {
       diagnostics.push({ code: 'ledger-event-outside-period-excluded', eventId: event.id });
       return [];
@@ -99,7 +108,7 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const reconciliationResults = reconcileTransactions({
     transactions: input.transactions,
     accounts: input.accounts,
-    ledgerEvents: input.ledgerEvents
+    ledgerEvents: effectiveLedgerEvents
   });
   const transactionById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
   for (const result of reconciliationResults) {

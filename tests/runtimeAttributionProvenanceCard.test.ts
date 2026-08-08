@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import React, { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -6,6 +7,8 @@ import RuntimeAttributionProvenanceCard, { type RuntimeAttributionConfirmOutcome
 import type { RuntimeAttributionEvidenceItem, RuntimeAttributionPresentation } from '../src/lib/runtimeAttributionPresentation';
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+const componentSource = readFileSync(new URL('../src/components/RuntimeAttributionProvenanceCard.tsx', import.meta.url), 'utf8');
 
 function basePresentation(overrides: Partial<RuntimeAttributionPresentation> = {}): RuntimeAttributionPresentation {
   return {
@@ -107,4 +110,23 @@ test('card 標頭文案已更新為反映「確認並正式記帳」能力，不
   const html = render(basePresentation({ derivedEvidenceItems: [] }));
   assert.match(html, /確認並正式記帳/);
   assert.doesNotMatch(html, /不提供任何記帳、編輯或刪除操作/);
+});
+
+// UR-TODO-046 void
+test('提供 onVoidEvent 時，初始渲染（尚未有任何確認互動）不受影響，仍無「本次已正式記帳」清單或撤銷按鈕', () => {
+  const html = renderToStaticMarkup(createElement(RuntimeAttributionProvenanceCard, {
+    presentation: basePresentation({ derivedEvidenceItems: [{ id: 'txn-1', type: 'external-income', provenance: 'derived-transaction', contribution: 15_000, note: '外部收入' }] }),
+    onConfirmEvidence: () => ({ rejected: false, eventId: 'event-1' }),
+    onVoidEvent: () => ({ rejected: false })
+  }));
+  assert.doesNotMatch(html, /runtime-attribution-void-button/);
+  assert.doesNotMatch(html, /本次已正式記帳/);
+});
+
+test('撤銷按鈕與確認對話框已改用新文案，不再宣稱「本次不提供撤銷功能」；撤銷本身仍是不可逆動作', () => {
+  assert.doesNotMatch(componentSource, /本次不提供撤銷功能/, 'CONFIRM_DIALOG_TEXT 一旦提供撤銷能力，就不能再宣稱不提供撤銷');
+  assert.match(componentSource, /const VOID_BUTTON_LABEL = '撤銷';/);
+  assert.match(componentSource, /const VOID_DIALOG_TEXT = /);
+  assert.match(componentSource, /這是不可逆的動作/, '撤銷本身維持單向、不提供復原（本次拍板決定）');
+  assert.match(componentSource, /onVoidEvent && <button/, '撤銷按鈕只在有提供 onVoidEvent 時才渲染，比照既有確認按鈕慣例');
 });
