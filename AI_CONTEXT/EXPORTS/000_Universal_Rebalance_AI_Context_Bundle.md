@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-08T02:47:16.452498+00:00
+Generated UTC: 2026-08-08T02:56:45.207751+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-08T02:47:16.452498+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `36705e5a22222b4368eaa04f4cb8f12ddd66ba0ee52561f451bcec56c3139edf`
+- `003_CURRENT_STATUS.md` — SHA-256 `6b1222874e2ea529bb3005145e6804df31a4febbbaa8835944380f74c04f184a`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `711eab8c73becec8ce067e15cfd8776346dd33efcea31cbfca3756db8dff0980`
+- `008_TODO_BACKLOG.md` — SHA-256 `6bfae2a153d21ea99e3278321988421b8e5c32241b060732877d4a21ed00a75f`
 - `009_CHANGELOG.md` — SHA-256 `c6811fccb602a54f7672f65b80cbe7c7136868bb8f6c248b45aabb1c0242621f`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
@@ -662,7 +662,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 最後更新：2026-08-08
 
-**UR-TODO-048 `allocationRoleBySymbol` 資料層清理開發完成，PR [#286](https://github.com/hyc640110/family-universal-rebalance/pull/286)（`feat/ur-todo-048-allocation-role-by-symbol-cleanup`）Draft，待 Preview 驗收，尚未 Merge**。唯讀盤點提出畫面呈現三個方案，使用者選擇方案 c：移除 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片的角色標籤顯示（原型資產／槓桿資產／類現金持股／未指派），改為只顯示代號＋目標比例，卡片下方新增連到配置模擬器（`/tools/allocation-simulator`）的連結——該頁已有 phase C 完成的 session-only CLEC 角色選擇器，避免重複打造第二組角色選擇 UI。殘留資料處理採方案 A：`allocationRoleBySymbol` 從 `AppState`／`BackupPayload` 型別、`normalizeState()`、`backupPayload()`、`stateFromBackup()`、`SYNCABLE_TOP_LEVEL_FIELDS`、`removeHoldingAsset()` 全數移除，不需 migration（既有正規化路徑本來就是逐欄位重建物件，舊資料的殘留屬性自然被忽略）。`src/lib/clecStrategy.ts`／`src/lib/allocationPresets.ts` 完全未改動——Allocation Simulator 既有 session-only 角色選擇器仍依賴這些通用純函式，不在本次清理範圍；CLEC Strategy Center 呼叫端改傳固定 `roleBySymbol: {}`，行為與清理前一致。刪除 `tests/clecRoleSemanticScopeNote.test.ts`（測試對象隨功能移除）。847 tests pass（849 − 2，剛好對應刪除的測試檔案），`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證卡片呈現與新連結導向皆正確，console 無錯誤。詳見 `008_TODO_BACKLOG.md` UR-TODO-048 條目。
+**UR-TODO-048 `allocationRoleBySymbol` 資料層清理正式完成，目前 `main`／`origin/main` 正式基線為 `19e60be`（[PR #286](https://github.com/hyc640110/family-universal-rebalance/pull/286) merge commit，`feat/ur-todo-048-allocation-role-by-symbol-cleanup`）**。唯讀盤點提出畫面呈現三個方案，使用者選擇方案 c：移除 `ClecStrategyCenterPage.tsx`「目前配置來源」卡片的角色標籤顯示（原型資產／槓桿資產／類現金持股／未指派），改為只顯示代號＋目標比例，卡片下方新增連到配置模擬器（`/tools/allocation-simulator`）的連結——該頁已有 phase C 完成的 session-only CLEC 角色選擇器，避免重複打造第二組角色選擇 UI。殘留資料處理採方案 A：`allocationRoleBySymbol` 從 `AppState`／`BackupPayload` 型別、`normalizeState()`、`backupPayload()`、`stateFromBackup()`、`SYNCABLE_TOP_LEVEL_FIELDS`、`removeHoldingAsset()` 全數移除，不需 migration（既有正規化路徑本來就是逐欄位重建物件，舊資料的殘留屬性自然被忽略）。`src/lib/clecStrategy.ts`／`src/lib/allocationPresets.ts` 完全未改動——Allocation Simulator 既有 session-only 角色選擇器仍依賴這些通用純函式，不在本次清理範圍；CLEC Strategy Center 呼叫端改傳固定 `roleBySymbol: {}`，行為與清理前一致。刪除 `tests/clecRoleSemanticScopeNote.test.ts`（測試對象隨功能移除）。847 tests pass（849 − 2，剛好對應刪除的測試檔案），`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 與 Preview 環境實機驗證卡片呈現與新連結導向皆正確，console 無錯誤。依 UR-TODO-050 方案 B 流程，Claude Code 先觸發 `workflow_dispatch` 刷新 Preview，使用者驗收通過後直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。Merge 後 push 部署成功（`Deploy GitHub Pages` run `31235941833` success），Production／Preview `curl` 實測皆 `HTTP 200`。**UR-TODO-048 子階段 A～E、步驟一與步驟二（本次）全數完成，整體正式結案。**詳見 `008_TODO_BACKLOG.md` UR-TODO-048 條目。
 
 **UR-TODO-046 Firebase Financial Event Ledger Sync 正式完成，目前 `main`／`origin/main` 正式基線為 `aed0d00`（[PR #284](https://github.com/hyc640110/family-universal-rebalance/pull/284) merge commit，`feat/ur-todo-046-financial-event-ledger-firebase-sync`）**。使用者拍板：觸發時機不變（仍手動「上傳雲端」／「下載雲端」，不做自動同步）；衝突處理採直接合併不覆蓋（依 `id` 去重取聯集，任一方獨有事件不消失）；任一方 Ledger schema 版本不受支援時整批 fail-safe 拒絕（不做部分合併）。開發中發現一個唯讀盤點未預見的連帶缺口——合併進來的 linked event 若指向本機交易清單中尚不存在的交易會被既有驗證捨棄，使用者拍板「偵測並警示，不阻擋」，已新增 `droppedFinancialEventCount` 於同步狀態訊息呈現。新增 25 個測試（849 tests pass），`npx tsc -b`、Production／Preview build 皆成功。**驗證限制（已於 PR 說明中揭露）**：上傳／下載按鈕完整端對端點擊流程未能在自動化 Browser pane 環境完成（上傳卡在既有、非本次修改的 `flushDrafts()` 內 `requestAnimationFrame` 於背景分頁不觸發；下載的 `window.confirm()` 被自動化工具基於安全考量攔截），改為請使用者於一般前景瀏覽器親自完成按鈕點擊驗證；下載雲端 confirm 對話框的 Ledger 合併例外文案已於 Preview dev server 實機確認逐字渲染正確。依 UR-TODO-050 方案 B 流程，Claude Code 先觸發 `workflow_dispatch` 刷新 Preview，使用者驗收通過後直接指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。Merge 後 push 部署成功（`Deploy GitHub Pages` run `31234711268` success），Production／Preview `curl` 實測皆 `HTTP 200`，`deployment-environment` metadata 分別為 `production`／`preview`。**UR-TODO-046 整體仍未完成**：撤銷／void、split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 仍待未來獨立排程與產品決策，不得因本次完成而自行標記整體已完成。詳見 `008_TODO_BACKLOG.md` UR-TODO-046 條目。
 
@@ -4114,7 +4114,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-048 CLEC 433／442 移轉為 CLEC 策略中心純模擬模板
 
 - 優先級：待評估
-- 狀態：**子階段 A～E 已完成**；步驟一「明確標示」已拍板、實作並 Merge；`allocationRoleBySymbol` 資料層清理（步驟二）開發完成，PR [#286](https://github.com/hyc640110/family-universal-rebalance/pull/286) 待 Preview 驗收，尚未 Merge（見下方唯讀盤點與開發記錄）
+- 狀態：**全數已完成**（子階段 A～E、步驟一「明確標示」、步驟二「`allocationRoleBySymbol` 資料層清理」皆已 Merge，UR-TODO-048 正式結案，見下方唯讀盤點與開發記錄）
 - 提出日期：2026-07-31（子階段 A 唯讀盤點完成日）
 - 子階段 B 完成日期：2026-07-31
 - 子階段 B 完成 PR：[#198](https://github.com/hyc640110/family-universal-rebalance/pull/198)（`feat/ur-todo-048-phaseb-allocation-preset-custom-only`），merge commit `ca96b8b58b7d9cb42926ce5d6dbc6164e5050862`
@@ -4164,7 +4164,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - **步驟一已完成（2026-08-01）：使用者決定「明確標示」而非「移除／統一」**。與 UR-TODO-003 合併規劃（詳見該條目「語意混淆解法」段落），`ClecStrategyCenterPage.tsx`「目前配置來源」卡片新增文案標示角色分類為 CLEC 模擬專用、與資產頁正式分類無關；資料層（`allocationRoleBySymbol` 型別與讀寫程式碼）**維持不動、未進入步驟二清理**。完成依據：[PR #225](https://github.com/hyc640110/family-universal-rebalance/pull/225)，merge commit `cbe5e0537d7257e94937a766fe110a2e0fcd002f`；Production 唯讀驗證通過（`curl` HTTP 200、已部署 JS bundle 內容確認含新文案）。**步驟二（資料層清理）已進入開發，見下方 2026-08-08 條目。**
 
 - **步驟二唯讀盤點（2026-08-08，Claude Code，Review Mode，基準 `origin/main` HEAD `8269d4b`，未修改任何檔案）**：重新確認全庫讀寫位置——`syncState.ts` 仍 1 處；`App.tsx` 逐行計數為 9 處（先前記錄「8 處」），經 `git diff` 對照 2026-08-01 基準確認差異只是把 `clecStrategyCenterView` 的 `useMemo` 計算式與其依賴陣列算成同一站點或分開計算，功能性讀寫位置（型別 ×2、`defaultState`、`normalizeState`、`backupPayload`、`stateFromBackup`、`clecStrategyCenterView`、`removeHoldingAsset` 清理）共 7 個邏輯站點，自 2026-08-01 以來無變化。針對「目前配置來源」卡片呈現方式提出三個方案（a 直接移除、b 改為卡片內 session-only 選擇器、c 移除並連結至既有配置模擬器）供使用者決策；殘留資料處理三處（localStorage／Firebase／Backup）風險評估皆為低，建議直接從白名單移除、不需 migration。
-- **步驟二開發完成（2026-08-08）**：使用者選擇方案 c＋殘留資料方案 A。PR [#286](https://github.com/hyc640110/family-universal-rebalance/pull/286)（`feat/ur-todo-048-allocation-role-by-symbol-cleanup`）Draft，待 Preview 驗收，尚未 Merge。`ClecStrategyCenterPage.tsx`「目前配置來源」卡片移除角色標籤顯示與說明段落，改為只顯示代號＋目標比例，卡片下方新增連到 `/tools/allocation-simulator` 的連結（重用 phase C 已完成的 session-only 角色選擇器，避免重複打造第二組角色選擇 UI）。`allocationRoleBySymbol` 從 `AppState`／`BackupPayload` 型別、`normalizeState()`、`backupPayload()`、`stateFromBackup()`、`SYNCABLE_TOP_LEVEL_FIELDS`、`removeHoldingAsset()` 全數移除，無 migration（既有正規化路徑逐欄位重建物件，舊資料殘留屬性自然被忽略）。**實作範圍比唯讀盤點估計更小**：`src/lib/clecStrategy.ts`／`src/lib/allocationPresets.ts` 完全未改動——這兩個檔案是 Allocation Simulator 既有 session-only 角色選擇器仍在使用的通用純函式，非本次清理對象；CLEC Strategy Center 呼叫端改傳固定 `roleBySymbol: {}`，因為 `state.allocationPreset` 恆為 `'custom'`，`rolesValid`／`blockingReasons` 本來就與角色資料脫鉤，行為與清理前完全一致，不需要重新設計 `deriveClecStrategyCenter()` 的通用（非 custom preset）角色驗證分支。刪除 `tests/clecRoleSemanticScopeNote.test.ts`（整份測試專門驗證即將移除的內容）。847 tests pass（849 − 2），`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證卡片呈現與新連結導向皆正確（含一次瀏覽器分頁殘留舊模組狀態造成的假錯誤，以全新分頁重新驗證排除）。
+- **步驟二已完成（2026-08-08）**：使用者選擇方案 c＋殘留資料方案 A。PR [#286](https://github.com/hyc640110/family-universal-rebalance/pull/286)（`feat/ur-todo-048-allocation-role-by-symbol-cleanup`）已由使用者驗收後指示 Merge，merge commit `19e60be`。`ClecStrategyCenterPage.tsx`「目前配置來源」卡片移除角色標籤顯示與說明段落，改為只顯示代號＋目標比例，卡片下方新增連到 `/tools/allocation-simulator` 的連結（重用 phase C 已完成的 session-only 角色選擇器，避免重複打造第二組角色選擇 UI）。`allocationRoleBySymbol` 從 `AppState`／`BackupPayload` 型別、`normalizeState()`、`backupPayload()`、`stateFromBackup()`、`SYNCABLE_TOP_LEVEL_FIELDS`、`removeHoldingAsset()` 全數移除，無 migration（既有正規化路徑逐欄位重建物件，舊資料殘留屬性自然被忽略）。**實作範圍比唯讀盤點估計更小**：`src/lib/clecStrategy.ts`／`src/lib/allocationPresets.ts` 完全未改動——這兩個檔案是 Allocation Simulator 既有 session-only 角色選擇器仍在使用的通用純函式，非本次清理對象；CLEC Strategy Center 呼叫端改傳固定 `roleBySymbol: {}`，因為 `state.allocationPreset` 恆為 `'custom'`，`rolesValid`／`blockingReasons` 本來就與角色資料脫鉤，行為與清理前完全一致，不需要重新設計 `deriveClecStrategyCenter()` 的通用（非 custom preset）角色驗證分支。刪除 `tests/clecRoleSemanticScopeNote.test.ts`（整份測試專門驗證即將移除的內容）。847 tests pass（849 − 2），`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證卡片呈現與新連結導向皆正確（含一次瀏覽器分頁殘留舊模組狀態造成的假錯誤，以全新分頁重新驗證排除）。因 repo 僅一名協作者、branch protection 需要審核人數，使用者於 Preview 驗收確認無問題後直接指示 Merge，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。Merge 後 push 部署成功（`Deploy GitHub Pages` run `31235941833` success），Production／Preview `curl` 實測皆 `HTTP 200`。
 
 - 子階段 E（PR #203）已完成結論（使用者提出的兩項獨立小變更，合併同一 PR 處理）：
   - **樣板改名**：`allocationPresetLabel`（`src/lib/allocationPresets.ts`）唯一修改位置，`clec-703` 顯示文字由「CLEC 703」改為「7:3」、`clec-5050` 由「CLEC 5050」改為「50:50」；內部代號與 `PRESET_WEIGHTS` 數值完全未動，`clec-433`／`clec-442` 顯示文字不受影響。
@@ -4173,7 +4173,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   - **驗證**：`workflow_dispatch` Preview-only 部署後於隔離瀏覽器實測——樣板下拉選單顯示「7:3」「50:50」；現金欄位輸入 15%（持股合計 99%）正確顯示合計 114.00%／超出 14 個百分點；套用 CLEC 442 後現金自動歸零、合計變回 100.00%；點擊「恢復正式目標比例」現金重設為 0；補滿現金 1% 後兩張 Donut 圖正確顯示「現金（模擬）1.00%」圖例。全程直接讀取 `localStorage` 確認 `allocationPreset` 仍為 `custom`、`holdings[].targetWeight` 完全不變。`test:ci` 654/654 全數通過；`npx tsc -b`、Production／Preview build 皆成功。Merge 後 Production 唯讀驗證：`Deploy GitHub Pages` workflow run `30684568560`（`conclusion: success`，headSha 與 merge commit 一致）；Production／Preview HTTP 200 且環境隔離正常；Production 畫面確認現金列與改名文字皆正確呈現，無殘留舊文字，console 無錯誤。
   - **明確不包含**：`clec-433`／`clec-442`／`clec-703`／`clec-5050` 的權重數值與角色判斷邏輯未變；`state.allocationPreset`／`allocationRoleBySymbol`／Household Liquidity 核心公式／資金基數計算邏輯未觸碰。
 
-- 明確不包含：子階段 A～E 已全數完成；`allocationRoleBySymbol` 欄位清理（步驟二）已開發完成，PR #286 待 Preview 驗收與 Merge，驗收前不得視為已完成；`AllocationRole` 型別、`roleLabel()`、`normalizeAllocationRoleBySymbol()`、`deriveAllocationPresetPreview()`（`allocationPresets.ts`）與 `deriveClecStrategyCenter()`（`clecStrategy.ts`）本身完全未變動，Allocation Simulator 既有 session-only 角色選擇器不受影響。
+- 明確不包含：子階段 A～E 與 `allocationRoleBySymbol` 欄位清理（步驟一、步驟二）已全數完成並 Merge，**UR-TODO-048 正式結案**；`AllocationRole` 型別、`roleLabel()`、`normalizeAllocationRoleBySymbol()`、`deriveAllocationPresetPreview()`（`allocationPresets.ts`）與 `deriveClecStrategyCenter()`（`clecStrategy.ts`）本身完全未變動，Allocation Simulator 既有 session-only 角色選擇器不受影響。
 
 ### UR-TODO-048-D CLEC 策略中心新增 703／5050 純模擬模板
 
