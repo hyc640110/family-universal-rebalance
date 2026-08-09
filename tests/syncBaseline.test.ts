@@ -266,7 +266,9 @@ test('uploadCloud() reads the remote Ledger and merges before the PUT, and refus
   assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
   // The merged Ledger must be what actually gets uploaded and written back locally, not the
   // pre-merge local-only array.
-  assert.match(app, /const normalized = \{ \.\.\.flushed, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome\.events \}/);
+  // A supported v1 ledger must not be silently upgraded to v2 merely because
+  // it is synced. The merge result is the authoritative supported version.
+  assert.match(app, /const normalized = \{ \.\.\.flushed, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
   assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
 });
 

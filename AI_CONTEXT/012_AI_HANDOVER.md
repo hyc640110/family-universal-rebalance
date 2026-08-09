@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation（Draft PR 候選，2026-08-09）
+
+- 基線與狀態：從 `origin/main` `1a80d08bdc5371fe3bb0a0a67ef533571db2214a` 建立隔離 branch `feat/ur-todo-046-l1-loan-repayment-component-group`。本機完整驗證已通過，但尚未建立／核實 Draft PR 的遠端 CI，**不得把 L1 視為已 Merge、不得自行部署或啟動後續階段**。
+- 合約與財務語意：`FinancialTransaction.loanAttribution?` 為 additive discriminated union：`repayment` 需 `paymentId`、`loanId`、`cashAccountId`、`currency`、`settlementAmount` 與總額完全一致、stable `componentId` 的 components；`disbursement` 與 `cash-movement` 僅接受顯式 stable linkage。正式完整 TWD repayment：principal = 0；interest／fee／penalty 各僅一次負 contribution；disbursement = 0。不得從 description、merchant、note、generic taxonomy、金額、monthlyPayment、期數、利率或 Loan principal 快照推導歷史本息，也不得自動修改 Loan principal。
+- Ledger／防重複：FinancialEvent schema v2 新增 optional `componentLink`（`paymentId`、`componentId`、fresh `confirmationGroupId`、可選 `cashMovementId`）。只有完整、唯一的 `attribution-confirmation` group 才被消費；partial／duplicate／cash link 不完整／non-TWD／legacy 一律 residual。任一 component Void 會使原 group 原子失效；只能以新的完整 group 重新辨識，不能拼接舊 component。完整 confirmed group 壓制 runtime evidence；void 後合法 transaction 最多重新辨識一次。v1 仍可讀；v1/v2 Firebase Ledger 混合 fail-safe 拒絕，無 migration。
+- 相容性／驗證：localStorage、JSON Backup、Firebase 與 legacy transaction normalizer 均以 additive contract 保留相容。已實際執行 `npx tsc -b`、`npm run test:ci`（787 unit／Risk 3／MJS 18）、Production／Preview build、`git diff --check`；遠端 CI、PR Head、Preview/Production 均待 Draft PR 建立後依 GitHub 實際狀態核實。
+- 明確不包含／下一位 AI 起點：L1 不含 Loan UI、CSV／Import Center mapping、split allocation、FX attribution、Investment I1 重構、holding replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance、Dashboard 或 Production 既有資料。UR-TODO-046 整體仍未完成；Remaining Boundary 為 split allocation、FX attribution，以及任何需要使用者另行授權的 Loan consumer／UI 工作。
+
+---
+
 ## 最新交接快照：UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（已完成，2026-08-09）
 
 - Git 基線：PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) 已由使用者 Merge，merge commit `b8621a0bf5e13a7666b360829e276d6d87019a44`（parents：`8622ae31f06a5b2fced1b0757a563968be12a2ee`、`c2d418306bba93940a67f37178f5fda306af483f`；`mergedAt: 2026-08-09T06:54:31Z`）；`origin/main`／GitHub `main` 一致。Deploy GitHub Pages #339（run `31299929750`）success，Production smoke verification 已通過。I1 的原 branch 已合併，下一位 AI 不得沿用它建立新工作。

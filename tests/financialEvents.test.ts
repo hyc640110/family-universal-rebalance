@@ -83,7 +83,7 @@ test('保留完全缺少 Ledger 的舊資料為空，不回填或轉換任何歷
   const legacy = { transactions: [{ id: 'historic-transaction', amount: 999 }] };
   const result = normalizeFinancialEventLedger(legacy, context);
 
-  assert.equal(result.schemaVersion, 1);
+  assert.equal(result.schemaVersion, 2);
   assert.deepEqual(result.events, []);
   assert.equal(result.attributionStartDate, undefined);
   assert.deepEqual(result.skipped, []);
@@ -92,14 +92,14 @@ test('保留完全缺少 Ledger 的舊資料為空，不回填或轉換任何歷
 
 test('未知 future schema 保持 opaque，絕不被降級成 v1', () => {
   const future = {
-    financialEventSchemaVersion: 2,
+    financialEventSchemaVersion: 3,
     financialEventAttributionStartDate: { future: 'opaque-date-contract' },
     financialEvents: { eventSet: [{ unsupported: 'must-survive' }] }
   };
 
   const result = normalizeFinancialEventLedger(future, context);
 
-  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.schemaVersion, 3);
   assert.deepEqual(result.events, future.financialEvents);
   assert.deepEqual(result.attributionStartDate, future.financialEventAttributionStartDate);
   assert.equal(result.supported, false);
@@ -231,15 +231,15 @@ test('manual event 不得以 transactionId 假裝已完成 reconciliation', () =
 });
 
 // UR-TODO-046-C3C-C: 'attribution-confirmation' 是加法式擴充，共用 'linked-transaction' 的 taxonomy 驗證路徑。
-test('attribution-confirmation source 走與 linked-transaction 相同的 taxonomy 驗證，schemaVersion 仍為 1', () => {
+test('v1 attribution-confirmation source 走與 linked-transaction 相同的 taxonomy 驗證，且 v1 資料不會被升版', () => {
   const transaction = { ...context.transactionsById.get('tx-a')!, id: 'income', type: 'income' as const, categoryId: 'income-salary', amount: 100 };
   const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [{
     id: 'confirmation-1', type: 'external-income', status: 'posted', source: 'attribution-confirmation',
     effectiveDate: '2026-08-02', amount: 100, currency: 'TWD', accountId: 'bank-a', transactionId: 'income', note: '', ...audit
   }] }, { ...context, transactionIds: new Set(['income']), transactionsById: new Map([['income', transaction]]) });
 
-  assert.equal(result.schemaVersion, FINANCIAL_EVENT_SCHEMA_VERSION);
-  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 1, '新增 source 值不應觸發 schema version bump（詳見 financialEvents.ts 常數旁註解：bump 會讓既有使用者的空 Ledger 被視為 opaque，永久擋下 Firebase 下載）');
+  assert.equal(result.schemaVersion, 1);
+  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 2, 'v2 是 componentLink 結構性升級；v1 仍保持可讀且不 migration。');
   assert.deepEqual(result.events.map(event => event.id), ['confirmation-1']);
   assert.equal(result.skipped.length, 0);
 });

@@ -48,6 +48,30 @@ async function stateWithLedger() {
   });
 }
 
+async function stateWithLoanComponentLedger() {
+  const { normalizeState } = await loadAppPersistence();
+  const timestamp = '2026-08-09T00:00:00.000Z';
+  return normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
+    loans: [{ id: 'loan-a', name: '信貸', principal: 100_000, annualRate: 2, monthlyPayment: 3_000, startDate: '2026-01-01' }],
+    transactions: [{
+      id: 'loan-payment', accountId: 'bank-a', type: 'expense', status: 'posted', source: 'manual', amount: 20_000, currency: 'TWD', categoryId: 'expense-housing', description: '', merchant: '', note: '', occurredAt: timestamp, excluded: false,
+      loanAttribution: {
+        kind: 'repayment', paymentId: 'payment-1', loanId: 'loan-a', cashAccountId: 'bank-a', currency: 'TWD', settlementAmount: 20_000,
+        components: [{ componentId: 'principal', type: 'principal', amount: 15_000 }, { componentId: 'interest', type: 'interest', amount: 5_000 }]
+      }
+    }],
+    financialEventSchemaVersion: 2,
+    financialEvents: [{
+      id: 'loan-principal', type: 'loan-principal-payment', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-09', amount: 15_000, currency: 'TWD', accountId: 'bank-a', loanId: 'loan-a', transactionId: 'loan-payment',
+      componentLink: { domain: 'loan-payment', paymentId: 'payment-1', componentId: 'principal', confirmationGroupId: 'loan-group-1' }, note: '', createdAt: timestamp, updatedAt: timestamp
+    }, {
+      id: 'loan-interest', type: 'loan-interest-payment', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-09', amount: 5_000, currency: 'TWD', accountId: 'bank-a', loanId: 'loan-a', transactionId: 'loan-payment',
+      componentLink: { domain: 'loan-payment', paymentId: 'payment-1', componentId: 'interest', confirmationGroupId: 'loan-group-1' }, note: '', createdAt: timestamp, updatedAt: timestamp
+    }]
+  });
+}
+
 test('localStorage 正規化與 JSON Backup 匯出匯入保留有效 Ledger；UR-TODO-046 起 Firebase payload 含 financialEvents／schemaVersion，attributionStartDate 仍不進入（本次範圍未涵蓋）', async () => {
   const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
   const localState = await stateWithLedger();
@@ -69,6 +93,22 @@ test('localStorage 正規化與 JSON Backup 匯出匯入保留有效 Ledger；UR
   assert.equal('financialEventAttributionStartDate' in firebasePayload, false);
 });
 
+test('v2 Loan component group 在 localStorage、JSON Backup 與 Firebase payload 中加法式保存；舊 Ledger 不需要 migration', async () => {
+  const { backupPayload, normalizeState, stateFromBackup, stateFromFirebasePayload } = await loadAppPersistence();
+  const localState = await stateWithLoanComponentLedger();
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(localState, {}))), normalizeState({})).state;
+
+  for (const state of [localState, restored]) {
+    assert.equal(state.financialEventSchemaVersion, 2);
+    assert.equal(state.financialEvents.length, 2);
+    assert.equal((state.transactions[0] as { loanAttribution?: { paymentId?: string } }).loanAttribution?.paymentId, 'payment-1');
+  }
+  const firebasePayload = canonicalSyncPayload(localState);
+  const firebaseState = stateFromFirebasePayload(firebasePayload, { databaseURL: 'https://example.invalid', secretPath: 'root' }, localState).state;
+  assert.equal(firebaseState.financialEventSchemaVersion, 2);
+  assert.equal(firebaseState.financialEvents.length, 2);
+});
+
 test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易變成事件', async () => {
   const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
   const legacy = normalizeState({
@@ -79,7 +119,7 @@ test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易�
   const restoredLegacy = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(legacy, {}))), normalizeState({})).state;
 
   for (const state of [legacy, firebaseLegacy, restoredLegacy]) {
-    assert.equal(state.financialEventSchemaVersion, 1);
+    assert.equal(state.financialEventSchemaVersion, 2);
     assert.deepEqual(state.financialEvents, []);
     assert.equal(state.financialEventAttributionStartDate, undefined);
     assert.equal(state.transactions.length, 1);
@@ -159,7 +199,9 @@ test('Firebase download 合併進來的 linked event 若指向本機交易清單
   const { stateFromFirebasePayload, normalizeState } = await loadAppPersistence();
   const current = normalizeState({
     accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
-    transactions: [] // local has no transactions at all
+    transactions: [], // local has no transactions at all
+    financialEventSchemaVersion: 1,
+    financialEvents: []
   });
   const remoteOrphanEvent = {
     id: 'event-orphan',
@@ -200,8 +242,8 @@ test('Firebase download 在任一邊 Ledger schema 版本不受支援時 fail-sa
       accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
       transactions: []
     })),
-    financialEventSchemaVersion: 2, // opaque/unsupported future version
-    financialEvents: [{ schema: 2, opaque: 'preserve' }]
+    financialEventSchemaVersion: 3, // opaque/unsupported future version
+    financialEvents: [{ schema: 3, opaque: 'preserve' }]
   };
 
   assert.throws(
@@ -223,7 +265,7 @@ test('legacy Backup Full Restore 明確清空目前 Ledger', async () => {
 
   const restored = stateFromBackup(legacyBackup, current).state;
 
-  assert.equal(restored.financialEventSchemaVersion, 1);
+  assert.equal(restored.financialEventSchemaVersion, 2);
   assert.deepEqual(restored.financialEvents, []);
   assert.equal(restored.financialEventAttributionStartDate, undefined);
 });
@@ -290,16 +332,16 @@ test('本機已有 attribution-confirmation 事件時，Firebase download 會與
 test('future Ledger 讀取、正規化與 Backup 輸出不會降級已知 Ledger payload', async () => {
   const { backupPayload, normalizeState } = await loadAppPersistence();
   const future = {
-    financialEventSchemaVersion: 2,
+    financialEventSchemaVersion: 3,
     financialEventAttributionStartDate: { future: true },
-    financialEvents: { eventSet: [{ schema: 2, opaque: 'preserve' }] }
+    financialEvents: { eventSet: [{ schema: 3, opaque: 'preserve' }] }
   };
   const normalized = normalizeState(future);
   const reloaded = normalizeState(JSON.parse(JSON.stringify(normalized)));
   const backup = backupPayload(normalized, {}) as Record<string, unknown>;
 
   for (const value of [normalized, reloaded, backup]) {
-    assert.equal(value.financialEventSchemaVersion, 2);
+    assert.equal(value.financialEventSchemaVersion, 3);
     assert.deepEqual(value.financialEvents, future.financialEvents);
     assert.deepEqual(value.financialEventAttributionStartDate, future.financialEventAttributionStartDate);
   }
@@ -309,8 +351,8 @@ test('本機本身持有 opaque future Ledger 時，Firebase download 對支援�
   const { stateFromFirebasePayload, normalizeState } = await loadAppPersistence();
   const current = normalizeState({
     accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
-    financialEventSchemaVersion: 2,
-    financialEvents: [{ schema: 2, opaque: 'preserve' }]
+    financialEventSchemaVersion: 3,
+    financialEvents: [{ schema: 3, opaque: 'preserve' }]
   });
   const remote = canonicalSyncPayload(normalizeState({
     accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],

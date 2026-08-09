@@ -39,7 +39,13 @@ export type InvestmentCashMovementAttribution = {
   cashAccountId: string;
 };
 export type InvestmentAttribution = InvestmentTradeAttribution | InvestmentCostAttribution | InvestmentCashMovementAttribution;
-export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution };
+export type LoanPaymentComponent = { componentId: string; type: 'principal' | 'interest' | 'fee' | 'penalty'; amount: number };
+/** Explicit historical repayment/disbursement proof. It is optional and is never inferred from text, taxonomy, balance, or amortization data. */
+export type LoanRepaymentAttribution = { kind: 'repayment'; paymentId: string; loanId: string; cashAccountId: string; currency: string; settlementAmount: number; components: LoanPaymentComponent[]; cashMovementId?: string };
+export type LoanDisbursementAttribution = { kind: 'disbursement'; paymentId: string; loanId: string; cashAccountId: string; currency: string; settlementAmount: number; cashMovementId?: string };
+export type LoanCashMovementAttribution = { kind: 'cash-movement'; cashMovementId: string; direction: 'decrease' | 'increase'; cashAccountId: string; currency: string; settlementAmount: number };
+export type LoanAttribution = LoanRepaymentAttribution | LoanDisbursementAttribution | LoanCashMovementAttribution;
+export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution; loanAttribution?: LoanAttribution };
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
 export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
   { id: 'income-salary', name: '薪資', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'income-interest', name: '利息', kind: 'income', isActive: true, sortOrder: 1 }, { id: 'income-dividend', name: '股息', kind: 'income', isActive: true, sortOrder: 2 }, { id: 'income-refund', name: '退款', kind: 'income', isActive: true, sortOrder: 3 }, { id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 4 },
@@ -103,6 +109,43 @@ function normalizeInvestmentAttribution(value: unknown, transaction: { type: Tra
   if (expectedType !== transaction.type || cashAccountId !== transaction.accountId || settlementAmount !== transaction.amount || currency !== transaction.currency) return undefined;
   return { kind: 'trade', tradeId, ...(cashMovementId ? { cashMovementId } : {}), side, assetSymbol, quantity, settlementAmount, currency, cashAccountId };
 }
+function normalizeLoanAttribution(value: unknown, transaction: { type: TransactionType; accountId: string; amount: number; currency: string }): LoanAttribution | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const currency = optionalText(record.currency)?.toUpperCase();
+  const cashAccountId = optionalText(record.cashAccountId);
+  if (!currency || !cashAccountId || currency !== transaction.currency || cashAccountId !== transaction.accountId) return undefined;
+  if (record.kind === 'cash-movement') {
+    const cashMovementId = optionalText(record.cashMovementId);
+    const direction = record.direction === 'decrease' || record.direction === 'increase' ? record.direction : undefined;
+    const settlementAmount = Number(record.settlementAmount);
+    return cashMovementId && direction && Number.isFinite(settlementAmount) && settlementAmount > 0 && settlementAmount === transaction.amount
+      ? { kind: 'cash-movement', cashMovementId, direction, cashAccountId, currency, settlementAmount }
+      : undefined;
+  }
+  const paymentId = optionalText(record.paymentId);
+  const loanId = optionalText(record.loanId);
+  const settlementAmount = Number(record.settlementAmount);
+  const cashMovementId = optionalText(record.cashMovementId);
+  if (!paymentId || !loanId || !Number.isFinite(settlementAmount) || settlementAmount <= 0 || settlementAmount !== transaction.amount) return undefined;
+  if (record.kind === 'disbursement') {
+    return transaction.type === 'income'
+      ? { kind: 'disbursement', paymentId, loanId, cashAccountId, currency, settlementAmount, ...(cashMovementId ? { cashMovementId } : {}) }
+      : undefined;
+  }
+  if (record.kind !== 'repayment' || transaction.type !== 'expense' || !Array.isArray(record.components)) return undefined;
+  const components = record.components.flatMap(value => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const component = value as Record<string, unknown>;
+    const componentId = optionalText(component.componentId);
+    const componentType = component.type === 'principal' || component.type === 'interest' || component.type === 'fee' || component.type === 'penalty' ? component.type : undefined;
+    const amount = Number(component.amount);
+    return componentId && componentType && Number.isFinite(amount) && amount > 0 ? [{ componentId, type: componentType as LoanPaymentComponent['type'], amount }] : [];
+  });
+  if (components.length !== record.components.length || !components.length || new Set(components.map(component => component.componentId)).size !== components.length) return undefined;
+  if (components.reduce((total, component) => total + component.amount, 0) !== settlementAmount) return undefined;
+  return { kind: 'repayment', paymentId, loanId, cashAccountId, currency, settlementAmount, components, ...(cashMovementId ? { cashMovementId } : {}) };
+}
 /** Safely repairs legacy or mismatched categories before state is persisted. */
 export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {
   const available = categoriesForTransactionType(transactionType);
@@ -138,6 +181,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
   }
   const currency = (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8);
   const investmentAttribution = normalizeInvestmentAttribution(candidate.investmentAttribution, { type: resolvedType, accountId, amount, currency });
+  const loanAttribution = normalizeLoanAttribution(candidate.loanAttribution ?? current?.loanAttribution, { type: resolvedType, accountId, amount, currency });
   const normalized: FinancialTransaction = {
     id,
     accountId,
@@ -162,7 +206,8 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
       ...(grossAmount !== undefined ? { grossAmount } : {}),
       ...(withholdingTax !== undefined ? { withholdingTax } : {})
     } : {}),
-    ...(investmentAttribution ? { investmentAttribution } : {})
+    ...(investmentAttribution ? { investmentAttribution } : {}),
+    ...(loanAttribution ? { loanAttribution } : {})
   };
   const fingerprintChanged = !current || ['accountId', 'transferAccountId', 'type', 'amount', 'currency', 'occurredAt', 'categoryId', 'description', 'merchant'].some(key => String(current[key as keyof FinancialTransaction] ?? '') !== String(normalized[key as keyof FinancialTransaction] ?? ''));
   return { ...normalized, fingerprint: fingerprintChanged ? transactionFingerprint(normalized) : current.fingerprint };

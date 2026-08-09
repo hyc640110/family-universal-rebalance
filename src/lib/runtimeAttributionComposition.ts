@@ -1,7 +1,8 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import { deriveRuntimeDerivedAttributionEvidence } from './derivedAttributionEvidence';
 import type { FinancialAccount } from './financialAccounts';
-import { collectVoidedEventIds, type FinancialEvent } from './financialEvents';
+import { collectVoidedEventIds, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
+import { deriveLoanRuntimeEvidence } from './loanAttribution';
 import {
   deriveNetWorthAttributionFromEvidence,
   type NetWorthAttribution,
@@ -28,6 +29,8 @@ export type RuntimeAttributionCompositionInput = {
   ledgerEvents: readonly FinancialEvent[];
   transactions: readonly FinancialTransaction[];
   accounts: readonly FinancialAccount[];
+  /** Optional keeps non-Loan consumers and legacy call sites backward-compatible. Absence is fail-safe for Loan attribution. */
+  loans?: readonly { id: string }[];
   absoluteTolerance?: number;
 };
 
@@ -91,9 +94,16 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   // derived-evidence fallback path instead of silently disappearing.
   const voidedEventIds = collectVoidedEventIds(input.ledgerEvents);
   const effectiveLedgerEvents = input.ledgerEvents.filter(event => event.source !== 'void' && !voidedEventIds.has(event.id));
+  const loanGroupResolution = resolveActiveLoanComponentGroups(effectiveLedgerEvents, {
+    accountIds: new Set(input.accounts.map(account => account.id)),
+    loanIds: new Set((input.loans || []).map(loan => loan.id)),
+    transactionIds: new Set(input.transactions.map(transaction => transaction.id)),
+    transactionsById: new Map(input.transactions.map(transaction => [transaction.id, transaction]))
+  });
 
   const diagnostics: RuntimeAttributionCompositionDiagnostic[] = [];
   const ledgerEvidence: NetWorthAttributionEvidence[] = effectiveLedgerEvents.flatMap(event => {
+    if (event.componentLink && !loanGroupResolution.validEventIds.has(event.id)) return [];
     if (!inPeriod(event.effectiveDate, period)) {
       diagnostics.push({ code: 'ledger-event-outside-period-excluded', eventId: event.id });
       return [];
@@ -105,12 +115,22 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
     return [{ id: event.id, type: event.type, status: event.status, amount: event.amount, provenance: 'ledger' as const }];
   });
 
-  const reconciliationResults = reconcileTransactions({
+  const rawReconciliationResults = reconcileTransactions({
     transactions: input.transactions,
     accounts: input.accounts,
-    ledgerEvents: effectiveLedgerEvents
+    ledgerEvents: effectiveLedgerEvents,
+    loanIds: new Set((input.loans || []).map(loan => loan.id))
   });
   const transactionById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
+  const reconciliationResults = rawReconciliationResults.map(result => {
+    const transaction = transactionById.get(result.transactionId);
+    const paymentId = transaction?.loanAttribution && transaction.loanAttribution.kind === 'repayment'
+      ? transaction.loanAttribution.paymentId
+      : undefined;
+    return paymentId && loanGroupResolution.confirmedPaymentIds.has(paymentId)
+      ? { ...result, status: 'matched' as const, reason: 'linked-loan-payment-group' as const, completedPeriodEvidence: transaction?.status === 'posted' }
+      : result;
+  });
   for (const result of reconciliationResults) {
     const transaction = transactionById.get(result.transactionId);
     if (transaction && result.reason === 'fx-attribution-unsupported' && inPeriodFromOccurrence(transaction.occurredAt, period)) {
@@ -141,11 +161,18 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
       provenance: 'derived-transaction' as const
     }];
   });
+  const loanDerivedEvidence: NetWorthAttributionEvidence[] = deriveLoanRuntimeEvidence({
+    transactions: input.transactions,
+    loanIds: new Set((input.loans || []).map(loan => loan.id)),
+    ledgerEvents: effectiveLedgerEvents
+  }).flatMap(evidence => inPeriodFromOccurrence(transactionById.get(evidence.transactionId)?.occurredAt || '', period)
+    ? [{ id: evidence.id, type: evidence.type, status: 'posted' as const, amount: evidence.amount, provenance: 'derived-transaction' as const }]
+    : []);
 
   const attribution = deriveNetWorthAttributionFromEvidence({
     openingSnapshot: input.openingSnapshot,
     closingSnapshot: input.closingSnapshot,
-    evidence: [...ledgerEvidence, ...derivedEvidence],
+    evidence: [...ledgerEvidence, ...derivedEvidence, ...loanDerivedEvidence],
     absoluteTolerance: input.absoluteTolerance
   });
   const ledgerContribution = attribution.classifiedEventContribution === null

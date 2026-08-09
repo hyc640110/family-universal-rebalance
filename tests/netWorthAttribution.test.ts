@@ -91,17 +91,17 @@ test('pending and void events remain auditable but never affect completed-period
   assert.deepEqual(result.eventClassifications.map(item => item.disposition), ['not-posted', 'not-posted']);
 });
 
-test('loan principal and interest remain unsupported rather than inventing a contribution', () => {
+test('正式 Loan component 讓本金維持零貢獻，利息只有一次負貢獻', () => {
   const result = deriveNetWorthAttribution({
     openingSnapshot: snapshot('2026-08-01', 100),
     closingSnapshot: snapshot('2026-08-02', 80),
     events: [event('loan-principal-payment', 10), event('loan-interest-payment', 10)]
   });
 
-  assert.equal(result.classifiedEventContribution, 0);
-  assert.equal(result.unexplainedResidual, -20);
-  assert.equal(result.attributionQuality, 'snapshot-only');
-  assert.deepEqual(result.eventClassifications.map(item => item.disposition), ['unsupported', 'unsupported']);
+  assert.equal(result.classifiedEventContribution, -10);
+  assert.equal(result.unexplainedResidual, -10);
+  assert.equal(result.attributionQuality, 'partial');
+  assert.deepEqual(result.eventClassifications.map(item => [item.disposition, item.contribution]), [['excluded', 0], ['contributing', -10]]);
 });
 
 test('one posted dividend contributes once, while adjustment stays explicitly non-market evidence', () => {
