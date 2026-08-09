@@ -1,4 +1,5 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
+import { validateLoanAttributionContract } from './loanAttributionContract';
 import type { FinancialTransaction } from './transactions';
 
 /**
@@ -274,8 +275,10 @@ export function resolveActiveLoanComponentGroups(events: readonly FinancialEvent
     const transaction = context.transactionsById.get(first.transactionId);
     const contract = transaction?.loanAttribution;
     if (!transaction || contract?.kind !== 'repayment' || !context.loanIds.has(first.loanId)) continue;
+    const checked = validateLoanAttributionContract({ transaction, transactions: [...context.transactionsById.values()], loanIds: context.loanIds });
+    if (checked.status !== 'valid' || checked.attribution.kind !== 'repayment') continue;
     if (contract.paymentId !== link.paymentId || contract.loanId !== first.loanId || contract.cashAccountId !== first.accountId || contract.currency !== first.currency || contract.settlementAmount !== transaction.amount) continue;
-    if (group.some(event => event.transactionId !== first.transactionId || event.loanId !== first.loanId || event.accountId !== first.accountId || event.currency !== first.currency || event.effectiveDate !== first.effectiveDate || event.status !== first.status || event.componentLink?.paymentId !== link.paymentId || event.componentLink?.cashMovementId !== link.cashMovementId)) continue;
+    if (group.some(event => event.source !== 'attribution-confirmation' || event.transactionId !== first.transactionId || event.loanId !== first.loanId || event.accountId !== first.accountId || event.currency !== first.currency || event.effectiveDate !== first.effectiveDate || event.status !== first.status || event.componentLink?.paymentId !== link.paymentId || event.componentLink?.cashMovementId !== link.cashMovementId)) continue;
     if (new Set(group.map(event => event.componentLink?.componentId)).size !== group.length) continue;
     if (contract.components.length !== group.length || contract.components.reduce((sum, component) => sum + component.amount, 0) !== contract.settlementAmount) continue;
     const expected = new Map(contract.components.map(component => [component.componentId, component]));
@@ -503,8 +506,20 @@ export function appendFinancialEvent(existingEvents: readonly FinancialEvent[], 
 /** The only sanctioned write path for a multi-component Loan payment confirmation. */
 export function appendFinancialEventGroup(existingEvents: readonly FinancialEvent[], group: readonly FinancialEvent[], context: FinancialEventReferenceContext): AppendFinancialEventResult {
   if (!group.length) return { rejected: true, reason: 'Loan component group 不得為空。' };
-  if (group.some(event => !event.componentLink)) return { rejected: true, reason: 'Loan component group 的每個 event 必須有 componentLink。' };
+  if (group.some(event => event.source !== 'attribution-confirmation' || event.status !== 'posted' || !event.componentLink)) return { rejected: true, reason: 'Loan component group 的每個 event 必須是 posted attribution-confirmation 並有 componentLink。' };
   if (new Set(group.map(event => event.id)).size !== group.length || group.some(event => existingEvents.some(existing => existing.id === event.id))) return { rejected: true, reason: 'Loan component group 含重複 event id。' };
+  const transactionIds = new Set(group.map(event => event.transactionId));
+  if (transactionIds.size !== 1) return { rejected: true, reason: 'Loan component group 必須唯一連結一筆 transaction。' };
+  const transactionId = [...transactionIds][0];
+  const transaction = transactionId ? context.transactionsById.get(transactionId) : undefined;
+  const checked = transaction
+    ? validateLoanAttributionContract({ transaction, transactions: [...context.transactionsById.values()], loanIds: context.loanIds })
+    : { status: 'unsupported' as const, reason: 'Loan component group 缺少可驗證 transaction。' };
+  if (checked.status !== 'valid' || checked.attribution.kind !== 'repayment') return { rejected: true, reason: 'Loan component group 未通過完整 repayment contract 驗證。' };
+  for (const event of group) {
+    const reason = linkedTransactionReason(event.type, event.status, event.amount, event.currency, event.accountId || '', event.counterpartyAccountId, event.effectiveDate, transaction!, event.componentLink, event.loanId);
+    if (reason) return { rejected: true, reason: `Loan component group 未通過寫入邊界驗證：${reason}` };
+  }
   const all = [...existingEvents, ...group];
   const resolution = resolveActiveLoanComponentGroups(all, context);
   if (group.some(event => !resolution.validEventIds.has(event.id))) return { rejected: true, reason: 'Loan component group 不完整、重複或與正式 repayment contract 不一致。' };

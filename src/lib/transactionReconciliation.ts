@@ -54,7 +54,9 @@ export type TransactionReconciliationInput = {
 type Candidate = { eventType: TransactionReconciliationEventType } | { reason: TransactionReconciliationReason };
 
 const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund', 'income-other']);
-const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-housing', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
+// `expense-housing` cannot prove rent versus a loan repayment. Until a formal
+// non-loan contract exists, fail-safe leaves it residual rather than guessing.
+const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
 const CURRENCY_CODE = /^[A-Z]{3}$/;
 /**
  * UR-TODO-046-C3C-C: both sources represent a real link to one transactionId

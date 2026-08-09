@@ -37,6 +37,67 @@ test('partial confirmation 不能消費 payment；append group 只允許原子�
   if (!accepted.rejected) assert.equal(accepted.events.length, 2);
 });
 
+test('appendFinancialEventGroup 在 API 邊界拒絕不完整、非 confirmation source 與 excluded transaction 的直接寫入', () => {
+  const incomplete = appendFinancialEventGroup([], [event('principal', 'principal')], context);
+  assert.equal(incomplete.rejected, true);
+
+  const mixedSource = appendFinancialEventGroup([], [
+    event('principal', 'principal'),
+    { ...event('interest', 'interest'), source: 'linked-transaction' }
+  ], context);
+  assert.equal(mixedSource.rejected, true);
+
+  const excludedTransaction = { ...transaction, excluded: true };
+  const excludedContext = {
+    ...context,
+    transactionsById: new Map([['repayment-1', excludedTransaction]])
+  };
+  const excluded = appendFinancialEventGroup([], [event('principal', 'principal'), event('interest', 'interest')], excludedContext);
+  assert.equal(excluded.rejected, true);
+});
+
+test('appendFinancialEventGroup 在 API 邊界拒絕 status mismatch、component sum 不符與跨 payment component identity 重複', () => {
+  const pendingTransaction = { ...transaction, status: 'pending' as const };
+  const pendingContext = { ...context, transactionsById: new Map([['repayment-1', pendingTransaction]]) };
+  const pendingGroup = [
+    { ...event('principal', 'principal'), status: 'pending' as const },
+    { ...event('interest', 'interest'), status: 'pending' as const }
+  ];
+  assert.equal(appendFinancialEventGroup([], pendingGroup, pendingContext).rejected, true);
+
+  const invalidSumTransaction: FinancialTransaction = {
+    ...transaction,
+    loanAttribution: {
+      ...transaction.loanAttribution!,
+      components: [
+        { componentId: 'principal', type: 'principal', amount: 15_000 },
+        { componentId: 'interest', type: 'interest', amount: 4_000 }
+      ]
+    }
+  };
+  const invalidSumContext = { ...context, transactionsById: new Map([['repayment-1', invalidSumTransaction]]) };
+  assert.equal(appendFinancialEventGroup([], [event('principal', 'principal'), event('interest', 'interest')], invalidSumContext).rejected, true);
+
+  const secondPayment: FinancialTransaction = {
+    ...transaction,
+    id: 'repayment-2',
+    loanAttribution: {
+      ...transaction.loanAttribution!,
+      paymentId: 'payment-2',
+      components: [
+        { componentId: 'principal', type: 'principal', amount: 15_000 },
+        { componentId: 'interest-2', type: 'interest', amount: 5_000 }
+      ]
+    }
+  };
+  const duplicateIdentityContext = {
+    ...context,
+    transactionIds: new Set(['repayment-1', 'repayment-2']),
+    transactionsById: new Map([['repayment-1', transaction], ['repayment-2', secondPayment]])
+  };
+  assert.equal(appendFinancialEventGroup([], [event('principal', 'principal'), event('interest', 'interest')], duplicateIdentityContext).rejected, true);
+});
+
 test('任一 component Void 時整組停止；重新確認只能使用新的完整 confirmation group，不能混接舊 component', () => {
   const oldPrincipal = event('old-principal', 'principal', 'group-old');
   const oldInterest = event('old-interest', 'interest', 'group-old');

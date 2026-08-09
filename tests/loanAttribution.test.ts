@@ -71,6 +71,25 @@ test('duplicate paymentId 不得產生任何 runtime attribution；generic 房�
   assert.equal(validateLoanAttribution({ transaction: generic, transactions: [generic], loanIds: new Set(['loan-a']) }).status, 'not-applicable');
 });
 
+test('同一 loan 的 componentId 跨不同 paymentId 重複時，兩筆 repayment 都不得產生 runtime attribution', () => {
+  const secondPayment = transaction('repayment-component-duplicate', {
+    source: 'import',
+    loanAttribution: {
+      ...repayment.loanAttribution!,
+      paymentId: 'payment-2',
+      components: [
+        { componentId: 'principal-1', type: 'principal', amount: 15_000 },
+        { componentId: 'interest-2', type: 'interest', amount: 5_000 }
+      ]
+    }
+  });
+
+  const input = { transaction: repayment, transactions: [repayment, secondPayment], loanIds: new Set(['loan-a']) };
+  assert.equal(validateLoanAttribution(input).status, 'unsupported');
+  assert.equal(validateLoanAttribution({ ...input, transaction: secondPayment }).status, 'unsupported');
+  assert.deepEqual(deriveLoanRuntimeEvidence({ transactions: [repayment, secondPayment], loanIds: new Set(['loan-a']), ledgerEvents: [] }), []);
+});
+
 test('無 linked cash movement 的另一筆手動貸款餘額調整不會被 Loan runtime evidence 當成第二次 repayment', () => {
   const manualBalanceAdjustment = transaction('manual-loan-balance-adjustment', { type: 'adjustment', categoryId: 'adjustment-other', amount: 15_000, loanAttribution: undefined });
   const evidence = deriveLoanRuntimeEvidence({ transactions: [repayment, manualBalanceAdjustment], loanIds: new Set(['loan-a']), ledgerEvents: [] });
