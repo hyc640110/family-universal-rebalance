@@ -10,6 +10,8 @@ export type AccountReference = { id: string; currency: string; isActive: boolean
 export type InvestmentTradeAttribution = {
   kind: 'trade';
   tradeId: string;
+  /** Optional only when the trade is represented by a separately-recorded cash movement. */
+  cashMovementId?: string;
   side: 'buy' | 'sell';
   assetSymbol: string;
   quantity: number;
@@ -20,12 +22,23 @@ export type InvestmentTradeAttribution = {
 export type InvestmentCostAttribution = {
   kind: 'cost';
   tradeId: string;
+  /** Stable source identity; without it the cost cannot be safely de-duplicated. */
+  costId?: string;
   costType: 'fee' | 'tax';
+  /** Only `independent` can affect attribution; legacy/unknown/included costs remain fail-safe. */
+  settlementCostTreatment?: 'independent' | 'included' | 'unknown';
   assetSymbol: string;
   currency: string;
   cashAccountId: string;
 };
-export type InvestmentAttribution = InvestmentTradeAttribution | InvestmentCostAttribution;
+export type InvestmentCashMovementAttribution = {
+  kind: 'cash-movement';
+  cashMovementId: string;
+  direction: 'decrease' | 'increase';
+  currency: string;
+  cashAccountId: string;
+};
+export type InvestmentAttribution = InvestmentTradeAttribution | InvestmentCostAttribution | InvestmentCashMovementAttribution;
 export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution };
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
 export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
@@ -61,19 +74,34 @@ function normalizeInvestmentAttribution(value: unknown, transaction: { type: Tra
   const assetSymbol = optionalText(record.assetSymbol)?.toUpperCase();
   const currency = optionalText(record.currency)?.toUpperCase();
   const cashAccountId = optionalText(record.cashAccountId);
-  if (!tradeId || !assetSymbol || !currency || !cashAccountId || cashAccountId !== transaction.accountId || currency !== transaction.currency) return undefined;
+  if (!currency || !cashAccountId || cashAccountId !== transaction.accountId || currency !== transaction.currency) return undefined;
+  if (record.kind === 'cash-movement') {
+    const cashMovementId = optionalText(record.cashMovementId);
+    const direction = record.direction === 'decrease' || record.direction === 'increase' ? record.direction : undefined;
+    return cashMovementId && direction
+      ? { kind: 'cash-movement', cashMovementId, direction, currency, cashAccountId }
+      : undefined;
+  }
+  if (!tradeId || !assetSymbol) return undefined;
   if (record.kind === 'cost') {
     const costType = record.costType === 'fee' || record.costType === 'tax' ? record.costType : undefined;
-    return costType && transaction.type === 'expense' ? { kind: 'cost', tradeId, costType, assetSymbol, currency, cashAccountId } : undefined;
+    const costId = optionalText(record.costId);
+    const settlementCostTreatment = record.settlementCostTreatment === 'independent' || record.settlementCostTreatment === 'included' || record.settlementCostTreatment === 'unknown'
+      ? record.settlementCostTreatment
+      : undefined;
+    return costType && transaction.type === 'expense'
+      ? { kind: 'cost', tradeId, ...(costId ? { costId } : {}), costType, ...(settlementCostTreatment ? { settlementCostTreatment } : {}), assetSymbol, currency, cashAccountId }
+      : undefined;
   }
   if (record.kind !== 'trade') return undefined;
   const side = record.side === 'buy' || record.side === 'sell' ? record.side : undefined;
   const quantity = Number(record.quantity);
   const settlementAmount = Number(record.settlementAmount);
+  const cashMovementId = optionalText(record.cashMovementId);
   const expectedType: TransactionType | undefined = side === 'buy' ? 'expense' : side === 'sell' ? 'income' : undefined;
   if (!tradeId || !side || !assetSymbol || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(settlementAmount) || settlementAmount <= 0 || !currency || !cashAccountId) return undefined;
   if (expectedType !== transaction.type || cashAccountId !== transaction.accountId || settlementAmount !== transaction.amount || currency !== transaction.currency) return undefined;
-  return { kind: 'trade', tradeId, side, assetSymbol, quantity, settlementAmount, currency, cashAccountId };
+  return { kind: 'trade', tradeId, ...(cashMovementId ? { cashMovementId } : {}), side, assetSymbol, quantity, settlementAmount, currency, cashAccountId };
 }
 /** Safely repairs legacy or mismatched categories before state is persisted. */
 export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {

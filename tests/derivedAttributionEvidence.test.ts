@@ -84,13 +84,59 @@ test('明確投資 fee 或 tax 以獨立交易成本產生一次負貢獻，不�
     }),
     transaction('fee', {
       type: 'expense', categoryId: 'expense-investment', amount: 20,
-      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-1', costType: 'fee', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('tax', {
+      type: 'expense', categoryId: 'expense-investment', amount: 10,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'tax-1', costType: 'tax', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
     })
   ]);
 
   assert.deepEqual(output.map(item => [item.transactionId, item.category, item.signedContribution]), [
     ['buy', 'investment-buy', 0],
-    ['fee', 'investment-fee', -20]
+    ['fee', 'investment-fee', -20],
+    ['tax', 'investment-fee', -10]
+  ]);
+});
+
+test('included 或 unknown 成本，以及賣出 realized gain/loss，都不得自行增加額外 contribution', () => {
+  const output = derive([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'buy-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('sell', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'sell-1', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('included-fee', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-included', costType: 'fee', settlementCostTreatment: 'included', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('unknown-tax', {
+      type: 'expense', categoryId: 'expense-investment', amount: 10,
+      investmentAttribution: { kind: 'cost', tradeId: 'sell-1', costId: 'tax-unknown', costType: 'tax', settlementCostTreatment: 'unknown', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.category, item.signedContribution]), [
+    ['buy', 'investment-buy', 0],
+    ['sell', 'investment-sell', 0]
+  ]);
+});
+
+test('dividend 只記一次外部貢獻，之後用股息再投資的 buy 維持零貢獻', () => {
+  const output = derive([
+    transaction('dividend', { categoryId: 'income-dividend', amount: 100 }),
+    transaction('reinvestment-buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 100,
+      investmentAttribution: { kind: 'trade', tradeId: 'reinvest-1', side: 'buy', assetSymbol: '0050', quantity: 1, settlementAmount: 100, currency: 'TWD', cashAccountId: 'bank-a' }
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.category, item.signedContribution]), [
+    ['dividend', 'dividend', 100],
+    ['reinvestment-buy', 'investment-buy', 0]
   ]);
 });
 

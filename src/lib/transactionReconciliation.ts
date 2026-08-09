@@ -10,6 +10,12 @@ export type TransactionReconciliationReason =
   | 'manual-event-looks-similar'
   | 'multiple-linked-events'
   | 'duplicate-trade-identity'
+  | 'duplicate-cost-identity'
+  | 'cost-not-separately-proven'
+  | 'unlinked-investment-cost'
+  | 'linked-investment-cash-movement'
+  | 'unlinked-investment-cash-movement'
+  | 'cash-movement-link-unresolved'
   | 'safe-taxonomy-candidate'
   | 'not-posted'
   | 'excluded'
@@ -40,7 +46,7 @@ export type TransactionReconciliationInput = {
 
 type Candidate = { eventType: TransactionReconciliationEventType } | { reason: TransactionReconciliationReason };
 
-const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund']);
+const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund', 'income-other']);
 const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-housing', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
 const CURRENCY_CODE = /^[A-Z]{3}$/;
 /**
@@ -77,7 +83,12 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
     if (transaction.currency !== account.currency || trade.currency !== transaction.currency) return { reason: 'fx-attribution-unsupported' };
     if (transaction.currency !== 'TWD') return { reason: 'fx-attribution-unsupported' };
     if (trade.cashAccountId !== transaction.accountId) return { reason: 'unsupported-taxonomy' };
-    if (trade.kind === 'cost') return transaction.type === 'expense' ? { eventType: 'investment-fee' } : { reason: 'unsupported-taxonomy' };
+    if (trade.kind === 'cash-movement') return { reason: 'unlinked-investment-cash-movement' };
+    if (trade.kind === 'cost') {
+      return transaction.type === 'expense' && trade.costId && trade.settlementCostTreatment === 'independent'
+        ? { eventType: 'investment-fee' }
+        : { reason: 'cost-not-separately-proven' };
+    }
     if (trade.settlementAmount !== transaction.amount) return { reason: 'unsupported-taxonomy' };
     if (trade.side === 'buy' && transaction.type === 'expense') return { eventType: 'investment-buy' };
     if (trade.side === 'sell' && transaction.type === 'income') return { eventType: 'investment-sell' };
@@ -106,6 +117,20 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
   return { reason: 'unsupported-taxonomy' };
 }
 
+function isLinkedCashMovementPair(tradeTransaction: FinancialTransaction, cashTransaction: FinancialTransaction): boolean {
+  const trade = tradeTransaction.investmentAttribution;
+  const cash = cashTransaction.investmentAttribution;
+  if (trade?.kind !== 'trade' || cash?.kind !== 'cash-movement') return false;
+  if (!trade.cashMovementId || trade.cashMovementId !== cash.cashMovementId) return false;
+  const expectedDirection = trade.side === 'buy' ? 'decrease' : 'increase';
+  const expectedType = expectedDirection === 'decrease' ? 'expense' : 'income';
+  return cash.direction === expectedDirection
+    && cashTransaction.type === expectedType
+    && tradeTransaction.accountId === cashTransaction.accountId
+    && tradeTransaction.currency === cashTransaction.currency
+    && trade.cashAccountId === cash.cashAccountId;
+}
+
 function isEventForTransaction(event: FinancialEvent, transaction: FinancialTransaction, eventType: TransactionReconciliationEventType): boolean {
   const date = calendarDay(transaction.occurredAt);
   if (!date || transaction.excluded || !TRANSACTION_LINKED_SOURCES.has(event.source) || event.status !== transaction.status || event.status === 'void') return false;
@@ -128,14 +153,56 @@ function isSimilarManualEvent(event: FinancialEvent, transaction: FinancialTrans
 export function reconcileTransactions(input: TransactionReconciliationInput): TransactionReconciliationResult[] {
   const accountById = new Map(input.accounts.map(account => [account.id, account]));
   const tradeIdentityCounts = new Map<string, number>();
+  const costIdentityCounts = new Map<string, number>();
+  const tradeTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
+  const cashTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
   for (const transaction of input.transactions) {
-    const tradeId = transaction.investmentAttribution?.kind === 'trade' ? transaction.investmentAttribution.tradeId : undefined;
-    if (tradeId) tradeIdentityCounts.set(tradeId, (tradeIdentityCounts.get(tradeId) || 0) + 1);
+    const investment = transaction.investmentAttribution;
+    if (investment?.kind === 'trade') {
+      tradeIdentityCounts.set(investment.tradeId, (tradeIdentityCounts.get(investment.tradeId) || 0) + 1);
+      if (investment.cashMovementId) {
+        const entries = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+        entries.push(transaction);
+        tradeTransactionsByCashMovementId.set(investment.cashMovementId, entries);
+      }
+    }
+    if (investment?.kind === 'cost' && investment.costId) {
+      costIdentityCounts.set(investment.costId, (costIdentityCounts.get(investment.costId) || 0) + 1);
+    }
+    if (investment?.kind === 'cash-movement') {
+      const entries = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      entries.push(transaction);
+      cashTransactionsByCashMovementId.set(investment.cashMovementId, entries);
+    }
   }
   return input.transactions.map(transaction => {
-    const tradeId = transaction.investmentAttribution?.kind === 'trade' ? transaction.investmentAttribution.tradeId : undefined;
+    const investment = transaction.investmentAttribution;
+    const tradeId = investment?.kind === 'trade' ? investment.tradeId : undefined;
     if (tradeId && (tradeIdentityCounts.get(tradeId) || 0) > 1) {
       return { transactionId: transaction.id, status: 'duplicate', reason: 'duplicate-trade-identity', completedPeriodEvidence: false };
+    }
+    if (investment?.kind === 'cost') {
+      if (investment.costId && (costIdentityCounts.get(investment.costId) || 0) > 1) {
+        return { transactionId: transaction.id, status: 'duplicate', reason: 'duplicate-cost-identity', completedPeriodEvidence: false };
+      }
+      if ((tradeIdentityCounts.get(investment.tradeId) || 0) !== 1) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'unlinked-investment-cost', completedPeriodEvidence: false };
+      }
+    }
+    if (investment?.kind === 'trade' && investment.cashMovementId) {
+      const cashTransactions = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      const tradeTransactions = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      if (tradeTransactions.length !== 1 || cashTransactions.length !== 1 || !isLinkedCashMovementPair(transaction, cashTransactions[0])) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'cash-movement-link-unresolved', completedPeriodEvidence: false };
+      }
+    }
+    if (investment?.kind === 'cash-movement') {
+      const tradeTransactions = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      const cashTransactions = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      if (tradeTransactions.length === 1 && cashTransactions.length === 1 && isLinkedCashMovementPair(tradeTransactions[0], transaction)) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'linked-investment-cash-movement', completedPeriodEvidence: false };
+      }
+      return { transactionId: transaction.id, status: 'unsupported', reason: 'unlinked-investment-cash-movement', completedPeriodEvidence: false };
     }
     const candidate = candidateFor(transaction, accountById);
     if (!('eventType' in candidate)) {

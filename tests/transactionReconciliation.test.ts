@@ -75,7 +75,7 @@ test('拒絕投資、未入帳、作廢、排除與不明 taxonomy，不猜測�
   ]);
 });
 
-test('只有完整 TWD 投資契約可產生買賣候選；一般 income-other 與重複 trade identity 均 fail-safe', () => {
+test('只有完整 TWD 投資契約可產生買賣候選；重複 trade identity 均 fail-safe', () => {
   const output = results([
     transaction('buy', {
       type: 'expense', categoryId: 'expense-investment', amount: 1000,
@@ -87,7 +87,7 @@ test('只有完整 TWD 投資契約可產生買賣候選；一般 income-other �
     }),
     transaction('fee', {
       type: 'expense', categoryId: 'expense-investment', amount: 20,
-      investmentAttribution: { kind: 'cost', tradeId: 'trade-buy-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+      investmentAttribution: { kind: 'cost', tradeId: 'trade-buy-1', costId: 'fee-1', costType: 'fee', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
     }),
     transaction('ordinary-income-other', { categoryId: 'income-other', description: '賣出 0050' }),
     transaction('duplicate-a', {
@@ -108,10 +108,121 @@ test('只有完整 TWD 投資契約可產生買賣候選；一般 income-other �
     ['buy', 'candidate', 'investment-buy', 'safe-taxonomy-candidate'],
     ['sell', 'candidate', 'investment-sell', 'safe-taxonomy-candidate'],
     ['fee', 'candidate', 'investment-fee', 'safe-taxonomy-candidate'],
-    ['ordinary-income-other', 'unsupported', undefined, 'unsupported-taxonomy'],
+    ['ordinary-income-other', 'candidate', 'external-income', 'safe-taxonomy-candidate'],
     ['duplicate-a', 'duplicate', undefined, 'duplicate-trade-identity'],
     ['duplicate-b', 'duplicate', undefined, 'duplicate-trade-identity'],
     ['usd-trade', 'unsupported', undefined, 'fx-attribution-unsupported']
+  ]);
+});
+
+test('一般 income-other 維持 external-income，只有完整 sell contract 才覆寫為零貢獻投資賣出', () => {
+  const output = results([
+    transaction('ordinary-income-other', { categoryId: 'income-other', description: '二手物出售' }),
+    transaction('formal-sell', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'sell-1', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('legacy-income-other', { categoryId: 'income-other', description: '賣出 0050' })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.eventType]), [
+    ['ordinary-income-other', 'candidate', 'external-income'],
+    ['formal-sell', 'candidate', 'investment-sell'],
+    ['legacy-income-other', 'candidate', 'external-income']
+  ]);
+});
+
+test('只有明確 independent 且有唯一 stable costId 的 fee 或 tax 才能成為 investment-fee', () => {
+  const output = results([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'buy-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('independent-fee', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-1', costType: 'fee', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('included-tax', {
+      type: 'expense', categoryId: 'expense-investment', amount: 10,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'tax-1', costType: 'tax', settlementCostTreatment: 'included', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('unknown-fee', {
+      type: 'expense', categoryId: 'expense-investment', amount: 5,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-unknown', costType: 'fee', settlementCostTreatment: 'unknown', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('duplicate-fee-a', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-duplicate', costType: 'fee', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('duplicate-fee-b', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costId: 'fee-duplicate', costType: 'fee', settlementCostTreatment: 'independent', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.eventType, item.reason]), [
+    ['buy', 'candidate', 'investment-buy', 'safe-taxonomy-candidate'],
+    ['independent-fee', 'candidate', 'investment-fee', 'safe-taxonomy-candidate'],
+    ['included-tax', 'unsupported', undefined, 'cost-not-separately-proven'],
+    ['unknown-fee', 'unsupported', undefined, 'cost-not-separately-proven'],
+    ['duplicate-fee-a', 'duplicate', undefined, 'duplicate-cost-identity'],
+    ['duplicate-fee-b', 'duplicate', undefined, 'duplicate-cost-identity']
+  ]);
+});
+
+test('顯式 cashMovementId 才能抑制配對現金交易，缺配對或方向不符一律 fail-safe', () => {
+  const output = results([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'buy-cash-1', cashMovementId: 'cash-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('cash-decrease', {
+      type: 'expense', categoryId: 'expense-other', amount: 1000,
+      investmentAttribution: { kind: 'cash-movement', cashMovementId: 'cash-1', direction: 'decrease', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('unlinked-cash-increase', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'cash-movement', cashMovementId: 'cash-unlinked', direction: 'increase', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('sell-with-missing-cash-link', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'sell-cash-1', cashMovementId: 'cash-missing', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' } as any
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.eventType, item.reason]), [
+    ['buy', 'candidate', 'investment-buy', 'safe-taxonomy-candidate'],
+    ['cash-decrease', 'unsupported', undefined, 'linked-investment-cash-movement'],
+    ['unlinked-cash-increase', 'unsupported', undefined, 'unlinked-investment-cash-movement'],
+    ['sell-with-missing-cash-link', 'unsupported', undefined, 'cash-movement-link-unresolved']
+  ]);
+});
+
+test('manual 與 imported 重複 trade，以及方向不符的 cash movement，均不得形成 derived candidate', () => {
+  const output = results([
+    transaction('manual-buy', {
+      source: 'manual', type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'same-trade', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('imported-buy', {
+      source: 'import', type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'same-trade', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('sell', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'sell-direction', cashMovementId: 'cash-direction', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' } as any
+    }),
+    transaction('wrong-direction-cash', {
+      type: 'expense', categoryId: 'expense-other', amount: 1200,
+      investmentAttribution: { kind: 'cash-movement', cashMovementId: 'cash-direction', direction: 'decrease', currency: 'TWD', cashAccountId: 'bank-a' } as any
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.reason]), [
+    ['manual-buy', 'duplicate', 'duplicate-trade-identity'],
+    ['imported-buy', 'duplicate', 'duplicate-trade-identity'],
+    ['sell', 'unsupported', 'cash-movement-link-unresolved'],
+    ['wrong-direction-cash', 'unsupported', 'unlinked-investment-cash-movement']
   ]);
 });
 
