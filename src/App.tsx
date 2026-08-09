@@ -531,7 +531,7 @@ export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, 
   };
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
   if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
-  const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome.events };
+  const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
   const state = normalizeState({ ...mergedRemoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } });
   return { state, netWorthSnapshotReadTimeView, droppedFinancialEventCount: mergeOutcome.events.length - state.financialEvents.length };
 }
@@ -1344,7 +1344,7 @@ function App() {
     const remoteLedger = await fetchRemoteFinancialEventLedger(flushed.firebase, session.uid, session.idToken);
     const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: flushed.financialEventSchemaVersion, events: flushed.financialEvents }, remoteLedger);
     if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
-    const normalized = { ...flushed, financialEventSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, financialEvents: mergeOutcome.events };
+    const normalized = { ...flushed, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
     const requestSnapshot = createSyncPayloadSnapshot(normalized);
     const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot, session.uid, session.idToken);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
@@ -1490,8 +1490,9 @@ function App() {
     closingSnapshot: runtimeAttributionClosingSnapshot,
     ledgerEvents: state.financialEvents,
     transactions: state.transactions,
-    accounts: state.accounts
-  }), [runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot, state.financialEvents, state.transactions, state.accounts]);
+    accounts: state.accounts,
+    loans: state.loans
+  }), [runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot, state.financialEvents, state.transactions, state.accounts, state.loans]);
   const runtimeAttributionPresentation = useMemo(() => deriveRuntimeAttributionPresentation({
     composition: runtimeAttributionComposition,
     openingSnapshot: runtimeAttributionOpeningSnapshot,

@@ -75,6 +75,23 @@ test('拒絕投資、未入帳、作廢、排除與不明 taxonomy，不猜測�
   ]);
 });
 
+test('generic 房貸文字與 expense-housing taxonomy 沒有正式 loanAttribution 時必須保留 unsupported residual', () => {
+  const output = results([
+    transaction('generic-mortgage', {
+      type: 'expense',
+      categoryId: 'expense-housing',
+      description: '房貸'
+    })
+  ]);
+
+  assert.deepEqual(output, [{
+    transactionId: 'generic-mortgage',
+    status: 'unsupported',
+    reason: 'unsupported-taxonomy',
+    completedPeriodEvidence: false
+  }]);
+});
+
 test('只有完整 TWD 投資契約可產生買賣候選；重複 trade identity 均 fail-safe', () => {
   const output = results([
     transaction('buy', {

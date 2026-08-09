@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-09T07:04:19.162523+00:00
+Generated UTC: 2026-08-09T11:40:40.826028+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
-- `003_CURRENT_STATUS.md` — SHA-256 `1fe8a9d3c9f09d4a61af496d9c1f2afe3c5038f87d09dfd69a7857a5b56c9193`
-- `008_TODO_BACKLOG.md` — SHA-256 `87607505bbce68b39b5e46a312e0aff5cb79d330599f425d3c729b37ddbd6186`
-- `012_AI_HANDOVER.md` — SHA-256 `ce29daceec05b4c421d4412c28bec2befa5e8a0250a95eab50e206b93ec02277`
+- `003_CURRENT_STATUS.md` — SHA-256 `9aa07ba54a9d6a65c26d5eea304900f8852d78489ccefa1bab2a8f79141aa8b4`
+- `008_TODO_BACKLOG.md` — SHA-256 `7b9d73ef7b9db67babc8604a039977cd10d522a5e8bc67c96ee3bc5aa37ab6f3`
+- `012_AI_HANDOVER.md` — SHA-256 `9f40afcce674915bcb381ac488a26f109a65898e3ddd4b51e036290a6ab169fe`
 
 ---
 
@@ -428,6 +428,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 # Universal Rebalance Current Status v3.89
 
 最後更新：2026-08-09
+
+**UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation：Draft PR 候選，尚未 Merge。** 正式基線為 `origin/main` `1a80d08bdc5371fe3bb0a0a67ef533571db2214a`（PR #293 merge）；本 Sprint 使用隔離 branch `feat/ur-todo-046-l1-loan-repayment-component-group`。遠端 CI、PR Head 與 merge gate 一律必須以 GitHub 對**當前 Head**的實際狀態核實；本治理文件不預先或永久宣稱 CI 成功。 本次新增 `FinancialTransaction.loanAttribution?` 的加法式明示 contract（repayment／disbursement／cash-movement），以及 FinancialEvent schema v2 的 optional `componentLink`／atomic confirmation group。完整 TWD repayment 僅以明示 component 歸因：principal = 0，interest／fee／penalty = 一次負 contribution；disbursement = 0。`componentId` 在同一 `loanId` identity domain 內不得跨 payment 重複，且 `appendFinancialEventGroup()` 寫入邊界自行重跑完整 repayment contract／transaction／cash linkage／component group 驗證，不信任 caller 的先前 builder。缺 loanId、paymentId／componentId、component 合計、唯一 cash linkage、TWD 或完整 group 任一證明時，皆 fail-safe 至 unsupported／residual；沒有正式 Loan contract 的 `expense-housing` 也不得用 description、merchant、note、generic taxonomy、月付／利率／本金快照推測歷史還款或 fallback 成 `external-expense`。任何 component Void 會停止整組 Ledger attribution，只有新的完整 group 才可重新辨識；duplicate paymentId／componentId、Ledger confirmed 與 runtime evidence、trade／cash movement 均維持防 double-count。v1 Ledger 可讀、v1/v2 Firebase Ledger 不安全混合拒絕；localStorage／JSON Backup／Firebase 保持加法式相容，無 migration。**UR-TODO-046 整體仍未結案**：split allocation、FX attribution 仍為 Remaining Boundary；Loan UI、CSV／Import Center mapping、持股 replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance 與 Dashboard 均未納入。
 
 **UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation 已正式完成。** PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) 已由使用者 Merge，merge commit `b8621a0bf5e13a7666b360829e276d6d87019a44`（parents：`8622ae31f06a5b2fced1b0757a563968be12a2ee`、`c2d418306bba93940a67f37178f5fda306af483f`；`mergedAt: 2026-08-09T06:54:31Z`）；`origin/main`／GitHub `main` 一致。Merge 後 Deploy GitHub Pages #339（run `31299929750`）成功，head SHA 與 merge commit 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。完整正式 TWD buy／sell 優先於 generic taxonomy，對應 `investment-buy`／`investment-sell`，buy／sell 本金 contribution 固定為 0；一般、未附正式 trade contract 的 `income-other` 保留既有 `external-income`。fee／tax 只有同時具 stable `costId`、`settlementCostTreatment: independent` 與唯一正式 trade 關聯時才為一次負 contribution；`included`、`unknown`、legacy、重複或無法關聯者 fail-safe。trade 與另建 cash movement 必須以明確 `cashMovementId`／`kind: cash-movement`／方向／相同帳戶與幣別唯一連結，以防 double-count；duplicate stable trade identity、Ledger confirmation／runtime derived evidence／Void 路徑同樣維持去重。dividend reinvestment 保留 dividend 的一次外部增加，後續 buy 為 0；非 TWD 維持 FX unsupported／residual，不建立 realized gain/loss contribution。無 schema version bump、無 migration；localStorage／JSON Backup／Firebase／legacy normalization 相容。已驗證 `npx tsc -b`、`npm run test:ci`（785 unit／Risk 3／MJS 18）、Production／Preview build、Bundle validation、PR CI與Production部署。**UR-TODO-046 整體仍未結案**：split allocation、loan principal／interest attribution、FX attribution 仍為 Remaining Boundary；不得自行啟動下一子階段。
 
@@ -2184,6 +2186,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 2026-08-09 更新：**UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation 已正式完成。** PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) 已 Merge，merge commit `b8621a0bf5e13a7666b360829e276d6d87019a44`，`mergedAt: 2026-08-09T06:54:31Z`；Deploy GitHub Pages #339（run `31299929750`）success，head SHA 一致，Production HTTP 200。完整正式 TWD buy／sell 對應 `investment-buy`／`investment-sell` 且本金 contribution = 0；一般 `income-other` 保留 `external-income`。fee／tax 僅在 stable `costId`、`settlementCostTreatment: independent` 與唯一 trade 關聯皆可證明時才扣除一次；included／unknown／legacy／duplicate／unlinked 一律不扣除。trade 與 cash movement 只接受 explicit linkage，duplicate stable identity、Ledger confirmation／runtime derived evidence／Void 維持防重複；dividend reinvestment 中 dividend 僅計一次、buy = 0；non-TWD 維持 FX unsupported／residual，不建立 realized gain/loss contribution。無 schema bump、無 migration，localStorage／JSON Backup／Firebase／legacy normalizer 相容；已驗證 TypeScript、`test:ci`（785 unit／Risk 3／MJS 18）、Production／Preview build 與 Bundle。**UR-TODO-046 整體仍未完成**；split allocation、loan principal／interest attribution、FX attribution 保留為 Remaining Boundary，不自動啟動。
 
+2026-08-09 更新：**UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation 已完成本機開發與驗證，仍為 Draft PR 候選，尚未 Merge／部署。** 基線為 `origin/main` `1a80d08bdc5371fe3bb0a0a67ef533571db2214a`，branch 為 `feat/ur-todo-046-l1-loan-repayment-component-group`；遠端 CI、PR Head 與 merge gate 必須以 GitHub 對當前 Head 的實際狀態核實，本文不固定宣稱成功。範圍：加法式 `FinancialTransaction.loanAttribution?`（`repayment`／`disbursement`／`cash-movement`），以及 FinancialEvent schema v2 的 optional `componentLink`、完整 group 驗證、atomic group confirmation、component Void／fresh group re-recognition。完整 TWD repayment 的 principal contribution = 0；interest／fee／penalty 只有完整明示 component 才各扣一次；disbursement = 0。`componentId` 在同一 loan identity domain 跨 payment 不得重複；任何正式 group 寫入必須由 `appendFinancialEventGroup()` 自行重跑完整 contract 與 linkage 驗證。缺 loanId、paymentId、componentId、component 合計、唯一 cash movement linkage、TWD、完整 group 或 stable identity，一律 unsupported／residual；沒有正式 Loan contract 的 `expense-housing` 亦不得因文字或 generic taxonomy 產生 `external-expense`。v1 Ledger 維持可讀；v1/v2 Firebase Ledger 混合拒絕；localStorage／JSON Backup／Firebase／legacy transaction normalizer 加法式相容，無 migration；不自動更新 Loan principal。**不包含** Loan UI、CSV／Import Center mapping、split allocation、FX attribution、Investment I1 重構、holding replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance、Dashboard 或 Production 既有資料。UR-TODO-046 整體仍為部分完成；split allocation、FX attribution 保留 Remaining Boundary。
+
 - 優先級：待評估
 - 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation、046-B pure attribution calculator／quality model、046-C1／C2 pure transaction reconciliation、046-C3A pure runtime derived-evidence adapter、046-C3B runtime attribution composition layer、046-C3C-A runtime attribution provenance card、046-C3C-B session-only mark-as-reasonable toggle、046-C3C-C Financial Event Ledger 寫入／持久化與 Firebase Ledger Sync 已完成；UR-TODO-043-B 依賴已解除；其餘子階段（撤銷／void、split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 等重大事件）尚未排程或開發）
 - 提出日期：2026-07-30
@@ -2445,6 +2449,16 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation（Draft PR 候選，2026-08-09）
+
+- 基線與狀態：從 `origin/main` `1a80d08bdc5371fe3bb0a0a67ef533571db2214a` 建立隔離 branch `feat/ur-todo-046-l1-loan-repayment-component-group`。本機完整驗證已通過；Draft PR 的遠端 CI、PR Head 與 merge gate 必須以 GitHub 對當前 Head 的實際狀態核實，**不得把 L1 視為已 Merge、不得自行部署或啟動後續階段**。
+- 合約與財務語意：`FinancialTransaction.loanAttribution?` 為 additive discriminated union：`repayment` 需 `paymentId`、`loanId`、`cashAccountId`、`currency`、`settlementAmount` 與總額完全一致、stable `componentId` 的 components；`disbursement` 與 `cash-movement` 僅接受顯式 stable linkage。正式完整 TWD repayment：principal = 0；interest／fee／penalty 各僅一次負 contribution；disbursement = 0。不得從 description、merchant、note、generic taxonomy、金額、monthlyPayment、期數、利率或 Loan principal 快照推導歷史本息，也不得自動修改 Loan principal。
+- Ledger／防重複：FinancialEvent schema v2 新增 optional `componentLink`（`paymentId`、`componentId`、fresh `confirmationGroupId`、可選 `cashMovementId`）。`componentId` 在同一 loan identity domain 不得跨 payment 重複，且 `appendFinancialEventGroup()` 本身強制完整 contract／transaction／cash linkage／group 驗證，不能由 caller 繞過。只有完整、唯一的 `attribution-confirmation` group 才被消費；partial／duplicate／cash link 不完整／non-TWD／legacy 一律 residual。任一 component Void 會使原 group 原子失效；只能以新的完整 group 重新辨識，不能拼接舊 component。完整 confirmed group 壓制 runtime evidence；void 後合法 transaction 最多重新辨識一次。沒有正式 Loan contract 的 `expense-housing` 不可 fallback 為 `external-expense`。v1 仍可讀；v1/v2 Firebase Ledger 混合 fail-safe 拒絕，無 migration。
+- 相容性／驗證：localStorage、JSON Backup、Firebase 與 legacy transaction normalizer 均以 additive contract 保留相容。已實際執行 `npx tsc -b`、`npm run test:ci`（788 unit／Risk 3／MJS 18）、Production／Preview build、`git diff --check`；遠端 CI、PR Head、Preview/Production 一律依 GitHub 當前實際狀態核實。
+- 明確不包含／下一位 AI 起點：L1 不含 Loan UI、CSV／Import Center mapping、split allocation、FX attribution、Investment I1 重構、holding replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance、Dashboard 或 Production 既有資料。UR-TODO-046 整體仍未完成；Remaining Boundary 為 split allocation、FX attribution，以及任何需要使用者另行授權的 Loan consumer／UI 工作。
 
 ---
 

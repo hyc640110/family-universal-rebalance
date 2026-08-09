@@ -1,22 +1,14 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
+import { validateLoanAttributionContract } from './loanAttributionContract';
 import type { FinancialTransaction } from './transactions';
 
 /**
- * UR-TODO-046-C3C-C decision: adding the 'attribution-confirmation' source
- * value deliberately does NOT bump this constant. Every existing user's
- * persisted state already carries financialEventSchemaVersion: 1 with an
- * empty financialEvents array. Bumping this constant would make
- * normalizeFinancialEventLedger() treat that (still-empty) v1 payload as
- * opaque future data on next read — and critically, App.tsx's
- * hasLocalFinancialEventLedger() / stateFromFirebasePayload() would then
- * treat every existing user as "has a local Ledger", permanently blocking
- * Firebase download for accounts that have never written a single event.
- * A new enum value on an already-versioned field is additive per 013 §29.2
- * ("採加法式欄位"); it does not change the FinancialEvent object shape, so it
- * does not warrant a version bump. Bump this only for a structural change
- * (field added/removed/retyped).
+ * UR-TODO-046-L1: v2 adds optional componentLink to represent an atomically
+ * confirmed multi-component payment. v1 remains readable without migration;
+ * an older client encountering v2 must keep it opaque and fail-safe.
  */
-export const FINANCIAL_EVENT_SCHEMA_VERSION = 1;
+export const FINANCIAL_EVENT_SCHEMA_VERSION = 2;
+const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = new Set([1, 2]);
 
 export type FinancialEventType =
   | 'external-income'
@@ -29,6 +21,8 @@ export type FinancialEventType =
   | 'loan-disbursement'
   | 'loan-principal-payment'
   | 'loan-interest-payment'
+  | 'loan-fee'
+  | 'loan-penalty'
   | 'adjustment';
 
 export type FinancialEventStatus = 'pending' | 'posted' | 'void';
@@ -46,6 +40,16 @@ export type FinancialEventStatus = 'pending' | 'posted' | 'void';
  */
 export type FinancialEventSource = 'manual' | 'linked-transaction' | 'attribution-confirmation' | 'void';
 
+/** A component group is the smallest persisted proof for a multi-component economic payment. */
+export type FinancialEventComponentLink = {
+  domain: 'loan-payment';
+  paymentId: string;
+  componentId: string;
+  /** Fresh on every group confirmation: prevents re-recognition from mixing old and new components after a void. */
+  confirmationGroupId: string;
+  cashMovementId?: string;
+};
+
 export type FinancialEvent = {
   id: string;
   type: FinancialEventType;
@@ -60,6 +64,7 @@ export type FinancialEvent = {
   assetSymbol?: string;
   loanId?: string;
   transactionId?: string;
+  componentLink?: FinancialEventComponentLink;
   /** Only present on a source: 'void' event — the id of the event it voids. Forward-only: the voided event itself is never mutated. */
   voidedEventId?: string;
   note: string;
@@ -94,6 +99,8 @@ const EVENT_TYPES = new Set<FinancialEventType>([
   'loan-disbursement',
   'loan-principal-payment',
   'loan-interest-payment',
+  'loan-fee',
+  'loan-penalty',
   'adjustment'
 ]);
 const EVENT_STATUSES = new Set<FinancialEventStatus>(['pending', 'posted', 'void']);
@@ -103,7 +110,9 @@ const TRANSACTION_LINKED_SOURCES = new Set<FinancialEventSource>(['linked-transa
 const LOAN_EVENT_TYPES = new Set<FinancialEventType>([
   'loan-disbursement',
   'loan-principal-payment',
-  'loan-interest-payment'
+  'loan-interest-payment',
+  'loan-fee',
+  'loan-penalty'
 ]);
 const INVESTMENT_EVENT_TYPES = new Set<FinancialEventType>(['investment-buy', 'investment-sell']);
 
@@ -127,7 +136,7 @@ function normalizeIsoTimestamp(value: unknown): string | undefined {
 
 function omitOptionalKnownFields(event: FinancialEvent): FinancialEvent {
   const mutable = event as Record<string, unknown>;
-  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'voidedEventId']) {
+  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'componentLink', 'voidedEventId']) {
     if (mutable[key] === undefined) delete mutable[key];
   }
   return event;
@@ -166,16 +175,23 @@ export function linkedTransactionReason(
   accountId: string,
   counterpartyAccountId: string | undefined,
   effectiveDate: string,
-  transaction: FinancialTransaction
+  transaction: FinancialTransaction,
+  componentLink?: FinancialEventComponentLink,
+  loanId?: string
 ): string | undefined {
   if (transaction.status !== status) return 'linked transaction status 必須與事件一致';
   if (transaction.excluded) return 'linked transaction 不得是 excluded';
   if (transaction.accountId !== accountId) return 'linked transaction accountId 必須與事件一致';
-  if (transaction.amount !== amount || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
+  const isLoanComponent = Boolean(componentLink?.domain === 'loan-payment');
+  if ((!isLoanComponent && transaction.amount !== amount) || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
   if (canonicalCalendarDay(transaction.occurredAt) !== effectiveDate) return 'linked transaction occurredAt 的 Asia/Taipei 日期必須與 effectiveDate 一致';
   if (transaction.investmentAttribution?.kind === 'cash-movement') return '投資 cash movement 必須由完整 trade contract 配對，不能作為獨立外部收支記帳';
   if (type === 'external-income') return transaction.type === 'income' && transaction.categoryId !== 'income-dividend' ? undefined : 'external-income 只可連結非股息 income transaction';
-  if (type === 'external-expense') return transaction.type === 'expense' && transaction.categoryId !== 'expense-investment' ? undefined : 'external-expense 不得連結 investment expense transaction';
+  if (type === 'external-expense') return transaction.type === 'expense'
+    && transaction.categoryId !== 'expense-investment'
+    && transaction.categoryId !== 'expense-housing'
+    ? undefined
+    : 'external-expense 不得連結 investment 或未具正式 Loan contract 的 housing expense transaction';
   if (type === 'internal-transfer') {
     return transaction.type === 'transfer' && transaction.transferAccountId === counterpartyAccountId
       ? undefined
@@ -210,7 +226,110 @@ export function linkedTransactionReason(
   }
   if (type === 'dividend') return transaction.type === 'income' && transaction.categoryId === 'income-dividend' ? undefined : 'dividend 只可連結 income-dividend transaction';
   if (type === 'adjustment') return transaction.type === 'adjustment' ? undefined : 'adjustment 只可連結 adjustment transaction';
+  if (LOAN_EVENT_TYPES.has(type)) {
+    const loan = transaction.loanAttribution;
+    if (type === 'loan-disbursement') {
+      return loan?.kind === 'disbursement'
+        && loan.loanId === loanId
+        && transaction.type === 'income'
+        && loan.cashAccountId === transaction.accountId
+        && loan.currency === transaction.currency
+        && loan.settlementAmount === transaction.amount
+        && loan.settlementAmount === amount
+        ? undefined
+        : 'loan-disbursement 必須連結完整 Loan disbursement contract';
+    }
+    if (!componentLink || componentLink.domain !== 'loan-payment' || loan?.kind !== 'repayment') return `${type} 必須連結完整 Loan repayment component contract`;
+    if (loan.paymentId !== componentLink.paymentId || loan.loanId !== loanId || loan.cashAccountId !== transaction.accountId || loan.currency !== transaction.currency || loan.settlementAmount !== transaction.amount) return `${type} Loan repayment contract 與 transaction 不一致`;
+    const component = loan.components.find(item => item.componentId === componentLink.componentId);
+    const expectedType = component?.type === 'principal' ? 'loan-principal-payment' : component?.type === 'interest' ? 'loan-interest-payment' : component?.type === 'fee' ? 'loan-fee' : component?.type === 'penalty' ? 'loan-penalty' : undefined;
+    return component && expectedType === type && component.amount === amount ? undefined : `${type} 必須對應唯一且金額一致的 Loan component`;
+  }
   return `${type} 尚無可安全驗證的 transaction taxonomy`;
+}
+
+function normalizeComponentLink(value: unknown): FinancialEventComponentLink | undefined {
+  const record = asRecord(value);
+  if (!record || record.domain !== 'loan-payment') return undefined;
+  const paymentId = requiredText(record.paymentId);
+  const componentId = requiredText(record.componentId);
+  const confirmationGroupId = requiredText(record.confirmationGroupId);
+  const cashMovementId = optionalText(record.cashMovementId);
+  return paymentId && componentId && confirmationGroupId
+    ? { domain: 'loan-payment', paymentId, componentId, confirmationGroupId, ...(cashMovementId ? { cashMovementId } : {}) }
+    : undefined;
+}
+
+export type LoanComponentGroupResolution = { validEventIds: ReadonlySet<string>; confirmedPaymentIds: ReadonlySet<string> };
+
+/** Validates a whole active payment group. Incomplete/ambiguous groups remain persisted but are never consumed or attributed. */
+export function resolveActiveLoanComponentGroups(events: readonly FinancialEvent[], context: FinancialEventReferenceContext): LoanComponentGroupResolution {
+  const voided = collectVoidedEventIds(events as unknown as readonly Record<string, unknown>[]);
+  const groups = new Map<string, FinancialEvent[]>();
+  for (const event of events) {
+    if (!event.componentLink || event.source === 'void' || voided.has(event.id)) continue;
+    const group = groups.get(event.componentLink.confirmationGroupId) || [];
+    group.push(event); groups.set(event.componentLink.confirmationGroupId, group);
+  }
+  const prelim = new Map<string, FinancialEvent[]>();
+  for (const [groupId, group] of groups) {
+    const first = group[0];
+    const link = first?.componentLink;
+    if (!first || !link || first.source !== 'attribution-confirmation' || first.status !== 'posted' || !first.transactionId || !first.loanId) continue;
+    const transaction = context.transactionsById.get(first.transactionId);
+    const contract = transaction?.loanAttribution;
+    if (!transaction || contract?.kind !== 'repayment' || !context.loanIds.has(first.loanId)) continue;
+    const checked = validateLoanAttributionContract({ transaction, transactions: [...context.transactionsById.values()], loanIds: context.loanIds });
+    if (checked.status !== 'valid' || checked.attribution.kind !== 'repayment') continue;
+    if (contract.paymentId !== link.paymentId || contract.loanId !== first.loanId || contract.cashAccountId !== first.accountId || contract.currency !== first.currency || contract.settlementAmount !== transaction.amount) continue;
+    if (group.some(event => event.source !== 'attribution-confirmation' || event.status !== 'posted' || event.transactionId !== first.transactionId || event.loanId !== first.loanId || event.accountId !== first.accountId || event.currency !== first.currency || event.effectiveDate !== first.effectiveDate || event.componentLink?.paymentId !== link.paymentId || event.componentLink?.cashMovementId !== link.cashMovementId)) continue;
+    if (group.some(event => linkedTransactionReason(
+      event.type,
+      event.status,
+      event.amount,
+      event.currency,
+      event.accountId || '',
+      event.counterpartyAccountId,
+      event.effectiveDate,
+      transaction,
+      event.componentLink,
+      event.loanId
+    ))) continue;
+    if (new Set(group.map(event => event.componentLink?.componentId)).size !== group.length) continue;
+    if (contract.components.length !== group.length || contract.components.reduce((sum, component) => sum + component.amount, 0) !== contract.settlementAmount) continue;
+    const expected = new Map(contract.components.map(component => [component.componentId, component]));
+    if (group.some(event => {
+      const component = event.componentLink ? expected.get(event.componentLink.componentId) : undefined;
+      const type = component?.type === 'principal' ? 'loan-principal-payment' : component?.type === 'interest' ? 'loan-interest-payment' : component?.type === 'fee' ? 'loan-fee' : component?.type === 'penalty' ? 'loan-penalty' : undefined;
+      return !component || component.amount !== event.amount || type !== event.type;
+    })) continue;
+    if (contract.cashMovementId !== link.cashMovementId) continue;
+    if (contract.cashMovementId) {
+      const movements = [...context.transactionsById.values()].filter(candidate => candidate.loanAttribution?.kind === 'cash-movement' && candidate.loanAttribution.cashMovementId === contract.cashMovementId);
+      const movement = movements[0];
+      if (movements.length !== 1 || !movement || movement.loanAttribution?.kind !== 'cash-movement' || movement.type !== 'expense'
+        || movement.accountId !== first.accountId || movement.currency !== first.currency || movement.amount !== transaction.amount
+        || movement.loanAttribution.direction !== 'decrease' || movement.loanAttribution.cashAccountId !== first.accountId
+        || movement.loanAttribution.currency !== first.currency || movement.loanAttribution.settlementAmount !== transaction.amount) continue;
+    }
+    prelim.set(groupId, group);
+  }
+  const paymentCounts = new Map<string, number>();
+  const transactionCounts = new Map<string, number>();
+  for (const group of prelim.values()) {
+    const first = group[0]!;
+    paymentCounts.set(first.componentLink!.paymentId, (paymentCounts.get(first.componentLink!.paymentId) || 0) + 1);
+    transactionCounts.set(first.transactionId!, (transactionCounts.get(first.transactionId!) || 0) + 1);
+  }
+  const validEventIds = new Set<string>();
+  const confirmedPaymentIds = new Set<string>();
+  for (const group of prelim.values()) {
+    const first = group[0]!;
+    if (paymentCounts.get(first.componentLink!.paymentId) !== 1 || transactionCounts.get(first.transactionId!) !== 1) continue;
+    group.forEach(event => validEventIds.add(event.id));
+    confirmedPaymentIds.add(first.componentLink!.paymentId);
+  }
+  return { validEventIds, confirmedPaymentIds };
 }
 
 function linkedInvestmentCostReason(transaction: FinancialTransaction, transactionsById: ReadonlyMap<string, FinancialTransaction>): string | undefined {
@@ -230,6 +349,7 @@ function normalizeEvent(
   knownIds: Set<string>,
   consumedTransactionIds: Set<string>,
   voidedEventIds: ReadonlySet<string>,
+  schemaVersion: number,
   skipped: string[]
 ): FinancialEvent | undefined {
   const record = asRecord(raw);
@@ -269,13 +389,20 @@ function normalizeEvent(
   const loanId = optionalText(record.loanId);
   if (LOAN_EVENT_TYPES.has(type as FinancialEventType) && (!loanId || !context.loanIds.has(loanId))) return skip(skipped, index, `${type} 必須連結既有 loanId`);
 
+  const componentLink = record.componentLink === undefined ? undefined : normalizeComponentLink(record.componentLink);
+  if (record.componentLink !== undefined && !componentLink) return skip(skipped, index, 'componentLink 必須是完整 loan-payment linkage');
+  const isLoanComponent = LOAN_EVENT_TYPES.has(type as FinancialEventType) && type !== 'loan-disbursement';
+  if (schemaVersion === 1 && componentLink) return skip(skipped, index, 'v1 Ledger 不支援 componentLink');
+  if (schemaVersion === 2 && isLoanComponent && !componentLink) return skip(skipped, index, `${type} 在 v2 必須有 componentLink`);
+  if (componentLink && (!isLoanComponent || !loanId || !TRANSACTION_LINKED_SOURCES.has(source as FinancialEventSource))) return skip(skipped, index, 'componentLink 只能用於 transaction-linked Loan component event');
+
   const transactionId = optionalText(record.transactionId);
   if (source === 'manual' && transactionId) return skip(skipped, index, 'manual event 不得設定 transactionId');
   if (TRANSACTION_LINKED_SOURCES.has(source as FinancialEventSource)) {
     if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, `${source} 必須連結既有 transactionId`);
     const transaction = context.transactionsById.get(transactionId);
     if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
-    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction);
+    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction, componentLink, loanId);
     if (reason) return skip(skipped, index, reason);
     if (type === 'investment-fee') {
       const costReason = linkedInvestmentCostReason(transaction, context.transactionsById);
@@ -286,8 +413,8 @@ function normalizeEvent(
     // stays permanently claimed and a future re-confirmation of the same transaction would be
     // silently dropped as a "duplicate" on the very next normalize pass.
     const isVoided = voidedEventIds.has(id);
-    if (status !== 'void' && !isVoided && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
-    if (status !== 'void' && !isVoided) consumedTransactionIds.add(transactionId);
+    if (!componentLink && status !== 'void' && !isVoided && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
+    if (!componentLink && status !== 'void' && !isVoided) consumedTransactionIds.add(transactionId);
   }
 
   const voidedEventId = optionalText(record.voidedEventId);
@@ -315,6 +442,7 @@ function normalizeEvent(
     ...(assetSymbol ? { assetSymbol } : {}),
     ...(loanId ? { loanId } : {}),
     ...(transactionId ? { transactionId } : {}),
+    ...(componentLink ? { componentLink } : {}),
     ...(voidedEventId ? { voidedEventId } : {}),
     note,
     createdAt,
@@ -329,9 +457,10 @@ function normalizeEvent(
 export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext): FinancialEventLedger {
   const record = asRecord(raw) ?? {};
   const hasLedgerPayload = record.financialEventSchemaVersion !== undefined || record.financialEvents !== undefined || record.financialEventAttributionStartDate !== undefined;
-  if (hasLedgerPayload && record.financialEventSchemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION) {
+  const requestedSchemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
+  if (hasLedgerPayload && !SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(requestedSchemaVersion)) {
     return {
-      schemaVersion: record.financialEventSchemaVersion as number,
+      schemaVersion: requestedSchemaVersion,
       events: record.financialEvents as FinancialEvent[],
       ...(record.financialEventAttributionStartDate !== undefined ? { attributionStartDate: record.financialEventAttributionStartDate as string } : {}),
       skipped: [],
@@ -346,12 +475,12 @@ export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEv
     : [];
   const voidedEventIds = collectVoidedEventIds(rawEventRecords);
   const events = Array.isArray(record.financialEvents)
-    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, voidedEventIds, skipped)).filter((event): event is FinancialEvent => Boolean(event))
+    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, voidedEventIds, requestedSchemaVersion, skipped)).filter((event): event is FinancialEvent => Boolean(event))
     : [];
   const attributionStartDate = optionalText(record.financialEventAttributionStartDate);
 
   return {
-    schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION,
+    schemaVersion: requestedSchemaVersion,
     events,
     ...(attributionStartDate && isCanonicalCalendarDay(attributionStartDate) ? { attributionStartDate } : {}) ,
     skipped,
@@ -383,14 +512,38 @@ export type AppendFinancialEventResult =
  * Sprint (void/undo is an explicit Remaining Boundary).
  */
 export function appendFinancialEvent(existingEvents: readonly FinancialEvent[], event: FinancialEvent): AppendFinancialEventResult {
+  if (event.componentLink) return { rejected: true, reason: 'Loan component event 必須使用 appendFinancialEventGroup() 原子寫入。' };
   if (existingEvents.some(existing => existing.id === event.id)) {
     return { rejected: true, reason: `事件 id「${event.id}」已存在，Ledger 為 forward-only，不允許覆寫既有事件。` };
   }
   return { rejected: false, events: [...existingEvents, event] };
 }
 
+/** The only sanctioned write path for a multi-component Loan payment confirmation. */
+export function appendFinancialEventGroup(existingEvents: readonly FinancialEvent[], group: readonly FinancialEvent[], context: FinancialEventReferenceContext): AppendFinancialEventResult {
+  if (!group.length) return { rejected: true, reason: 'Loan component group 不得為空。' };
+  if (group.some(event => event.source !== 'attribution-confirmation' || event.status !== 'posted' || !event.componentLink)) return { rejected: true, reason: 'Loan component group 的每個 event 必須是 posted attribution-confirmation 並有 componentLink。' };
+  if (new Set(group.map(event => event.id)).size !== group.length || group.some(event => existingEvents.some(existing => existing.id === event.id))) return { rejected: true, reason: 'Loan component group 含重複 event id。' };
+  const transactionIds = new Set(group.map(event => event.transactionId));
+  if (transactionIds.size !== 1) return { rejected: true, reason: 'Loan component group 必須唯一連結一筆 transaction。' };
+  const transactionId = [...transactionIds][0];
+  const transaction = transactionId ? context.transactionsById.get(transactionId) : undefined;
+  const checked = transaction
+    ? validateLoanAttributionContract({ transaction, transactions: [...context.transactionsById.values()], loanIds: context.loanIds })
+    : { status: 'unsupported' as const, reason: 'Loan component group 缺少可驗證 transaction。' };
+  if (checked.status !== 'valid' || checked.attribution.kind !== 'repayment') return { rejected: true, reason: 'Loan component group 未通過完整 repayment contract 驗證。' };
+  for (const event of group) {
+    const reason = linkedTransactionReason(event.type, event.status, event.amount, event.currency, event.accountId || '', event.counterpartyAccountId, event.effectiveDate, transaction!, event.componentLink, event.loanId);
+    if (reason) return { rejected: true, reason: `Loan component group 未通過寫入邊界驗證：${reason}` };
+  }
+  const all = [...existingEvents, ...group];
+  const resolution = resolveActiveLoanComponentGroups(all, context);
+  if (group.some(event => !resolution.validEventIds.has(event.id))) return { rejected: true, reason: 'Loan component group 不完整、重複或與正式 repayment contract 不一致。' };
+  return { rejected: false, events: all };
+}
+
 export type LedgerMergeOutcome =
-  | { ok: true; events: FinancialEvent[] }
+  | { ok: true; schemaVersion: number; events: FinancialEvent[] }
   | { ok: false; reason: string };
 
 /**
@@ -417,7 +570,7 @@ export function mergeFinancialEventLedgers(
   local: { schemaVersion: number; events: readonly FinancialEvent[] },
   remote: { schemaVersion: number; events: readonly FinancialEvent[] }
 ): LedgerMergeOutcome {
-  if (local.schemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION || remote.schemaVersion !== FINANCIAL_EVENT_SCHEMA_VERSION) {
+  if (!SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(local.schemaVersion) || !SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(remote.schemaVersion) || local.schemaVersion !== remote.schemaVersion) {
     return {
       ok: false,
       reason: `Financial Event Ledger schema 版本不受支援（本機 v${local.schemaVersion}／雲端 v${remote.schemaVersion}，目前支援 v${FINANCIAL_EVENT_SCHEMA_VERSION}），為避免資料損毀，本次同步已中止。請先將兩端 App 更新到同一個版本。`
@@ -430,5 +583,5 @@ export function mergeFinancialEventLedgers(
     if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
-  return { ok: true, events };
+  return { ok: true, schemaVersion: local.schemaVersion, events };
 }

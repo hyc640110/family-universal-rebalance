@@ -70,7 +70,8 @@ const ZERO_EFFECT_EVENT_TYPES = new Set<FinancialEventType>([
   'internal-transfer',
   'investment-buy',
   'investment-sell',
-  'loan-disbursement'
+  'loan-disbursement',
+  'loan-principal-payment'
 ]);
 
 function validNetWorth(snapshot: NetWorthSnapshot | null | undefined): snapshot is NetWorthSnapshot {
@@ -102,7 +103,7 @@ function classifyEvidence(event: NetWorthAttributionEvidence): { classification:
     return { classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'contributing', contribution: event.amount } };
   }
 
-  if (event.type === 'external-expense' || event.type === 'investment-fee') {
+  if (event.type === 'external-expense' || event.type === 'investment-fee' || event.type === 'loan-interest-payment' || event.type === 'loan-fee' || event.type === 'loan-penalty') {
     return { classification: { id: event.id, type: event.type, provenance: event.provenance, disposition: 'contributing', contribution: -event.amount } };
   }
 

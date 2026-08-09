@@ -2,6 +2,7 @@ import { canonicalCalendarDay } from './calendarDay';
 import type { FinancialAccount } from './financialAccounts';
 import type { FinancialEvent, FinancialEventType } from './financialEvents';
 import type { FinancialTransaction } from './transactions';
+import { validateLoanAttribution } from './loanAttribution';
 
 export type TransactionReconciliationStatus = 'matched' | 'candidate' | 'unsupported' | 'ambiguous' | 'duplicate' | 'invalid';
 export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'investment-buy' | 'investment-sell' | 'investment-fee' | 'adjustment'>;
@@ -16,6 +17,10 @@ export type TransactionReconciliationReason =
   | 'linked-investment-cash-movement'
   | 'unlinked-investment-cash-movement'
   | 'cash-movement-link-unresolved'
+  | 'loan-payment-contract-candidate'
+  | 'linked-loan-payment-group'
+  | 'loan-contract-unsupported'
+  | 'linked-loan-cash-movement'
   | 'safe-taxonomy-candidate'
   | 'not-posted'
   | 'excluded'
@@ -42,12 +47,16 @@ export type TransactionReconciliationInput = {
   accounts: readonly FinancialAccount[];
   /** A supported C1 Ledger view. This helper diagnoses it and never normalizes or mutates it. */
   ledgerEvents: readonly FinancialEvent[];
+  /** Optional for backward compatibility; without actual Loan identities, Loan contracts remain fail-safe. */
+  loanIds?: ReadonlySet<string>;
 };
 
 type Candidate = { eventType: TransactionReconciliationEventType } | { reason: TransactionReconciliationReason };
 
 const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund', 'income-other']);
-const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-housing', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
+// `expense-housing` cannot prove rent versus a loan repayment. Until a formal
+// non-loan contract exists, fail-safe leaves it residual rather than guessing.
+const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
 const CURRENCY_CODE = /^[A-Z]{3}$/;
 /**
  * UR-TODO-046-C3C-C: both sources represent a real link to one transactionId
@@ -176,6 +185,14 @@ export function reconcileTransactions(input: TransactionReconciliationInput): Tr
     }
   }
   return input.transactions.map(transaction => {
+    const loan = transaction.loanAttribution;
+    if (loan) {
+      if (loan.kind === 'cash-movement') return { transactionId: transaction.id, status: 'unsupported', reason: 'linked-loan-cash-movement', completedPeriodEvidence: false };
+      const checked = validateLoanAttribution({ transaction, transactions: input.transactions, loanIds: input.loanIds || new Set<string>() });
+      return checked.status === 'valid'
+        ? { transactionId: transaction.id, status: 'candidate', reason: 'loan-payment-contract-candidate', completedPeriodEvidence: false }
+        : { transactionId: transaction.id, status: 'unsupported', reason: 'loan-contract-unsupported', completedPeriodEvidence: false };
+    }
     const investment = transaction.investmentAttribution;
     const tradeId = investment?.kind === 'trade' ? investment.tradeId : undefined;
     if (tradeId && (tradeIdentityCounts.get(tradeId) || 0) > 1) {

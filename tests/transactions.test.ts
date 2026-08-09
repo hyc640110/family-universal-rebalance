@@ -175,3 +175,28 @@ test('投資成本的 settlement 語意與 cash movement linkage 可加法式 ro
     { kind: 'cost', tradeId: 'trade-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'a' }
   ]);
 });
+
+test('Loan repayment contract 是加法式 round-trip；不完整或 component 合計不符資料一律不升格', () => {
+  const raw = [{
+    id: 'loan-payment', accountId: 'a', type: 'expense', status: 'posted', amount: 20_000, currency: 'TWD', categoryId: 'expense-housing', occurredAt: '2026-08-09T00:00:00.000Z',
+    loanAttribution: {
+      kind: 'repayment', paymentId: 'payment-1', loanId: 'loan-a', cashAccountId: 'a', currency: 'TWD', settlementAmount: 20_000,
+      components: [{ componentId: 'principal-1', type: 'principal', amount: 15_000 }, { componentId: 'interest-1', type: 'interest', amount: 5_000 }]
+    }
+  }, {
+    id: 'loan-invalid', accountId: 'a', type: 'expense', status: 'posted', amount: 20_000, currency: 'TWD', categoryId: 'expense-housing', occurredAt: '2026-08-09T00:00:00.000Z',
+    loanAttribution: {
+      kind: 'repayment', paymentId: 'payment-invalid', loanId: 'loan-a', cashAccountId: 'a', currency: 'TWD', settlementAmount: 20_000,
+      components: [{ componentId: 'principal-1', type: 'principal', amount: 19_999 }]
+    }
+  }, {
+    id: 'legacy-loan', accountId: 'a', type: 'expense', status: 'posted', amount: 20_000, currency: 'TWD', categoryId: 'expense-housing', description: '房貸', occurredAt: '2026-08-09T00:00:00.000Z'
+  }];
+  const normalized = normalizeTransactions(raw, accounts, '2026-08-09T00:00:00.000Z').transactions;
+
+  assert.deepEqual(normalized[0]!.loanAttribution, raw[0]!.loanAttribution);
+  assert.equal(normalized[1]!.loanAttribution, undefined);
+  assert.equal(normalized[2]!.loanAttribution, undefined);
+  assert.equal(updateTransaction(normalized[0]!, { note: '保留已驗證契約' }, accounts, '2026-08-10T00:00:00.000Z').loanAttribution?.paymentId, 'payment-1');
+  assert.deepEqual(normalizeTransactions(JSON.parse(JSON.stringify(normalized)), accounts, '2026-08-09T00:00:00.000Z').transactions, normalized, 'localStorage、Firebase 與 JSON Backup 共用 normalizer，僅保留完整明示的 Loan contract');
+});

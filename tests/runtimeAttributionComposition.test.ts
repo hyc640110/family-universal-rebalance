@@ -78,6 +78,45 @@ test('有效 linked Ledger event 優先，已消費 transaction 不得再產生 
   assert.deepEqual(result.eventClassifications.map(item => item.provenance), ['ledger']);
 });
 
+test('既有 linked external-expense Ledger event 不得讓無正式 Loan contract 的 expense-housing 產生 contribution', () => {
+  const housing = transaction('housing-without-loan-contract', {
+    type: 'expense',
+    categoryId: 'expense-housing',
+    amount: 20_000,
+    description: '房貸'
+  });
+  const result = compose({
+    ledgerEvents: [ledgerEvent('legacy-housing-expense', 'external-expense', {
+      source: 'linked-transaction', transactionId: housing.id, amount: 20_000
+    })],
+    transactions: [housing]
+  });
+
+  assert.equal(result.ledgerContribution, 0);
+  assert.equal(result.derivedContribution, 0);
+  assert.equal(result.eventClassifications.some(item => item.id === 'legacy-housing-expense'), false);
+  assert.deepEqual(result.reconciliationResults.map(item => [item.status, item.reason]), [['unsupported', 'unsupported-taxonomy']]);
+});
+
+test('已證明的非 Loan linked external-expense 維持既有 contribution，不受 housing fail-safe 影響', () => {
+  const ordinaryExpense = transaction('ordinary-expense', {
+    type: 'expense',
+    categoryId: 'expense-food',
+    amount: 2_000,
+    description: '餐費'
+  });
+  const result = compose({
+    ledgerEvents: [ledgerEvent('ordinary-expense-event', 'external-expense', {
+      source: 'linked-transaction', transactionId: ordinaryExpense.id, amount: 2_000
+    })],
+    transactions: [ordinaryExpense]
+  });
+
+  assert.equal(result.ledgerContribution, -2_000);
+  assert.equal(result.derivedContribution, 0);
+  assert.deepEqual(result.reconciliationResults.map(item => [item.status, item.reason]), [['matched', 'linked-event']]);
+});
+
 test('derived-only evidence 可在 residual 落入容差時成為 reconciled，但 provenance 仍明確標示為 derived', () => {
   const result = compose({
     closingSnapshot: snapshot('2026-08-05', 200),
