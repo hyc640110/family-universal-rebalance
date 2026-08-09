@@ -173,6 +173,7 @@ export function linkedTransactionReason(
   if (transaction.accountId !== accountId) return 'linked transaction accountId 必須與事件一致';
   if (transaction.amount !== amount || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
   if (canonicalCalendarDay(transaction.occurredAt) !== effectiveDate) return 'linked transaction occurredAt 的 Asia/Taipei 日期必須與 effectiveDate 一致';
+  if (transaction.investmentAttribution?.kind === 'cash-movement') return '投資 cash movement 必須由完整 trade contract 配對，不能作為獨立外部收支記帳';
   if (type === 'external-income') return transaction.type === 'income' && transaction.categoryId !== 'income-dividend' ? undefined : 'external-income 只可連結非股息 income transaction';
   if (type === 'external-expense') return transaction.type === 'expense' && transaction.categoryId !== 'expense-investment' ? undefined : 'external-expense 不得連結 investment expense transaction';
   if (type === 'internal-transfer') {
@@ -180,9 +181,46 @@ export function linkedTransactionReason(
       ? undefined
       : 'internal-transfer 必須連結同帳戶、同對方帳戶的 transfer transaction';
   }
+  if (type === 'investment-buy') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'trade'
+      && investment.side === 'buy'
+      && transaction.type === 'expense'
+      && investment.settlementAmount === transaction.amount
+      ? undefined
+      : 'investment-buy 必須連結完整且方向為 buy 的正式投資交易契約';
+  }
+  if (type === 'investment-sell') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'trade'
+      && investment.side === 'sell'
+      && transaction.type === 'income'
+      && investment.settlementAmount === transaction.amount
+      ? undefined
+      : 'investment-sell 必須連結完整且方向為 sell 的正式投資交易契約';
+  }
+  if (type === 'investment-fee') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'cost'
+      && transaction.type === 'expense'
+      && !!investment.costId
+      && investment.settlementCostTreatment === 'independent'
+      ? undefined
+      : 'investment-fee 必須連結具 stable costId 且明確證明為 settlement 之外獨立 fee 或 tax 的正式投資成本契約';
+  }
   if (type === 'dividend') return transaction.type === 'income' && transaction.categoryId === 'income-dividend' ? undefined : 'dividend 只可連結 income-dividend transaction';
   if (type === 'adjustment') return transaction.type === 'adjustment' ? undefined : 'adjustment 只可連結 adjustment transaction';
   return `${type} 尚無可安全驗證的 transaction taxonomy`;
+}
+
+function linkedInvestmentCostReason(transaction: FinancialTransaction, transactionsById: ReadonlyMap<string, FinancialTransaction>): string | undefined {
+  const cost = transaction.investmentAttribution;
+  if (cost?.kind !== 'cost' || !cost.costId || cost.settlementCostTreatment !== 'independent') return 'investment-fee 必須有 stable costId 且明確證明為 settlement 之外獨立成本';
+  const transactions = [...transactionsById.values()];
+  const matchingTrades = transactions.filter(candidate => candidate.investmentAttribution?.kind === 'trade' && candidate.investmentAttribution.tradeId === cost.tradeId);
+  if (matchingTrades.length !== 1) return 'investment-fee 必須連結唯一且完整的正式 tradeId';
+  const matchingCosts = transactions.filter(candidate => candidate.investmentAttribution?.kind === 'cost' && candidate.investmentAttribution.costId === cost.costId);
+  return matchingCosts.length === 1 ? undefined : 'investment-fee stable costId 不得重複';
 }
 
 function normalizeEvent(
@@ -239,6 +277,10 @@ function normalizeEvent(
     if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
     const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction);
     if (reason) return skip(skipped, index, reason);
+    if (type === 'investment-fee') {
+      const costReason = linkedInvestmentCostReason(transaction, context.transactionsById);
+      if (costReason) return skip(skipped, index, costReason);
+    }
     // UR-TODO-046 void: a voided event's own status is never mutated (forward-only), so a voided
     // linked event must stop consuming its transactionId here too — otherwise the transactionId
     // stays permanently claimed and a future re-confirmation of the same transaction would be

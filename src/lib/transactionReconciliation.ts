@@ -4,11 +4,18 @@ import type { FinancialEvent, FinancialEventType } from './financialEvents';
 import type { FinancialTransaction } from './transactions';
 
 export type TransactionReconciliationStatus = 'matched' | 'candidate' | 'unsupported' | 'ambiguous' | 'duplicate' | 'invalid';
-export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'adjustment'>;
+export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'investment-buy' | 'investment-sell' | 'investment-fee' | 'adjustment'>;
 export type TransactionReconciliationReason =
   | 'linked-event'
   | 'manual-event-looks-similar'
   | 'multiple-linked-events'
+  | 'duplicate-trade-identity'
+  | 'duplicate-cost-identity'
+  | 'cost-not-separately-proven'
+  | 'unlinked-investment-cost'
+  | 'linked-investment-cash-movement'
+  | 'unlinked-investment-cash-movement'
+  | 'cash-movement-link-unresolved'
   | 'safe-taxonomy-candidate'
   | 'not-posted'
   | 'excluded'
@@ -71,6 +78,22 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
   if (!Number.isFinite(transaction.amount) || transaction.amount <= 0) return { reason: 'invalid-amount' };
   if (!isValidCurrency(transaction.currency)) return { reason: 'invalid-currency' };
   if (!calendarDay(transaction.occurredAt)) return { reason: 'invalid-date' };
+  const trade = transaction.investmentAttribution;
+  if (trade) {
+    if (transaction.currency !== account.currency || trade.currency !== transaction.currency) return { reason: 'fx-attribution-unsupported' };
+    if (transaction.currency !== 'TWD') return { reason: 'fx-attribution-unsupported' };
+    if (trade.cashAccountId !== transaction.accountId) return { reason: 'unsupported-taxonomy' };
+    if (trade.kind === 'cash-movement') return { reason: 'unlinked-investment-cash-movement' };
+    if (trade.kind === 'cost') {
+      return transaction.type === 'expense' && trade.costId && trade.settlementCostTreatment === 'independent'
+        ? { eventType: 'investment-fee' }
+        : { reason: 'cost-not-separately-proven' };
+    }
+    if (trade.settlementAmount !== transaction.amount) return { reason: 'unsupported-taxonomy' };
+    if (trade.side === 'buy' && transaction.type === 'expense') return { eventType: 'investment-buy' };
+    if (trade.side === 'sell' && transaction.type === 'income') return { eventType: 'investment-sell' };
+    return { reason: 'unsupported-taxonomy' };
+  }
   if (transaction.type === 'transfer') {
     const destination = transaction.transferAccountId ? accountById.get(transaction.transferAccountId) : undefined;
     if (!destination || !transaction.transferAccountId || transaction.transferAccountId === transaction.accountId) return { reason: 'invalid-transfer' };
@@ -94,6 +117,20 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
   return { reason: 'unsupported-taxonomy' };
 }
 
+function isLinkedCashMovementPair(tradeTransaction: FinancialTransaction, cashTransaction: FinancialTransaction): boolean {
+  const trade = tradeTransaction.investmentAttribution;
+  const cash = cashTransaction.investmentAttribution;
+  if (trade?.kind !== 'trade' || cash?.kind !== 'cash-movement') return false;
+  if (!trade.cashMovementId || trade.cashMovementId !== cash.cashMovementId) return false;
+  const expectedDirection = trade.side === 'buy' ? 'decrease' : 'increase';
+  const expectedType = expectedDirection === 'decrease' ? 'expense' : 'income';
+  return cash.direction === expectedDirection
+    && cashTransaction.type === expectedType
+    && tradeTransaction.accountId === cashTransaction.accountId
+    && tradeTransaction.currency === cashTransaction.currency
+    && trade.cashAccountId === cash.cashAccountId;
+}
+
 function isEventForTransaction(event: FinancialEvent, transaction: FinancialTransaction, eventType: TransactionReconciliationEventType): boolean {
   const date = calendarDay(transaction.occurredAt);
   if (!date || transaction.excluded || !TRANSACTION_LINKED_SOURCES.has(event.source) || event.status !== transaction.status || event.status === 'void') return false;
@@ -115,7 +152,58 @@ function isSimilarManualEvent(event: FinancialEvent, transaction: FinancialTrans
  */
 export function reconcileTransactions(input: TransactionReconciliationInput): TransactionReconciliationResult[] {
   const accountById = new Map(input.accounts.map(account => [account.id, account]));
+  const tradeIdentityCounts = new Map<string, number>();
+  const costIdentityCounts = new Map<string, number>();
+  const tradeTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
+  const cashTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
+  for (const transaction of input.transactions) {
+    const investment = transaction.investmentAttribution;
+    if (investment?.kind === 'trade') {
+      tradeIdentityCounts.set(investment.tradeId, (tradeIdentityCounts.get(investment.tradeId) || 0) + 1);
+      if (investment.cashMovementId) {
+        const entries = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+        entries.push(transaction);
+        tradeTransactionsByCashMovementId.set(investment.cashMovementId, entries);
+      }
+    }
+    if (investment?.kind === 'cost' && investment.costId) {
+      costIdentityCounts.set(investment.costId, (costIdentityCounts.get(investment.costId) || 0) + 1);
+    }
+    if (investment?.kind === 'cash-movement') {
+      const entries = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      entries.push(transaction);
+      cashTransactionsByCashMovementId.set(investment.cashMovementId, entries);
+    }
+  }
   return input.transactions.map(transaction => {
+    const investment = transaction.investmentAttribution;
+    const tradeId = investment?.kind === 'trade' ? investment.tradeId : undefined;
+    if (tradeId && (tradeIdentityCounts.get(tradeId) || 0) > 1) {
+      return { transactionId: transaction.id, status: 'duplicate', reason: 'duplicate-trade-identity', completedPeriodEvidence: false };
+    }
+    if (investment?.kind === 'cost') {
+      if (investment.costId && (costIdentityCounts.get(investment.costId) || 0) > 1) {
+        return { transactionId: transaction.id, status: 'duplicate', reason: 'duplicate-cost-identity', completedPeriodEvidence: false };
+      }
+      if ((tradeIdentityCounts.get(investment.tradeId) || 0) !== 1) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'unlinked-investment-cost', completedPeriodEvidence: false };
+      }
+    }
+    if (investment?.kind === 'trade' && investment.cashMovementId) {
+      const cashTransactions = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      const tradeTransactions = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      if (tradeTransactions.length !== 1 || cashTransactions.length !== 1 || !isLinkedCashMovementPair(transaction, cashTransactions[0])) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'cash-movement-link-unresolved', completedPeriodEvidence: false };
+      }
+    }
+    if (investment?.kind === 'cash-movement') {
+      const tradeTransactions = tradeTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      const cashTransactions = cashTransactionsByCashMovementId.get(investment.cashMovementId) || [];
+      if (tradeTransactions.length === 1 && cashTransactions.length === 1 && isLinkedCashMovementPair(tradeTransactions[0], transaction)) {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'linked-investment-cash-movement', completedPeriodEvidence: false };
+      }
+      return { transactionId: transaction.id, status: 'unsupported', reason: 'unlinked-investment-cash-movement', completedPeriodEvidence: false };
+    }
     const candidate = candidateFor(transaction, accountById);
     if (!('eventType' in candidate)) {
       return { transactionId: transaction.id, status: candidate.reason === 'invalid-account' || candidate.reason === 'invalid-amount' || candidate.reason === 'invalid-currency' || candidate.reason === 'invalid-date' || candidate.reason === 'invalid-transfer' ? 'invalid' : 'unsupported', reason: candidate.reason, completedPeriodEvidence: false };

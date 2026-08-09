@@ -7,7 +7,39 @@ export type TransactionType = typeof TRANSACTION_TYPES[number];
 export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
 export type TransactionSource = typeof TRANSACTION_SOURCES[number];
 export type AccountReference = { id: string; currency: string; isActive: boolean };
-export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number };
+export type InvestmentTradeAttribution = {
+  kind: 'trade';
+  tradeId: string;
+  /** Optional only when the trade is represented by a separately-recorded cash movement. */
+  cashMovementId?: string;
+  side: 'buy' | 'sell';
+  assetSymbol: string;
+  quantity: number;
+  settlementAmount: number;
+  currency: string;
+  cashAccountId: string;
+};
+export type InvestmentCostAttribution = {
+  kind: 'cost';
+  tradeId: string;
+  /** Stable source identity; without it the cost cannot be safely de-duplicated. */
+  costId?: string;
+  costType: 'fee' | 'tax';
+  /** Only `independent` can affect attribution; legacy/unknown/included costs remain fail-safe. */
+  settlementCostTreatment?: 'independent' | 'included' | 'unknown';
+  assetSymbol: string;
+  currency: string;
+  cashAccountId: string;
+};
+export type InvestmentCashMovementAttribution = {
+  kind: 'cash-movement';
+  cashMovementId: string;
+  direction: 'decrease' | 'increase';
+  currency: string;
+  cashAccountId: string;
+};
+export type InvestmentAttribution = InvestmentTradeAttribution | InvestmentCostAttribution | InvestmentCashMovementAttribution;
+export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution };
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
 export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
   { id: 'income-salary', name: '薪資', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'income-interest', name: '利息', kind: 'income', isActive: true, sortOrder: 1 }, { id: 'income-dividend', name: '股息', kind: 'income', isActive: true, sortOrder: 2 }, { id: 'income-refund', name: '退款', kind: 'income', isActive: true, sortOrder: 3 }, { id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 4 },
@@ -35,6 +67,42 @@ const optionalNonNegative = (value: unknown, label: string) => {
   if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${label}必須是有限且不小於 0 的數字`);
   return parsed;
 };
+function normalizeInvestmentAttribution(value: unknown, transaction: { type: TransactionType; accountId: string; amount: number; currency: string }): InvestmentAttribution | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const tradeId = optionalText(record.tradeId);
+  const assetSymbol = optionalText(record.assetSymbol)?.toUpperCase();
+  const currency = optionalText(record.currency)?.toUpperCase();
+  const cashAccountId = optionalText(record.cashAccountId);
+  if (!currency || !cashAccountId || cashAccountId !== transaction.accountId || currency !== transaction.currency) return undefined;
+  if (record.kind === 'cash-movement') {
+    const cashMovementId = optionalText(record.cashMovementId);
+    const direction = record.direction === 'decrease' || record.direction === 'increase' ? record.direction : undefined;
+    return cashMovementId && direction
+      ? { kind: 'cash-movement', cashMovementId, direction, currency, cashAccountId }
+      : undefined;
+  }
+  if (!tradeId || !assetSymbol) return undefined;
+  if (record.kind === 'cost') {
+    const costType = record.costType === 'fee' || record.costType === 'tax' ? record.costType : undefined;
+    const costId = optionalText(record.costId);
+    const settlementCostTreatment = record.settlementCostTreatment === 'independent' || record.settlementCostTreatment === 'included' || record.settlementCostTreatment === 'unknown'
+      ? record.settlementCostTreatment
+      : undefined;
+    return costType && transaction.type === 'expense'
+      ? { kind: 'cost', tradeId, ...(costId ? { costId } : {}), costType, ...(settlementCostTreatment ? { settlementCostTreatment } : {}), assetSymbol, currency, cashAccountId }
+      : undefined;
+  }
+  if (record.kind !== 'trade') return undefined;
+  const side = record.side === 'buy' || record.side === 'sell' ? record.side : undefined;
+  const quantity = Number(record.quantity);
+  const settlementAmount = Number(record.settlementAmount);
+  const cashMovementId = optionalText(record.cashMovementId);
+  const expectedType: TransactionType | undefined = side === 'buy' ? 'expense' : side === 'sell' ? 'income' : undefined;
+  if (!tradeId || !side || !assetSymbol || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(settlementAmount) || settlementAmount <= 0 || !currency || !cashAccountId) return undefined;
+  if (expectedType !== transaction.type || cashAccountId !== transaction.accountId || settlementAmount !== transaction.amount || currency !== transaction.currency) return undefined;
+  return { kind: 'trade', tradeId, ...(cashMovementId ? { cashMovementId } : {}), side, assetSymbol, quantity, settlementAmount, currency, cashAccountId };
+}
 /** Safely repairs legacy or mismatched categories before state is persisted. */
 export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {
   const available = categoriesForTransactionType(transactionType);
@@ -68,6 +136,8 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     const message = validateTransferAccounts(accountId, transferAccountId || '', amount, accountList);
     if (message) throw new Error(message);
   }
+  const currency = (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8);
+  const investmentAttribution = normalizeInvestmentAttribution(candidate.investmentAttribution, { type: resolvedType, accountId, amount, currency });
   const normalized: FinancialTransaction = {
     id,
     accountId,
@@ -76,7 +146,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
     status: status(candidate.status ?? current?.status),
     source: source(candidate.source ?? current?.source),
     amount,
-    currency: (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8),
+    currency,
     categoryId,
     description: text(candidate.description ?? current?.description),
     merchant: text(candidate.merchant ?? current?.merchant),
@@ -91,7 +161,8 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
       ...(optionalText(candidate.assetName) ? { assetName: optionalText(candidate.assetName) } : {}),
       ...(grossAmount !== undefined ? { grossAmount } : {}),
       ...(withholdingTax !== undefined ? { withholdingTax } : {})
-    } : {})
+    } : {}),
+    ...(investmentAttribution ? { investmentAttribution } : {})
   };
   const fingerprintChanged = !current || ['accountId', 'transferAccountId', 'type', 'amount', 'currency', 'occurredAt', 'categoryId', 'description', 'merchant'].some(key => String(current[key as keyof FinancialTransaction] ?? '') !== String(normalized[key as keyof FinancialTransaction] ?? ''));
   return { ...normalized, fingerprint: fingerprintChanged ? transactionFingerprint(normalized) : current.fingerprint };

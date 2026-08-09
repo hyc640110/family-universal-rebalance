@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（Draft，2026-08-09）
+
+- Git 基線：已成功 `git fetch origin main`；`origin/main`／本機 `main`／原始 HEAD 為 `8622ae31f06a5b2fced1b0757a563968be12a2ee`。隔離 worktree：`E:\2026_CodeX\worktrees\family-universal-rebalance-ur-todo-046-i1`；branch `feat/ur-todo-046-i1-investment-trade-contract`；Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292)。程式修正 commit `b37ddaf476af87c63d566718087605c27a6a953d` 的 CI `31299265540` success；本治理同步 commit 的 PR head 與 CI 須於 GitHub 收尾重新核實。**未 Merge、未部署 Preview／Production。**
+- 已完成範圍：新增 `FinancialTransaction.investmentAttribution` 加法式 discriminated union。完整正式 TWD buy／sell 優先於 generic taxonomy，僅產生 zero contribution。一般、沒有正式 trade contract 的 `income-other` 維持既有 `external-income`；不得從 `expense-investment`／`income-other`、description、merchant、note、amount sign 或 legacy 交易猜測投資買賣。成本另需 stable `costId`、`settlementCostTreatment: independent` 與唯一 trade 關聯才會產生一次負 contribution。
+- Reconciliation／Ledger：`included`／`unknown`／legacy／重複／無關聯 fee／tax 一律不扣除。另建 cash movement 必須使用 explicit `cashMovementId`、`kind: cash-movement`、正確方向、相同帳戶與幣別的唯一關聯；未連結、重複或方向錯誤一律不歸因，Ledger confirmation 無法繞過此防護。既有 Ledger > derived precedence、transaction consumption guard 與 void 後重新辨識保留。非 TWD、缺欄位、重複 trade identity、realized gain/loss、FX fail-safe 至 unsupported／residual。
+- 相容性與驗證：採 additive fields，未 bump transaction／Ledger schema、未做 migration 或 legacy 回填；現有 localStorage、Firebase、JSON Backup 共用 transaction normalizer，正式契約與 legacy round-trip 均有測試。已實際執行 `npm run test:ci`、`npx tsc -b`、`npm run build`、`npm run build:preview`，皆成功。
+- 明確不包含／下一位 AI 起點：不新增 UI、CSV／Import Center mapping、交易自動建立、holding replay、成本基礎、realized gain/loss、FX、split allocation 或 loan attribution；手動／legacy fee 或 cash movement 若欠缺 explicit contract 仍保留 unsupported／residual。使用者未明確授權前不得 Ready、Merge 或部署 Production。
+
+---
+
 ## 最新交接快照：UR-TODO-046 C3B Runtime Attribution Composition 已完成（2026-08-05）
 
 - 正式基線：PR [#246](https://github.com/hyc640110/family-universal-rebalance/pull/246) 已由使用者最終授權 Merge（ChatGPT 完成架構審查與人工財務案例驗收後正式核准，Claude Code 依既有政策執行 `gh pr merge --admin`）；`main`、`origin/main`、`HEAD` 為 **`c30db10b69f7f1b3a8c88390028f4abac46246a4`**（`mergedAt: 2026-08-04T16:49:54Z`）。

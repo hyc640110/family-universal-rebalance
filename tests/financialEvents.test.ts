@@ -127,6 +127,73 @@ test('linked transaction 僅接受現有 taxonomy 可證實的語意與完整帳
   assert.equal(result.skipped.length, 2);
 });
 
+test('完整投資交易契約可連結至既有 Ledger type，費用以獨立 investment-fee 事件記帳', () => {
+  const buy = {
+    ...context.transactionsById.get('tx-a')!, id: 'buy', type: 'expense' as const, categoryId: 'expense-investment', amount: 1000,
+    investmentAttribution: { kind: 'trade' as const, tradeId: 'trade-1', side: 'buy' as const, assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const fee = {
+    ...context.transactionsById.get('tx-a')!, id: 'fee', type: 'expense' as const, categoryId: 'expense-investment', amount: 20,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'trade-1', costId: 'fee-1', costType: 'fee' as const, settlementCostTreatment: 'independent' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'buy-event', type: 'investment-buy', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 1000, currency: 'TWD', accountId: 'bank-a', assetSymbol: '0050', transactionId: 'buy', note: '', ...audit },
+    { id: 'fee-event', type: 'investment-fee', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 20, currency: 'TWD', accountId: 'bank-a', transactionId: 'fee', note: '', ...audit }
+  ] }, { ...context, transactionIds: new Set(['buy', 'fee']), transactionsById: new Map([['buy', buy], ['fee', fee]]) });
+
+  assert.deepEqual(result.events.map(event => [event.id, event.type, event.transactionId]), [
+    ['buy-event', 'investment-buy', 'buy'],
+    ['fee-event', 'investment-fee', 'fee']
+  ]);
+  assert.deepEqual(result.skipped, []);
+});
+
+test('Ledger 不得確認 included、unknown 或缺 stable costId 的投資成本', () => {
+  const included = {
+    ...context.transactionsById.get('tx-a')!, id: 'included', type: 'expense' as const, categoryId: 'expense-investment', amount: 20,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'trade-1', costId: 'fee-1', costType: 'fee' as const, settlementCostTreatment: 'included' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const unknown = {
+    ...context.transactionsById.get('tx-a')!, id: 'unknown', type: 'expense' as const, categoryId: 'expense-investment', amount: 10,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'trade-1', costId: 'tax-1', costType: 'tax' as const, settlementCostTreatment: 'unknown' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const legacy = {
+    ...context.transactionsById.get('tx-a')!, id: 'legacy', type: 'expense' as const, categoryId: 'expense-investment', amount: 5,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'trade-1', costType: 'fee' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const event = (id: string, transactionId: string, amount: number) => ({
+    id, type: 'investment-fee', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount, currency: 'TWD', accountId: 'bank-a', transactionId, note: '', ...audit
+  });
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    event('included-event', 'included', 20), event('unknown-event', 'unknown', 10), event('legacy-event', 'legacy', 5)
+  ] }, { ...context, transactionIds: new Set(['included', 'unknown', 'legacy']), transactionsById: new Map([['included', included], ['unknown', unknown], ['legacy', legacy]]) });
+
+  assert.deepEqual(result.events, []);
+  assert.equal(result.skipped.length, 3);
+});
+
+test('Ledger 不得用一般 external event 繞過已標示的 cash movement 或未連結 investment cost', () => {
+  const trade = {
+    ...context.transactionsById.get('tx-a')!, id: 'trade', type: 'expense' as const, categoryId: 'expense-investment', amount: 1000,
+    investmentAttribution: { kind: 'trade' as const, tradeId: 'trade-1', side: 'buy' as const, assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const movement = {
+    ...context.transactionsById.get('tx-a')!, id: 'movement', type: 'expense' as const, categoryId: 'expense-other', amount: 1000,
+    investmentAttribution: { kind: 'cash-movement' as const, cashMovementId: 'cash-1', direction: 'decrease' as const, currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const orphanFee = {
+    ...context.transactionsById.get('tx-a')!, id: 'orphan-fee', type: 'expense' as const, categoryId: 'expense-investment', amount: 20,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'missing-trade', costId: 'fee-1', costType: 'fee' as const, settlementCostTreatment: 'independent' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'movement-event', type: 'external-expense', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 1000, currency: 'TWD', accountId: 'bank-a', transactionId: 'movement', note: '', ...audit },
+    { id: 'orphan-fee-event', type: 'investment-fee', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 20, currency: 'TWD', accountId: 'bank-a', transactionId: 'orphan-fee', note: '', ...audit }
+  ] }, { ...context, transactionIds: new Set(['trade', 'movement', 'orphan-fee']), transactionsById: new Map([['trade', trade], ['movement', movement], ['orphan-fee', orphanFee]]) });
+
+  assert.deepEqual(result.events, []);
+  assert.equal(result.skipped.length, 2);
+});
+
 test('同一 transaction 只能被一個非 void linked event 消費，pending 保留而 void 不消費', () => {
   const transaction = { ...context.transactionsById.get('tx-a')!, id: 'income', categoryId: 'income-salary', amount: 100 };
   const linked = (id: string, status: 'posted' | 'pending' | 'void') => ({

@@ -26,6 +26,9 @@ const CONTRIBUTION_BY_CATEGORY: Record<TransactionReconciliationEventType, (amou
   'external-expense': amount => -amount,
   dividend: amount => amount,
   'internal-transfer': () => 0,
+  'investment-buy': () => 0,
+  'investment-sell': () => 0,
+  'investment-fee': amount => -amount,
   adjustment: () => 0
 };
 const CURRENCY_CODE = /^[A-Z]{3}$/;
