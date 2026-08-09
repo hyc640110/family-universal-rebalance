@@ -187,7 +187,11 @@ export function linkedTransactionReason(
   if (canonicalCalendarDay(transaction.occurredAt) !== effectiveDate) return 'linked transaction occurredAt 的 Asia/Taipei 日期必須與 effectiveDate 一致';
   if (transaction.investmentAttribution?.kind === 'cash-movement') return '投資 cash movement 必須由完整 trade contract 配對，不能作為獨立外部收支記帳';
   if (type === 'external-income') return transaction.type === 'income' && transaction.categoryId !== 'income-dividend' ? undefined : 'external-income 只可連結非股息 income transaction';
-  if (type === 'external-expense') return transaction.type === 'expense' && transaction.categoryId !== 'expense-investment' ? undefined : 'external-expense 不得連結 investment expense transaction';
+  if (type === 'external-expense') return transaction.type === 'expense'
+    && transaction.categoryId !== 'expense-investment'
+    && transaction.categoryId !== 'expense-housing'
+    ? undefined
+    : 'external-expense 不得連結 investment 或未具正式 Loan contract 的 housing expense transaction';
   if (type === 'internal-transfer') {
     return transaction.type === 'transfer' && transaction.transferAccountId === counterpartyAccountId
       ? undefined
@@ -271,14 +275,26 @@ export function resolveActiveLoanComponentGroups(events: readonly FinancialEvent
   for (const [groupId, group] of groups) {
     const first = group[0];
     const link = first?.componentLink;
-    if (!first || !link || first.source !== 'attribution-confirmation' || !first.transactionId || !first.loanId) continue;
+    if (!first || !link || first.source !== 'attribution-confirmation' || first.status !== 'posted' || !first.transactionId || !first.loanId) continue;
     const transaction = context.transactionsById.get(first.transactionId);
     const contract = transaction?.loanAttribution;
     if (!transaction || contract?.kind !== 'repayment' || !context.loanIds.has(first.loanId)) continue;
     const checked = validateLoanAttributionContract({ transaction, transactions: [...context.transactionsById.values()], loanIds: context.loanIds });
     if (checked.status !== 'valid' || checked.attribution.kind !== 'repayment') continue;
     if (contract.paymentId !== link.paymentId || contract.loanId !== first.loanId || contract.cashAccountId !== first.accountId || contract.currency !== first.currency || contract.settlementAmount !== transaction.amount) continue;
-    if (group.some(event => event.source !== 'attribution-confirmation' || event.transactionId !== first.transactionId || event.loanId !== first.loanId || event.accountId !== first.accountId || event.currency !== first.currency || event.effectiveDate !== first.effectiveDate || event.status !== first.status || event.componentLink?.paymentId !== link.paymentId || event.componentLink?.cashMovementId !== link.cashMovementId)) continue;
+    if (group.some(event => event.source !== 'attribution-confirmation' || event.status !== 'posted' || event.transactionId !== first.transactionId || event.loanId !== first.loanId || event.accountId !== first.accountId || event.currency !== first.currency || event.effectiveDate !== first.effectiveDate || event.componentLink?.paymentId !== link.paymentId || event.componentLink?.cashMovementId !== link.cashMovementId)) continue;
+    if (group.some(event => linkedTransactionReason(
+      event.type,
+      event.status,
+      event.amount,
+      event.currency,
+      event.accountId || '',
+      event.counterpartyAccountId,
+      event.effectiveDate,
+      transaction,
+      event.componentLink,
+      event.loanId
+    ))) continue;
     if (new Set(group.map(event => event.componentLink?.componentId)).size !== group.length) continue;
     if (contract.components.length !== group.length || contract.components.reduce((sum, component) => sum + component.amount, 0) !== contract.settlementAmount) continue;
     const expected = new Map(contract.components.map(component => [component.componentId, component]));

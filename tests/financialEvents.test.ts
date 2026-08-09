@@ -127,6 +127,41 @@ test('linked transaction 僅接受現有 taxonomy 可證實的語意與完整帳
   assert.equal(result.skipped.length, 2);
 });
 
+test('無正式 Loan contract 的 expense-housing 不得由既有 linked external-expense Ledger event 轉成外部支出', () => {
+  const housing = {
+    ...context.transactionsById.get('tx-a')!,
+    id: 'housing-without-loan-contract',
+    type: 'expense' as const,
+    categoryId: 'expense-housing',
+    amount: 20_000,
+    description: '房貸'
+  };
+  const ordinaryExpense = {
+    ...housing,
+    id: 'ordinary-expense',
+    categoryId: 'expense-food',
+    description: '餐費'
+  };
+  const linked = (id: string, transactionId: string) => ({
+    id, type: 'external-expense', status: 'posted', source: 'linked-transaction',
+    effectiveDate: '2026-08-02', amount: 20_000, currency: 'TWD', accountId: 'bank-a', transactionId, note: '', ...audit
+  });
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    linked('housing-event', 'housing-without-loan-contract'),
+    linked('ordinary-expense-event', 'ordinary-expense')
+  ] }, {
+    ...context,
+    transactionIds: new Set(['housing-without-loan-contract', 'ordinary-expense']),
+    transactionsById: new Map([
+      ['housing-without-loan-contract', housing],
+      ['ordinary-expense', ordinaryExpense]
+    ])
+  });
+
+  assert.deepEqual(result.events.map(event => event.id), ['ordinary-expense-event']);
+  assert.equal(result.skipped.length, 1);
+});
+
 test('完整投資交易契約可連結至既有 Ledger type，費用以獨立 investment-fee 事件記帳', () => {
   const buy = {
     ...context.transactionsById.get('tx-a')!, id: 'buy', type: 'expense' as const, categoryId: 'expense-investment', amount: 1000,

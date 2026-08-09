@@ -37,6 +37,29 @@ test('partial confirmation 不能消費 payment；append group 只允許原子�
   if (!accepted.rejected) assert.equal(accepted.events.length, 2);
 });
 
+test('resolver 對 raw component group 也只接受全部 posted：pending、mixed 與 void 一律不確認、不消費 runtime evidence', () => {
+  const pending = [
+    { ...event('pending-principal', 'principal'), status: 'pending' as const },
+    { ...event('pending-interest', 'interest'), status: 'pending' as const }
+  ];
+  const mixed = [
+    event('mixed-principal', 'principal'),
+    { ...event('mixed-interest', 'interest'), status: 'pending' as const }
+  ];
+  assert.equal(resolveActiveLoanComponentGroups(pending, context).validEventIds.size, 0);
+  assert.equal(resolveActiveLoanComponentGroups(mixed, context).validEventIds.size, 0);
+
+  const base = {
+    openingSnapshot: { date: '2026-08-08', netWorth: 100_000, totalAssets: 100_000, investmentValue: 0, cash: 100_000, debt: 0 },
+    closingSnapshot: { date: '2026-08-09', netWorth: 95_000, totalAssets: 95_000, investmentValue: 0, cash: 95_000, debt: 0 },
+    transactions: [transaction], accounts: [createFinancialAccount({ id: 'cash-a', name: '現金', type: 'bank', manualBalance: 0 })], loans: [{ id: 'loan-a' }]
+  };
+  const result = composeRuntimeNetWorthAttribution({ ...base, ledgerEvents: pending });
+  assert.equal(result.ledgerContribution, 0);
+  assert.equal(result.derivedContribution, -5_000, '無效 component group 不得壓制合法 runtime evidence');
+  assert.deepEqual(result.reconciliationResults.map(item => [item.status, item.reason]), [['candidate', 'loan-payment-contract-candidate']]);
+});
+
 test('appendFinancialEventGroup 在 API 邊界拒絕不完整、非 confirmation source 與 excluded transaction 的直接寫入', () => {
   const incomplete = appendFinancialEventGroup([], [event('principal', 'principal')], context);
   assert.equal(incomplete.rejected, true);

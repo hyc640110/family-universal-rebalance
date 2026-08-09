@@ -1,7 +1,7 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import { deriveRuntimeDerivedAttributionEvidence } from './derivedAttributionEvidence';
 import type { FinancialAccount } from './financialAccounts';
-import { collectVoidedEventIds, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
+import { collectVoidedEventIds, linkedTransactionReason, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
 import { deriveLoanRuntimeEvidence } from './loanAttribution';
 import {
   deriveNetWorthAttributionFromEvidence,
@@ -93,8 +93,28 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   // transaction is freed back to 'candidate' so its economic effect can still surface via the
   // derived-evidence fallback path instead of silently disappearing.
   const voidedEventIds = collectVoidedEventIds(input.ledgerEvents);
+  const transactionById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
   const effectiveLedgerEvents = input.ledgerEvents.filter(event => event.source !== 'void' && !voidedEventIds.has(event.id));
-  const loanGroupResolution = resolveActiveLoanComponentGroups(effectiveLedgerEvents, {
+  // Runtime may receive persisted Ledger records before a storage normalizer has run. Reapply the
+  // canonical linked-transaction boundary here so an invalid historical link cannot consume a
+  // transaction or become Ledger contribution merely by bypassing normalization.
+  const sanctionedLedgerEvents = effectiveLedgerEvents.filter(event => {
+    if (event.source !== 'linked-transaction' && event.source !== 'attribution-confirmation') return true;
+    const transaction = event.transactionId ? transactionById.get(event.transactionId) : undefined;
+    return !!transaction && !linkedTransactionReason(
+      event.type,
+      event.status,
+      event.amount,
+      event.currency,
+      event.accountId || '',
+      event.counterpartyAccountId,
+      event.effectiveDate,
+      transaction,
+      event.componentLink,
+      event.loanId
+    );
+  });
+  const loanGroupResolution = resolveActiveLoanComponentGroups(sanctionedLedgerEvents, {
     accountIds: new Set(input.accounts.map(account => account.id)),
     loanIds: new Set((input.loans || []).map(loan => loan.id)),
     transactionIds: new Set(input.transactions.map(transaction => transaction.id)),
@@ -102,7 +122,7 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   });
 
   const diagnostics: RuntimeAttributionCompositionDiagnostic[] = [];
-  const ledgerEvidence: NetWorthAttributionEvidence[] = effectiveLedgerEvents.flatMap(event => {
+  const ledgerEvidence: NetWorthAttributionEvidence[] = sanctionedLedgerEvents.flatMap(event => {
     if (event.componentLink && !loanGroupResolution.validEventIds.has(event.id)) return [];
     if (!inPeriod(event.effectiveDate, period)) {
       diagnostics.push({ code: 'ledger-event-outside-period-excluded', eventId: event.id });
@@ -118,10 +138,9 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const rawReconciliationResults = reconcileTransactions({
     transactions: input.transactions,
     accounts: input.accounts,
-    ledgerEvents: effectiveLedgerEvents,
+    ledgerEvents: sanctionedLedgerEvents,
     loanIds: new Set((input.loans || []).map(loan => loan.id))
   });
-  const transactionById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
   const reconciliationResults = rawReconciliationResults.map(result => {
     const transaction = transactionById.get(result.transactionId);
     const paymentId = transaction?.loanAttribution && transaction.loanAttribution.kind === 'repayment'
@@ -164,7 +183,7 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const loanDerivedEvidence: NetWorthAttributionEvidence[] = deriveLoanRuntimeEvidence({
     transactions: input.transactions,
     loanIds: new Set((input.loans || []).map(loan => loan.id)),
-    ledgerEvents: effectiveLedgerEvents
+    ledgerEvents: sanctionedLedgerEvents
   }).flatMap(evidence => inPeriodFromOccurrence(transactionById.get(evidence.transactionId)?.occurredAt || '', period)
     ? [{ id: evidence.id, type: evidence.type, status: 'posted' as const, amount: evidence.amount, provenance: 'derived-transaction' as const }]
     : []);
