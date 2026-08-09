@@ -127,6 +127,27 @@ test('linked transaction 僅接受現有 taxonomy 可證實的語意與完整帳
   assert.equal(result.skipped.length, 2);
 });
 
+test('完整投資交易契約可連結至既有 Ledger type，費用以獨立 investment-fee 事件記帳', () => {
+  const buy = {
+    ...context.transactionsById.get('tx-a')!, id: 'buy', type: 'expense' as const, categoryId: 'expense-investment', amount: 1000,
+    investmentAttribution: { kind: 'trade' as const, tradeId: 'trade-1', side: 'buy' as const, assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const fee = {
+    ...context.transactionsById.get('tx-a')!, id: 'fee', type: 'expense' as const, categoryId: 'expense-investment', amount: 20,
+    investmentAttribution: { kind: 'cost' as const, tradeId: 'trade-1', costType: 'fee' as const, assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+  };
+  const result = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [
+    { id: 'buy-event', type: 'investment-buy', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 1000, currency: 'TWD', accountId: 'bank-a', assetSymbol: '0050', transactionId: 'buy', note: '', ...audit },
+    { id: 'fee-event', type: 'investment-fee', status: 'posted', source: 'linked-transaction', effectiveDate: '2026-08-02', amount: 20, currency: 'TWD', accountId: 'bank-a', transactionId: 'fee', note: '', ...audit }
+  ] }, { ...context, transactionIds: new Set(['buy', 'fee']), transactionsById: new Map([['buy', buy], ['fee', fee]]) });
+
+  assert.deepEqual(result.events.map(event => [event.id, event.type, event.transactionId]), [
+    ['buy-event', 'investment-buy', 'buy'],
+    ['fee-event', 'investment-fee', 'fee']
+  ]);
+  assert.deepEqual(result.skipped, []);
+});
+
 test('同一 transaction 只能被一個非 void linked event 消費，pending 保留而 void 不消費', () => {
   const transaction = { ...context.transactionsById.get('tx-a')!, id: 'income', categoryId: 'income-salary', amount: 100 };
   const linked = (id: string, status: 'posted' | 'pending' | 'void') => ({

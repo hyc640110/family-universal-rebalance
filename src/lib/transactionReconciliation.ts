@@ -4,11 +4,12 @@ import type { FinancialEvent, FinancialEventType } from './financialEvents';
 import type { FinancialTransaction } from './transactions';
 
 export type TransactionReconciliationStatus = 'matched' | 'candidate' | 'unsupported' | 'ambiguous' | 'duplicate' | 'invalid';
-export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'adjustment'>;
+export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'investment-buy' | 'investment-sell' | 'investment-fee' | 'adjustment'>;
 export type TransactionReconciliationReason =
   | 'linked-event'
   | 'manual-event-looks-similar'
   | 'multiple-linked-events'
+  | 'duplicate-trade-identity'
   | 'safe-taxonomy-candidate'
   | 'not-posted'
   | 'excluded'
@@ -39,7 +40,7 @@ export type TransactionReconciliationInput = {
 
 type Candidate = { eventType: TransactionReconciliationEventType } | { reason: TransactionReconciliationReason };
 
-const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund', 'income-other']);
+const SAFE_INCOME_CATEGORIES = new Set(['income-salary', 'income-interest', 'income-refund']);
 const SAFE_EXPENSE_CATEGORIES = new Set(['expense-food', 'expense-transport', 'expense-shopping', 'expense-housing', 'expense-utilities', 'expense-communication', 'expense-medical', 'expense-insurance', 'expense-tax', 'expense-other']);
 const CURRENCY_CODE = /^[A-Z]{3}$/;
 /**
@@ -71,6 +72,17 @@ function candidateFor(transaction: FinancialTransaction, accountById: ReadonlyMa
   if (!Number.isFinite(transaction.amount) || transaction.amount <= 0) return { reason: 'invalid-amount' };
   if (!isValidCurrency(transaction.currency)) return { reason: 'invalid-currency' };
   if (!calendarDay(transaction.occurredAt)) return { reason: 'invalid-date' };
+  const trade = transaction.investmentAttribution;
+  if (trade) {
+    if (transaction.currency !== account.currency || trade.currency !== transaction.currency) return { reason: 'fx-attribution-unsupported' };
+    if (transaction.currency !== 'TWD') return { reason: 'fx-attribution-unsupported' };
+    if (trade.cashAccountId !== transaction.accountId) return { reason: 'unsupported-taxonomy' };
+    if (trade.kind === 'cost') return transaction.type === 'expense' ? { eventType: 'investment-fee' } : { reason: 'unsupported-taxonomy' };
+    if (trade.settlementAmount !== transaction.amount) return { reason: 'unsupported-taxonomy' };
+    if (trade.side === 'buy' && transaction.type === 'expense') return { eventType: 'investment-buy' };
+    if (trade.side === 'sell' && transaction.type === 'income') return { eventType: 'investment-sell' };
+    return { reason: 'unsupported-taxonomy' };
+  }
   if (transaction.type === 'transfer') {
     const destination = transaction.transferAccountId ? accountById.get(transaction.transferAccountId) : undefined;
     if (!destination || !transaction.transferAccountId || transaction.transferAccountId === transaction.accountId) return { reason: 'invalid-transfer' };
@@ -115,7 +127,16 @@ function isSimilarManualEvent(event: FinancialEvent, transaction: FinancialTrans
  */
 export function reconcileTransactions(input: TransactionReconciliationInput): TransactionReconciliationResult[] {
   const accountById = new Map(input.accounts.map(account => [account.id, account]));
+  const tradeIdentityCounts = new Map<string, number>();
+  for (const transaction of input.transactions) {
+    const tradeId = transaction.investmentAttribution?.kind === 'trade' ? transaction.investmentAttribution.tradeId : undefined;
+    if (tradeId) tradeIdentityCounts.set(tradeId, (tradeIdentityCounts.get(tradeId) || 0) + 1);
+  }
   return input.transactions.map(transaction => {
+    const tradeId = transaction.investmentAttribution?.kind === 'trade' ? transaction.investmentAttribution.tradeId : undefined;
+    if (tradeId && (tradeIdentityCounts.get(tradeId) || 0) > 1) {
+      return { transactionId: transaction.id, status: 'duplicate', reason: 'duplicate-trade-identity', completedPeriodEvidence: false };
+    }
     const candidate = candidateFor(transaction, accountById);
     if (!('eventType' in candidate)) {
       return { transactionId: transaction.id, status: candidate.reason === 'invalid-account' || candidate.reason === 'invalid-amount' || candidate.reason === 'invalid-currency' || candidate.reason === 'invalid-date' || candidate.reason === 'invalid-transfer' ? 'invalid' : 'unsupported', reason: candidate.reason, completedPeriodEvidence: false };

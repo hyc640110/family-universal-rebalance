@@ -180,6 +180,31 @@ export function linkedTransactionReason(
       ? undefined
       : 'internal-transfer 必須連結同帳戶、同對方帳戶的 transfer transaction';
   }
+  if (type === 'investment-buy') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'trade'
+      && investment.side === 'buy'
+      && transaction.type === 'expense'
+      && investment.settlementAmount === transaction.amount
+      ? undefined
+      : 'investment-buy 必須連結完整且方向為 buy 的正式投資交易契約';
+  }
+  if (type === 'investment-sell') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'trade'
+      && investment.side === 'sell'
+      && transaction.type === 'income'
+      && investment.settlementAmount === transaction.amount
+      ? undefined
+      : 'investment-sell 必須連結完整且方向為 sell 的正式投資交易契約';
+  }
+  if (type === 'investment-fee') {
+    const investment = transaction.investmentAttribution;
+    return investment?.kind === 'cost'
+      && transaction.type === 'expense'
+      ? undefined
+      : 'investment-fee 必須連結完整且明確標示 fee 或 tax 的正式投資成本契約';
+  }
   if (type === 'dividend') return transaction.type === 'income' && transaction.categoryId === 'income-dividend' ? undefined : 'dividend 只可連結 income-dividend transaction';
   if (type === 'adjustment') return transaction.type === 'adjustment' ? undefined : 'adjustment 只可連結 adjustment transaction';
   return `${type} 尚無可安全驗證的 transaction taxonomy`;

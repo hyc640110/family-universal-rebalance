@@ -66,6 +66,9 @@ export function buildAttributionConfirmationEvent(input: AttributionConfirmation
     amount,
     currency,
     accountId,
+    ...(transaction.investmentAttribution?.kind === 'trade'
+      ? { assetSymbol: transaction.investmentAttribution.assetSymbol }
+      : {}),
     ...(counterpartyAccountId ? { counterpartyAccountId } : {}),
     transactionId: transaction.id,
     note: `${ATTRIBUTION_CONFIRMATION_NOTE_PREFIX}（${now}）`,

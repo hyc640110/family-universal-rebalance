@@ -120,3 +120,37 @@ test('dividend metadata is optional, preserved across storage normalization, val
   const ordinaryIncome = updateTransaction(base, { categoryId: 'income-other' }, accounts);
   assert.equal(ordinaryIncome.assetSymbol, undefined, 'only income-dividend may retain dividend metadata');
 });
+
+test('只保留完整且明確的投資交易契約；舊類別與文字不得被升格為買賣', () => {
+  const result = normalizeTransactions([
+    {
+      id: 'formal-buy', accountId: 'a', type: 'expense', status: 'posted', amount: 1000, currency: 'TWD', categoryId: 'expense-investment', occurredAt: '2026-08-09T00:00:00.000Z',
+      investmentAttribution: { kind: 'trade', tradeId: 'broker-20260809-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'a' }
+    },
+    {
+      id: 'formal-sell', accountId: 'a', type: 'income', status: 'posted', amount: 1200, currency: 'TWD', categoryId: 'income-other', occurredAt: '2026-08-09T00:00:00.000Z',
+      investmentAttribution: { kind: 'trade', tradeId: 'broker-20260809-2', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'a' }
+    },
+    {
+      id: 'formal-fee', accountId: 'a', type: 'expense', status: 'posted', amount: 20, currency: 'TWD', categoryId: 'expense-investment', occurredAt: '2026-08-09T00:00:00.000Z',
+      investmentAttribution: { kind: 'cost', tradeId: 'broker-20260809-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'a' }
+    },
+    { id: 'legacy-investment', accountId: 'a', type: 'expense', amount: 1000, categoryId: 'expense-investment', description: '買進 0050' },
+    { id: 'legacy-income', accountId: 'a', type: 'income', amount: 1200, categoryId: 'income-other', description: '賣出 0050' },
+    {
+      id: 'incomplete-trade', accountId: 'a', type: 'expense', amount: 1000, categoryId: 'expense-investment',
+      investmentAttribution: { kind: 'trade', tradeId: 'missing-quantity', side: 'buy', assetSymbol: '0050', settlementAmount: 1000, currency: 'TWD', cashAccountId: 'a' }
+    }
+  ], accounts, '2026-08-09T00:00:00.000Z');
+
+  assert.deepEqual(result.transactions.map(transaction => transaction.investmentAttribution), [
+    { kind: 'trade', tradeId: 'broker-20260809-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'a' },
+    { kind: 'trade', tradeId: 'broker-20260809-2', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'a' },
+    { kind: 'cost', tradeId: 'broker-20260809-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'a' },
+    undefined,
+    undefined,
+    undefined
+  ]);
+  const restored = normalizeTransactions(JSON.parse(JSON.stringify(result.transactions)), accounts, '2026-08-09T00:00:00.000Z');
+  assert.deepEqual(restored.transactions, result.transactions, 'localStorage、Firebase 與 JSON backup 共用的 normalizer 必須完整保留正式投資交易契約');
+});

@@ -58,6 +58,42 @@ test('保留可由既有 taxonomy 證明的股息、轉帳與 adjustment 語意�
   ]);
 });
 
+test('完整 TWD 投資買賣只產生零貢獻 derived evidence，不得偽裝成外部現金流', () => {
+  const output = derive([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'buy-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('sell', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'sell-1', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' }
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.category, item.amount, item.signedContribution]), [
+    ['buy', 'investment-buy', 1000, 0],
+    ['sell', 'investment-sell', 1200, 0]
+  ]);
+});
+
+test('明確投資 fee 或 tax 以獨立交易成本產生一次負貢獻，不與買賣本金混算', () => {
+  const output = derive([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'buy-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('fee', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'buy-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.category, item.signedContribution]), [
+    ['buy', 'investment-buy', 0],
+    ['fee', 'investment-fee', -20]
+  ]);
+});
+
 test('只接受 reconciliation candidate，避免 matched、duplicate、ambiguous、unsupported 與 invalid 造成 double-count', () => {
   const transactions = [
     transaction('candidate'),

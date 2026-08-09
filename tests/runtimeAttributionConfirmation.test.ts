@@ -74,6 +74,25 @@ test('taxonomy 不符時明確拒絕並附帶原因，不靜默略過驗證', ()
   if (result.rejected) assert.match(result.reason, /external-income 只可連結非股息/);
 });
 
+test('完整投資交易契約可確認為 Ledger 事件，並保留 assetSymbol 供後續正常化驗證', () => {
+  const txn = transaction('buy-1', {
+    type: 'expense', categoryId: 'expense-investment', amount: 1000,
+    investmentAttribution: { kind: 'trade', tradeId: 'trade-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+  });
+  const result = buildAttributionConfirmationEvent({
+    evidence: { transactionId: 'buy-1', effectiveDate: '2026-08-03', category: 'investment-buy', amount: 1000 },
+    transaction: txn,
+    now
+  });
+
+  assert.equal(result.rejected, false);
+  if (!result.rejected) {
+    assert.equal(result.event.type, 'investment-buy');
+    assert.equal(result.event.assetSymbol, '0050');
+    assert.equal(result.event.transactionId, 'buy-1');
+  }
+});
+
 test('evidence.transactionId 與傳入 transaction 不一致時拒絕，不猜測比對', () => {
   const result = buildAttributionConfirmationEvent({
     evidence: { transactionId: 'someone-else', effectiveDate: '2026-08-03', category: 'external-income', amount: 30_000 },

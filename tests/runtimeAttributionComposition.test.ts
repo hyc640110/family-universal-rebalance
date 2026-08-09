@@ -275,6 +275,27 @@ test('作廢一筆 linked Ledger event 後，該事件不再貢獻，且原本�
   assert.deepEqual(result.eventClassifications.map(item => item.id), ['already-linked'], '作廢標記事件本身與被作廢的原事件皆不應出現在 eventClassifications 中');
 });
 
+test('作廢已確認的投資買入後，該交易重新回到零貢獻 derived evidence，不會殘留或重複記帳', () => {
+  const buy = transaction('investment-buy', {
+    type: 'expense', categoryId: 'expense-investment', amount: 1000,
+    investmentAttribution: { kind: 'trade', tradeId: 'trade-void-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+  });
+  const result = compose({
+    ledgerEvents: [
+      ledgerEvent('confirmed-buy', 'investment-buy', { source: 'attribution-confirmation', transactionId: 'investment-buy', amount: 1000, assetSymbol: '0050' }),
+      ledgerEvent('void-buy', 'adjustment', { source: 'void', voidedEventId: 'confirmed-buy', amount: 1000 })
+    ],
+    transactions: [buy]
+  });
+
+  assert.equal(result.reconciliationResults[0]?.status, 'candidate');
+  assert.equal(result.ledgerContribution, 0);
+  assert.equal(result.derivedContribution, 0);
+  assert.deepEqual(result.eventClassifications.map(item => [item.id, item.provenance, item.contribution]), [
+    ['investment-buy', 'derived-transaction', 0]
+  ]);
+});
+
 test('作廢標記事件本身不會產生任何 evidence（在 evidence 建立前就被過濾，不需要 netWorthAttribution.ts 額外處理）', () => {
   const result = compose({
     closingSnapshot: snapshot('2026-08-05', 100),

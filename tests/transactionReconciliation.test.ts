@@ -75,6 +75,46 @@ test('拒絕投資、未入帳、作廢、排除與不明 taxonomy，不猜測�
   ]);
 });
 
+test('只有完整 TWD 投資契約可產生買賣候選；一般 income-other 與重複 trade identity 均 fail-safe', () => {
+  const output = results([
+    transaction('buy', {
+      type: 'expense', categoryId: 'expense-investment', amount: 1000,
+      investmentAttribution: { kind: 'trade', tradeId: 'trade-buy-1', side: 'buy', assetSymbol: '0050', quantity: 10, settlementAmount: 1000, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('sell', {
+      type: 'income', categoryId: 'income-other', amount: 1200,
+      investmentAttribution: { kind: 'trade', tradeId: 'trade-sell-1', side: 'sell', assetSymbol: '0050', quantity: 10, settlementAmount: 1200, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('fee', {
+      type: 'expense', categoryId: 'expense-investment', amount: 20,
+      investmentAttribution: { kind: 'cost', tradeId: 'trade-buy-1', costType: 'fee', assetSymbol: '0050', currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('ordinary-income-other', { categoryId: 'income-other', description: '賣出 0050' }),
+    transaction('duplicate-a', {
+      type: 'expense', categoryId: 'expense-investment', amount: 500,
+      investmentAttribution: { kind: 'trade', tradeId: 'duplicated-trade', side: 'buy', assetSymbol: '0050', quantity: 5, settlementAmount: 500, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('duplicate-b', {
+      type: 'expense', categoryId: 'expense-investment', amount: 500,
+      investmentAttribution: { kind: 'trade', tradeId: 'duplicated-trade', side: 'buy', assetSymbol: '0050', quantity: 5, settlementAmount: 500, currency: 'TWD', cashAccountId: 'bank-a' }
+    }),
+    transaction('usd-trade', {
+      accountId: 'usd-a', type: 'expense', categoryId: 'expense-investment', amount: 100, currency: 'USD',
+      investmentAttribution: { kind: 'trade', tradeId: 'usd-trade', side: 'buy', assetSymbol: 'VOO', quantity: 1, settlementAmount: 100, currency: 'USD', cashAccountId: 'usd-a' }
+    })
+  ]);
+
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.eventType, item.reason]), [
+    ['buy', 'candidate', 'investment-buy', 'safe-taxonomy-candidate'],
+    ['sell', 'candidate', 'investment-sell', 'safe-taxonomy-candidate'],
+    ['fee', 'candidate', 'investment-fee', 'safe-taxonomy-candidate'],
+    ['ordinary-income-other', 'unsupported', undefined, 'unsupported-taxonomy'],
+    ['duplicate-a', 'duplicate', undefined, 'duplicate-trade-identity'],
+    ['duplicate-b', 'duplicate', undefined, 'duplicate-trade-identity'],
+    ['usd-trade', 'unsupported', undefined, 'fx-attribution-unsupported']
+  ]);
+});
+
 test('將同帳戶轉帳、跨幣別轉帳及不合法 account、amount、date 明確標示為不能使用', () => {
   const output = results([
     transaction('same-account', { type: 'transfer', categoryId: 'transfer-account', transferAccountId: 'bank-a' }),
