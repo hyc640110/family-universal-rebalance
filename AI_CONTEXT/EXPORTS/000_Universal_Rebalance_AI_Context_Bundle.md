@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-09T09:19:06.585253+00:00
+Generated UTC: 2026-08-09T11:40:40.826028+00:00
 
 ## Manifest
 
@@ -20,7 +20,7 @@ Generated UTC: 2026-08-09T09:19:06.585253+00:00
 - `009_CHANGELOG.md` — SHA-256 `7805b9441ece9d0603997006aa5bae5fb7e6668961d9a9f595484ba5455bd4fd`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `ce28997683a8254e5fb880fd215173d27bf322448cb38a77af326656e0a504c8`
+- `012_AI_HANDOVER.md` — SHA-256 `9f40afcce674915bcb381ac488a26f109a65898e3ddd4b51e036290a6ab169fe`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -4827,7 +4827,7 @@ interface ServiceResult<T> {
 - 基線與狀態：從 `origin/main` `1a80d08bdc5371fe3bb0a0a67ef533571db2214a` 建立隔離 branch `feat/ur-todo-046-l1-loan-repayment-component-group`。本機完整驗證已通過；Draft PR 的遠端 CI、PR Head 與 merge gate 必須以 GitHub 對當前 Head 的實際狀態核實，**不得把 L1 視為已 Merge、不得自行部署或啟動後續階段**。
 - 合約與財務語意：`FinancialTransaction.loanAttribution?` 為 additive discriminated union：`repayment` 需 `paymentId`、`loanId`、`cashAccountId`、`currency`、`settlementAmount` 與總額完全一致、stable `componentId` 的 components；`disbursement` 與 `cash-movement` 僅接受顯式 stable linkage。正式完整 TWD repayment：principal = 0；interest／fee／penalty 各僅一次負 contribution；disbursement = 0。不得從 description、merchant、note、generic taxonomy、金額、monthlyPayment、期數、利率或 Loan principal 快照推導歷史本息，也不得自動修改 Loan principal。
 - Ledger／防重複：FinancialEvent schema v2 新增 optional `componentLink`（`paymentId`、`componentId`、fresh `confirmationGroupId`、可選 `cashMovementId`）。`componentId` 在同一 loan identity domain 不得跨 payment 重複，且 `appendFinancialEventGroup()` 本身強制完整 contract／transaction／cash linkage／group 驗證，不能由 caller 繞過。只有完整、唯一的 `attribution-confirmation` group 才被消費；partial／duplicate／cash link 不完整／non-TWD／legacy 一律 residual。任一 component Void 會使原 group 原子失效；只能以新的完整 group 重新辨識，不能拼接舊 component。完整 confirmed group 壓制 runtime evidence；void 後合法 transaction 最多重新辨識一次。沒有正式 Loan contract 的 `expense-housing` 不可 fallback 為 `external-expense`。v1 仍可讀；v1/v2 Firebase Ledger 混合 fail-safe 拒絕，無 migration。
-- 相容性／驗證：localStorage、JSON Backup、Firebase 與 legacy transaction normalizer 均以 additive contract 保留相容。已實際執行 `npx tsc -b`、`npm run test:ci`（787 unit／Risk 3／MJS 18）、Production／Preview build、`git diff --check`；遠端 CI、PR Head、Preview/Production 一律依 GitHub 當前實際狀態核實。
+- 相容性／驗證：localStorage、JSON Backup、Firebase 與 legacy transaction normalizer 均以 additive contract 保留相容。已實際執行 `npx tsc -b`、`npm run test:ci`（788 unit／Risk 3／MJS 18）、Production／Preview build、`git diff --check`；遠端 CI、PR Head、Preview/Production 一律依 GitHub 當前實際狀態核實。
 - 明確不包含／下一位 AI 起點：L1 不含 Loan UI、CSV／Import Center mapping、split allocation、FX attribution、Investment I1 重構、holding replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance、Dashboard 或 Production 既有資料。UR-TODO-046 整體仍未完成；Remaining Boundary 為 split allocation、FX attribution，以及任何需要使用者另行授權的 Loan consumer／UI 工作。
 
 ---
