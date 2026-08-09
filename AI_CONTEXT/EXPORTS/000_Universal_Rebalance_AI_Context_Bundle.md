@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-08T08:16:03.919369+00:00
+Generated UTC: 2026-08-09T06:13:51.181666+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-08T08:16:03.919369+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `64463a9332557919d0cc8f414b87480115a66cb380befd9a785fec0f00863dbd`
+- `003_CURRENT_STATUS.md` — SHA-256 `f30d7e4fb0cad54303286f0c41939351abb828531def6e116679c430a47d3b60`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `fdeaad526db3b6bf37854d3cd6b7523a0992de1d44c100d0a1eace261db60091`
-- `009_CHANGELOG.md` — SHA-256 `c6811fccb602a54f7672f65b80cbe7c7136868bb8f6c248b45aabb1c0242621f`
+- `008_TODO_BACKLOG.md` — SHA-256 `09116a6fc89367434b0357ef106f8539b76e8a473917b6f4c7c8655d2135a5fb`
+- `009_CHANGELOG.md` — SHA-256 `7b4b22769841c829541761345d78fa89f63c9eb82d48b86d4a130f6ac4d7feea`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `440c0396ec78864651148848b2e545360f087f2e046d91364e69eeee3af58b8c`
+- `012_AI_HANDOVER.md` — SHA-256 `8847c2b14e0de48a0866844e3e014e8657582b02026a42ef026898c18a1b3513`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -661,6 +661,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v3.89
 
 最後更新：2026-08-08
+
+**UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation 目前為 Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292)，尚未 Merge、未部署 Preview／Production。** 本次隔離分支 `feat/ur-todo-046-i1-investment-trade-contract` 從已 fetch 確認的 `origin/main` `8622ae31f06a5b2fced1b0757a563968be12a2ee` 建立，PR head 為 `8ebfc4233a8d87ddb7141eaa4a1b7d72b2394d0b`。新增向後相容的 `investmentAttribution` 契約：只有完整、明確的 TWD trade（stable `tradeId`、buy／sell、symbol、quantity、settlement amount、currency、cash account linkage）才可進入 reconciliation／runtime derived evidence／Ledger confirmation；legacy、`expense-investment`、`income-other`、文字、金額正負號或缺欄位皆不得猜測。買／賣本金貢獻固定為 0，獨立明確 fee／tax 為一次負值；非 TWD、重複 trade identity、成本未能獨立證明者 fail-safe。一般 `income-other` 也不再自動歸類為 external income，避免賣出款項被誤當外部收入。未處理 UI、CSV 欄位對應、持股 replay／成本、realized gain/loss、FX、split allocation、loan attribution 或 Production。已執行 `npm run test:ci`、`npx tsc -b`、Production build、Preview build；尚待 PR CI 與使用者決定後續 Preview／Merge 流程。
 
 **UR-TODO-053 趨勢圖改為「相對今日淨資產」基準線填色正式完成，目前 `main`／`origin/main` 正式基線為 `8d8dddf`（[PR #290](https://github.com/hyc640110/family-universal-rebalance/pull/290) merge commit，`feat/trend-chart-baseline-relative-fill`）**。取代 UR-TODO-027 已完成的「逐段漲跌」填色邏輯（不是新增並存），新增一條固定在「今日淨資產／今日{title}」高度的水平基準線，折線高於基準線紅色、低於綠色，用以快速判斷目前是否處於相對低點。唯讀盤點確認 `monotoneSegments()`／`monotonePath` 曲線計算可完全重用，並驗證既有時間範圍篩選函式（`historyForRange()`／`filterInvestmentPerformanceRange()`）保證陣列最後一筆永遠是最新資料，基準線可安全固定為絕對值、不隨範圍切換改變。使用者決策：交叉點計算採線性插值（跨越基準線的段落用數值線性插值算出交叉點，拆成兩個三角形分別上色，交叉點附近會有一小段直線收尾，非貝茲曲線精確弧度，唯讀盤點時已揭露此近似）；基準線加淡色虛線＋「今日」文字標示；文案採「以今日{title}為基準：折線高於今日為紅色，低於今日為綠色，用以快速判斷目前是否處於相對低點。」放在圖表下方。**開發中發現一個唯讀盤點未預見的範圍問題**：`TrendChart` 為「淨資產趨勢」與「投資資產趨勢」共用元件，文案若寫死「淨資產」會對投資資產圖表文不對題；已改用元件既有 `title` prop 動態組字解決，不需新增 prop 或保留兩套邏輯。**首次 Preview 驗收發現真實 Bug 並已修正**：使用者回報 30 天視圖中明顯低於基準線的一段完全沒有綠色填色（高於基準線的紅色正常）。直接檢視渲染後 SVG DOM 確認根因（非猜測）：`up`／`down` 兩個方向的 `<linearGradient>` 誤共用同一組 `y1`／`y2` 座標範圍（`top`→`refY`），紅色區塊像素座標剛好完全落在此範圍內、綠色區塊則明顯超出，SVG 預設 `spreadMethod="pad"` 讓超出範圍的部分沿用最後一個 stop 的顏色（全透明），導致綠色填色路徑幾何正確但畫面全透明。修正：`down` 漸層改用 `height-bottom`→`refY`（與 `up` 的 `top`→`refY` 對稱）；新增迴歸測試直接斷言每個方向的漸層範圍必須完整涵蓋該方向填色路徑的座標範圍，確認此測試在修正前會重現與回報一致的失敗、修正後通過。`tests/trendChartGradientArea.test.ts` 因語意完全改變全數改寫並新增迴歸測試（7→11 個測試）。868 tests pass，`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 以與回報情境相同結構的資料重現問題並確認修正後兩方向填色的像素 Y 座標範圍皆完整落在各自漸層範圍內，兩種圖表（淨資產／投資資產）文案皆正確依 `title` 動態顯示，console 全程無錯誤。**未修改**`deriveTrendDomain()` Y 軸刻度邏輯、`netWorthHistory.ts` 資料層、資料點 hover／touch 互動、X 軸索引式定位邏輯。修正後使用者於 Preview 再次驗收通過並指示 Merge；因 repo 僅一名協作者、branch protection 需要審核人數，Claude Code 執行 `gh pr merge --admin`（已於 Merge 當下明確告知使用者）。Merge 後 push 部署成功（`Deploy GitHub Pages` run `31247906331` success），Production／Preview `curl` 實測皆 `HTTP 200`。詳見 `008_TODO_BACKLOG.md` UR-TODO-053 條目。
 
@@ -4061,6 +4063,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 2026-08-08 更新：**UR-TODO-046 C1、046-B、046-C1／C2、046-C3A、046-C3B、046-C3C-A、046-C3C-B、046-C3C-C、Firebase Ledger Sync 與撤銷／void 已完成，但 UR-TODO-046 整體仍未完成**。後續 split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 等仍需獨立排程與產品決策（皆屬重大事件），詳見下方「Remaining Boundaries」。
 
+2026-08-09 更新：**UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation 已完成實作並建立 Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292)，尚未 Merge。** 以 `investmentAttribution` 加法式契約承載 stable `tradeId`、buy／sell、asset symbol、quantity、settlement amount、currency、cash account linkage 與獨立 fee／tax 語意；僅完整 TWD 契約能產生 `investment-buy`／`investment-sell`／`investment-fee` evidence。買／賣本金 contribution 固定為 0，明確獨立 fee／tax 才為一次負 contribution；generic `income-other` 不再自動升格為 external income，避免賣出款項誤歸因。legacy、文字、category、amount sign、缺欄位、non-TWD、重複 trade identity 一律 fail-safe。無 schema version bump、無 migration 或 legacy 回填；localStorage／Firebase／JSON Backup 共用 normalizer 的 round-trip 已有測試。已執行完整 `test:ci`、TypeScript、Production／Preview build；待 PR CI、使用者後續 Preview／Merge 決策。**不包含** UI、CSV／Import Center 欄位對應、持股 replay／成本、realized gain/loss、FX、split allocation、loan attribution。
+
 - 優先級：待評估
 - 狀態：**部分完成／後續待評估**（Phase 1 唯讀盤點、C1 Financial Event Ledger contract／persistence foundation、046-B pure attribution calculator／quality model、046-C1／C2 pure transaction reconciliation、046-C3A pure runtime derived-evidence adapter、046-C3B runtime attribution composition layer、046-C3C-A runtime attribution provenance card、046-C3C-B session-only mark-as-reasonable toggle、046-C3C-C Financial Event Ledger 寫入／持久化與 Firebase Ledger Sync 已完成；UR-TODO-043-B 依賴已解除；其餘子階段（撤銷／void、split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 等重大事件）尚未排程或開發）
 - 提出日期：2026-07-30
@@ -4324,6 +4328,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ---
 
 ## [Unreleased]
+
+**UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292)，2026-08-09）**：新增向後相容 `FinancialTransaction.investmentAttribution` discriminated union。完整 TWD buy／sell（stable trade identity、side、symbol、quantity、settlement、currency、cash account linkage）才可進入 reconciliation、runtime derived evidence、Ledger confirmation 與 void 既有鏈路；buy／sell 的 net-worth contribution 固定為 0，獨立可證明 fee／tax 為一次負值。移除 generic `income-other` 的 safe external-income 候選資格，避免賣出 proceeds 被誤歸因；legacy、文字、類別、金額正負號、缺欄位、non-TWD、duplicate trade identity 一律不猜測。採 additive fields，舊交易可讀但不會自動升格，無 schema bump／migration。已驗證完整 `test:ci`、TypeScript、Production／Preview build；Draft 尚未 Merge 或部署。
 
 **UR-TODO-046 C3B Runtime Attribution Composition（2026-08-05）**：PR [#246](https://github.com/hyc640110/family-universal-rebalance/pull/246) 已由使用者最終授權 Merge（ChatGPT 完成架構審查與人工財務案例驗收後正式核准），merge commit `c30db10b69f7f1b3a8c88390028f4abac46246a4`。新增 `runtimeAttributionComposition.ts`：`netWorthChange = ledgerContribution + derivedContribution + unexplainedResidual`；Ledger evidence 優先於 derived evidence；只有 C1／C2 reconciliation candidate 才能產生 derived contribution，matched／duplicate／ambiguous／unsupported／invalid 一律排除；同一 transactionId 最多計算一次 derived contribution；沿用 C3A 的 `Asia/Taipei` calendar-day 日期契約；adjustment／internal-transfer 皆為零效果；非 TWD 無正式 FX conversion 時 fail-safe 排除；`reconciled` 只代表 residual 落在 tolerance 內，不代表完整歸因；derived evidence 為 runtime-only，不偽裝成 persisted event。未新增 schema、persistence、Firebase Ledger sync、migration、Ledger write-back、UI 或 AI Decision／Rebalance／Household Liquidity wiring。UR-TODO-046 整體仍為部分完成；下一候選（C3C 呈現／使用者確認、Firebase Ledger sync 等）皆屬重大事件，需另行拍板。
 
@@ -4807,6 +4813,16 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（Draft，2026-08-09）
+
+- Git 基線：已成功 `git fetch origin main`；`origin/main`／本機 `main`／原始 HEAD 為 `8622ae31f06a5b2fced1b0757a563968be12a2ee`。隔離 worktree：`E:\2026_CodeX\worktrees\family-universal-rebalance-ur-todo-046-i1`；branch `feat/ur-todo-046-i1-investment-trade-contract`；Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) head `8ebfc4233a8d87ddb7141eaa4a1b7d72b2394d0b`。**未 Merge、未部署 Preview／Production。**
+- 已完成範圍：新增 `FinancialTransaction.investmentAttribution` 加法式 discriminated union。正式 trade 必須明確提供 `tradeId`、buy／sell、`assetSymbol`、正 quantity、settlement amount、currency 與 cash account linkage；成本必須明確標示 `fee` 或 `tax`。不從 `expense-investment`／`income-other`、description、merchant、note、amount sign 或 legacy 交易猜測。完整 TWD buy／sell 只產生 zero contribution；明確獨立 fee／tax 才產生一次負 contribution。`income-other` 已從 safe external-income taxonomy 移除，避免 sell proceeds 被誤歸因。
+- Reconciliation／Ledger：完整 TWD 契約可分類為 `investment-buy`／`investment-sell`／`investment-fee`，依既有 Ledger > derived precedence 與 transaction consumption guard 運作；Ledger confirmation 可保留 trade `assetSymbol`；void 後會重新走 derived evidence，仍維持 zero contribution，不會殘留或 double-count。非 TWD、缺欄位、重複 trade identity 或不明成本 fail-safe 至 unsupported／residual；realized gain/loss、FX 未納入。
+- 相容性與驗證：採 additive field，未 bump transaction／Ledger schema、未做 migration 或 legacy 回填；現有 localStorage、Firebase、JSON Backup 共用 transaction normalizer，round-trip test 已驗證完整正式契約保留。已實際執行 `npm run test:ci`、`npx tsc -b`、`npm run build`、`npm run build:preview`，皆成功；尚待 PR CI 結果。
+- 明確不包含／下一位 AI 起點：不新增 UI、CSV／Import Center mapping、交易自動建立、holding replay、成本基礎、realized gain/loss、FX、split allocation 或 loan attribution。若使用者要求 Preview 驗收，先依 UR-TODO-050 workflow 建立 Preview-only；若 PR CI 失敗，於本 worktree 修正後再推送。使用者未明確授權前不得 Merge 或部署 Production。
 
 ---
 

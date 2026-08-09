@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（Draft，2026-08-09）
+
+- Git 基線：已成功 `git fetch origin main`；`origin/main`／本機 `main`／原始 HEAD 為 `8622ae31f06a5b2fced1b0757a563968be12a2ee`。隔離 worktree：`E:\2026_CodeX\worktrees\family-universal-rebalance-ur-todo-046-i1`；branch `feat/ur-todo-046-i1-investment-trade-contract`；Draft PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) head `8ebfc4233a8d87ddb7141eaa4a1b7d72b2394d0b`。**未 Merge、未部署 Preview／Production。**
+- 已完成範圍：新增 `FinancialTransaction.investmentAttribution` 加法式 discriminated union。正式 trade 必須明確提供 `tradeId`、buy／sell、`assetSymbol`、正 quantity、settlement amount、currency 與 cash account linkage；成本必須明確標示 `fee` 或 `tax`。不從 `expense-investment`／`income-other`、description、merchant、note、amount sign 或 legacy 交易猜測。完整 TWD buy／sell 只產生 zero contribution；明確獨立 fee／tax 才產生一次負 contribution。`income-other` 已從 safe external-income taxonomy 移除，避免 sell proceeds 被誤歸因。
+- Reconciliation／Ledger：完整 TWD 契約可分類為 `investment-buy`／`investment-sell`／`investment-fee`，依既有 Ledger > derived precedence 與 transaction consumption guard 運作；Ledger confirmation 可保留 trade `assetSymbol`；void 後會重新走 derived evidence，仍維持 zero contribution，不會殘留或 double-count。非 TWD、缺欄位、重複 trade identity 或不明成本 fail-safe 至 unsupported／residual；realized gain/loss、FX 未納入。
+- 相容性與驗證：採 additive field，未 bump transaction／Ledger schema、未做 migration 或 legacy 回填；現有 localStorage、Firebase、JSON Backup 共用 transaction normalizer，round-trip test 已驗證完整正式契約保留。已實際執行 `npm run test:ci`、`npx tsc -b`、`npm run build`、`npm run build:preview`，皆成功；尚待 PR CI 結果。
+- 明確不包含／下一位 AI 起點：不新增 UI、CSV／Import Center mapping、交易自動建立、holding replay、成本基礎、realized gain/loss、FX、split allocation 或 loan attribution。若使用者要求 Preview 驗收，先依 UR-TODO-050 workflow 建立 Preview-only；若 PR CI 失敗，於本 worktree 修正後再推送。使用者未明確授權前不得 Merge 或部署 Production。
+
+---
+
 ## 最新交接快照：UR-TODO-046 C3B Runtime Attribution Composition 已完成（2026-08-05）
 
 - 正式基線：PR [#246](https://github.com/hyc640110/family-universal-rebalance/pull/246) 已由使用者最終授權 Merge（ChatGPT 完成架構審查與人工財務案例驗收後正式核准，Claude Code 依既有政策執行 `gh pr merge --admin`）；`main`、`origin/main`、`HEAD` 為 **`c30db10b69f7f1b3a8c88390028f4abac46246a4`**（`mergedAt: 2026-08-04T16:49:54Z`）。
