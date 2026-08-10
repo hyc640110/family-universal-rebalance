@@ -35,7 +35,19 @@ test('同一 event id 但內容不同時 fail-safe 拒絕，絕不任取本機�
   const remote = { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [event({ id: 'collision', amount: 101 })] };
   const outcome = mergeFinancialEventLedgers(local, remote);
   assert.equal(outcome.ok, false);
-  if (!outcome.ok) assert.match(outcome.reason, /內容不同/);
+  if (!outcome.ok) {
+    assert.equal(outcome.reasonCode, 'event-id-collision');
+    assert.match(outcome.reason, /內容不同/);
+  }
+});
+
+test('支援的不同 Ledger schema 以結構化 schema-version-mismatch 拒絕', () => {
+  const outcome = mergeFinancialEventLedgers(
+    { schemaVersion: 1, events: [] },
+    { schemaVersion: 2, events: [] }
+  );
+  assert.equal(outcome.ok, false);
+  if (!outcome.ok) assert.equal(outcome.reasonCode, 'schema-version-mismatch');
 });
 
 test('local-only side empty: remote events all survive untouched', () => {
@@ -63,6 +75,7 @@ test('either side on an unsupported schema version refuses to merge, naming both
   const outcome = mergeFinancialEventLedgers(local, remoteOpaque);
   assert.equal(outcome.ok, false);
   if (outcome.ok) return;
+  assert.equal(outcome.reasonCode, 'unsupported-future-schema');
   assert.match(outcome.reason, new RegExp(`v${FINANCIAL_EVENT_SCHEMA_VERSION}`));
   assert.match(outcome.reason, new RegExp(`v${FINANCIAL_EVENT_SCHEMA_VERSION + 1}`));
 });

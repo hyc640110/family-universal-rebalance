@@ -55,7 +55,8 @@ export type SyncMeta = {
   lastDownloadAt?: string;
   lastBackupExportAt?: string;
   lastBackupImportAt?: string;
-  status: string;
+  /** Runtime-only UI status. It must not be serialized into localStorage, Backup, or Firebase. */
+  status?: string;
 };
 
 export type RemoteMeta = {
@@ -236,6 +237,12 @@ export function withoutSyncBaseline(meta: SyncMeta): SyncMeta {
     baselineCanonicalSchema: _baselineCanonicalSchema,
     ...portableMeta
   } = meta;
+  return portableMeta;
+}
+
+/** Removes deprecated runtime-only status text from portable state. */
+export function withoutRuntimeSyncStatus(meta: SyncMeta): SyncMeta {
+  const { status: _status, ...portableMeta } = meta;
   return portableMeta;
 }
 

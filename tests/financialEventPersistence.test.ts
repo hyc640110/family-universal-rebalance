@@ -130,11 +130,46 @@ test('v3 generic split group 在 localStorage、JSON Backup 與 Firebase payload
   assert.equal((firebasePayload.financialEvents as unknown[]).length, 2);
 });
 
+test('舊 build persisted syncMeta.status 不會在 v3 runtime 或 JSON Backup 成為目前同步錯誤', async () => {
+  const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
+  const stale = '❌ Firebase 同步失敗：Financial Event Ledger schema 版本不受支援（本機 v1／雲端 v2，目前支援 v2）';
+  const local = normalizeState({
+    financialEventSchemaVersion: 1,
+    financialEvents: [],
+    syncMeta: { dirty: true, source: '本機資料', status: stale, lastUploadAt: '2026-08-10T00:00:00.000Z' }
+  });
+  const backup = backupPayload(local, {}) as { syncMeta: Record<string, unknown> };
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
+
+  assert.equal('status' in local.syncMeta, false);
+  assert.equal('status' in backup.syncMeta, false);
+  assert.equal('status' in restored.syncMeta, false);
+  assert.equal(local.financialEventSchemaVersion, 1);
+  assert.deepEqual(local.financialEvents, []);
+});
+
+test('舊 persisted transport failure 在 reload 後不會成為目前 runtime failure', async () => {
+  const { normalizeState } = await loadAppPersistence();
+  const reloaded = normalizeState({ syncMeta: { dirty: true, source: '本機資料', status: '❌ Firebase 同步失敗：Firebase 503' } });
+  assert.equal('status' in reloaded.syncMeta, false);
+});
+
 test('Firebase v2/v3 mixed Ledger merge fail-safe 拒絕，沒有產生 partial merge payload', async () => {
   const { stateFromFirebasePayload } = await loadAppPersistence();
   const current = await stateWithLoanComponentLedger();
   const remote = { financialEventSchemaVersion: 3, financialEvents: [] };
   assert.throws(() => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current), /schema 版本不受支援/);
+});
+
+test('Firebase download 在 schema mismatch 時拒絕且不改變 local Ledger', async () => {
+  const { stateFromFirebasePayload } = await loadAppPersistence();
+  const current = await stateWithLoanComponentLedger();
+  const before = structuredClone(current);
+  assert.throws(
+    () => stateFromFirebasePayload({ financialEventSchemaVersion: 3, financialEvents: [] }, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current),
+    /schema 版本不受支援/
+  );
+  assert.deepEqual(current, before);
 });
 
 test('Firebase upload 在 v2/v3 mixed Ledger merge 拒絕後絕不發出 PUT，也不覆寫遠端', async () => {
@@ -155,6 +190,38 @@ test('Firebase upload 在 v2/v3 mixed Ledger merge 拒絕後絕不發出 PUT，�
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('Firebase upload 在同 schema event-id collision 時只 GET、絕不 PUT', async () => {
+  const { normalizeState, uploadFirebaseStateWithLedgerMerge } = await loadAppPersistence();
+  const base = await stateWithLedger();
+  const local = normalizeState({ ...base, financialEventSchemaVersion: 3, financialEvents: [{ ...event, id: 'collision', note: 'local payload' }] });
+  const remote = normalizeState({ ...base, financialEventSchemaVersion: 3, financialEvents: [{ ...event, id: 'collision', note: 'remote payload' }] });
+  const calls: Array<{ method?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    calls.push({ method: init?.method });
+    return new Response(JSON.stringify(remote), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    await assert.rejects(
+      () => uploadFirebaseStateWithLedgerMerge({ databaseURL: 'https://example.invalid', secretPath: 'root' }, local, 'user-1', 'token-1'),
+      /內容不同/
+    );
+    assert.deepEqual(calls, [{ method: undefined }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('Firebase download 在同 schema event-id collision 時拒絕且不改變 local Ledger', async () => {
+  const { normalizeState, stateFromFirebasePayload } = await loadAppPersistence();
+  const base = await stateWithLedger();
+  const current = normalizeState({ ...base, financialEventSchemaVersion: 3, financialEvents: [{ ...event, id: 'collision', note: 'local payload' }] });
+  const remote = { ...base, financialEventSchemaVersion: 3, financialEvents: [{ ...event, id: 'collision', note: 'remote payload' }] };
+  const before = structuredClone(current);
+  assert.throws(() => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current), /內容不同/);
+  assert.deepEqual(current, before);
 });
 
 test('App attribution memo dependencies 將 Ledger schema version 視為獨立 recomputation input', async () => {

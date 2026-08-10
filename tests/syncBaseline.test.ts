@@ -242,7 +242,8 @@ test('App upload, download, Backup, and reset flows enforce baseline lifecycle a
   assert.doesNotMatch(app, /deriveSyncBaselineDiagnostics\(stateRef\.current, uploadedSnapshot\.fingerprint\)/);
   assert.match(app, /const downloadedSnapshot = createSyncPayloadSnapshot\(remote\)/);
   assert.match(app, /baselineFingerprint: downloadedSnapshot\.fingerprint/);
-  assert.match(app, /syncMeta: withoutSyncBaseline\(normalized\.syncMeta\)/);
+  assert.match(app, /syncMeta: withoutRuntimeSyncStatus\(withoutSyncBaseline\(normalized\.syncMeta\)\)/);
+  assert.match(app, /syncMeta: withoutRuntimeSyncStatus\(state\.syncMeta\)/);
   assert.match(app, /baselineFingerprint: undefined,[\s\S]*?source: '已從備份匯入'/);
   // Reset's user-facing confirmation is deliberately its own backupFeedback state, not syncMeta.status
   // (see App upload/download/backup feedback isolation from syncStatusText's baseline/dirty precedence).
@@ -264,7 +265,7 @@ test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕�
   assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string\)/);
   assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: state\.financialEventSchemaVersion, events: state\.financialEvents \}, remoteLedger\)/);
-  assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(state\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   assert.match(app, /const merged = \{ \.\.\.state, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
   assert.match(app, /uploadFirebase\(config, createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\), uid, idToken\)/);
   assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
@@ -275,11 +276,11 @@ test('downloadCloud confirm dialog explicitly names the Ledger merge exception (
   assert.match(app, /下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外/);
 });
 
-test('stateFromFirebasePayload merges the Ledger (union by id) instead of the old blanket reject, and refuses only on an unsupported schema version', () => {
+test('stateFromFirebasePayload merges the Ledger (union by id) instead of the old blanket reject, and retains structured fail-safe rejection facts', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /hasLocalFinancialEventLedger/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: current\.financialEventSchemaVersion, events: current\.financialEvents \}, remoteLedger\)/);
-  assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(current\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   // droppedFinancialEventCount must be computed from stateRef.current/normalizeState's actual output,
   // never assumed — a merged-in event can still be dropped by existing transactionId validation.
   assert.match(app, /droppedFinancialEventCount: mergeOutcome\.events\.length - state\.financialEvents\.length/);
