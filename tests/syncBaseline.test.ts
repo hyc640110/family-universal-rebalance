@@ -265,7 +265,7 @@ test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕�
   assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string\)/);
   assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: state\.financialEventSchemaVersion, events: state\.financialEvents \}, remoteLedger\)/);
-  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(state\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\.reason\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(state\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   assert.match(app, /const merged = \{ \.\.\.state, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
   assert.match(app, /uploadFirebase\(config, createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\), uid, idToken\)/);
   assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
@@ -280,7 +280,7 @@ test('stateFromFirebasePayload merges the Ledger (union by id) instead of the ol
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /hasLocalFinancialEventLedger/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: current\.financialEventSchemaVersion, events: current\.financialEvents \}, remoteLedger\)/);
-  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(current\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\.reason\)/);
+  assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(current\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   // droppedFinancialEventCount must be computed from stateRef.current/normalizeState's actual output,
   // never assumed — a merged-in event can still be dropped by existing transactionId validation.
   assert.match(app, /droppedFinancialEventCount: mergeOutcome\.events\.length - state\.financialEvents\.length/);

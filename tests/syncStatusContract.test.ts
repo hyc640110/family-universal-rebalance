@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { describeRuntimeSyncStatus, type RuntimeSyncStatus } from '../src/lib/syncStatus';
+import { describeRuntimeSyncStatus, runtimeStatusForLedgerMergeRejection, type RuntimeSyncStatus } from '../src/lib/syncStatus';
 
 const runtimeFacts = {
   writerSchemaVersion: 3,
@@ -32,4 +32,20 @@ test('runtime status 區分 progress、transport error 與 stale persisted failu
   for (const [status, expected] of cases) {
     assert.match(describeRuntimeSyncStatus(status, runtimeFacts), expected);
   }
+});
+
+test('Ledger reject reason 映射為實際 runtime status，而非以 error 文字推斷', () => {
+  const schemaMismatch = runtimeStatusForLedgerMergeRejection('schema-version-mismatch', 1, 2);
+  assert.equal(schemaMismatch.kind, 'schema-version-mismatch');
+  assert.match(describeRuntimeSyncStatus(schemaMismatch, runtimeFacts), /本機 Ledger：v1/);
+
+  const unsupported = runtimeStatusForLedgerMergeRejection('unsupported-future-schema', 3, 4);
+  assert.equal(unsupported.kind, 'unsupported-future-schema');
+
+  const collision = runtimeStatusForLedgerMergeRejection('event-id-collision', 3, 3);
+  assert.equal(collision.kind, 'event-id-collision');
+  const text = describeRuntimeSyncStatus(collision, runtimeFacts);
+  assert.match(text, /相同事件 ID.*事件內容不同/);
+  assert.match(text, /未上傳、未下載、未覆寫任何 Ledger/);
+  assert.doesNotMatch(text, /兩端 Ledger schema 不同|本機 Ledger：v3/);
 });

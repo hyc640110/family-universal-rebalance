@@ -82,7 +82,7 @@ import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, norma
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutRuntimeSyncStatus, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
-import { describeRuntimeSyncStatus, type RuntimeSyncStatus } from './lib/syncStatus';
+import { describeRuntimeSyncStatus, runtimeStatusForLedgerMergeRejection, type RuntimeSyncStatus } from './lib/syncStatus';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
@@ -516,25 +516,23 @@ async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: stri
   const schemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
   return { schemaVersion, events: deserializeFinancialEventLedgerEvents(schemaVersion, record.financialEvents) };
 }
-class LedgerSyncSchemaError extends Error {
-  readonly runtimeStatus: Extract<RuntimeSyncStatus, { kind: 'schema-version-mismatch' | 'unsupported-future-schema' }>;
+class LedgerSyncRejectError extends Error {
+  readonly runtimeStatus: Extract<RuntimeSyncStatus, { kind: 'schema-version-mismatch' | 'unsupported-future-schema' | 'event-id-collision' }>;
 
-  constructor(localSchemaVersion: number, remoteSchemaVersion: number, message: string) {
-    super(message);
-    this.name = 'LedgerSyncSchemaError';
-    this.runtimeStatus = (!isFinancialEventLedgerSchemaSupported(localSchemaVersion) || !isFinancialEventLedgerSchemaSupported(remoteSchemaVersion))
-      ? { kind: 'unsupported-future-schema', observedLocalSchema: localSchemaVersion, observedRemoteSchema: remoteSchemaVersion }
-      : { kind: 'schema-version-mismatch', observedLocalSchema: localSchemaVersion, observedRemoteSchema: remoteSchemaVersion };
+  constructor(localSchemaVersion: number, remoteSchemaVersion: number, mergeOutcome: Extract<ReturnType<typeof mergeFinancialEventLedgers>, { ok: false }>) {
+    super(mergeOutcome.reason);
+    this.name = 'LedgerSyncRejectError';
+    this.runtimeStatus = runtimeStatusForLedgerMergeRejection(mergeOutcome.reasonCode, localSchemaVersion, remoteSchemaVersion);
   }
 }
-function rejectedLedgerMergeError(localSchemaVersion: number, remoteSchemaVersion: number, reason: string): LedgerSyncSchemaError {
-  return new LedgerSyncSchemaError(localSchemaVersion, remoteSchemaVersion, reason);
+function rejectedLedgerMergeError(localSchemaVersion: number, remoteSchemaVersion: number, mergeOutcome: Extract<ReturnType<typeof mergeFinancialEventLedgers>, { ok: false }>): LedgerSyncRejectError {
+  return new LedgerSyncRejectError(localSchemaVersion, remoteSchemaVersion, mergeOutcome);
 }
 /** The single production upload path: mixed-schema rejection happens before the only PUT call. */
 export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig, state: AppState, uid: string, idToken: string) {
   const remoteLedger = await fetchRemoteFinancialEventLedger(config, uid, idToken);
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: state.financialEventSchemaVersion, events: state.financialEvents }, remoteLedger);
-  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(state.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome.reason);
+  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(state.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome);
   const merged = { ...state, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
   const uploadedSnapshot = await uploadFirebase(config, createSyncPayloadSnapshot(stateWithPersistedFinancialEventLedger(merged)), uid, idToken);
   return { uploadedSnapshot, normalized: merged, mergeOutcome };
@@ -555,7 +553,7 @@ export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, 
     events: deserializeFinancialEventLedgerEvents(typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION, remoteData.financialEvents)
   };
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
-  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(current.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome.reason);
+  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(current.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome);
   const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
   const state = normalizeState({ ...mergedRemoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } });
   return { state, netWorthSnapshotReadTimeView, droppedFinancialEventCount: mergeOutcome.events.length - state.financialEvents.length };
@@ -1284,7 +1282,7 @@ function App() {
     return { ...current, syncMeta: next };
   });
   const runtimeStatusForSyncError = (operation: 'upload' | 'download', error: unknown): RuntimeSyncStatus => {
-    if (error instanceof LedgerSyncSchemaError) return error.runtimeStatus;
+    if (error instanceof LedgerSyncRejectError) return error.runtimeStatus;
     return { kind: 'firebase-transport-error', operation, message: error instanceof Error ? error.message : String(error) };
   };
   const handleUploadFailure = (error: unknown) => {
