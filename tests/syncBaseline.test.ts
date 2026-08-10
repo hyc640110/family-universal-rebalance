@@ -233,7 +233,7 @@ test('fingerprint short codes do not reveal the canonical payload', () => {
 test('App upload, download, Backup, and reset flows enforce baseline lifecycle and canonical request body', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /body: snapshot\.canonicalJson/);
-  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
+  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken, preflightRemoteLedger\)/);
   assert.match(app, /createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\)/);
   assert.match(app, /baselineFingerprint: uploadedSnapshot\.fingerprint/);
   assert.match(app, /baselineFieldFingerprints: uploadedSnapshot\.fieldFingerprints/);
