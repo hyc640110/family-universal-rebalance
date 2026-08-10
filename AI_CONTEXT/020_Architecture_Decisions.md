@@ -1,8 +1,8 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.0
+版本：v1.1
 
-最後更新：2026-07-25
+最後更新：2026-08-10
 
 ## 0. 文件定位
 
@@ -32,6 +32,7 @@
 |---|---|---|
 | ADR-001 | V7.0B 採漸進式整合（Strangler Pattern），逐步將 `App.tsx` 內的舊邏輯抽出為純函式並接上 Household Liquidity | 已採用 |
 | ADR-002 | Dip Alert 明確分離「訊號」與「資金資格」語意 | 已採用 |
+| ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
 
 ---
 
@@ -91,3 +92,27 @@ UI 呈現層依循 013 §14.3：訊號區塊（跌幅、門檻等純價格資訊
 - 取捨：`DipAlertRow` 型別多一個欄位，下游消費者（`getDecisionSummary`）若要呈現「資金感知」的摘要文字，需要額外讀取 `fundingStatus`（子 PR 5b 已示範：`dipStatus` 新增資金狀態感知後綴，但 `triggeredDipAlerts` 的計數邏輯本身不受影響）。
 - 延續要求：未來任何「訊號類」功能（例如再平衡門檻觸發、其他機會訊號）若同時涉及資金資格判斷，應比照本 ADR 的欄位拆分方式，不得將訊號判斷與資金判斷寫在同一個布林值或同一個計算路徑內。
 - 與 ADR-001 的關係：本 ADR 是 ADR-001 兩階段模式（抽出→串接）在 Dip Alert 這個具體模組上的直接產物——「抽出」階段鎖住訊號行為，「串接」階段才新增資金資格欄位，兩者能夠乾淨分離正是因為採用了漸進式整合而非一次性重構。
+
+---
+
+## ADR-003：Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary
+
+**狀態**：已採用
+
+**背景**：
+
+UR-TODO-046-L2A 的 Repository audit 確認，跨 domain 的 split allocation 若讓不同 component 各自被視為獨立 financial event，會產生 partial-valid、amount 不守恆、重複 transaction consumption 與 derived-evidence 錯誤壓制風險。audit 同時確認既有 v2 client 無法安全理解 generic split 的新經濟語意；僅以加法式 record shape 延伸會使舊 runtime 有將未知 payload 當成正常 FinancialEvent 消費的風險。PR #296（UR-TODO-046-L2B）將此 contract 與 compatibility boundary 正式實作並合併至 main。
+
+**決策**：
+
+1. 同一 `allocationGroupId` 的 components 是一個不可拆分的完整 economic event。只有 same domain、transactionId、account、currency、effectiveDate、group-local componentId uniqueness、completeness 與 amount conservation 全部成立的 group，才可進入 Ledger attribution、group-to-transaction reconciliation 與 derived-evidence suppression。
+2. FinancialEvent Ledger 是 generic split 的唯一 persistent SSOT；runtime derived evidence 不得偽裝為 persisted FinancialEvent，也不得另建第二套 persistent split store。
+3. 任一 component Void 令 whole group invalid。修正僅採 forward-only：append Void old group 後，另 append 使用 fresh allocationGroupId 與 fresh event ids 的 complete replacement group；`replacementOfGroupId` 本身不得隱式作廢或取代舊 group。
+4. FinancialEvent schema v3 是 generic split 的 opaque compatibility boundary。v3 client 正常 normalize 合法 v3 group；v2 client 與任何 future unsupported client 必須保留 opaque payload，但不得進 runtime attribution、reconciliation、transaction consumption 或 derived-evidence suppression，亦不得 downgrade 或自動 migration。
+5. Firebase 合併只接受可安全合併的同版本 Ledger；v2/v3 mixed-version、future unsupported schema 或同 event id 但不同 payload 一律 fail-safe reject，拒絕後 upload path 不得 PUT。partial group 的 Firebase union 可保留，但完整前不得被消費。
+
+**後果**：
+
+- 好處：economic completeness、amount conservation、void 與 replacement 都在同一 group contract 下驗證，避免部分 component 造成 double-count 或無聲遺漏；舊 client 面對新 schema 時寧可不歸因也不錯誤解讀。
+- 取捨：generic split 寫入端必須一次提供完整 group，不能做 confirmed component-level correction；舊版 client 讀取 v3 Ledger 期間不會產生 Ledger attribution，需由支援 v3 的 client 消費。
+- 延續要求：任何新 consumer（例如 Loan UI／CSV／Import Center、Investment、FX）都必須先在獨立 Sprint 定義其 domain contract 與 generic group mapping，不得將 domain-specific 商業規則滲入 generic foundation；不得因本 ADR 自動啟動後續 consumer 或 historical migration。
