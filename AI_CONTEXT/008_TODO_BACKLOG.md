@@ -243,6 +243,21 @@
 
 PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已由使用者手動 Merge，merge commit `2a038802aac1a345f5be2a5100913142d42d23a4`，`mergedAt: 2026-08-05T08:22:26Z`。新增純 REST（非 `firebase` SDK）Firebase Anonymous Authentication，維持既有 raw `fetch()` 架構：`src/lib/firebaseAnonymousAuth.ts` 直接呼叫 Identity Toolkit／Secure Token API 建立與更新匿名 session；`src/lib/environmentBoundary.ts` 的 `syncRoot()` 由 `secretPath` 改為 `uid`，路徑格式改為 `{basePath}/users/{uid}`，滿足「路徑以 uid 為基礎、未來 `linkWithCredential()` 升級不需 migration」的產品要求；`src/lib/firebaseSyncUrl.ts` 組出帶 `?auth=<idToken>` 的 RTDB REST URL。使用者已於 Firebase Console 套用新 Security Rules（`$envPath` 萬用字元只鎖 `auth.uid === $uid`）並啟用「匿名」登入方式；既有雲端舊資料依使用者拍板視為已遺失、不做遷移。**實機以真實 Firebase 後端複驗**：全新使用者背景自動登入成功並取得真實 uid；以實際簽發的 uid／idToken 重放 RTDB REST 呼叫，上傳／下載成功且資料一致；跨 uid 存取回傳 HTTP 401 Permission denied，證實 Rules 正確生效。詳細變更範圍、測試清單與明確排除項目見 `003_CURRENT_STATUS.md` 最上方 2026-08-05 記錄。**下一潛在候選為 Google 登入／帳號升級（`linkWithCredential()`），屬重大產品語意事件，須另行拍板，未經授權不得開始。**
 
+#### 後續延伸：Firebase Retirement Phase（方案 B 已批准；P0 Governance 完成）
+
+本段是 UR-TODO-001 的**後續延伸**，不取代、不改寫上方原始「Security Rules Expiry／Anonymous Auth」已完成歷史與 PR #252／Firebase Console 複驗結論。
+
+- 現行狀態：P0 Governance-only 已完成；P1、P2、P3、P4 **尚未開始**。
+- localStorage：唯一 canonical runtime state；Firebase 不再是一般 App runtime 的必要資料來源。
+- JSON Backup：正式人工備份、跨裝置資料搬移與災難復原機制。後續必須以真實 Production 資料完成 Export → Import → Re-export round-trip 驗收；可接受 `exportedAt` 與裝置診斷資料差異，但持股、帳戶／現金、交易、借款、Cash Flow、淨資產歷史及 Ledger contract 必須保留。
+- Financial Event Ledger：必須保留 localStorage persistence、JSON Backup serialization、schema、normalization、validation、event identity／collision validation、atomic group、void、linked transaction identity、`financialEventAttributionStartDate` 與既有 forward-only 契約；不得因 retirement 誤刪或改變 attribution／reconciliation 公式。
+- P1：移除一般 App startup 的背景 Firebase Anonymous Auth；手動同步若仍存在，只能在使用者手動觸發時按需取得 Auth。不得移除 upload/download、Firebase Settings UI、Ledger contract 或操作 Firebase Console。
+- P2：移除手動 Firebase upload/download、首頁／手機／Settings 同步 UI、sync status／baseline／remoteMeta 與 Firebase-only remote Ledger merge orchestration；不得刪除共用 Ledger 契約，亦不得修改 JSON Backup payload migration，除非另有證據與授權。
+- P3：清理已無使用點的 Firebase env/config、Anonymous Auth／REST runtime references、Firebase-specific boundary code、tests 與治理殘留；不處理 Gmail OAuth、Quote／Market／其他非 Firebase Workers。若需改 JSON Backup payload，必須停止並取得新授權。
+- P4：Firebase Console retirement 只先允許唯讀盤點與方案設計；任何實際 Console 操作必須再次取得使用者明確授權。
+- P4 前禁止：刪除 Firebase 資料、停用 Anonymous Auth provider、修改／刪除 Security Rules、刪除 RTDB／Firebase Project、修改 Console 設定、不可逆操作或 Production deploy。
+- 待盤點：Firebase Console Rules／Anonymous Auth provider／retention、active device 使用情況、Production round-trip 的裝置／browser profile、`syncSettings.firebase` 與本機 `syncMeta` 後續處理、Firebase API key／base path 外部依賴，以及 Firebase-only Ledger union merge 是否有非 Firebase consumer。
+
 **2026-07-25 Firebase Console 唯讀查證結論（使用者本人於 Firebase Console 查證，非 Repository 唯讀盤點得出，歷史記錄）：**
 
 - 專案：`l-pro-web-app`（原記載「`my-00662`」為治理文件誤植，已於 2026-08-05 更正），資料庫：`l-pro-web-app-default-rtdb`

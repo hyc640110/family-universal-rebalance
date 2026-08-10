@@ -1,4 +1,4 @@
-# Universal Rebalance Development Guide v1.2
+# Universal Rebalance Development Guide v1.3
 
 最後更新：2026-07-23
 
@@ -179,6 +179,12 @@ Preview 必須具備：
 Production 不得在 Preview Sprint 中手動重新部署。
 
 ## 8. 測試最低要求
+
+### Firebase Retirement-aware Gate（UR-TODO-001）
+
+- P1 前：仍須驗證既有 Firebase 手動同步行為，並證明一般 App startup 不依賴 Firebase 才能使用 localStorage 資料。
+- P2／P3：改驗 localStorage persistence、JSON Backup round-trip、Ledger regression 與 Firebase runtime reference cleanup；不得把尚未實作的 retirement 宣稱為完成。
+- P4：Console 操作另需使用者再次明確授權；本 gate 不授權修改 Console。
 
 每個 Sprint 至少執行：
 

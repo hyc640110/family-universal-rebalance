@@ -21,10 +21,10 @@
 ## 3. 資料相容性
 
 - [ ] 舊 localStorage 可讀取
-- [ ] Firebase 手動上傳正常
-- [ ] Firebase 手動下載正常
+- [ ] UR-TODO-001 P1 前：Firebase 手動上傳／下載正常；P2／P3：Firebase runtime reference cleanup 已驗證
 - [ ] JSON Backup 可匯出
 - [ ] JSON Backup 可還原
+- [ ] UR-TODO-001 P2／P3：JSON Backup Export → Import → Re-export round-trip 與 Ledger regression 已驗證
 - [ ] CSV / XLSX 匯入未受影響
 - [ ] 必要 migration 已測試
 - [ ] Migration 失敗不覆蓋原資料

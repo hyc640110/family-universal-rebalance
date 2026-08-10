@@ -1,8 +1,8 @@
 # Universal Rebalance Product Decisions
 
-版本：v1.0
+版本：v1.1
 
-最後更新：2026-07-25
+最後更新：2026-08-11
 
 ## 0. 文件定位
 
@@ -162,6 +162,19 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 ---
 
-## 14. 版本歷史
+## 14. Firebase Retirement（永久產品決策，2026-08-11）
+
+1. 採方案 B 分階段正式退役 Firebase 跨裝置同步；Firebase 不再是一般 App runtime 的必要資料來源。
+2. localStorage 是唯一 canonical runtime state；不得以 Firebase 覆寫作為一般資料來源。
+3. JSON Backup 是正式人工備份、跨裝置資料搬移與災難復原方案。Production 真實資料 Export → Import → Re-export round-trip 必須在後續獨立驗收中完成。
+4. Financial Event Ledger 的持久化與核心契約保留於 localStorage／JSON Backup；Firebase retirement 不得改變 schema、normalization、validation、identity、atomic group、void、linked transaction identity、attribution start date、forward-only、attribution 或 reconciliation 語意。
+5. Firebase runtime retirement 與 Firebase Console retirement 必須分開 Sprint；P4 前不得對 Console 做資料、Auth、Rules、RTDB／Project 或設定的不可逆操作。
+
+此決策是 UR-TODO-001 原始 Security Rules／Anonymous Auth 已完成歷史的後續延伸，不改寫 PR #252 與既有 Console 複驗結論。
+
+---
+
+## 15. 版本歷史
 
 - v1.0（2026-07-25）：首次建立，落地 V7.0A Foundation & Product Governance；內容來源為使用者於 ChatGPT（Project Knowledge）規劃、經 Claude Code 唯讀核對後由使用者逐項拍板確認。
+- v1.1（2026-08-11）：新增 Firebase Retirement 永久產品決策；原始 UR-TODO-001 Security Rules／Anonymous Auth 歷史維持不變。
