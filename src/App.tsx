@@ -348,7 +348,7 @@ function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
     lastUploadAt: r.lastUploadAt,
     lastDownloadAt: r.lastDownloadAt,
     lastBackupExportAt: r.lastBackupExportAt,
-      lastBackupImportAt: r.lastBackupImportAt
+    lastBackupImportAt: r.lastBackupImportAt
   };
 }
 function sanitizeRemoteMeta(raw: unknown): RemoteMeta | null {
@@ -1251,9 +1251,7 @@ function App() {
   const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
   const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
-  /** UR-TODO: backup/export/import/reset feedback, deliberately independent of syncMeta.status —
-   * syncStatusText's baseline/dirty precedence logic overrides syncMeta.status in the common case
-   * (dirty local edits, or no baseline yet), which silently swallowed this feedback before. */
+  /** UR-TODO: backup/export/import/reset feedback is deliberately independent of runtime sync status. */
   const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
   /** Real <button> triggering a hidden <input type="file">, not a <label> wrapping it — a <label>
    * is a structurally different element from the sibling <button>s in the same .actions row (extra
