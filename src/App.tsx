@@ -1488,6 +1488,7 @@ function App() {
   const runtimeAttributionComposition = useMemo(() => composeRuntimeNetWorthAttribution({
     openingSnapshot: runtimeAttributionOpeningSnapshot,
     closingSnapshot: runtimeAttributionClosingSnapshot,
+    financialEventSchemaVersion: state.financialEventSchemaVersion,
     ledgerEvents: state.financialEvents,
     transactions: state.transactions,
     accounts: state.accounts,

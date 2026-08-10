@@ -1,4 +1,5 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
+import { normalizeGenericSplitAllocationLink, resolveActiveGenericSplitAllocationGroups, type GenericSplitAllocationLink } from './genericSplitAllocation';
 import { validateLoanAttributionContract } from './loanAttributionContract';
 import type { FinancialTransaction } from './transactions';
 
@@ -7,8 +8,12 @@ import type { FinancialTransaction } from './transactions';
  * confirmed multi-component payment. v1 remains readable without migration;
  * an older client encountering v2 must keep it opaque and fail-safe.
  */
-export const FINANCIAL_EVENT_SCHEMA_VERSION = 2;
-const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = new Set([1, 2]);
+export const FINANCIAL_EVENT_SCHEMA_VERSION = 3;
+const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = new Set([1, 2, 3]);
+
+export function isFinancialEventLedgerSchemaSupported(schemaVersion: number): boolean {
+  return SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(schemaVersion);
+}
 
 export type FinancialEventType =
   | 'external-income'
@@ -65,6 +70,8 @@ export type FinancialEvent = {
   loanId?: string;
   transactionId?: string;
   componentLink?: FinancialEventComponentLink;
+  /** v3 generic, domain-neutral atomic allocation component. */
+  splitAllocationLink?: GenericSplitAllocationLink;
   /** Only present on a source: 'void' event — the id of the event it voids. Forward-only: the voided event itself is never mutated. */
   voidedEventId?: string;
   note: string;
@@ -136,7 +143,7 @@ function normalizeIsoTimestamp(value: unknown): string | undefined {
 
 function omitOptionalKnownFields(event: FinancialEvent): FinancialEvent {
   const mutable = event as Record<string, unknown>;
-  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'componentLink', 'voidedEventId']) {
+  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'componentLink', 'splitAllocationLink', 'voidedEventId']) {
     if (mutable[key] === undefined) delete mutable[key];
   }
   return event;
@@ -177,13 +184,14 @@ export function linkedTransactionReason(
   effectiveDate: string,
   transaction: FinancialTransaction,
   componentLink?: FinancialEventComponentLink,
-  loanId?: string
+  loanId?: string,
+  splitAllocationLink?: GenericSplitAllocationLink
 ): string | undefined {
   if (transaction.status !== status) return 'linked transaction status 必須與事件一致';
   if (transaction.excluded) return 'linked transaction 不得是 excluded';
   if (transaction.accountId !== accountId) return 'linked transaction accountId 必須與事件一致';
-  const isLoanComponent = Boolean(componentLink?.domain === 'loan-payment');
-  if ((!isLoanComponent && transaction.amount !== amount) || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
+  const isGroupedComponent = Boolean(componentLink?.domain === 'loan-payment' || splitAllocationLink);
+  if ((!isGroupedComponent && transaction.amount !== amount) || transaction.currency.toUpperCase() !== currency) return 'linked transaction amount 與 currency 必須與事件一致';
   if (canonicalCalendarDay(transaction.occurredAt) !== effectiveDate) return 'linked transaction occurredAt 的 Asia/Taipei 日期必須與 effectiveDate 一致';
   if (transaction.investmentAttribution?.kind === 'cash-movement') return '投資 cash movement 必須由完整 trade contract 配對，不能作為獨立外部收支記帳';
   if (type === 'external-income') return transaction.type === 'income' && transaction.categoryId !== 'income-dividend' ? undefined : 'external-income 只可連結非股息 income transaction';
@@ -391,10 +399,15 @@ function normalizeEvent(
 
   const componentLink = record.componentLink === undefined ? undefined : normalizeComponentLink(record.componentLink);
   if (record.componentLink !== undefined && !componentLink) return skip(skipped, index, 'componentLink 必須是完整 loan-payment linkage');
+  const splitAllocationLink = record.splitAllocationLink === undefined ? undefined : normalizeGenericSplitAllocationLink(record.splitAllocationLink);
+  if (record.splitAllocationLink !== undefined && !splitAllocationLink) return skip(skipped, index, 'splitAllocationLink 必須是完整 generic split allocation linkage');
   const isLoanComponent = LOAN_EVENT_TYPES.has(type as FinancialEventType) && type !== 'loan-disbursement';
   if (schemaVersion === 1 && componentLink) return skip(skipped, index, 'v1 Ledger 不支援 componentLink');
-  if (schemaVersion === 2 && isLoanComponent && !componentLink) return skip(skipped, index, `${type} 在 v2 必須有 componentLink`);
+  if (schemaVersion < 3 && splitAllocationLink) return skip(skipped, index, `v${schemaVersion} Ledger 不支援 splitAllocationLink`);
+  if (schemaVersion >= 2 && isLoanComponent && !componentLink) return skip(skipped, index, `${type} 在 v${schemaVersion} 必須有 componentLink`);
   if (componentLink && (!isLoanComponent || !loanId || !TRANSACTION_LINKED_SOURCES.has(source as FinancialEventSource))) return skip(skipped, index, 'componentLink 只能用於 transaction-linked Loan component event');
+  if (componentLink && splitAllocationLink) return skip(skipped, index, 'componentLink 與 splitAllocationLink 不得同時存在');
+  if (splitAllocationLink && (LOAN_EVENT_TYPES.has(type as FinancialEventType) || source !== 'attribution-confirmation' || status !== 'posted')) return skip(skipped, index, 'splitAllocationLink 只能用於 posted attribution-confirmation 的非 Loan event');
 
   const transactionId = optionalText(record.transactionId);
   if (source === 'manual' && transactionId) return skip(skipped, index, 'manual event 不得設定 transactionId');
@@ -402,7 +415,7 @@ function normalizeEvent(
     if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, `${source} 必須連結既有 transactionId`);
     const transaction = context.transactionsById.get(transactionId);
     if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
-    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction, componentLink, loanId);
+    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction, componentLink, loanId, splitAllocationLink);
     if (reason) return skip(skipped, index, reason);
     if (type === 'investment-fee') {
       const costReason = linkedInvestmentCostReason(transaction, context.transactionsById);
@@ -413,8 +426,8 @@ function normalizeEvent(
     // stays permanently claimed and a future re-confirmation of the same transaction would be
     // silently dropped as a "duplicate" on the very next normalize pass.
     const isVoided = voidedEventIds.has(id);
-    if (!componentLink && status !== 'void' && !isVoided && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
-    if (!componentLink && status !== 'void' && !isVoided) consumedTransactionIds.add(transactionId);
+    if (!componentLink && !splitAllocationLink && status !== 'void' && !isVoided && consumedTransactionIds.has(transactionId)) return skip(skipped, index, `transactionId「${transactionId}」已被另一個有效 linked event 消費`);
+    if (!componentLink && !splitAllocationLink && status !== 'void' && !isVoided) consumedTransactionIds.add(transactionId);
   }
 
   const voidedEventId = optionalText(record.voidedEventId);
@@ -443,6 +456,7 @@ function normalizeEvent(
     ...(loanId ? { loanId } : {}),
     ...(transactionId ? { transactionId } : {}),
     ...(componentLink ? { componentLink } : {}),
+    ...(splitAllocationLink ? { splitAllocationLink } : {}),
     ...(voidedEventId ? { voidedEventId } : {}),
     note,
     createdAt,
@@ -458,7 +472,7 @@ export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEv
   const record = asRecord(raw) ?? {};
   const hasLedgerPayload = record.financialEventSchemaVersion !== undefined || record.financialEvents !== undefined || record.financialEventAttributionStartDate !== undefined;
   const requestedSchemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
-  if (hasLedgerPayload && !SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(requestedSchemaVersion)) {
+  if (hasLedgerPayload && !isFinancialEventLedgerSchemaSupported(requestedSchemaVersion)) {
     return {
       schemaVersion: requestedSchemaVersion,
       events: record.financialEvents as FinancialEvent[],
@@ -513,6 +527,7 @@ export type AppendFinancialEventResult =
  */
 export function appendFinancialEvent(existingEvents: readonly FinancialEvent[], event: FinancialEvent): AppendFinancialEventResult {
   if (event.componentLink) return { rejected: true, reason: 'Loan component event 必須使用 appendFinancialEventGroup() 原子寫入。' };
+  if (event.splitAllocationLink) return { rejected: true, reason: 'Generic split component event 必須使用 appendGenericSplitAllocationGroup() 原子寫入。' };
   if (existingEvents.some(existing => existing.id === event.id)) {
     return { rejected: true, reason: `事件 id「${event.id}」已存在，Ledger 為 forward-only，不允許覆寫既有事件。` };
   }
@@ -539,6 +554,28 @@ export function appendFinancialEventGroup(existingEvents: readonly FinancialEven
   const all = [...existingEvents, ...group];
   const resolution = resolveActiveLoanComponentGroups(all, context);
   if (group.some(event => !resolution.validEventIds.has(event.id))) return { rejected: true, reason: 'Loan component group 不完整、重複或與正式 repayment contract 不一致。' };
+  return { rejected: false, events: all };
+}
+
+/** The only sanctioned write path for a v3 generic split allocation group. */
+export function appendGenericSplitAllocationGroup(existingEvents: readonly FinancialEvent[], group: readonly FinancialEvent[], context: FinancialEventReferenceContext): AppendFinancialEventResult {
+  if (!group.length) return { rejected: true, reason: 'Generic split allocation group 不得為空。' };
+  const firstLink = group[0]?.splitAllocationLink;
+  if (!firstLink || group.some(event => event.source !== 'attribution-confirmation' || event.status !== 'posted' || !event.splitAllocationLink)) return { rejected: true, reason: 'Generic split allocation group 的每個 event 必須是 posted attribution-confirmation 並有 splitAllocationLink。' };
+  if (group.some(event => event.splitAllocationLink?.domain !== firstLink.domain || event.splitAllocationLink?.allocationGroupId !== firstLink.allocationGroupId || event.splitAllocationLink?.replacementOfGroupId !== firstLink.replacementOfGroupId)) return { rejected: true, reason: 'Generic split allocation group linkage 必須一致。' };
+  if (new Set(group.map(event => event.id)).size !== group.length || group.some(event => existingEvents.some(existing => existing.id === event.id))) return { rejected: true, reason: 'Generic split allocation group 含重複 event id。' };
+  const transactionIds = new Set(group.map(event => event.transactionId));
+  if (transactionIds.size !== 1) return { rejected: true, reason: 'Generic split allocation group 必須唯一連結一筆 transaction。' };
+  const transactionId = [...transactionIds][0];
+  const transaction = transactionId ? context.transactionsById.get(transactionId) : undefined;
+  if (!transaction) return { rejected: true, reason: 'Generic split allocation group 缺少可驗證 transaction。' };
+  for (const event of group) {
+    const reason = linkedTransactionReason(event.type, event.status, event.amount, event.currency, event.accountId || '', event.counterpartyAccountId, event.effectiveDate, transaction, undefined, undefined, event.splitAllocationLink);
+    if (reason) return { rejected: true, reason: `Generic split allocation group 未通過寫入邊界驗證：${reason}` };
+  }
+  const all = [...existingEvents, ...group];
+  const resolution = resolveActiveGenericSplitAllocationGroups(all, { transactionsById: context.transactionsById });
+  if (group.some(event => !resolution.validEventIds.has(event.id))) return { rejected: true, reason: 'Generic split allocation group 不完整、重複、未守恆或缺少已作廢 replacement target。' };
   return { rejected: false, events: all };
 }
 
@@ -570,7 +607,7 @@ export function mergeFinancialEventLedgers(
   local: { schemaVersion: number; events: readonly FinancialEvent[] },
   remote: { schemaVersion: number; events: readonly FinancialEvent[] }
 ): LedgerMergeOutcome {
-  if (!SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(local.schemaVersion) || !SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(remote.schemaVersion) || local.schemaVersion !== remote.schemaVersion) {
+  if (!isFinancialEventLedgerSchemaSupported(local.schemaVersion) || !isFinancialEventLedgerSchemaSupported(remote.schemaVersion) || local.schemaVersion !== remote.schemaVersion) {
     return {
       ok: false,
       reason: `Financial Event Ledger schema 版本不受支援（本機 v${local.schemaVersion}／雲端 v${remote.schemaVersion}，目前支援 v${FINANCIAL_EVENT_SCHEMA_VERSION}），為避免資料損毀，本次同步已中止。請先將兩端 App 更新到同一個版本。`
@@ -578,10 +615,23 @@ export function mergeFinancialEventLedgers(
   }
   const byId = new Map<string, FinancialEvent>();
   for (const event of local.events) byId.set(event.id, event);
-  for (const event of remote.events) if (!byId.has(event.id)) byId.set(event.id, event);
+  for (const event of remote.events) {
+    const existing = byId.get(event.id);
+    if (existing && stableJson(existing) !== stableJson(event)) return { ok: false, reason: `Financial Event Ledger event id「${event.id}」在兩端內容不同，為避免任取一方覆寫，本次同步已中止。` };
+    if (!existing) byId.set(event.id, event);
+  }
   const events = [...byId.values()].sort((a, b) => {
     if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
   return { ok: true, schemaVersion: local.schemaVersion, events };
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }

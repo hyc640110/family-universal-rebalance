@@ -1,5 +1,6 @@
 import { canonicalCalendarDay } from './calendarDay';
 import type { FinancialAccount } from './financialAccounts';
+import { resolveActiveGenericSplitAllocationGroups } from './genericSplitAllocation';
 import type { FinancialEvent, FinancialEventType } from './financialEvents';
 import type { FinancialTransaction } from './transactions';
 import { validateLoanAttribution } from './loanAttribution';
@@ -8,6 +9,7 @@ export type TransactionReconciliationStatus = 'matched' | 'candidate' | 'unsuppo
 export type TransactionReconciliationEventType = Extract<FinancialEventType, 'external-income' | 'external-expense' | 'internal-transfer' | 'dividend' | 'investment-buy' | 'investment-sell' | 'investment-fee' | 'adjustment'>;
 export type TransactionReconciliationReason =
   | 'linked-event'
+  | 'linked-generic-split-group'
   | 'manual-event-looks-similar'
   | 'multiple-linked-events'
   | 'duplicate-trade-identity'
@@ -161,6 +163,9 @@ function isSimilarManualEvent(event: FinancialEvent, transaction: FinancialTrans
  */
 export function reconcileTransactions(input: TransactionReconciliationInput): TransactionReconciliationResult[] {
   const accountById = new Map(input.accounts.map(account => [account.id, account]));
+  const genericSplitResolution = resolveActiveGenericSplitAllocationGroups(input.ledgerEvents, {
+    transactionsById: new Map(input.transactions.map(transaction => [transaction.id, transaction]))
+  });
   const tradeIdentityCounts = new Map<string, number>();
   const costIdentityCounts = new Map<string, number>();
   const tradeTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
@@ -226,7 +231,14 @@ export function reconcileTransactions(input: TransactionReconciliationInput): Tr
       return { transactionId: transaction.id, status: candidate.reason === 'invalid-account' || candidate.reason === 'invalid-amount' || candidate.reason === 'invalid-currency' || candidate.reason === 'invalid-date' || candidate.reason === 'invalid-transfer' ? 'invalid' : 'unsupported', reason: candidate.reason, completedPeriodEvidence: false };
     }
 
-    const linked = input.ledgerEvents.filter(event => isEventForTransaction(event, transaction, candidate.eventType));
+    const genericLinked = input.ledgerEvents.filter(event => Boolean(event.splitAllocationLink)
+      && genericSplitResolution.validEventIds.has(event.id)
+      && event.transactionId === transaction.id);
+    const linked = input.ledgerEvents.filter(event => !event.splitAllocationLink && isEventForTransaction(event, transaction, candidate.eventType));
+    if (genericLinked.length) {
+      if (linked.length) return { transactionId: transaction.id, status: 'duplicate', reason: 'multiple-linked-events', eventType: candidate.eventType, completedPeriodEvidence: transaction.status === 'posted' };
+      return { transactionId: transaction.id, status: 'matched', reason: 'linked-generic-split-group', eventType: candidate.eventType, completedPeriodEvidence: transaction.status === 'posted' };
+    }
     if (linked.length >= 2) return { transactionId: transaction.id, status: 'duplicate', reason: 'multiple-linked-events', eventType: candidate.eventType, completedPeriodEvidence: transaction.status === 'posted' };
     if (linked.length === 1) return { transactionId: transaction.id, status: 'matched', reason: 'linked-event', eventType: candidate.eventType, completedPeriodEvidence: transaction.status === 'posted' };
     if (transaction.status !== 'posted') return { transactionId: transaction.id, status: 'unsupported', reason: 'not-posted', eventType: candidate.eventType, completedPeriodEvidence: false };

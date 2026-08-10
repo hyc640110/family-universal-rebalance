@@ -21,7 +21,7 @@ test('v2 完整 component group 才能被確認：本金 0、利息負貢獻的 
   const events = [event('principal', 'principal'), event('interest', 'interest')];
   const normalized = normalizeFinancialEventLedger({ financialEventSchemaVersion: 2, financialEvents: events }, context);
   const resolution = resolveActiveLoanComponentGroups(normalized.events, context);
-  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 2);
+  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 3);
   assert.equal(normalized.schemaVersion, 2);
   assert.deepEqual([...resolution.validEventIds].sort(), ['interest', 'principal']);
   assert.deepEqual([...resolution.confirmedPaymentIds], ['payment-1']);
