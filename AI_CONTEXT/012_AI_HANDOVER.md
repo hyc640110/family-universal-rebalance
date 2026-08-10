@@ -8,7 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit／L2C-P0 Sync Status Contract Fix（已完成，2026-08-10）
+## 最新交接快照：UR-TODO-046-L2C-P1 Forensic Conclusion／L2C-P2 Firebase Missing-Ledger Compatibility Guard（已完成，2026-08-10）
+
+- 基線與狀態：PR [#300](https://github.com/hyc640110/family-universal-rebalance/pull/300) 已由使用者授權正常 Merge，merge commit `9a4463b75564dfce3b73c5f57c6edb53118792af`（`mergedAt: 2026-08-10T16:40:00Z`；`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31409415184` success，Deploy GitHub Pages run `31410135891` success，head SHA 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 正常。
+- P1 forensic conclusion：Production raw-state evidence 顯示 selected local state 的 Ledger 為 schema v1、空事件陣列，Firebase UID raw state 沒有 `financialEventSchemaVersion`、`financialEvents` 或 attribution start 欄位；沒有可 recovery 的 FinancialEvent event。因此不需 authoritative-side selection、recovery、schema conversion 或 deterministic union，也不得補造 event。
+- P2 runtime contract：remote 同時缺少 schemaVersion 與 events 時為 `missing-ledger`，僅顯示 runtime-only「雲端為舊格式，未包含 Financial Event Ledger；為保護本機資料，本次同步已停止。」。upload 在 GET preflight 後、`flushDrafts()` 前停止，PUT=0；download 在 merge、normalize、remote apply 前停止。不得改 local `financialEvents`、schemaVersion、`financialEventAttributionStartDate`、sync baseline、remoteMeta 或 persisted syncMeta，status 不寫 localStorage、JSON Backup 或 Firebase。
+- 不包含／下一直接起點：無 migration、v1→v3／v2→v3 conversion、semantic merge、recovery、Firebase SDK、authoritative-side selection 或 Firebase 寫入。Firebase 跨裝置同步走 retirement 方向；如需後續，只能先在既有 UR-TODO-001 進行唯讀 retirement decision，或另依 UR-TODO-046 Remaining Boundary（split allocation、FX attribution、Loan UI／CSV／Import Center mapping）取得使用者明確授權，**不得自行開始任何 Sprint**。
 
 - 基線與狀態：PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（parents：`149de0b9aa977a2c5fd1ef6d4af98c233af390a1`、`cd3bbaac9d9c0c440b9a61e5a6bc04e806850812`；`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）。PR CI Verification／`verify` run `31396033551` success，Deploy GitHub Pages run `31397236443` success；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 正常。
 - Root cause／資料安全：L2C Audit 證實使用者看到的「本機 v1／雲端 v2，目前支援 v2」是舊 v2 bundle 把 free-text `syncMeta.status` 持久化後，在 v3 runtime 被誤當 current status；local v1／remote v2 mixed-version merge reject 本身是既有 fail-safe 行為。沒有 localStorage 或 Firebase Ledger 資料損毀證據，且本次沒有讀寫 Production Firebase 或執行 migration。
