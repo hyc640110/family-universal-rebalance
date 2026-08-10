@@ -9,9 +9,9 @@ import type { FinancialTransaction } from './transactions';
  * an older client encountering v2 must keep it opaque and fail-safe.
  */
 export const FINANCIAL_EVENT_SCHEMA_VERSION = 3;
-const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = new Set([1, 2, 3]);
+export const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = [1, 2, 3] as const;
 
-export function isFinancialEventLedgerSchemaSupported(schemaVersion: number, supportedSchemaVersions: readonly number[] = [...SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS]): boolean {
+export function isFinancialEventLedgerSchemaSupported(schemaVersion: number, supportedSchemaVersions: readonly number[] = SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS): boolean {
   return supportedSchemaVersions.includes(schemaVersion);
 }
 
@@ -649,7 +649,7 @@ export function mergeFinancialEventLedgers(
   if (!isFinancialEventLedgerSchemaSupported(local.schemaVersion) || !isFinancialEventLedgerSchemaSupported(remote.schemaVersion) || local.schemaVersion !== remote.schemaVersion) {
     return {
       ok: false,
-      reason: `Financial Event Ledger schema 版本不受支援（本機 v${local.schemaVersion}／雲端 v${remote.schemaVersion}，目前支援 v${FINANCIAL_EVENT_SCHEMA_VERSION}），為避免資料損毀，本次同步已中止。請先將兩端 App 更新到同一個版本。`
+      reason: `Financial Event Ledger schema 版本不受支援或無法合併（本機 v${local.schemaVersion}／雲端 v${remote.schemaVersion}），為避免資料損毀，本次同步已中止。`
     };
   }
   const byId = new Map<string, FinancialEvent>();

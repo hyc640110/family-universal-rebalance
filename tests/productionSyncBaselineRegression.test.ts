@@ -15,6 +15,7 @@ import {
   stableCanonicalJson,
   syncPayloadFingerprint,
   syncPayloadTopLevelDiff,
+  withoutRuntimeSyncStatus,
   withoutSyncBaseline
 } from '../src/lib/syncState';
 
@@ -192,14 +193,15 @@ test('baseline diagnostics never enter Firebase request payload', () => {
   assert.doesNotMatch(request.canonicalJson, /baselineFieldFingerprints|baselineCanonicalSchema/);
 });
 
-test('baseline diagnostics never enter Backup JSON', () => {
+test('baseline diagnostics and runtime-only status never enter Backup JSON', () => {
   const snapshot = createSyncPayloadSnapshot(productionEquivalentState());
   const portable = withoutSyncBaseline(localMeta({ baselineFingerprint: snapshot.fingerprint, baselineFieldFingerprints: snapshot.fieldFingerprints, baselineCanonicalSchema: snapshot.canonicalSchema }) as never);
   assert.equal('baselineFingerprint' in portable, false);
   assert.equal('baselineFieldFingerprints' in portable, false);
   assert.equal('baselineCanonicalSchema' in portable, false);
+  assert.equal('status' in withoutRuntimeSyncStatus(portable), false);
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.match(app, /syncMeta: withoutSyncBaseline\(normalized\.syncMeta\)/);
+  assert.match(app, /syncMeta: withoutRuntimeSyncStatus\(withoutSyncBaseline\(normalized\.syncMeta\)\)/);
 });
 
 test('A to B upload race still reports the real changed top-level field', () => {

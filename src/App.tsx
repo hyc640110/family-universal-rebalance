@@ -64,7 +64,7 @@ import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/co
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
-import { deserializeFinancialEventLedgerEvents, FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent } from './lib/financialEvents';
+import { deserializeFinancialEventLedgerEvents, FINANCIAL_EVENT_SCHEMA_VERSION, isFinancialEventLedgerSchemaSupported, mergeFinancialEventLedgers, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
@@ -81,7 +81,8 @@ import { EMPTY_TRANSACTION_SYNC_DIAGNOSTICS, deriveTransactionSyncDiagnostics, t
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
-import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { canonicalSyncPayload, createSyncPayloadSnapshot, deriveSuccessfulUploadResult, deriveSyncBaselineDiagnostics, hasSyncableStateChanged, sanitizeSyncFieldFingerprints, shortSyncFingerprint, withoutRuntimeSyncStatus, withoutSyncBaseline, type RemoteMeta, type SyncMeta, type SyncSource } from './lib/syncState';
+import { describeRuntimeSyncStatus, type RuntimeSyncStatus } from './lib/syncStatus';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
@@ -127,7 +128,7 @@ const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
 const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, transactions: false, loans: false, sync: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, syncStatus: false, syncDiagnostics: false, targetCheck: false } };
 const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, transactions: true, loans: true, sync: true, debug: false, dipAnalysis: true, analyticsDetails: true, quoteSources: true, syncStatus: true, syncDiagnostics: true, targetCheck: true };
-const defaultSyncMeta = (): SyncMeta => ({ dirty: true, source: '本機資料', status: '尚未建立同步基準，同步狀態未知' });
+const defaultSyncMeta = (): SyncMeta => ({ dirty: true, source: '本機資料' });
 const flushFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -347,8 +348,7 @@ function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
     lastUploadAt: r.lastUploadAt,
     lastDownloadAt: r.lastDownloadAt,
     lastBackupExportAt: r.lastBackupExportAt,
-    lastBackupImportAt: r.lastBackupImportAt,
-    status: r.status || (baselineFingerprint ? (state?.firebase?.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機') : '尚未建立同步基準，同步狀態未知')
+      lastBackupImportAt: r.lastBackupImportAt
   };
 }
 function sanitizeRemoteMeta(raw: unknown): RemoteMeta | null {
@@ -408,7 +408,7 @@ export function normalizeState(raw: unknown): AppState {
 }
 type PersistedAppState = Omit<AppState, 'financialEvents'> & { financialEvents: unknown };
 function stateWithPersistedFinancialEventLedger(state: AppState): PersistedAppState {
-  return { ...state, financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
+  return { ...state, syncMeta: withoutRuntimeSyncStatus(state.syncMeta), financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
 }
 /** droppedFinancialEventCount is only ever set by stateFromFirebasePayload's Ledger merge (see its
  * doc comment) — Backup restore and the local-storage read path don't merge, so it stays undefined there. */
@@ -449,7 +449,7 @@ export function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>
     const { previousCloseDate: _previousCloseDate, previousCloseSource: _previousCloseSource, previousCloseTrusted: _previousCloseTrusted, previousCloseReason: _previousCloseReason, ...legacyQuote } = quote;
     return [symbol, legacyQuote];
   })) as Record<SymbolCode, Quote>;
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutRuntimeSyncStatus(withoutSyncBaseline(normalized.syncMeta)), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -516,11 +516,25 @@ async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: stri
   const schemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
   return { schemaVersion, events: deserializeFinancialEventLedgerEvents(schemaVersion, record.financialEvents) };
 }
+class LedgerSyncSchemaError extends Error {
+  readonly runtimeStatus: Extract<RuntimeSyncStatus, { kind: 'schema-version-mismatch' | 'unsupported-future-schema' }>;
+
+  constructor(localSchemaVersion: number, remoteSchemaVersion: number, message: string) {
+    super(message);
+    this.name = 'LedgerSyncSchemaError';
+    this.runtimeStatus = (!isFinancialEventLedgerSchemaSupported(localSchemaVersion) || !isFinancialEventLedgerSchemaSupported(remoteSchemaVersion))
+      ? { kind: 'unsupported-future-schema', observedLocalSchema: localSchemaVersion, observedRemoteSchema: remoteSchemaVersion }
+      : { kind: 'schema-version-mismatch', observedLocalSchema: localSchemaVersion, observedRemoteSchema: remoteSchemaVersion };
+  }
+}
+function rejectedLedgerMergeError(localSchemaVersion: number, remoteSchemaVersion: number, reason: string): LedgerSyncSchemaError {
+  return new LedgerSyncSchemaError(localSchemaVersion, remoteSchemaVersion, reason);
+}
 /** The single production upload path: mixed-schema rejection happens before the only PUT call. */
 export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig, state: AppState, uid: string, idToken: string) {
   const remoteLedger = await fetchRemoteFinancialEventLedger(config, uid, idToken);
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: state.financialEventSchemaVersion, events: state.financialEvents }, remoteLedger);
-  if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
+  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(state.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome.reason);
   const merged = { ...state, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
   const uploadedSnapshot = await uploadFirebase(config, createSyncPayloadSnapshot(stateWithPersistedFinancialEventLedger(merged)), uid, idToken);
   return { uploadedSnapshot, normalized: merged, mergeOutcome };
@@ -541,7 +555,7 @@ export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, 
     events: deserializeFinancialEventLedgerEvents(typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION, remoteData.financialEvents)
   };
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
-  if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
+  if (!mergeOutcome.ok) throw rejectedLedgerMergeError(current.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome.reason);
   const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
   const state = normalizeState({ ...mergedRemoteData, firebase: { ...config, ...((data as Partial<AppState>).firebase || {}) } });
   return { state, netWorthSnapshotReadTimeView, droppedFinancialEventCount: mergeOutcome.events.length - state.financialEvents.length };
@@ -1134,6 +1148,7 @@ function App() {
   const [uiState, setUiState] = useState<UiState>(() => readUiState());
   const [initialRead] = useState(() => readStateWithSnapshotView());
   const [state, setStateValue] = useState<AppState>(() => initialRead.state);
+  const [runtimeSyncStatus, setRuntimeSyncStatus] = useState<RuntimeSyncStatus>({ kind: 'idle' });
   const stateRef = useRef(state);
   const netWorthSnapshotReadTimeViewRef = useRef(initialRead.netWorthSnapshotReadTimeView);
   const isApplyingRemoteRef = useRef(false);
@@ -1147,7 +1162,7 @@ function App() {
       const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
       normalized = {
         ...normalized,
-        syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: baseline.dirty, status: !baseline.baselineAvailable ? missingBaselineStatus(normalized) : baseline.dirty ? localDirtyStatus(normalized) : cleanSyncStatus() }, normalized)
+        syncMeta: sanitizeSyncMeta({ ...normalized.syncMeta, source: '本機資料', lastLocalSaveAt: savedAt, dirty: baseline.dirty }, normalized)
       };
       setLastSavedAt(savedAt);
     }
@@ -1181,7 +1196,10 @@ function App() {
     });
     return () => { cancelled = true; };
   }, [state.accounts, state.transactions, syncBaselineDiagnostics.baselineAvailable, syncBaselineDiagnostics.dirty]);
-  const syncStatusText = /^[⏳❌]/.test(syncMeta.status) ? syncMeta.status : !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : syncMeta.status || cleanSyncStatus();
+  const derivedSyncStatusText = !syncBaselineDiagnostics.baselineAvailable ? missingBaselineStatus(state) : syncBaselineDiagnostics.dirty ? localDirtyStatus(state) : cleanSyncStatus();
+  const syncStatusText = runtimeSyncStatus.kind === 'idle'
+    ? derivedSyncStatusText
+    : describeRuntimeSyncStatus(runtimeSyncStatus, { writerSchemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, supportedSchemaVersions: SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS });
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
@@ -1267,6 +1285,15 @@ function App() {
     const next = sanitizeSyncMeta(typeof updater === 'function' ? (updater as (value: SyncMeta) => SyncMeta)(current.syncMeta) : updater, current);
     return { ...current, syncMeta: next };
   });
+  const runtimeStatusForSyncError = (operation: 'upload' | 'download', error: unknown): RuntimeSyncStatus => {
+    if (error instanceof LedgerSyncSchemaError) return error.runtimeStatus;
+    return { kind: 'firebase-transport-error', operation, message: error instanceof Error ? error.message : String(error) };
+  };
+  const handleUploadFailure = (error: unknown) => {
+    updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true }));
+    setRuntimeSyncStatus(runtimeStatusForSyncError('upload', error));
+  };
+  const handleDownloadFailure = (error: unknown) => setRuntimeSyncStatus(runtimeStatusForSyncError('download', error));
   useEffect(() => {
     if (stateRef.current !== state) return;
     writeState(state);
@@ -1352,7 +1379,7 @@ function App() {
   const uploadCloud = async () => {
     if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
     const session = await ensureFirebaseAuthSessionFresh();
-    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' }));
+    setRuntimeSyncStatus({ kind: 'progress', operation: 'upload' });
     const flushed = await flushDrafts();
     const { uploadedSnapshot, normalized, mergeOutcome } = await uploadFirebaseStateWithLedgerMerge(flushed.firebase, flushed, session.uid, session.idToken);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
@@ -1360,7 +1387,6 @@ function App() {
     setLastSavedAt(syncedAt);
     setState(current => {
       const outcome = deriveSuccessfulUploadResult(current, uploadedSnapshot);
-      const changedFields = outcome.changedFields.length ? `｜差異欄位 ${outcome.changedFields.join('、')}` : '';
       return {
         ...current,
         financialEventSchemaVersion: normalized.financialEventSchemaVersion,
@@ -1372,11 +1398,7 @@ function App() {
           baselineFieldFingerprints: uploadedSnapshot.fieldFingerprints,
           baselineCanonicalSchema: uploadedSnapshot.canonicalSchema,
           dirty: outcome.dirty,
-          lastUploadAt: syncedAt,
-          status: (outcome.dirty
-            ? `🎉 上傳成功，但上傳期間本機另有未上傳變更${changedFields}｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`
-            : `🎉 上傳成功！本機與雲端同步資料一致｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆`)
-            + `｜財務記帳事件 ${normalized.financialEvents.length} 筆（已與雲端合併）`
+          lastUploadAt: syncedAt
         }, current)
       };
     });
@@ -1385,9 +1407,8 @@ function App() {
     // event whose transactionId isn't in this device's (unmerged) transactions — see
     // mergeFinancialEventLedgers' doc comment for why this can't be prevented outright.
     const droppedFinancialEventCount = mergeOutcome.events.length - stateRef.current.financialEvents.length;
-    if (droppedFinancialEventCount > 0) {
-      updateSyncMeta(current => ({ ...current, status: `${current.status}｜⚠️ ${droppedFinancialEventCount} 筆財務記帳事件未能通過驗證而暫時無法保留（常見原因：對應交易記錄尚未同步存在），請確認雙裝置交易資料已同步一致` }));
-    }
+    const droppedFinancialEventNote = droppedFinancialEventCount > 0 ? `｜⚠️ ${droppedFinancialEventCount} 筆財務記帳事件未能通過驗證而暫時無法保留（常見原因：對應交易記錄尚未同步存在），請確認雙裝置交易資料已同步一致` : '';
+    setRuntimeSyncStatus({ kind: 'success', message: `上傳成功｜持股 ${normalized.holdings.length} 筆｜現金 ${normalized.cash.length} 筆｜借款 ${normalized.loans.length} 筆｜財務記帳事件 ${normalized.financialEvents.length} 筆（已與雲端合併）${droppedFinancialEventNote}` });
     updateRemoteMeta({
       holdingsCount: normalized.holdings.length,
       cashCount: normalized.cash.length,
@@ -1398,7 +1419,7 @@ function App() {
   const downloadCloud = async () => {
     if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外：這一項會自動與雲端既有紀錄合併，雙邊各自獨有的事件都會保留，不會互相覆蓋）。是否繼續？')) return;
     const session = await ensureFirebaseAuthSessionFresh();
-    updateSyncMeta(current => ({ ...current, status: '⏳ 雲端下載中，正在讀取 Firebase...' }));
+    setRuntimeSyncStatus({ kind: 'progress', operation: 'download' });
     const remoteResult = await downloadFirebase(state.firebase, stateRef.current, session.uid, session.idToken);
     const remote = remoteResult.state;
     netWorthSnapshotReadTimeViewRef.current = remoteResult.netWorthSnapshotReadTimeView;
@@ -1418,8 +1439,7 @@ function App() {
         baselineFieldFingerprints: downloadedSnapshot.fieldFingerprints,
         baselineCanonicalSchema: downloadedSnapshot.canonicalSchema,
         dirty: false,
-        lastDownloadAt: downloadedAt,
-        status: `🎉 下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆｜財務記帳事件 ${remote.financialEvents.length} 筆（已與雲端合併）${droppedFinancialEventNote}`
+        lastDownloadAt: downloadedAt
       }
     });
     isApplyingRemoteRef.current = true; 
@@ -1432,6 +1452,7 @@ function App() {
       loansCount: remote.loans.length,
       updatedAt: downloadedAt
     });
+    setRuntimeSyncStatus({ kind: 'success', message: `下載成功！已套用雲端資料並建立同步基準｜持股 ${remote.holdings.length} 筆｜現金 ${remote.cash.length} 筆｜借款 ${remote.loans.length} 筆｜財務記帳事件 ${remote.financialEvents.length} 筆（已與雲端合併）${droppedFinancialEventNote}` });
   };
   useEffect(() => { refreshQuotes(); }, []);
   const snapshotConsumerRows = useMemo(() => createNetWorthSnapshotConsumerRows(netWorthSnapshotReadTimeViewRef.current), [state.netWorthHistory, state.remoteMeta]);
@@ -2039,12 +2060,12 @@ function App() {
   const runHomeUpload = async () => {
     if (isHomeSyncing) return;
     setIsHomeSyncing('upload');
-    try { await uploadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
+    try { await uploadCloud(); } catch (error) { handleUploadFailure(error); } finally { setIsHomeSyncing(null); }
   };
   const runHomeDownload = async () => {
     if (isHomeSyncing) return;
     setIsHomeSyncing('download');
-    try { await downloadCloud(); } catch (error) { updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + (error instanceof Error ? error.message : String(error)) })); } finally { setIsHomeSyncing(null); }
+    try { await downloadCloud(); } catch (error) { handleDownloadFailure(error); } finally { setIsHomeSyncing(null); }
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
@@ -2222,8 +2243,8 @@ function App() {
             <p><span>同步狀態</span><strong>{syncStatusText}</strong></p>
           </div>
           <div className="actions">
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
-            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button onClick={() => uploadCloud().catch(handleUploadFailure)}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(handleDownloadFailure)}>下載雲端</button>
             <button className="small" onClick={() => navigate('/settings')}>完整設定</button>
           </div>
         </SectionCard>}
@@ -2259,8 +2280,8 @@ function App() {
             <label>同步延遲秒數<DraftInput type="number" min="10" value={state.autoSyncSec} onCommit={value => setState(s => ({ ...s, autoSyncSec: Math.max(10, parsePositive(value, 60)) }))} /></label>
           </div>
           <div className="actions">
-            <button onClick={() => uploadCloud().catch(e => updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true, status: '❌ Firebase 同步失敗：' + e.message })))}>上傳雲端</button>
-            <button onClick={() => downloadCloud().catch(e => updateSyncMeta(current => ({ ...current, status: '❌ 下載失敗：' + e.message })))}>下載雲端</button>
+            <button onClick={() => uploadCloud().catch(handleUploadFailure)}>上傳雲端</button>
+            <button onClick={() => downloadCloud().catch(handleDownloadFailure)}>下載雲端</button>
           </div>
           <p><b>雲端同步設定：</b>{state.firebase.databaseURL ? '已設定' : '尚未設定 Firebase URL'}</p>
           <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>

@@ -130,6 +130,24 @@ test('v3 generic split group 在 localStorage、JSON Backup 與 Firebase payload
   assert.equal((firebasePayload.financialEvents as unknown[]).length, 2);
 });
 
+test('舊 build persisted syncMeta.status 不會在 v3 runtime 或 JSON Backup 成為目前同步錯誤', async () => {
+  const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
+  const stale = '❌ Firebase 同步失敗：Financial Event Ledger schema 版本不受支援（本機 v1／雲端 v2，目前支援 v2）';
+  const local = normalizeState({
+    financialEventSchemaVersion: 1,
+    financialEvents: [],
+    syncMeta: { dirty: true, source: '本機資料', status: stale, lastUploadAt: '2026-08-10T00:00:00.000Z' }
+  });
+  const backup = backupPayload(local, {}) as { syncMeta: Record<string, unknown> };
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
+
+  assert.equal('status' in local.syncMeta, false);
+  assert.equal('status' in backup.syncMeta, false);
+  assert.equal('status' in restored.syncMeta, false);
+  assert.equal(local.financialEventSchemaVersion, 1);
+  assert.deepEqual(local.financialEvents, []);
+});
+
 test('Firebase v2/v3 mixed Ledger merge fail-safe 拒絕，沒有產生 partial merge payload', async () => {
   const { stateFromFirebasePayload } = await loadAppPersistence();
   const current = await stateWithLoanComponentLedger();
