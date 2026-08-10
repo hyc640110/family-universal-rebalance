@@ -233,7 +233,7 @@ test('fingerprint short codes do not reveal the canonical payload', () => {
 test('App upload, download, Backup, and reset flows enforce baseline lifecycle and canonical request body', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /body: snapshot\.canonicalJson/);
-  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
+  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken, preflightRemoteLedger\)/);
   assert.match(app, /createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\)/);
   assert.match(app, /baselineFingerprint: uploadedSnapshot\.fingerprint/);
   assert.match(app, /baselineFieldFingerprints: uploadedSnapshot\.fieldFingerprints/);
@@ -262,13 +262,25 @@ test('financialEvents/financialEventSchemaVersion are in the syncable whitelist'
 
 test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕路徑仍在 PUT 之前', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string\)/);
-  assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
+  assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string, preflightRemoteLedger\?: RemoteFinancialEventLedger\)/);
+  assert.match(app, /const remoteLedger = preflightRemoteLedger \?\? await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: state\.financialEventSchemaVersion, events: state\.financialEvents \}, remoteLedger\)/);
   assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(state\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   assert.match(app, /const merged = \{ \.\.\.state, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
   assert.match(app, /uploadFirebase\(config, createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\), uid, idToken\)/);
-  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
+  assert.match(app, /const preflightRemoteLedger = await fetchRemoteFinancialEventLedger\(stateRef\.current\.firebase, session\.uid, session\.idToken\);\s*const flushed = await flushDrafts\(\);/);
+  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken, preflightRemoteLedger\)/);
+  const uploadCloud = app.slice(app.indexOf('const uploadCloud = async () =>'), app.indexOf('const downloadCloud = async () =>'));
+  assert.doesNotMatch(uploadCloud, /ensureFirebaseAuthSessionFresh\(\)/);
+});
+
+test('missing-ledger 在 raw remote payload 層攔截，且僅是 runtime-only status', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /if \(!hasSchemaVersion && !hasEvents\) throw new MissingLedgerSyncError\(\);/);
+  assert.match(app, /const remoteLedger = remoteFinancialEventLedgerFromRaw\(data\);\s*const remoteData = canonicalSyncPayload/);
+  assert.match(app, /if \(error instanceof MissingLedgerSyncError\) return \{ kind: 'missing-ledger', operation \};/);
+  assert.match(app, /if \(!\(error instanceof MissingLedgerSyncError\)\) updateSyncMeta/);
+  assert.doesNotMatch(app, /financialEventAttributionStartDate',\s*\/\/ Firebase/);
 });
 
 test('downloadCloud confirm dialog explicitly names the Ledger merge exception (rest of the data is still a full overwrite)', () => {
