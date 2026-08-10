@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-10T12:29:24.580468+00:00
+Generated UTC: 2026-08-10T14:25:04.092468+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-10T12:29:24.580468+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `1183c7d4a2eaf09b50b62a2b83182b662de68e618a75bcd3ca5a6d22f6f46b36`
+- `003_CURRENT_STATUS.md` — SHA-256 `2b61b79f026b2da028737919a0f789e2d9a287e2fc453e18cdab6b092a478402`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `f3e71540c3e9ae08929ba4d623fffb782b5c63682ac8231049d080482b441f15`
-- `009_CHANGELOG.md` — SHA-256 `6438449ec0287ff278e77bf42a500d8619d7256808d21cf81ff0865914d0a7b4`
+- `008_TODO_BACKLOG.md` — SHA-256 `518222393852fa0df2d5a73ac66c4ec8168c4093ed0c017f9d35600f66ab7f92`
+- `009_CHANGELOG.md` — SHA-256 `2fe95c159008e112277141fe147c731cd624d4bbe208472a2b7157d4e41ab8b5`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `757bb67121b1ee41b9dbd99b0011e1d7248499743b645af3dca504fd9dffc1bf`
+- `012_AI_HANDOVER.md` — SHA-256 `d05ab347f2431fd40e2ae7a36d0c200b176ba8814333a198f1b5b20526f5398a`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.91
+# Universal Rebalance Current Status v3.92
 
 最後更新：2026-08-10
+
+**UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit 與 L2C-P0 Sync Status Contract Fix 已正式完成。** PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（parents：`149de0b9aa977a2c5fd1ef6d4af98c233af390a1`、`cd3bbaac9d9c0c440b9a61e5a6bc04e806850812`；`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main` 與 merge commit 一致；PR CI Verification／`verify`（run `31396033551`）success，Merge 後 Deploy GitHub Pages run `31397236443` success，head SHA 與 merge commit 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 均可載入。L2C Audit 證實既有 Production 的「目前支援 v2」為舊 bundle 持久化的 `syncMeta.status` 文字，而非 Ledger 資料損毀；L2C-P0 改為 runtime-only、依當次事實動態建立 status，reload／Ctrl+F5 不再把歷史錯誤當 current status。schema mismatch UI 現在分別顯示 local／remote Ledger schema、current writer schema 與 supported versions（v1／v2／v3）；writer schema 與 supported versions 已分離。`schema-version-mismatch`、`unsupported-future-schema`、`event-id-collision` 為 structured、互斥的 merge reject taxonomy；v1／v2 mixed merge 持續 fail-safe reject、upload no-PUT、no downgrade，download reject 不改寫 local Ledger。未新增 migration、v1→v3／v2→v3 conversion、cross-version semantic merge、authoritative-side selection 或 Ledger rewrite。**UR-TODO-046 整體仍未結案**：cross-version recovery 的產品決策與任何明確授權流程尚未開始；FX attribution、Loan UI／CSV／Import Center 與其他 consumer mapping 亦仍是 Remaining Boundary。
 
 **UR-TODO-046-L2A Split Allocation Contract Audit 與 UR-TODO-046-L2B Generic Split Allocation Foundation 已正式完成。** PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（parents：`2dcc66b96f51d2c580007c951e6393b1b1376b92`、`724a7b2b5cb24ecad309a7d6c4bd1d04132f7f09`；`mergedAt: 2026-08-10T12:23:50Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main` 與 merge commit 一致；PR CI Verification／`verify`（run `31386340292`）success，Merge 後 Deploy GitHub Pages run `31387817114` success，head SHA 與 merge commit 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 均可載入。FinancialEvent schema v3 已正式進入 main：generic split 以 `allocationGroupId` 的 Atomic Group 表示完整 economic event，FinancialEvent Ledger 是唯一 persistent SSOT；只有同 domain／transactionId／account／currency／effectiveDate、一致且完整、amount-conserving 的 group 才可歸因，任一 component Void 即整組失效。修正維持 forward-only：先 Void 舊 group，再 append 使用新 group id 與新 event ids 的完整 replacement group；`replacementOfGroupId` 不會自行作廢舊 group。v2 client 讀 v3 Ledger 時保留 opaque payload、不得進 runtime attribution／reconciliation／derived suppression；future schema 同樣 fail-safe。Firebase v2/v3 mixed-version merge 與同 event id 不同內容皆 fail-safe reject，partial group union 在完整前不消費。Loan L1 principal／interest／fee／penalty 語意不變。本階段未新增 UI、CSV、Import Center、Investment、FX consumer、AI Decision、Rebalance 或 Dashboard，亦未 migration／改寫既有資料。**UR-TODO-046 整體仍未結案**：FX attribution，以及尚未授權的 Loan UI／CSV／Import Center 與其他 consumer mapping 仍是 Remaining Boundary；不得自行啟動下一子階段。
 
@@ -4067,6 +4069,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ### UR-TODO-046 淨值成長來源歸因與記錄／實際落差核對
 
+2026-08-10 更新：**UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit 與 L2C-P0 Sync Status Contract Fix 已正式完成。** PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31396033551` success，Deploy GitHub Pages run `31397236443` success，Production HTTP 200。L2C Audit 確認 local Ledger v1／remote Firebase Ledger v2 的 mixed-version reject 是既有 fail-safe contract，且先前「目前支援 v2」是舊 v2 bundle 持久化 `syncMeta.status` 的 stale text，無 localStorage／Firebase 資料損毀證據。L2C-P0 將 runtime failure 改為不持久化、依目前 runtime facts 重建；schema mismatch UI 明確區分 local／remote schema、writer schema v3、supported versions v1／v2／v3。`schema-version-mismatch`、`unsupported-future-schema`、`event-id-collision` 形成 structured reject taxonomy；mixed merge 維持 reject／no-PUT／no downgrade，download reject 維持 local unchanged。**明確未開始** migration、v1→v3／v2→v3 conversion、cross-version semantic merge、authoritative-side selection、recovery workflow 或 Ledger rewrite。UR-TODO-046 整體維持「部分完成／後續待評估」；上述 recovery 仍需使用者另行產品決策與明確授權，FX attribution、Loan UI／CSV／Import Center 與其他 consumer mapping 亦仍為 Remaining Boundary。
+
 2026-08-08 更新：**UR-TODO-046 C1、046-B、046-C1／C2、046-C3A、046-C3B、046-C3C-A、046-C3C-B、046-C3C-C、Firebase Ledger Sync 與撤銷／void 已完成，但 UR-TODO-046 整體仍未完成**。後續 split allocation、investment buy／sell attribution、loan principal／interest attribution、FX attribution 等仍需獨立排程與產品決策（皆屬重大事件），詳見下方「Remaining Boundaries」。
 
 2026-08-09 更新：**UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation 已正式完成。** PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) 已 Merge，merge commit `b8621a0bf5e13a7666b360829e276d6d87019a44`，`mergedAt: 2026-08-09T06:54:31Z`；Deploy GitHub Pages #339（run `31299929750`）success，head SHA 一致，Production HTTP 200。完整正式 TWD buy／sell 對應 `investment-buy`／`investment-sell` 且本金 contribution = 0；一般 `income-other` 保留 `external-income`。fee／tax 僅在 stable `costId`、`settlementCostTreatment: independent` 與唯一 trade 關聯皆可證明時才扣除一次；included／unknown／legacy／duplicate／unlinked 一律不扣除。trade 與 cash movement 只接受 explicit linkage，duplicate stable identity、Ledger confirmation／runtime derived evidence／Void 維持防重複；dividend reinvestment 中 dividend 僅計一次、buy = 0；non-TWD 維持 FX unsupported／residual，不建立 realized gain/loss contribution。無 schema bump、無 migration，localStorage／JSON Backup／Firebase／legacy normalizer 相容；已驗證 TypeScript、`test:ci`（785 unit／Risk 3／MJS 18）、Production／Preview build 與 Bundle。**UR-TODO-046 整體仍未完成**；split allocation、loan principal／interest attribution、FX attribution 保留為 Remaining Boundary，不自動啟動。
@@ -4106,6 +4110,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   - **跨裝置衝突處理／Firebase Ledger sync**：已完成，見上方「Firebase Ledger Sync 已完成」項目。合併語意僅涵蓋 `financialEvents`／`financialEventSchemaVersion`；其餘欄位（含 `transactions`）仍為整份覆蓋，未在本次擴大範圍。
   - **批次確認／批次撤銷**：本次維持逐筆，未實作批次。
   - **split allocation、FX attribution**：仍待未來獨立排程與產品決策。
+  - **跨版本 Ledger recovery**：L2C Audit 與 L2C-P0 status contract fix 已完成，但 local v1／remote v2 的 mixed-version semantic merge、authoritative-side selection、v1→v3／v2→v3 conversion、migration 與 recovery workflow 均未開始；任何 recovery 前須先備份、驗證雙端 Ledger／event-id collision／void 與 group integrity，並取得使用者明確產品決策與授權。
   - **Loan UI／CSV／Import Center consumer mapping**：L1 已完成 contract／reconciliation foundation，但尚未建立任何 consumer UI 或 import mapping；維持 UR-TODO-046 Remaining Boundary，須另行授權，不新增 Todo 編號。
 - **下一正式候選（待盤點，未開始）**：split allocation、FX attribution、Loan UI／CSV／Import Center consumer mapping，或其他最新治理文件已定義項目，需依最新 Repository／AI_CONTEXT 另行唯讀判斷。**若下一候選涉及 Ledger 寫入語意變更、schema／persistence 結構性變更或核心 attribution 結果改變、AI Decision／Rebalance 接線，屬重大產品／核心財務語意事件，須另行拍板，不得自動開始。** UR-TODO-046 整體維持「部分完成／後續待評估」，不得因已完成子階段自行標記整體完成。
 
@@ -4337,6 +4342,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ---
 
 ## [Unreleased]
+
+**UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit／L2C-P0 Sync Status Contract Fix（2026-08-10）**：PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31396033551` success，Merge 後 Deploy GitHub Pages run `31397236443` success，Production HTTP 200、environment=production、App root 與正式 bundle 均正常。L2C Audit 確認 local v1／remote v2 mixed-version merge reject 是既有 fail-safe；Production 舊「目前支援 v2」為 stale persisted `syncMeta.status`，無 localStorage 或 Firebase Ledger 資料損毀證據。L2C-P0 將 sync failure 改為 runtime-only、動態 status contract：reload 不會把舊 persisted error 當 current runtime status；schema mismatch UI 依當次 local／remote schema、current writer schema 與 supported versions 重建，writer schema 與 supported versions 明確分離。merge reject 採 structured、非字串解析 taxonomy：`schema-version-mismatch`、`unsupported-future-schema`、`event-id-collision`；mixed-version 與 collision 均維持 GET → validate／merge → reject → no-PUT，download reject 在建立新 state 前停止、local Ledger unchanged，無 partial merge、downgrade 或覆寫。未新增 migration、v1→v3／v2→v3 conversion、cross-version semantic merge、authoritative-side selection、recovery workflow 或 Ledger rewrite；UR-TODO-046 整體仍未結案。
 
 **UR-TODO-046-L2A Split Allocation Contract Audit／L2B Generic Split Allocation Foundation（2026-08-10）**：PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（`mergedAt: 2026-08-10T12:23:50Z`、`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31386340292` success，Deploy GitHub Pages run `31387817114` success，Production smoke verification（HTTP 200、environment=production、App root、正式 JavaScript bundle）通過。L2A 完成 Atomic Group 與 schema boundary audit；L2B 將 FinancialEvent Ledger 升至 schema v3，generic split 以完整 economic event 的 Atomic Group 持久化，Ledger 維持唯一 persistent SSOT。只有 same domain／transactionId／account／currency／effectiveDate、component identity 唯一、完整且 amount-conserving 的 group 可以 attribution／reconciliation；partial、under-sum、over-sum、duplicate、unsupported 或 Void component 均 fail-safe 不消費。修正採 forward-only：Void old group 後 append complete replacement group；`replacementOfGroupId` 本身不會作廢舊 group，replacement 必須使用 fresh allocationGroupId 與 event ids。v2 client 對 v3 Ledger 保留 opaque payload 且不進 attribution、reconciliation 或 derived-evidence suppression；future schema 同樣 fail-safe。localStorage／JSON Backup／Firebase v3 round-trip 維持，v2/v3 mixed-version merge 與 event-id collision different payload 一律 reject、不得 PUT／downgrade／partial merge；partial Firebase union 在完整前不歸因。Loan L1 principal／interest／fee／penalty semantics 不變。未新增 UI、CSV、Import Center、Investment／FX consumer、Loan UI、AI Decision、Rebalance、Dashboard、migration 或既有資料改寫；UR-TODO-046 整體仍未完成，FX attribution 與尚未授權 consumer mapping 保留後續獨立決策。
 
@@ -4826,6 +4833,16 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit／L2C-P0 Sync Status Contract Fix（已完成，2026-08-10）
+
+- 基線與狀態：PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（parents：`149de0b9aa977a2c5fd1ef6d4af98c233af390a1`、`cd3bbaac9d9c0c440b9a61e5a6bc04e806850812`；`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）。PR CI Verification／`verify` run `31396033551` success，Deploy GitHub Pages run `31397236443` success；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 正常。
+- Root cause／資料安全：L2C Audit 證實使用者看到的「本機 v1／雲端 v2，目前支援 v2」是舊 v2 bundle 把 free-text `syncMeta.status` 持久化後，在 v3 runtime 被誤當 current status；local v1／remote v2 mixed-version merge reject 本身是既有 fail-safe 行為。沒有 localStorage 或 Firebase Ledger 資料損毀證據，且本次沒有讀寫 Production Firebase 或執行 migration。
+- 已完成 status contract：runtime failure 不進 localStorage canonical state、JSON Backup authoritative current state 或 Firebase canonical payload；reload／Ctrl+F5 會移除 stale status，下一次手動同步才依當次 runtime facts 建立 current status。schema mismatch UI 必須同時顯示 local schema、remote schema、writer schema 與 supported versions；writer schema v3 不等同 supported set v1／v2／v3。
+- merge reject／同步安全：`LedgerMergeRejectReason` 為 structured taxonomy，且不解析 error message：`schema-version-mismatch` 僅表示兩端 schema 不同、`unsupported-future-schema` 表示至少一端不在 supported set、`event-id-collision` 表示相同 event id 但內容不同。所有 reject 維持 GET → validate／merge → reject → no-PUT；download 在建立新 state 前停止，local Ledger unchanged；無 partial merge、downgrade、migration 或 Ledger rewrite。
+- Remaining Boundary／下一位 AI 起點：L2C-P0 只修 status contract，**未開始** authoritative-side selection、v1→v3／v2→v3 conversion、cross-version semantic merge 或 recovery workflow。任何正式 recovery 必須先進入 Review Mode，驗證並備份雙端 Ledger、檢查 event-id collision、void／component-group integrity 與 deterministic ordering，再由使用者選定 authoritative strategy；不得自動開始。UR-TODO-046 整體仍未完成，FX attribution、Loan UI／CSV／Import Center 與其他 consumer mapping 仍獨立保留。
 
 ---
 
