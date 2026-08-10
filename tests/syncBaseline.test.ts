@@ -263,7 +263,7 @@ test('financialEvents/financialEventSchemaVersion are in the syncable whitelist'
 test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕路徑仍在 PUT 之前', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string, preflightRemoteLedger\?: RemoteFinancialEventLedger\)/);
-  assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
+  assert.match(app, /const remoteLedger = preflightRemoteLedger \?\? await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
   assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: state\.financialEventSchemaVersion, events: state\.financialEvents \}, remoteLedger\)/);
   assert.match(app, /if \(!mergeOutcome\.ok\) throw rejectedLedgerMergeError\(state\.financialEventSchemaVersion, remoteLedger\.schemaVersion, mergeOutcome\)/);
   assert.match(app, /const merged = \{ \.\.\.state, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
