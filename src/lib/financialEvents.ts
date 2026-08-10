@@ -11,8 +11,8 @@ import type { FinancialTransaction } from './transactions';
 export const FINANCIAL_EVENT_SCHEMA_VERSION = 3;
 const SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS = new Set([1, 2, 3]);
 
-export function isFinancialEventLedgerSchemaSupported(schemaVersion: number): boolean {
-  return SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS.has(schemaVersion);
+export function isFinancialEventLedgerSchemaSupported(schemaVersion: number, supportedSchemaVersions: readonly number[] = [...SUPPORTED_FINANCIAL_EVENT_SCHEMA_VERSIONS]): boolean {
+  return supportedSchemaVersions.includes(schemaVersion);
 }
 
 export type FinancialEventType =
@@ -94,6 +94,48 @@ export type FinancialEventLedger = {
   /** false means this Ledger is opaque future data and must never be interpreted as C1. */
   supported: boolean;
 };
+
+export type FinancialEventLedgerNormalizationOptions = {
+  /** Allows the real normalization boundary to characterize an older client without changing global version constants. */
+  supportedSchemaVersions?: readonly number[];
+};
+
+type V3OpaqueFinancialEventEnvelope = {
+  financialEventOpaqueEnvelopeVersion: 3;
+  /** A v2 runtime already excludes void-source records before attribution/reconciliation. */
+  source: 'void';
+  payload: unknown;
+};
+
+function isV3OpaqueFinancialEventEnvelope(value: unknown): value is V3OpaqueFinancialEventEnvelope {
+  const record = asRecord(value);
+  return record?.financialEventOpaqueEnvelopeVersion === 3
+    && record.source === 'void'
+    && asRecord(record.payload) !== undefined;
+}
+
+/**
+ * v3 persists each record as an opaque, v2-safe envelope in the same Ledger field.
+ * The envelope is still an array, so legacy localStorage/Backup/Firebase readers preserve it;
+ * its `void` source makes a pre-v3 runtime skip it before attribution or reconciliation.
+ */
+export function serializeFinancialEventLedgerEvents(schemaVersion: number, events: readonly unknown[]): unknown {
+  if (schemaVersion !== 3) return events;
+  if (events.every(event => isV3OpaqueFinancialEventEnvelope(event))) return events;
+  return events.map(event => ({ financialEventOpaqueEnvelopeVersion: 3, source: 'void', payload: event } satisfies V3OpaqueFinancialEventEnvelope));
+}
+
+function eventsForSupportedSchema(schemaVersion: number, rawEvents: unknown): unknown[] {
+  if (!Array.isArray(rawEvents)) return [];
+  return schemaVersion === 3
+    ? rawEvents.map(event => isV3OpaqueFinancialEventEnvelope(event) ? event.payload : event)
+    : rawEvents;
+}
+
+/** Decodes the same persisted v3 envelope used by upload/download before a supported merge. */
+export function deserializeFinancialEventLedgerEvents(schemaVersion: number, rawEvents: unknown): FinancialEvent[] {
+  return eventsForSupportedSchema(schemaVersion, rawEvents).filter((event): event is FinancialEvent => asRecord(event) !== undefined);
+}
 
 const EVENT_TYPES = new Set<FinancialEventType>([
   'external-income',
@@ -468,11 +510,11 @@ function normalizeEvent(
  * Normalizes only an explicitly supplied Ledger. Legacy records remain ledger-free;
  * this boundary never infers or converts historical transactions into events.
  */
-export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext): FinancialEventLedger {
+export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEventReferenceContext, options: FinancialEventLedgerNormalizationOptions = {}): FinancialEventLedger {
   const record = asRecord(raw) ?? {};
   const hasLedgerPayload = record.financialEventSchemaVersion !== undefined || record.financialEvents !== undefined || record.financialEventAttributionStartDate !== undefined;
   const requestedSchemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
-  if (hasLedgerPayload && !isFinancialEventLedgerSchemaSupported(requestedSchemaVersion)) {
+  if (hasLedgerPayload && !isFinancialEventLedgerSchemaSupported(requestedSchemaVersion, options.supportedSchemaVersions)) {
     return {
       schemaVersion: requestedSchemaVersion,
       events: record.financialEvents as FinancialEvent[],
@@ -484,13 +526,10 @@ export function normalizeFinancialEventLedger(raw: unknown, context: FinancialEv
   const skipped: string[] = [];
   const knownIds = new Set<string>();
   const consumedTransactionIds = new Set<string>();
-  const rawEventRecords = Array.isArray(record.financialEvents)
-    ? record.financialEvents.map(event => asRecord(event)).filter((event): event is Record<string, unknown> => Boolean(event))
-    : [];
+  const schemaEvents = eventsForSupportedSchema(requestedSchemaVersion, record.financialEvents);
+  const rawEventRecords = schemaEvents.map(event => asRecord(event)).filter((event): event is Record<string, unknown> => Boolean(event));
   const voidedEventIds = collectVoidedEventIds(rawEventRecords);
-  const events = Array.isArray(record.financialEvents)
-    ? record.financialEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, voidedEventIds, requestedSchemaVersion, skipped)).filter((event): event is FinancialEvent => Boolean(event))
-    : [];
+  const events = schemaEvents.map((event, index) => normalizeEvent(event, index, context, knownIds, consumedTransactionIds, voidedEventIds, requestedSchemaVersion, skipped)).filter((event): event is FinancialEvent => Boolean(event));
   const attributionStartDate = optionalText(record.financialEventAttributionStartDate);
 
   return {

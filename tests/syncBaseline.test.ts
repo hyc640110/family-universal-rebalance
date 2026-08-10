@@ -233,8 +233,8 @@ test('fingerprint short codes do not reveal the canonical payload', () => {
 test('App upload, download, Backup, and reset flows enforce baseline lifecycle and canonical request body', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /body: snapshot\.canonicalJson/);
-  assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
-  assert.match(app, /uploadFirebase\(normalized\.firebase, requestSnapshot, session\.uid, session\.idToken\)/);
+  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
+  assert.match(app, /createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\)/);
   assert.match(app, /baselineFingerprint: uploadedSnapshot\.fingerprint/);
   assert.match(app, /baselineFieldFingerprints: uploadedSnapshot\.fieldFingerprints/);
   assert.match(app, /baselineCanonicalSchema: uploadedSnapshot\.canonicalSchema/);
@@ -259,17 +259,15 @@ test('financialEvents/financialEventSchemaVersion are in the syncable whitelist'
   assert.ok((SYNCABLE_TOP_LEVEL_FIELDS as readonly string[]).includes('financialEventSchemaVersion'));
 });
 
-test('uploadCloud() reads the remote Ledger and merges before the PUT, and refuses to proceed on a merge failure', () => {
+test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕路徑仍在 PUT 之前', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(flushed\.firebase, session\.uid, session\.idToken\)/);
-  assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: flushed\.financialEventSchemaVersion, events: flushed\.financialEvents \}, remoteLedger\)/);
+  assert.match(app, /export async function uploadFirebaseStateWithLedgerMerge\(config: FirebaseConfig, state: AppState, uid: string, idToken: string\)/);
+  assert.match(app, /const remoteLedger = await fetchRemoteFinancialEventLedger\(config, uid, idToken\)/);
+  assert.match(app, /const mergeOutcome = mergeFinancialEventLedgers\(\{ schemaVersion: state\.financialEventSchemaVersion, events: state\.financialEvents \}, remoteLedger\)/);
   assert.match(app, /if \(!mergeOutcome\.ok\) throw new Error\(mergeOutcome\.reason\)/);
-  // The merged Ledger must be what actually gets uploaded and written back locally, not the
-  // pre-merge local-only array.
-  // A supported v1 ledger must not be silently upgraded to v2 merely because
-  // it is synced. The merge result is the authoritative supported version.
-  assert.match(app, /const normalized = \{ \.\.\.flushed, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
-  assert.match(app, /const requestSnapshot = createSyncPayloadSnapshot\(normalized\)/);
+  assert.match(app, /const merged = \{ \.\.\.state, financialEventSchemaVersion: mergeOutcome\.schemaVersion, financialEvents: mergeOutcome\.events \}/);
+  assert.match(app, /uploadFirebase\(config, createSyncPayloadSnapshot\(stateWithPersistedFinancialEventLedger\(merged\)\), uid, idToken\)/);
+  assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken\)/);
 });
 
 test('downloadCloud confirm dialog explicitly names the Ledger merge exception (rest of the data is still a full overwrite)', () => {

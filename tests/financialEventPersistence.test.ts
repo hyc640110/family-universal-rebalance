@@ -9,6 +9,8 @@ type AppPersistence = {
   backupPayload(state: unknown, quotes: Record<string, unknown>): unknown;
   stateFromBackup(raw: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] } };
   stateFromFirebasePayload(raw: unknown, config: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] }; droppedFinancialEventCount?: number };
+  uploadFirebaseStateWithLedgerMerge(config: unknown, state: unknown, uid: string, idToken: string): Promise<unknown>;
+  runtimeAttributionMemoDependencies(input: { openingSnapshot: unknown; closingSnapshot: unknown; financialEventSchemaVersion: number; financialEvents: unknown; transactions: unknown; accounts: unknown; loans: unknown }): readonly unknown[];
 };
 
 async function loadAppPersistence(): Promise<AppPersistence> {
@@ -133,6 +135,34 @@ test('Firebase v2/v3 mixed Ledger merge fail-safe 拒絕，沒有產生 partial 
   const current = await stateWithLoanComponentLedger();
   const remote = { financialEventSchemaVersion: 3, financialEvents: [] };
   assert.throws(() => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current), /schema 版本不受支援/);
+});
+
+test('Firebase upload 在 v2/v3 mixed Ledger merge 拒絕後絕不發出 PUT，也不覆寫遠端', async () => {
+  const { normalizeState, uploadFirebaseStateWithLedgerMerge } = await loadAppPersistence();
+  const local = await stateWithLoanComponentLedger();
+  const calls: Array<{ method?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    calls.push({ method: init?.method });
+    return new Response(JSON.stringify(normalizeState({ financialEventSchemaVersion: 3, financialEvents: [] })), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    await assert.rejects(
+      () => uploadFirebaseStateWithLedgerMerge({ databaseURL: 'https://example.invalid', secretPath: 'root' }, local, 'user-1', 'token-1'),
+      /schema 版本不受支援/
+    );
+    assert.deepEqual(calls, [{ method: undefined }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('App attribution memo dependencies 將 Ledger schema version 視為獨立 recomputation input', async () => {
+  const { runtimeAttributionMemoDependencies } = await loadAppPersistence();
+  const common = { openingSnapshot: { date: '2026-08-09' }, closingSnapshot: { date: '2026-08-10' }, financialEvents: [], transactions: [], accounts: [], loans: [] };
+  const v2 = runtimeAttributionMemoDependencies({ ...common, financialEventSchemaVersion: 2 });
+  const v3 = runtimeAttributionMemoDependencies({ ...common, financialEventSchemaVersion: 3 });
+  assert.notDeepEqual(v2, v3);
 });
 
 test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易變成事件', async () => {

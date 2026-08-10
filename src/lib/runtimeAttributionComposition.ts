@@ -31,6 +31,8 @@ export type RuntimeAttributionCompositionInput = {
   ledgerEvents: readonly FinancialEvent[] | unknown;
   /** AppState supplies this so a future opaque Ledger can never enter runtime interpretation. */
   financialEventSchemaVersion?: number;
+  /** Testable support boundary for legacy clients; production defaults to this build's supported schemas. */
+  supportedSchemaVersions?: readonly number[];
   transactions: readonly FinancialTransaction[];
   accounts: readonly FinancialAccount[];
   /** Optional keeps non-Loan consumers and legacy call sites backward-compatible. Absence is fail-safe for Loan attribution. */
@@ -82,20 +84,16 @@ function unavailableForInvalidPeriod(input: RuntimeAttributionCompositionInput):
   };
 }
 
-function unavailableForUnsupportedLedger(input: RuntimeAttributionCompositionInput): RuntimeAttributionComposition {
-  const base = deriveNetWorthAttributionFromEvidence({
-    openingSnapshot: input.openingSnapshot,
-    closingSnapshot: input.closingSnapshot,
-    evidence: [],
-    absoluteTolerance: input.absoluteTolerance
-  });
-  return {
-    ...base,
-    ledgerContribution: base.classifiedEventContribution === null ? null : 0,
-    derivedContribution: base.classifiedEventContribution === null ? null : 0,
-    reconciliationResults: [],
-    diagnostics: [...base.diagnostics, { code: 'financial-event-ledger-schema-unsupported' }]
-  };
+function isRuntimeFinancialEvent(value: unknown): value is FinancialEvent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === 'string'
+    && typeof record.source === 'string'
+    && typeof record.type === 'string'
+    && typeof record.status === 'string'
+    && typeof record.effectiveDate === 'string'
+    && typeof record.amount === 'number'
+    && typeof record.currency === 'string';
 }
 
 /**
@@ -105,8 +103,13 @@ function unavailableForUnsupportedLedger(input: RuntimeAttributionCompositionInp
 export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompositionInput): RuntimeAttributionComposition {
   const period = periodFrom(input);
   if (!period) return unavailableForInvalidPeriod(input);
-  if (input.financialEventSchemaVersion !== undefined && !isFinancialEventLedgerSchemaSupported(input.financialEventSchemaVersion)) return unavailableForUnsupportedLedger(input);
-  const ledgerEvents = Array.isArray(input.ledgerEvents) ? input.ledgerEvents as readonly FinancialEvent[] : [];
+  const schemaSupported = input.financialEventSchemaVersion === undefined
+    || isFinancialEventLedgerSchemaSupported(input.financialEventSchemaVersion, input.supportedSchemaVersions);
+  // Unsupported schemas are intentionally treated as no Ledger evidence, not as an empty Ledger:
+  // raw opaque records cannot consume transactions or suppress derived evidence.
+  const ledgerEvents = schemaSupported && Array.isArray(input.ledgerEvents)
+    ? input.ledgerEvents.filter(isRuntimeFinancialEvent)
+    : [];
 
   // UR-TODO-046 void: a voided event is never mutated (forward-only) — a 'void' marker just
   // references it by id. Filtering both the markers themselves and their targets out here, before
@@ -227,6 +230,20 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const derivedContribution = attribution.classifiedEventContribution === null
     ? null
     : attribution.eventClassifications.filter(item => item.provenance === 'derived-transaction').reduce((total, item) => total + item.contribution, 0);
+
+  if (!schemaSupported) {
+    return {
+      ...attribution,
+      classifiedEventContribution: null,
+      unexplainedResidual: null,
+      unexplainedResidualRatio: null,
+      attributionQuality: 'unavailable',
+      ledgerContribution: null,
+      derivedContribution,
+      reconciliationResults,
+      diagnostics: [...attribution.diagnostics, ...diagnostics, { code: 'financial-event-ledger-schema-unsupported' }]
+    };
+  }
 
   return {
     ...attribution,

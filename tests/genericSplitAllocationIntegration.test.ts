@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { FinancialAccount } from '../src/lib/financialAccounts';
-import { appendGenericSplitAllocationGroup, FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, type FinancialEvent } from '../src/lib/financialEvents';
+import { appendGenericSplitAllocationGroup, FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent } from '../src/lib/financialEvents';
 import { resolveActiveGenericSplitAllocationGroups } from '../src/lib/genericSplitAllocation';
 import { composeRuntimeNetWorthAttribution } from '../src/lib/runtimeAttributionComposition';
 import { reconcileTransactions } from '../src/lib/transactionReconciliation';
@@ -35,6 +35,33 @@ test('v3 normalizer 與 atomic append 僅接受完整 generic group，v1/v2 不�
   assert.equal(v2.events.length, 0);
 });
 
+test('v2 runtime 讀取 v3 Ledger envelope 時保留 opaque payload，且只產生 derived evidence', () => {
+  const group = [event('legacy-a', 'a', 70), event('legacy-b', 'b', 30)];
+  const persistedEvents = serializeFinancialEventLedgerEvents(3, group);
+  const legacyLedger = normalizeFinancialEventLedger(
+    { financialEventSchemaVersion: 3, financialEvents: persistedEvents },
+    context,
+    { supportedSchemaVersions: [1, 2] }
+  );
+
+  assert.equal(legacyLedger.supported, false);
+  assert.deepEqual(legacyLedger.events, persistedEvents);
+  const composition = composeRuntimeNetWorthAttribution({
+    openingSnapshot: { date: '2026-08-09', netWorth: 1_000, totalAssets: 1_000, investmentValue: 0, cash: 1_000, debt: 0 },
+    closingSnapshot: { date: '2026-08-10', netWorth: 900, totalAssets: 900, investmentValue: 0, cash: 900, debt: 0 },
+    financialEventSchemaVersion: 3,
+    supportedSchemaVersions: [1, 2],
+    ledgerEvents: legacyLedger.events,
+    transactions: [tx],
+    accounts
+  });
+
+  assert.equal(composition.ledgerContribution, null);
+  assert.equal(composition.reconciliationResults[0]?.status, 'candidate');
+  assert.equal(composition.eventClassifications.some(item => item.provenance === 'ledger'), false);
+  assert.equal(composition.eventClassifications.some(item => item.provenance === 'derived-transaction'), true);
+});
+
 test('完整 group 只 group-level reconciliation matched 一次並抑制同交易 derived evidence', () => {
   const group = [event('a', 'a', 70), event('b', 'b', 30)];
   const reconciliation = reconcileTransactions({ transactions: [tx], accounts, ledgerEvents: group });
@@ -50,6 +77,20 @@ test('partial group 不產生 Ledger attribution 或 transaction consumption，�
   assert.equal(result.ledgerContribution, 0);
   assert.equal(result.reconciliationResults[0]?.status, 'candidate');
   assert.equal(result.derivedContribution, -100);
+});
+
+test('replacement component 重用既有 event id 時 append 必須拒絕，不能覆寫舊 group', () => {
+  const old = [
+    { ...event('old-a', 'a', 70), splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'a' } },
+    { ...event('old-b', 'b', 30), splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'b' } }
+  ];
+  const voidMarker: FinancialEvent = { id: 'void-old-a', type: 'adjustment', status: 'void', source: 'void', effectiveDate: '2026-08-10', amount: 0, currency: 'TWD', accountId: 'bank-a', voidedEventId: 'old-a', note: '', ...audit };
+  const replacement = [
+    { ...event('old-a', 'a', 70), splitAllocationLink: { domain: 'test-only', allocationGroupId: 'new', componentId: 'a', replacementOfGroupId: 'old' } },
+    { ...event('new-b', 'b', 30), splitAllocationLink: { domain: 'test-only', allocationGroupId: 'new', componentId: 'b', replacementOfGroupId: 'old' } }
+  ];
+  const appended = appendGenericSplitAllocationGroup([...old, voidMarker], replacement, context);
+  assert.equal(appended.rejected, true);
 });
 
 test('partial group 遇到既有 unsupported transaction 時不猜測 remainder，完整差額保留 residual', () => {
@@ -81,10 +122,10 @@ test('Firebase union 的 partial group 可決定性收斂但不歸因；完整 u
   assert.deepEqual([...resolveActiveGenericSplitAllocationGroups(forward.events, { transactionsById: new Map([['tx-1', tx]]) }).validEventIds].sort(), ['a', 'b']);
 });
 
-test('future opaque schema 完全不進 runtime：不 consume、不 suppression、不 crash', () => {
+test('future opaque schema 不消費 raw Ledger，但既有 derived evidence 不被 suppression', () => {
   const result = compose({ opaque: 'must-not-be-read' }, 4);
-  assert.equal(result.ledgerContribution, 0);
-  assert.equal(result.derivedContribution, 0);
-  assert.deepEqual(result.reconciliationResults, []);
+  assert.equal(result.ledgerContribution, null);
+  assert.equal(result.derivedContribution, -100);
+  assert.equal(result.reconciliationResults[0]?.status, 'candidate');
   assert.equal(result.diagnostics.some(item => item.code === 'financial-event-ledger-schema-unsupported'), true);
 });

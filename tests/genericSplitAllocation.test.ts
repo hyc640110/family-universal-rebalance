@@ -79,3 +79,29 @@ test('replacement 不得在被取代 group 仍完整 active 時並存，舊 grou
   assert.deepEqual([...result.validEventIds].sort(), ['old-a', 'old-b']);
   assert.deepEqual([...result.matchedTransactionIds], ['tx-1']);
 });
+
+test('同一 allocationGroupId 跨 domain 或跨 transaction 時必須整體 fail-safe invalid', () => {
+  const crossDomain = resolve([
+    component('domain-a', 'a', 70),
+    component('domain-b', 'b', 30, { splitAllocationLink: { domain: 'other-domain', allocationGroupId: 'group-1', componentId: 'b' } })
+  ]);
+  assert.equal(crossDomain.validEventIds.size, 0);
+
+  const tx2 = transaction('tx-2', 30);
+  const crossTransaction = resolve([
+    component('tx-a', 'a', 70),
+    component('tx-b', 'b', 30, { transactionId: 'tx-2' })
+  ], [transaction(), tx2]);
+  assert.equal(crossTransaction.validEventIds.size, 0);
+});
+
+test('replacement 不得重用舊 allocationGroupId', () => {
+  const oldA = component('old-a', 'a', 70, { splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'a' } });
+  const oldB = component('old-b', 'b', 30, { splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'b' } });
+  const marker = component('void-old-a', 'void', 1, { type: 'adjustment', source: 'void', status: 'void', voidedEventId: 'old-a', transactionId: undefined, splitAllocationLink: undefined });
+  const reusedA = component('replacement-a', 'a', 70, { splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'a', replacementOfGroupId: 'old' } });
+  const reusedB = component('replacement-b', 'b', 30, { splitAllocationLink: { domain: 'test-only', allocationGroupId: 'old', componentId: 'b', replacementOfGroupId: 'old' } });
+  const result = resolve([oldA, oldB, marker, reusedA, reusedB]);
+  assert.equal(result.validEventIds.size, 0);
+  assert.equal(result.matchedTransactionIds.size, 0);
+});
