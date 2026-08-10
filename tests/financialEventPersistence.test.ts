@@ -148,10 +148,53 @@ test('舊 build persisted syncMeta.status 不會在 v3 runtime 或 JSON Backup �
   assert.deepEqual(local.financialEvents, []);
 });
 
-test('舊 persisted transport failure 在 reload 後不會成為目前 runtime failure', async () => {
+test('舊 persisted failure（含 missing-ledger 文案）在 reload 後不會成為目前 runtime failure', async () => {
   const { normalizeState } = await loadAppPersistence();
-  const reloaded = normalizeState({ syncMeta: { dirty: true, source: '本機資料', status: '❌ Firebase 同步失敗：Firebase 503' } });
-  assert.equal('status' in reloaded.syncMeta, false);
+  for (const status of [
+    '❌ Firebase 同步失敗：Firebase 503',
+    '❌ 雲端為舊格式，未包含 Financial Event Ledger；為保護本機資料，本次同步已停止。'
+  ]) {
+    const reloaded = normalizeState({ syncMeta: { dirty: true, source: '本機資料', status } });
+    assert.equal('status' in reloaded.syncMeta, false);
+  }
+});
+
+test('Firebase remote 完全缺少 Ledger 欄位時，download 在正規化、merge 或 remote apply 前 fail-safe，local 空或非空 Ledger 與 attributionStartDate 都不變', async () => {
+  const { normalizeState, stateFromFirebasePayload } = await loadAppPersistence();
+  const remoteWithoutLedger = { accounts: [createFinancialAccount({ id: 'bank-a', name: '舊 Firebase 帳戶', type: 'bank', manualBalance: 0 })], transactions: [] };
+  for (const current of [
+    normalizeState({ financialEventSchemaVersion: 1, financialEvents: [], financialEventAttributionStartDate: '2026-08-02' }),
+    await stateWithLedger()
+  ]) {
+    const before = structuredClone(current);
+    assert.throws(
+      () => stateFromFirebasePayload(remoteWithoutLedger, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current),
+      /missing the Financial Event Ledger contract/
+    );
+    assert.deepEqual(current, before);
+  }
+});
+
+test('Firebase remote 完全缺少 Ledger 欄位時，upload preflight 只有 GET、絕不 PUT，且不建立 synthetic empty Ledger', async () => {
+  const { uploadFirebaseStateWithLedgerMerge } = await loadAppPersistence();
+  const local = await stateWithLedger();
+  const calls: Array<{ method?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    calls.push({ method: init?.method });
+    return new Response(JSON.stringify({ accounts: [], transactions: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    await assert.rejects(
+      () => uploadFirebaseStateWithLedgerMerge({ databaseURL: 'https://example.invalid', secretPath: 'root' }, local, 'user-1', 'token-1'),
+      /missing the Financial Event Ledger contract/
+    );
+    assert.deepEqual(calls, [{ method: undefined }]);
+    assert.equal(local.financialEventAttributionStartDate, '2026-08-02');
+    assert.deepEqual(local.financialEvents, [event]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('Firebase v2/v3 mixed Ledger merge fail-safe 拒絕，沒有產生 partial merge payload', async () => {

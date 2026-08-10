@@ -505,16 +505,30 @@ function waitForDraftCommit() {
 function syncPath(uid: string) { return buildFirebaseSyncRoot(uid); }
 function syncUrl(config: FirebaseConfig, uid: string, idToken: string) { return buildFirebaseSyncUrl(config.databaseURL, syncPath(uid), idToken); }
 async function uploadFirebase(config: FirebaseConfig, snapshot: ReturnType<typeof createSyncPayloadSnapshot>, uid: string, idToken: string) { assertNoOAuthSecrets(snapshot.payload); const res = await fetch(syncUrl(config, uid, idToken), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: snapshot.canonicalJson }); if (!res.ok) throw new Error(`Firebase ${res.status}`); return snapshot; }
-/** UR-TODO-046: read-only peek at the remote Ledger, used by uploadCloud() to merge before it
- * overwrites the whole node with a PUT. Absence of either field (never-synced remote) reads as an
- * empty, currently-supported Ledger — matching normalizeFinancialEventLedger's own default. */
-async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: string, idToken: string): Promise<{ schemaVersion: number; events: FinancialEvent[] }> {
-  const res = await fetch(syncUrl(config, uid, idToken), { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Firebase ${res.status}`);
-  const data = await res.json();
-  const record = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+type RemoteFinancialEventLedger = { schemaVersion: number; events: FinancialEvent[] };
+/** A Firebase node created before UR-TODO-046 has no Ledger contract at all. It must never be
+ * synthesized into a current empty Ledger, because doing so would make an old remote payload appear
+ * authoritative. This error is converted to a runtime-only status by the UI boundary below. */
+class MissingLedgerSyncError extends Error {
+  constructor() {
+    super('Firebase remote state is missing the Financial Event Ledger contract');
+    this.name = 'MissingLedgerSyncError';
+  }
+}
+function remoteFinancialEventLedgerFromRaw(data: unknown): RemoteFinancialEventLedger {
+  const record = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {};
+  const hasSchemaVersion = Object.prototype.hasOwnProperty.call(record, 'financialEventSchemaVersion');
+  const hasEvents = Object.prototype.hasOwnProperty.call(record, 'financialEvents');
+  if (!hasSchemaVersion && !hasEvents) throw new MissingLedgerSyncError();
   const schemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
   return { schemaVersion, events: deserializeFinancialEventLedgerEvents(schemaVersion, record.financialEvents) };
+}
+/** UR-TODO-046-L2C-P2: read-only preflight for the remote Ledger. A wholly missing Ledger is
+ * rejected before merge, normalization, local persistence, or Firebase PUT. */
+async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: string, idToken: string): Promise<RemoteFinancialEventLedger> {
+  const res = await fetch(syncUrl(config, uid, idToken), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Firebase ${res.status}`);
+  return remoteFinancialEventLedgerFromRaw(await res.json());
 }
 class LedgerSyncRejectError extends Error {
   readonly runtimeStatus: Extract<RuntimeSyncStatus, { kind: 'schema-version-mismatch' | 'unsupported-future-schema' | 'event-id-collision' }>;
@@ -529,8 +543,8 @@ function rejectedLedgerMergeError(localSchemaVersion: number, remoteSchemaVersio
   return new LedgerSyncRejectError(localSchemaVersion, remoteSchemaVersion, mergeOutcome);
 }
 /** The single production upload path: mixed-schema rejection happens before the only PUT call. */
-export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig, state: AppState, uid: string, idToken: string) {
-  const remoteLedger = await fetchRemoteFinancialEventLedger(config, uid, idToken);
+export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig, state: AppState, uid: string, idToken: string, preflightRemoteLedger?: RemoteFinancialEventLedger) {
+  const remoteLedger = preflightRemoteLedger ?? await fetchRemoteFinancialEventLedger(config, uid, idToken);
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: state.financialEventSchemaVersion, events: state.financialEvents }, remoteLedger);
   if (!mergeOutcome.ok) throw rejectedLedgerMergeError(state.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome);
   const merged = { ...state, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
@@ -547,11 +561,8 @@ export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig,
 export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, current: AppState): AppReadState {
   assertNoOAuthSecrets(data);
   const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(data);
+  const remoteLedger = remoteFinancialEventLedgerFromRaw(data);
   const remoteData = canonicalSyncPayload(data as Record<string, unknown>);
-  const remoteLedger = {
-    schemaVersion: typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION,
-    events: deserializeFinancialEventLedgerEvents(typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION, remoteData.financialEvents)
-  };
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
   if (!mergeOutcome.ok) throw rejectedLedgerMergeError(current.financialEventSchemaVersion, remoteLedger.schemaVersion, mergeOutcome);
   const mergedRemoteData = { ...remoteData, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
@@ -1282,11 +1293,12 @@ function App() {
     return { ...current, syncMeta: next };
   });
   const runtimeStatusForSyncError = (operation: 'upload' | 'download', error: unknown): RuntimeSyncStatus => {
+    if (error instanceof MissingLedgerSyncError) return { kind: 'missing-ledger', operation };
     if (error instanceof LedgerSyncRejectError) return error.runtimeStatus;
     return { kind: 'firebase-transport-error', operation, message: error instanceof Error ? error.message : String(error) };
   };
   const handleUploadFailure = (error: unknown) => {
-    updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true }));
+    if (!(error instanceof MissingLedgerSyncError)) updateSyncMeta(current => ({ ...current, source: '本機資料', dirty: true }));
     setRuntimeSyncStatus(runtimeStatusForSyncError('upload', error));
   };
   const handleDownloadFailure = (error: unknown) => setRuntimeSyncStatus(runtimeStatusForSyncError('download', error));
@@ -1374,10 +1386,12 @@ function App() {
   };
   const uploadCloud = async () => {
     if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
-    const session = await ensureFirebaseAuthSessionFresh();
+    const session = firebaseAuth.session;
+    if (!session) throw new Error('Firebase 匿名身分尚未就緒，請稍後再試');
     setRuntimeSyncStatus({ kind: 'progress', operation: 'upload' });
+    const preflightRemoteLedger = await fetchRemoteFinancialEventLedger(stateRef.current.firebase, session.uid, session.idToken);
     const flushed = await flushDrafts();
-    const { uploadedSnapshot, normalized, mergeOutcome } = await uploadFirebaseStateWithLedgerMerge(flushed.firebase, flushed, session.uid, session.idToken);
+    const { uploadedSnapshot, normalized, mergeOutcome } = await uploadFirebaseStateWithLedgerMerge(flushed.firebase, flushed, session.uid, session.idToken, preflightRemoteLedger);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
     const syncedAt = now();
     setLastSavedAt(syncedAt);
@@ -1414,7 +1428,8 @@ function App() {
   };
   const downloadCloud = async () => {
     if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外：這一項會自動與雲端既有紀錄合併，雙邊各自獨有的事件都會保留，不會互相覆蓋）。是否繼續？')) return;
-    const session = await ensureFirebaseAuthSessionFresh();
+    const session = firebaseAuth.session;
+    if (!session) throw new Error('Firebase 匿名身分尚未就緒，請稍後再試');
     setRuntimeSyncStatus({ kind: 'progress', operation: 'download' });
     const remoteResult = await downloadFirebase(state.firebase, stateRef.current, session.uid, session.idToken);
     const remote = remoteResult.state;

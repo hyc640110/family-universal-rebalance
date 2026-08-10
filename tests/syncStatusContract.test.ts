@@ -22,9 +22,10 @@ test('schema mismatch 以當前 runtime writer 與 supported schema set 動態�
   assert.doesNotMatch(text, /目前支援 v3|唯一支援/);
 });
 
-test('runtime status 區分 progress、transport error 與 stale persisted failure', () => {
+test('runtime status 區分 progress、missing-ledger、transport error 與 stale persisted failure', () => {
   const cases: Array<[RuntimeSyncStatus, RegExp]> = [
     [{ kind: 'progress', operation: 'upload' }, /雲端上傳中/],
+    [{ kind: 'missing-ledger', operation: 'download' }, /雲端為舊格式，未包含 Financial Event Ledger；為保護本機資料，本次同步已停止/],
     [{ kind: 'firebase-transport-error', operation: 'download', message: 'Firebase 503' }, /Firebase 503/],
     [{ kind: 'stale-persisted-failure' }, /上一次同步嘗試結果已過期/]
   ];
