@@ -9,6 +9,8 @@ type AppPersistence = {
   backupPayload(state: unknown, quotes: Record<string, unknown>): unknown;
   stateFromBackup(raw: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] } };
   stateFromFirebasePayload(raw: unknown, config: unknown, current: unknown): { state: { [key: string]: unknown; financialEventSchemaVersion: number; financialEvents: unknown[]; financialEventAttributionStartDate?: string; transactions: unknown[] }; droppedFinancialEventCount?: number };
+  uploadFirebaseStateWithLedgerMerge(config: unknown, state: unknown, uid: string, idToken: string): Promise<unknown>;
+  runtimeAttributionMemoDependencies(input: { openingSnapshot: unknown; closingSnapshot: unknown; financialEventSchemaVersion: number; financialEvents: unknown; transactions: unknown; accounts: unknown; loans: unknown }): readonly unknown[];
 };
 
 async function loadAppPersistence(): Promise<AppPersistence> {
@@ -109,6 +111,60 @@ test('v2 Loan component group 在 localStorage、JSON Backup 與 Firebase payloa
   assert.equal(firebaseState.financialEvents.length, 2);
 });
 
+test('v3 generic split group 在 localStorage、JSON Backup 與 Firebase payload 中完整 round-trip', async () => {
+  const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
+  const timestamp = '2026-08-10T00:00:00.000Z';
+  const state = normalizeState({
+    accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
+    transactions: [{ id: 'split-expense', accountId: 'bank-a', type: 'expense', status: 'posted', source: 'manual', amount: 100, currency: 'TWD', categoryId: 'expense-food', description: '', merchant: '', note: '', occurredAt: timestamp, excluded: false }],
+    financialEventSchemaVersion: 3,
+    financialEvents: [{ id: 'split-a', type: 'external-expense', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-10', amount: 70, currency: 'TWD', accountId: 'bank-a', transactionId: 'split-expense', splitAllocationLink: { domain: 'test-only', allocationGroupId: 'split-group', componentId: 'a' }, note: '', createdAt: timestamp, updatedAt: timestamp }, { id: 'split-b', type: 'external-expense', status: 'posted', source: 'attribution-confirmation', effectiveDate: '2026-08-10', amount: 30, currency: 'TWD', accountId: 'bank-a', transactionId: 'split-expense', splitAllocationLink: { domain: 'test-only', allocationGroupId: 'split-group', componentId: 'b' }, note: '', createdAt: timestamp, updatedAt: timestamp }]
+  });
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(state, {}))), normalizeState({})).state;
+  for (const value of [state, restored]) {
+    assert.equal(value.financialEventSchemaVersion, 3);
+    assert.equal(value.financialEvents.length, 2);
+  }
+  const firebasePayload = canonicalSyncPayload(state);
+  assert.equal(firebasePayload.financialEventSchemaVersion, 3);
+  assert.equal((firebasePayload.financialEvents as unknown[]).length, 2);
+});
+
+test('Firebase v2/v3 mixed Ledger merge fail-safe 拒絕，沒有產生 partial merge payload', async () => {
+  const { stateFromFirebasePayload } = await loadAppPersistence();
+  const current = await stateWithLoanComponentLedger();
+  const remote = { financialEventSchemaVersion: 3, financialEvents: [] };
+  assert.throws(() => stateFromFirebasePayload(remote, { databaseURL: 'https://example.invalid', secretPath: 'root' }, current), /schema 版本不受支援/);
+});
+
+test('Firebase upload 在 v2/v3 mixed Ledger merge 拒絕後絕不發出 PUT，也不覆寫遠端', async () => {
+  const { normalizeState, uploadFirebaseStateWithLedgerMerge } = await loadAppPersistence();
+  const local = await stateWithLoanComponentLedger();
+  const calls: Array<{ method?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    calls.push({ method: init?.method });
+    return new Response(JSON.stringify(normalizeState({ financialEventSchemaVersion: 3, financialEvents: [] })), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    await assert.rejects(
+      () => uploadFirebaseStateWithLedgerMerge({ databaseURL: 'https://example.invalid', secretPath: 'root' }, local, 'user-1', 'token-1'),
+      /schema 版本不受支援/
+    );
+    assert.deepEqual(calls, [{ method: undefined }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('App attribution memo dependencies 將 Ledger schema version 視為獨立 recomputation input', async () => {
+  const { runtimeAttributionMemoDependencies } = await loadAppPersistence();
+  const common = { openingSnapshot: { date: '2026-08-09' }, closingSnapshot: { date: '2026-08-10' }, financialEvents: [], transactions: [], accounts: [], loans: [] };
+  const v2 = runtimeAttributionMemoDependencies({ ...common, financialEventSchemaVersion: 2 });
+  const v3 = runtimeAttributionMemoDependencies({ ...common, financialEventSchemaVersion: 3 });
+  assert.notDeepEqual(v2, v3);
+});
+
 test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易變成事件', async () => {
   const { backupPayload, normalizeState, stateFromBackup } = await loadAppPersistence();
   const legacy = normalizeState({
@@ -119,7 +175,7 @@ test('舊資料在三條讀取路徑維持空 Ledger，不自動將歷史交易�
   const restoredLegacy = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(legacy, {}))), normalizeState({})).state;
 
   for (const state of [legacy, firebaseLegacy, restoredLegacy]) {
-    assert.equal(state.financialEventSchemaVersion, 2);
+    assert.equal(state.financialEventSchemaVersion, 3);
     assert.deepEqual(state.financialEvents, []);
     assert.equal(state.financialEventAttributionStartDate, undefined);
     assert.equal(state.transactions.length, 1);
@@ -242,8 +298,8 @@ test('Firebase download 在任一邊 Ledger schema 版本不受支援時 fail-sa
       accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
       transactions: []
     })),
-    financialEventSchemaVersion: 3, // opaque/unsupported future version
-    financialEvents: [{ schema: 3, opaque: 'preserve' }]
+    financialEventSchemaVersion: 4, // opaque/unsupported future version
+    financialEvents: [{ schema: 4, opaque: 'preserve' }]
   };
 
   assert.throws(
@@ -265,7 +321,7 @@ test('legacy Backup Full Restore 明確清空目前 Ledger', async () => {
 
   const restored = stateFromBackup(legacyBackup, current).state;
 
-  assert.equal(restored.financialEventSchemaVersion, 2);
+  assert.equal(restored.financialEventSchemaVersion, 3);
   assert.deepEqual(restored.financialEvents, []);
   assert.equal(restored.financialEventAttributionStartDate, undefined);
 });
@@ -332,16 +388,16 @@ test('本機已有 attribution-confirmation 事件時，Firebase download 會與
 test('future Ledger 讀取、正規化與 Backup 輸出不會降級已知 Ledger payload', async () => {
   const { backupPayload, normalizeState } = await loadAppPersistence();
   const future = {
-    financialEventSchemaVersion: 3,
+    financialEventSchemaVersion: 4,
     financialEventAttributionStartDate: { future: true },
-    financialEvents: { eventSet: [{ schema: 3, opaque: 'preserve' }] }
+    financialEvents: { eventSet: [{ schema: 4, opaque: 'preserve' }] }
   };
   const normalized = normalizeState(future);
   const reloaded = normalizeState(JSON.parse(JSON.stringify(normalized)));
   const backup = backupPayload(normalized, {}) as Record<string, unknown>;
 
   for (const value of [normalized, reloaded, backup]) {
-    assert.equal(value.financialEventSchemaVersion, 3);
+    assert.equal(value.financialEventSchemaVersion, 4);
     assert.deepEqual(value.financialEvents, future.financialEvents);
     assert.deepEqual(value.financialEventAttributionStartDate, future.financialEventAttributionStartDate);
   }
@@ -351,8 +407,8 @@ test('本機本身持有 opaque future Ledger 時，Firebase download 對支援�
   const { stateFromFirebasePayload, normalizeState } = await loadAppPersistence();
   const current = normalizeState({
     accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],
-    financialEventSchemaVersion: 3,
-    financialEvents: [{ schema: 3, opaque: 'preserve' }]
+    financialEventSchemaVersion: 4,
+    financialEvents: [{ schema: 4, opaque: 'preserve' }]
   });
   const remote = canonicalSyncPayload(normalizeState({
     accounts: [createFinancialAccount({ id: 'bank-a', name: '銀行', type: 'bank', manualBalance: 0 })],

@@ -30,6 +30,14 @@ test('a shared id (forward-only contract: should always be byte-identical) colla
   assert.equal(outcome.events[0].id, 'shared-1');
 });
 
+test('同一 event id 但內容不同時 fail-safe 拒絕，絕不任取本機或雲端版本', () => {
+  const local = { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [event({ id: 'collision', amount: 100 })] };
+  const remote = { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [event({ id: 'collision', amount: 101 })] };
+  const outcome = mergeFinancialEventLedgers(local, remote);
+  assert.equal(outcome.ok, false);
+  if (!outcome.ok) assert.match(outcome.reason, /內容不同/);
+});
+
 test('local-only side empty: remote events all survive untouched', () => {
   const local = { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [] };
   const remote = { schemaVersion: FINANCIAL_EVENT_SCHEMA_VERSION, events: [event({ id: 'remote-1' }), event({ id: 'remote-2' })] };

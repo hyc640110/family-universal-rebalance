@@ -64,7 +64,7 @@ import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/co
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
-import { FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, type FinancialEvent } from './lib/financialEvents';
+import { deserializeFinancialEventLedgerEvents, FINANCIAL_EVENT_SCHEMA_VERSION, mergeFinancialEventLedgers, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
@@ -101,7 +101,7 @@ type LoanItem = { id: string; name: string; principal: number; annualRate: numbe
 type FirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
 export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; remoteMeta: RemoteMeta | null };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number; autoSync: boolean; autoSyncSec: number; workerUrl: string; firebase: FirebaseConfig; firebaseConfigured: boolean } };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
@@ -406,6 +406,10 @@ export function normalizeState(raw: unknown): AppState {
   const baseline = deriveSyncBaselineDiagnostics(normalized, normalized.syncMeta.baselineFingerprint, normalized.syncMeta.baselineFieldFingerprints);
   return { ...normalized, syncMeta: { ...normalized.syncMeta, dirty: baseline.dirty } };
 }
+type PersistedAppState = Omit<AppState, 'financialEvents'> & { financialEvents: unknown };
+function stateWithPersistedFinancialEventLedger(state: AppState): PersistedAppState {
+  return { ...state, financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
+}
 /** droppedFinancialEventCount is only ever set by stateFromFirebasePayload's Ledger merge (see its
  * doc comment) — Backup restore and the local-storage read path don't merge, so it stays undefined there. */
 type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView; droppedFinancialEventCount?: number };
@@ -416,7 +420,7 @@ function readStateWithSnapshotView(): AppReadState {
     const parsed = JSON.parse(raw); assertNoOAuthSecrets(parsed);
     const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(parsed);
     const normalized = normalizeState(parsed);
-    const json = JSON.stringify(normalized);
+    const json = JSON.stringify(stateWithPersistedFinancialEventLedger(normalized));
     if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
     return { state: normalized, netWorthSnapshotReadTimeView };
   } catch (error) {
@@ -424,7 +428,7 @@ function readStateWithSnapshotView(): AppReadState {
     return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined) };
   }
 }
-function writeState(s: AppState) { assertNoOAuthSecrets(s); const normalized = normalizeState(s); assertNoOAuthSecrets(normalized); localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); }
+function writeState(s: AppState) { assertNoOAuthSecrets(s); const normalized = normalizeState(s); const persisted = stateWithPersistedFinancialEventLedger(normalized); assertNoOAuthSecrets(persisted); localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)); }
 function normalizeUiState(raw: unknown): UiState {
   const r = raw && typeof raw === 'object' ? raw as Partial<UiState> : {};
   return { displayMode: r.displayMode === 'full' ? 'full' : 'compact', sections: { ...DEFAULT_UI_STATE.sections, ...(r.sections || {}) } };
@@ -445,7 +449,7 @@ export function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>
     const { previousCloseDate: _previousCloseDate, previousCloseSource: _previousCloseSource, previousCloseTrusted: _previousCloseTrusted, previousCloseReason: _previousCloseReason, ...legacyQuote } = quote;
     return [symbol, legacyQuote];
   })) as Record<SymbolCode, Quote>;
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: normalized.financialEvents, ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: normalized.transactions, transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), syncMeta: withoutSyncBaseline(normalized.syncMeta), syncSettings: { refreshSec: normalized.refreshSec, autoSync: normalized.autoSync, autoSyncSec: normalized.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized.firebase, firebaseConfigured: Boolean(normalized.firebase.databaseURL) } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -509,10 +513,17 @@ async function fetchRemoteFinancialEventLedger(config: FirebaseConfig, uid: stri
   if (!res.ok) throw new Error(`Firebase ${res.status}`);
   const data = await res.json();
   const record = data && typeof data === 'object' ? data as Record<string, unknown> : {};
-  return {
-    schemaVersion: typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION,
-    events: Array.isArray(record.financialEvents) ? record.financialEvents as FinancialEvent[] : []
-  };
+  const schemaVersion = typeof record.financialEventSchemaVersion === 'number' ? record.financialEventSchemaVersion : FINANCIAL_EVENT_SCHEMA_VERSION;
+  return { schemaVersion, events: deserializeFinancialEventLedgerEvents(schemaVersion, record.financialEvents) };
+}
+/** The single production upload path: mixed-schema rejection happens before the only PUT call. */
+export async function uploadFirebaseStateWithLedgerMerge(config: FirebaseConfig, state: AppState, uid: string, idToken: string) {
+  const remoteLedger = await fetchRemoteFinancialEventLedger(config, uid, idToken);
+  const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: state.financialEventSchemaVersion, events: state.financialEvents }, remoteLedger);
+  if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
+  const merged = { ...state, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
+  const uploadedSnapshot = await uploadFirebase(config, createSyncPayloadSnapshot(stateWithPersistedFinancialEventLedger(merged)), uid, idToken);
+  return { uploadedSnapshot, normalized: merged, mergeOutcome };
 }
 /** UR-TODO-046: financialEvents is the one syncable field that merges (union by id) instead of being
  * overwritten by the download — everything else in remoteData still fully replaces local. Refuses
@@ -527,7 +538,7 @@ export function stateFromFirebasePayload(data: unknown, config: FirebaseConfig, 
   const remoteData = canonicalSyncPayload(data as Record<string, unknown>);
   const remoteLedger = {
     schemaVersion: typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION,
-    events: Array.isArray(remoteData.financialEvents) ? remoteData.financialEvents as FinancialEvent[] : []
+    events: deserializeFinancialEventLedgerEvents(typeof remoteData.financialEventSchemaVersion === 'number' ? remoteData.financialEventSchemaVersion as number : FINANCIAL_EVENT_SCHEMA_VERSION, remoteData.financialEvents)
   };
   const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: current.financialEventSchemaVersion, events: current.financialEvents }, remoteLedger);
   if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
@@ -1086,6 +1097,10 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
   return <div className="list loan-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>}{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '借款'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label style={labelStyle}><span style={labelSpanStyle}>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="依起始日與今天日期自動計算">{isMobile ? <span>已繳期數</span> : null}<span>{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span></div><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="總期數減已繳期數">{isMobile ? <span>剩餘期數</span> : null}<span>{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span></div>{!isMobile && deleteButton(item)}</div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
+export function runtimeAttributionMemoDependencies(input: { openingSnapshot: NetWorthSnapshot | null; closingSnapshot: NetWorthSnapshot | null; financialEventSchemaVersion: number; financialEvents: readonly FinancialEvent[]; transactions: readonly FinancialTransaction[]; accounts: readonly FinancialAccount[]; loans: readonly LoanItem[] }): readonly unknown[] {
+  return [input.openingSnapshot, input.closingSnapshot, input.financialEventSchemaVersion, input.financialEvents, input.transactions, input.accounts, input.loans];
+}
+
 function App() {
   const routeLocation = useLocation();
   const navigate = useNavigate();
@@ -1339,14 +1354,7 @@ function App() {
     const session = await ensureFirebaseAuthSessionFresh();
     updateSyncMeta(current => ({ ...current, status: '⏳ 雲端上傳中，正在寫入 Firebase...' }));
     const flushed = await flushDrafts();
-    // UR-TODO-046: financialEvents is the one syncable field that merges instead of being overwritten
-    // by the upload — read the remote Ledger first so the PUT below carries the union, not just local's.
-    const remoteLedger = await fetchRemoteFinancialEventLedger(flushed.firebase, session.uid, session.idToken);
-    const mergeOutcome = mergeFinancialEventLedgers({ schemaVersion: flushed.financialEventSchemaVersion, events: flushed.financialEvents }, remoteLedger);
-    if (!mergeOutcome.ok) throw new Error(mergeOutcome.reason);
-    const normalized = { ...flushed, financialEventSchemaVersion: mergeOutcome.schemaVersion, financialEvents: mergeOutcome.events };
-    const requestSnapshot = createSyncPayloadSnapshot(normalized);
-    const uploadedSnapshot = await uploadFirebase(normalized.firebase, requestSnapshot, session.uid, session.idToken);
+    const { uploadedSnapshot, normalized, mergeOutcome } = await uploadFirebaseStateWithLedgerMerge(flushed.firebase, flushed, session.uid, session.idToken);
     transactionBaselineRef.current = Array.isArray(uploadedSnapshot.payload.transactions) ? JSON.parse(JSON.stringify(uploadedSnapshot.payload.transactions)) as unknown[] : [];
     const syncedAt = now();
     setLastSavedAt(syncedAt);
@@ -1485,14 +1493,19 @@ function App() {
   // pair already used by deriveHistoryStats' todayChange, no new snapshot-selection rule.
   const runtimeAttributionOpeningSnapshot = netWorthHistory.length >= 2 ? netWorthHistory[netWorthHistory.length - 2] : null;
   const runtimeAttributionClosingSnapshot = netWorthHistory.length >= 1 ? netWorthHistory[netWorthHistory.length - 1] : null;
-  const runtimeAttributionComposition = useMemo(() => composeRuntimeNetWorthAttribution({
+  const runtimeAttributionInput = {
     openingSnapshot: runtimeAttributionOpeningSnapshot,
     closingSnapshot: runtimeAttributionClosingSnapshot,
+    financialEventSchemaVersion: state.financialEventSchemaVersion,
     ledgerEvents: state.financialEvents,
     transactions: state.transactions,
     accounts: state.accounts,
     loans: state.loans
-  }), [runtimeAttributionOpeningSnapshot, runtimeAttributionClosingSnapshot, state.financialEvents, state.transactions, state.accounts, state.loans]);
+  };
+  const runtimeAttributionComposition = useMemo(() => composeRuntimeNetWorthAttribution(runtimeAttributionInput), runtimeAttributionMemoDependencies({
+    ...runtimeAttributionInput,
+    financialEvents: state.financialEvents
+  }));
   const runtimeAttributionPresentation = useMemo(() => deriveRuntimeAttributionPresentation({
     composition: runtimeAttributionComposition,
     openingSnapshot: runtimeAttributionOpeningSnapshot,

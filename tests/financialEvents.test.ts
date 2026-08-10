@@ -83,7 +83,7 @@ test('保留完全缺少 Ledger 的舊資料為空，不回填或轉換任何歷
   const legacy = { transactions: [{ id: 'historic-transaction', amount: 999 }] };
   const result = normalizeFinancialEventLedger(legacy, context);
 
-  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.schemaVersion, 3);
   assert.deepEqual(result.events, []);
   assert.equal(result.attributionStartDate, undefined);
   assert.deepEqual(result.skipped, []);
@@ -92,14 +92,14 @@ test('保留完全缺少 Ledger 的舊資料為空，不回填或轉換任何歷
 
 test('未知 future schema 保持 opaque，絕不被降級成 v1', () => {
   const future = {
-    financialEventSchemaVersion: 3,
+    financialEventSchemaVersion: 4,
     financialEventAttributionStartDate: { future: 'opaque-date-contract' },
     financialEvents: { eventSet: [{ unsupported: 'must-survive' }] }
   };
 
   const result = normalizeFinancialEventLedger(future, context);
 
-  assert.equal(result.schemaVersion, 3);
+  assert.equal(result.schemaVersion, 4);
   assert.deepEqual(result.events, future.financialEvents);
   assert.deepEqual(result.attributionStartDate, future.financialEventAttributionStartDate);
   assert.equal(result.supported, false);
@@ -274,7 +274,7 @@ test('v1 attribution-confirmation source 走與 linked-transaction 相同的 tax
   }] }, { ...context, transactionIds: new Set(['income']), transactionsById: new Map([['income', transaction]]) });
 
   assert.equal(result.schemaVersion, 1);
-  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 2, 'v2 是 componentLink 結構性升級；v1 仍保持可讀且不 migration。');
+  assert.equal(FINANCIAL_EVENT_SCHEMA_VERSION, 3, 'v3 是 generic split opaque boundary；v1 仍保持可讀且不 migration。');
   assert.deepEqual(result.events.map(event => event.id), ['confirmation-1']);
   assert.equal(result.skipped.length, 0);
 });

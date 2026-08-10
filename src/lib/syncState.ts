@@ -1,3 +1,5 @@
+import { serializeFinancialEventLedgerEvents } from './financialEvents';
+
 export type SyncSource = '本機資料' | '已從雲端下載' | '已從備份匯入';
 
 export const SYNC_CANONICAL_SCHEMA = 'sync-json-v2';
@@ -126,7 +128,12 @@ export function stableCanonicalJson(value: unknown) {
 }
 
 export function canonicalSyncJson(state: StateWithSyncMetadata) {
-  return stableCanonicalJson(withoutSyncMetadata(state));
+  const schemaVersion = state.financialEventSchemaVersion;
+  const events = state.financialEvents;
+  const stateWithPersistedLedger = typeof schemaVersion === 'number' && Array.isArray(events)
+    ? { ...state, financialEvents: serializeFinancialEventLedgerEvents(schemaVersion, events) }
+    : state;
+  return stableCanonicalJson(withoutSyncMetadata(stateWithPersistedLedger));
 }
 
 export function canonicalSyncPayload(state: StateWithSyncMetadata): Record<string, unknown> {

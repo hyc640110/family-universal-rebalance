@@ -1,7 +1,8 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import { deriveRuntimeDerivedAttributionEvidence } from './derivedAttributionEvidence';
 import type { FinancialAccount } from './financialAccounts';
-import { collectVoidedEventIds, linkedTransactionReason, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
+import { collectVoidedEventIds, isFinancialEventLedgerSchemaSupported, linkedTransactionReason, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
+import { resolveActiveGenericSplitAllocationGroups } from './genericSplitAllocation';
 import { deriveLoanRuntimeEvidence } from './loanAttribution';
 import {
   deriveNetWorthAttributionFromEvidence,
@@ -18,7 +19,8 @@ export type RuntimeAttributionCompositionDiagnostic = NetWorthAttributionDiagnos
     | 'invalid-attribution-period'
     | 'ledger-event-outside-period-excluded'
     | 'ledger-event-currency-unsupported'
-    | 'derived-transaction-currency-unsupported';
+    | 'derived-transaction-currency-unsupported'
+    | 'financial-event-ledger-schema-unsupported';
   eventId?: string;
   transactionId?: string;
 };
@@ -26,7 +28,11 @@ export type RuntimeAttributionCompositionDiagnostic = NetWorthAttributionDiagnos
 export type RuntimeAttributionCompositionInput = {
   openingSnapshot?: NetWorthSnapshot | null;
   closingSnapshot?: NetWorthSnapshot | null;
-  ledgerEvents: readonly FinancialEvent[];
+  ledgerEvents: readonly FinancialEvent[] | unknown;
+  /** AppState supplies this so a future opaque Ledger can never enter runtime interpretation. */
+  financialEventSchemaVersion?: number;
+  /** Testable support boundary for legacy clients; production defaults to this build's supported schemas. */
+  supportedSchemaVersions?: readonly number[];
   transactions: readonly FinancialTransaction[];
   accounts: readonly FinancialAccount[];
   /** Optional keeps non-Loan consumers and legacy call sites backward-compatible. Absence is fail-safe for Loan attribution. */
@@ -78,6 +84,18 @@ function unavailableForInvalidPeriod(input: RuntimeAttributionCompositionInput):
   };
 }
 
+function isRuntimeFinancialEvent(value: unknown): value is FinancialEvent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === 'string'
+    && typeof record.source === 'string'
+    && typeof record.type === 'string'
+    && typeof record.status === 'string'
+    && typeof record.effectiveDate === 'string'
+    && typeof record.amount === 'number'
+    && typeof record.currency === 'string';
+}
+
 /**
  * Composes C1 Ledger, C2 reconciliation, and C3A derived transaction evidence at
  * runtime only. It never writes FinancialEvent data or changes persistence.
@@ -85,6 +103,13 @@ function unavailableForInvalidPeriod(input: RuntimeAttributionCompositionInput):
 export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompositionInput): RuntimeAttributionComposition {
   const period = periodFrom(input);
   if (!period) return unavailableForInvalidPeriod(input);
+  const schemaSupported = input.financialEventSchemaVersion === undefined
+    || isFinancialEventLedgerSchemaSupported(input.financialEventSchemaVersion, input.supportedSchemaVersions);
+  // Unsupported schemas are intentionally treated as no Ledger evidence, not as an empty Ledger:
+  // raw opaque records cannot consume transactions or suppress derived evidence.
+  const ledgerEvents = schemaSupported && Array.isArray(input.ledgerEvents)
+    ? input.ledgerEvents.filter(isRuntimeFinancialEvent)
+    : [];
 
   // UR-TODO-046 void: a voided event is never mutated (forward-only) — a 'void' marker just
   // references it by id. Filtering both the markers themselves and their targets out here, before
@@ -92,9 +117,9 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   // netWorthAttribution.ts's core formula needs to know "voided" exists, and the voided event's
   // transaction is freed back to 'candidate' so its economic effect can still surface via the
   // derived-evidence fallback path instead of silently disappearing.
-  const voidedEventIds = collectVoidedEventIds(input.ledgerEvents);
+  const voidedEventIds = collectVoidedEventIds(ledgerEvents);
   const transactionById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
-  const effectiveLedgerEvents = input.ledgerEvents.filter(event => event.source !== 'void' && !voidedEventIds.has(event.id));
+  const effectiveLedgerEvents = ledgerEvents.filter(event => event.source !== 'void' && !voidedEventIds.has(event.id));
   // Runtime may receive persisted Ledger records before a storage normalizer has run. Reapply the
   // canonical linked-transaction boundary here so an invalid historical link cannot consume a
   // transaction or become Ledger contribution merely by bypassing normalization.
@@ -111,7 +136,8 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
       event.effectiveDate,
       transaction,
       event.componentLink,
-      event.loanId
+      event.loanId,
+      event.splitAllocationLink
     );
   });
   const loanGroupResolution = resolveActiveLoanComponentGroups(sanctionedLedgerEvents, {
@@ -120,10 +146,14 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
     transactionIds: new Set(input.transactions.map(transaction => transaction.id)),
     transactionsById: new Map(input.transactions.map(transaction => [transaction.id, transaction]))
   });
+  const genericSplitResolution = resolveActiveGenericSplitAllocationGroups(sanctionedLedgerEvents, {
+    transactionsById: transactionById
+  });
 
   const diagnostics: RuntimeAttributionCompositionDiagnostic[] = [];
   const ledgerEvidence: NetWorthAttributionEvidence[] = sanctionedLedgerEvents.flatMap(event => {
     if (event.componentLink && !loanGroupResolution.validEventIds.has(event.id)) return [];
+    if (event.splitAllocationLink && !genericSplitResolution.validEventIds.has(event.id)) return [];
     if (!inPeriod(event.effectiveDate, period)) {
       diagnostics.push({ code: 'ledger-event-outside-period-excluded', eventId: event.id });
       return [];
@@ -200,6 +230,20 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const derivedContribution = attribution.classifiedEventContribution === null
     ? null
     : attribution.eventClassifications.filter(item => item.provenance === 'derived-transaction').reduce((total, item) => total + item.contribution, 0);
+
+  if (!schemaSupported) {
+    return {
+      ...attribution,
+      classifiedEventContribution: null,
+      unexplainedResidual: null,
+      unexplainedResidualRatio: null,
+      attributionQuality: 'unavailable',
+      ledgerContribution: null,
+      derivedContribution,
+      reconciliationResults,
+      diagnostics: [...attribution.diagnostics, ...diagnostics, { code: 'financial-event-ledger-schema-unsupported' }]
+    };
+  }
 
   return {
     ...attribution,
