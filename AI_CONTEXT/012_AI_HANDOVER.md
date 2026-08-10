@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046-L2A Split Allocation Contract Audit／L2B Generic Split Allocation Foundation（已完成，2026-08-10）
+
+- 基線與狀態：PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（parents：`2dcc66b96f51d2c580007c951e6393b1b1376b92`、`724a7b2b5cb24ecad309a7d6c4bd1d04132f7f09`；`mergedAt: 2026-08-10T12:23:50Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main`／merge commit 一致；PR CI Verification／`verify` run `31386340292` success，Deploy GitHub Pages run `31387817114` success。Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。
+- 已完成的 generic contract：FinancialEvent schema v3 是 generic split 的 compatibility boundary；FinancialEvent Ledger 是唯一 persistent SSOT。合法 group 必須具有 stable allocationGroupId、同 domain／transactionId／account／currency／effectiveDate、group-local unique componentId、完整 components 與 amount conservation。只要 partial／under-sum／over-sum／duplicate／unsupported 或任一 component Void，即 whole group invalid，不可留下部分 component 有效的狀態，也不得進 attribution、transaction consumption、reconciliation matched 或 derived-evidence suppression。
+- Void／replacement：修正一律 forward-only：先 append Void old group，再 append complete replacement group。replacementOfGroupId 僅為連結，不會自動 Void 舊 group；replacement 必須用 fresh allocationGroupId 與 fresh event ids，舊 group 未 Void 時 replacement 不得生效。
+- 相容性／同步：v1／v2 Ledger 維持可讀；v2 client 遇 v3 Ledger 保留 opaque payload 且 no runtime consumption，不能 downgrade、migration 或把 raw records 當正常 FinancialEvent 消費；future schema 同樣 fail-safe。localStorage、JSON Backup、Firebase v3 round-trip 已有 characterization coverage；Firebase partial union deterministic 且未完整前不歸因；v2/v3 mixed-version merge 及同 event id 不同內容一律 reject，upload path 不得 PUT。Loan L1 principal／interest／fee／penalty semantics 維持不變。
+- 明確不包含／下一位 AI 起點：L2B 不含 UI、CSV、Import Center、Investment buy/sell consumer、FX conversion、Loan UI wiring、AI Decision、Rebalance、Dashboard、historical migration 或 existing FinancialEvents 自動轉換。UR-TODO-046 整體仍未完成；Remaining Boundary 僅為 FX attribution 與尚未授權的 Loan UI／CSV／Import Center／其他 consumer mapping。下一位 AI 必須先在 Review Mode 以最新 `origin/main` 唯讀盤點，另行取得產品決策與授權後才可啟動任何子階段。
+
+---
+
 ## 最新交接快照：UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation（已完成，2026-08-09）
 
 - 基線與狀態：PR [#294](https://github.com/hyc640110/family-universal-rebalance/pull/294) 已由使用者授權並以既定 admin merge 例外合併，merge commit `b88c35511be509a84ba756a9a075df6d047154ad`（parents：`1a80d08bdc5371fe3bb0a0a67ef533571db2214a`、`0f82d999b4e04d414a8e00160b1a5a7915992407`；`mergedAt: 2026-08-09T17:01:56Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main`／merge commit 一致；Deploy GitHub Pages run `31325341109` success，Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。L1 程式、CI、Merge 與 Production 部署均已完成；不得自行啟動後續階段。

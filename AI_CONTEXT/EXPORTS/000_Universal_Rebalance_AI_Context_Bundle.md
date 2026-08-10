@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-09T17:11:23.089202+00:00
+Generated UTC: 2026-08-10T12:29:24.580468+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-09T17:11:23.089202+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3565b3c60d6ea1c0a08c3affb515d8dcd64504dddff454d6273bf36c76c2d668`
 - `002_MASTER_ROADMAP.md` — SHA-256 `44d8de2ab0d446b4adfbf94e20e06e7bb7274f2a649110f4c86c2177fdb493e5`
-- `003_CURRENT_STATUS.md` — SHA-256 `c9e3798abb4a739136aa913eff63d9540fa3f5acfd4eaf08b7586162b3be67a4`
+- `003_CURRENT_STATUS.md` — SHA-256 `1183c7d4a2eaf09b50b62a2b83182b662de68e618a75bcd3ca5a6d22f6f46b36`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `5ae95aa25643dcbcf9de78874231836a62e8761106777a41d7a60150652726fa`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `48d06affe7a15a68d9ac7bce311cbfcb5d82e55734e6314c47efec9e2fdfc414`
 - `007_GIT_WORKFLOW.md` — SHA-256 `f046ef578bb175317c774a1c872473909b9a888bf2d95e90071c4bf437178d62`
-- `008_TODO_BACKLOG.md` — SHA-256 `30c8247a2221988317d9731abb2a05695bf41cad2cb5e77e7b3be8db9bb9ad34`
-- `009_CHANGELOG.md` — SHA-256 `a31526bcc16b463bda0b6464e1061eff85721962c3e5d379e549117a252de3d3`
+- `008_TODO_BACKLOG.md` — SHA-256 `f3e71540c3e9ae08929ba4d623fffb782b5c63682ac8231049d080482b441f15`
+- `009_CHANGELOG.md` — SHA-256 `6438449ec0287ff278e77bf42a500d8619d7256808d21cf81ff0865914d0a7b4`
 - `010_CODING_STANDARDS.md` — SHA-256 `c0588d5f145c4801f4301215c02dc927bcf79da760cd0d0ac28e5dc73e131e0c`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `e73f7d5ec81c5cadc223393a4f2a55f464c32e805917534ecfa75b53261d17b2`
-- `012_AI_HANDOVER.md` — SHA-256 `7081031db24b876ca8b954754ee028643f4f81e571789653082617db4bdcb172`
+- `012_AI_HANDOVER.md` — SHA-256 `757bb67121b1ee41b9dbd99b0011e1d7248499743b645af3dca504fd9dffc1bf`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -28,7 +28,7 @@ Generated UTC: 2026-08-09T17:11:23.089202+00:00
 - `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
 - `019_Idea_Pool.md` — SHA-256 `3c8baa228d78c53eb88f8c226381312af8ac7fad835df96d2552900297793021`
-- `020_Architecture_Decisions.md` — SHA-256 `63500cac2fbedaa2376b555b765c5bd1d67d598dfc67d26bcc298ac7bc0e0894`
+- `020_Architecture_Decisions.md` — SHA-256 `b347de128f3a7d8633c9f464d26bd6a851870ef4b17c44a1a0bc0cff70f417c5`
 
 ---
 
@@ -658,9 +658,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v3.90
+# Universal Rebalance Current Status v3.91
 
-最後更新：2026-08-09
+最後更新：2026-08-10
+
+**UR-TODO-046-L2A Split Allocation Contract Audit 與 UR-TODO-046-L2B Generic Split Allocation Foundation 已正式完成。** PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（parents：`2dcc66b96f51d2c580007c951e6393b1b1376b92`、`724a7b2b5cb24ecad309a7d6c4bd1d04132f7f09`；`mergedAt: 2026-08-10T12:23:50Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main` 與 merge commit 一致；PR CI Verification／`verify`（run `31386340292`）success，Merge 後 Deploy GitHub Pages run `31387817114` success，head SHA 與 merge commit 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 均可載入。FinancialEvent schema v3 已正式進入 main：generic split 以 `allocationGroupId` 的 Atomic Group 表示完整 economic event，FinancialEvent Ledger 是唯一 persistent SSOT；只有同 domain／transactionId／account／currency／effectiveDate、一致且完整、amount-conserving 的 group 才可歸因，任一 component Void 即整組失效。修正維持 forward-only：先 Void 舊 group，再 append 使用新 group id 與新 event ids 的完整 replacement group；`replacementOfGroupId` 不會自行作廢舊 group。v2 client 讀 v3 Ledger 時保留 opaque payload、不得進 runtime attribution／reconciliation／derived suppression；future schema 同樣 fail-safe。Firebase v2/v3 mixed-version merge 與同 event id 不同內容皆 fail-safe reject，partial group union 在完整前不消費。Loan L1 principal／interest／fee／penalty 語意不變。本階段未新增 UI、CSV、Import Center、Investment、FX consumer、AI Decision、Rebalance 或 Dashboard，亦未 migration／改寫既有資料。**UR-TODO-046 整體仍未結案**：FX attribution，以及尚未授權的 Loan UI／CSV／Import Center 與其他 consumer mapping 仍是 Remaining Boundary；不得自行啟動下一子階段。
 
 **UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation 已正式完成。** PR [#294](https://github.com/hyc640110/family-universal-rebalance/pull/294) 已由使用者使用既定 admin merge 例外合併，merge commit `b88c35511be509a84ba756a9a075df6d047154ad`（parents：`1a80d08bdc5371fe3bb0a0a67ef533571db2214a`、`0f82d999b4e04d414a8e00160b1a5a7915992407`；`mergedAt: 2026-08-09T17:01:56Z`；`mergedBy: hyc640110`）。`origin/main`／GitHub `main` 與 merge commit 一致；Deploy GitHub Pages run `31325341109` success，head SHA 與 merge commit 一致；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。L1 新增 `FinancialTransaction.loanAttribution?` 的加法式明示 contract（repayment／disbursement／cash-movement），以及 FinancialEvent schema v2 的 optional `componentLink`／atomic confirmation group。完整 TWD repayment 僅以明示 component 歸因：principal = 0，interest／fee／penalty = 一次負 contribution；disbursement = 0；20,000 還款（principal 15,000、interest 5,000）最終僅有 net-worth contribution `-5,000`，不另產生 `external-expense -20,000`。`componentId` 在同一 `loanId` identity domain 內不得跨 payment 重複，且 `appendFinancialEventGroup()` 寫入邊界自行重跑完整 repayment contract／transaction／cash linkage／component group 驗證。缺 loanId、paymentId／componentId、component 合計、唯一 cash linkage、TWD 或完整 group 任一證明時，皆 fail-safe 至 unsupported／residual；沒有正式 Loan contract 的 `expense-housing` 與既有 linked `external-expense` Ledger event 均不得用 description、merchant、note、generic taxonomy、月付／利率／本金快照推測歷史還款、產生 contribution 或 fallback 成 `external-expense`。只有完整且全部 posted 的 component group 才可 Ledger-confirmed；pending／mixed／excluded／void component 均使整組不生效，任一 component Void 會停止整組 attribution，只有新的完整 group 才可重新辨識。duplicate paymentId／componentId、Ledger confirmed 與 runtime evidence、transaction／cash movement 均維持防 double-count。v1 Ledger 可讀、v1/v2 Firebase Ledger 不安全混合拒絕；localStorage／JSON Backup／Firebase 保持加法式相容，無 migration。已驗證 788 unit／Risk 3／MJS 18、TypeScript、Production／Preview build、Bundle manifest（Full 22/22、Lite 6/6）與 `git diff --check`；最終獨立 Merge 前審查 PASS、Merge Blocker：無。**UR-TODO-046 整體仍未結案**：split allocation、FX attribution，以及尚未授權的 Loan UI／CSV／Import Center consumer mapping 為 Remaining Boundary；持股 replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance 與 Dashboard 均未納入。
 
@@ -2923,9 +2925,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.76
+# Universal Rebalance Todo Backlog v1.77
 
-最後更新：2026-08-08
+最後更新：2026-08-10
+
+2026-08-10 **UR-TODO-046-L2A Split Allocation Contract Audit 與 UR-TODO-046-L2B Generic Split Allocation Foundation 正式標記為已完成**。PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（`mergedAt: 2026-08-10T12:23:50Z`、`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31386340292` success，Merge 後 Deploy GitHub Pages run `31387817114` success，Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 均可載入。L2A 完成 schema boundary 與 Atomic Group contract 的唯讀實證；L2B 將 FinancialEvent schema 升至 v3，generic split 以 Atomic Group 持久化於 FinancialEvent Ledger（唯一 persistent SSOT），僅完整、有效、amount-conserving group 可參與 attribution／group-to-transaction reconciliation。任一 component Void 令 whole group invalid；correction 只允許 forward-only 的 Void old group → complete replacement group，replacement 必須使用新的 allocationGroupId 與 event ids。v2 runtime 對 v3 Ledger 維持 opaque preservation／no-runtime-consumption；v2/v3 Firebase mixed-version merge、event-id collision different payload 均 fail-safe reject；partial Firebase union 在完整前不得 attribution。Loan L1 principal／interest／fee／penalty semantics 未改變。本次不含 UI、CSV、Import Center、Investment／FX consumer、Loan UI wiring、AI Decision、Rebalance、Dashboard、historical migration 或 existing FinancialEvent 自動轉換。**UR-TODO-046 整體仍為部分完成**；後續只保留 FX attribution、Loan UI／CSV／Import Center 與其他尚未授權 consumer mapping，均須另行唯讀盤點、產品決策與授權，不得自動開始。
 
 2026-08-08 **UR-TODO-053（趨勢圖改為「相對今日淨資產」基準線填色）正式標記為已完成**。已由使用者手動指示 Merge [PR #290](https://github.com/hyc640110/family-universal-rebalance/pull/290)（`feat/trend-chart-baseline-relative-fill`），merge commit `8d8dddf`，為目前 `main`／`origin/main` 正式基線。取代 UR-TODO-027 已完成的「逐段漲跌」填色邏輯（不是新增並存），改為新增一條固定在「今日淨資產／今日{title}」高度的水平基準線，折線高於基準線紅色、低於綠色。唯讀盤點確認 `monotoneSegments()`／`monotonePath` 曲線計算可完全重用，並驗證既有時間範圍篩選函式保證陣列最後一筆永遠是最新資料，基準線可安全固定為絕對值不隨範圍切換改變。使用者決策：交叉點計算採線性插值、基準線加淡色虛線＋「今日」文字標示、文案採「以今日{title}為基準：...」放在圖表下方。開發中發現 `TrendChart` 為淨資產／投資資產共用元件，已改用 `title` prop 動態組字避免文案誤植。**首次 Preview 驗收發現真實 Bug 並已修正**：30 天視圖中明顯低於基準線的一段完全沒有綠色填色（高於基準線的紅色正常）。直接檢視渲染後 SVG DOM 確認根因（非猜測）：`up`／`down` 兩個方向的 `<linearGradient>` 誤共用同一組 `y1`／`y2` 座標範圍（`top`→`refY`），紅色區塊的像素座標剛好完全落在此範圍內、綠色區塊則明顯超出，SVG 預設 `spreadMethod="pad"` 讓超出範圍的部分沿用最後一個 stop 的顏色（全透明），導致綠色填色路徑幾何正確但畫面全透明。修正：`down` 漸層改用 `height-bottom`→`refY`（與 `up` 的 `top`→`refY` 對稱），新增迴歸測試直接斷言每個方向的漸層範圍必須完整涵蓋該方向填色路徑的座標範圍。`tests/trendChartGradientArea.test.ts` 因語意完全改變全數改寫並新增迴歸測試（7→11 個測試）。868 tests pass，`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證兩種圖表文案、紅綠填色（含明顯低於基準線的低谷）皆正確渲染。詳見下方 **UR-TODO-053** 正式條目。
 
@@ -4334,6 +4338,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ## [Unreleased]
 
+**UR-TODO-046-L2A Split Allocation Contract Audit／L2B Generic Split Allocation Foundation（2026-08-10）**：PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（`mergedAt: 2026-08-10T12:23:50Z`、`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31386340292` success，Deploy GitHub Pages run `31387817114` success，Production smoke verification（HTTP 200、environment=production、App root、正式 JavaScript bundle）通過。L2A 完成 Atomic Group 與 schema boundary audit；L2B 將 FinancialEvent Ledger 升至 schema v3，generic split 以完整 economic event 的 Atomic Group 持久化，Ledger 維持唯一 persistent SSOT。只有 same domain／transactionId／account／currency／effectiveDate、component identity 唯一、完整且 amount-conserving 的 group 可以 attribution／reconciliation；partial、under-sum、over-sum、duplicate、unsupported 或 Void component 均 fail-safe 不消費。修正採 forward-only：Void old group 後 append complete replacement group；`replacementOfGroupId` 本身不會作廢舊 group，replacement 必須使用 fresh allocationGroupId 與 event ids。v2 client 對 v3 Ledger 保留 opaque payload 且不進 attribution、reconciliation 或 derived-evidence suppression；future schema 同樣 fail-safe。localStorage／JSON Backup／Firebase v3 round-trip 維持，v2/v3 mixed-version merge 與 event-id collision different payload 一律 reject、不得 PUT／downgrade／partial merge；partial Firebase union 在完整前不歸因。Loan L1 principal／interest／fee／penalty semantics 不變。未新增 UI、CSV、Import Center、Investment／FX consumer、Loan UI、AI Decision、Rebalance、Dashboard、migration 或既有資料改寫；UR-TODO-046 整體仍未完成，FX attribution 與尚未授權 consumer mapping 保留後續獨立決策。
+
 **UR-TODO-046-L1 Loan Repayment Contract & Fail-safe Attribution Foundation（2026-08-09）**：PR [#294](https://github.com/hyc640110/family-universal-rebalance/pull/294) 已由使用者授權並以既定 admin merge 例外合併，merge commit `b88c35511be509a84ba756a9a075df6d047154ad`（parents：`1a80d08bdc5371fe3bb0a0a67ef533571db2214a`、`0f82d999b4e04d414a8e00160b1a5a7915992407`；`mergedAt: 2026-08-09T17:01:56Z`；`mergedBy: hyc640110`）；Deploy GitHub Pages run `31325341109` success，Production smoke verification（HTTP 200、environment=production、App root 與正式 JavaScript bundle）通過。本次新增明示、加法式 `FinancialTransaction.loanAttribution?` contract 與 FinancialEvent schema v2 optional `componentLink`。完整 TWD repayment 的 principal = 0，interest／fee／penalty 僅在明示 component 可證明時為一次負 contribution，loan disbursement = 0；20,000 repayment（principal 15,000＋interest 5,000）最終僅為 `-5,000`，不另產生 `external-expense -20,000`。缺 contract、component sum、identity、linkage 或 TWD 時維持 unsupported／residual，不猜測也不自動更新 Loan principal。`componentId` 在同一 loan identity domain 不得跨 payment 重複，`appendFinancialEventGroup()` 在 API 寫入邊界自行執行完整 repayment contract／transaction／cash linkage／group 驗證；沒有正式 Loan contract 的 `expense-housing`，即使有既有 linked `external-expense` Ledger event，也不得因房貸文字或泛用分類形成 contribution。完整、全部 posted 的 component group 才可確認與消費；pending／mixed／excluded／void component 令整組不生效，任一 component Void 暫停整組，僅 fresh 完整 group 可重新辨識。Ledger confirmed、runtime evidence、duplicate payment／component identity 及明示 cash movement 均有防重複；v1 Ledger 可讀、v1/v2 Firebase Ledger 不安全混合拒絕，localStorage／JSON Backup／Firebase 與 legacy normalizer 保持相容，無 migration。已驗證 788 unit／Risk 3／MJS 18、TypeScript、Production／Preview build、Full Bundle 22/22、Lite Bundle 6/6 與 `git diff --check`；最終獨立審查 PASS、Merge Blocker：無。未處理 split allocation、FX attribution、Loan UI／CSV／Import Center mapping、holding replay、realized gain/loss、Household Liquidity、CLEC、AI Decision、Rebalance 或 Dashboard。
 
 **UR-TODO-046-I1 Investment Trade Contract & Fail-safe Reconciliation Foundation（2026-08-09）**：PR [#292](https://github.com/hyc640110/family-universal-rebalance/pull/292) 已 Merge，merge commit `b8621a0bf5e13a7666b360829e276d6d87019a44`；Deploy GitHub Pages #339（run `31299929750`）success，Production smoke verification 通過。新增向後相容 `FinancialTransaction.investmentAttribution` discriminated union，並完成 `income-other` regression、fee／tax settlement 防重複與 trade＋cash movement fail-safe 收斂。完整正式 TWD buy／sell 優先於 generic taxonomy，對應 `investment-buy`／`investment-sell`、本金 contribution = 0；一般、未附完整 trade contract 的 `income-other` 維持 `external-income`。fee／tax 僅在明確 `costId`、`settlementCostTreatment: independent`、唯一正式 trade 關聯皆成立時產生一次負 contribution；`included`／`unknown`／legacy／重複／無關聯一律不扣除。另建 cash movement 必須有 explicit `cashMovementId`、`kind: cash-movement`、方向、相同帳戶與幣別的唯一對應；Ledger confirmation／runtime derived evidence／Void 均維持防重複。dividend reinvestment 中 dividend 保留一次外部增加、buy = 0；non-TWD 維持 FX unsupported／residual，未建立 realized gain/loss contribution。採 additive fields，無 schema bump／migration；localStorage／JSON Backup／Firebase／legacy normalizer 相容。UR-TODO-046 整體仍未完成，split allocation、loan principal／interest attribution、FX attribution 未納入。
@@ -4820,6 +4826,16 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046-L2A Split Allocation Contract Audit／L2B Generic Split Allocation Foundation（已完成，2026-08-10）
+
+- 基線與狀態：PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（parents：`2dcc66b96f51d2c580007c951e6393b1b1376b92`、`724a7b2b5cb24ecad309a7d6c4bd1d04132f7f09`；`mergedAt: 2026-08-10T12:23:50Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main`／merge commit 一致；PR CI Verification／`verify` run `31386340292` success，Deploy GitHub Pages run `31387817114` success。Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。
+- 已完成的 generic contract：FinancialEvent schema v3 是 generic split 的 compatibility boundary；FinancialEvent Ledger 是唯一 persistent SSOT。合法 group 必須具有 stable allocationGroupId、同 domain／transactionId／account／currency／effectiveDate、group-local unique componentId、完整 components 與 amount conservation。只要 partial／under-sum／over-sum／duplicate／unsupported 或任一 component Void，即 whole group invalid，不可留下部分 component 有效的狀態，也不得進 attribution、transaction consumption、reconciliation matched 或 derived-evidence suppression。
+- Void／replacement：修正一律 forward-only：先 append Void old group，再 append complete replacement group。replacementOfGroupId 僅為連結，不會自動 Void 舊 group；replacement 必須用 fresh allocationGroupId 與 fresh event ids，舊 group 未 Void 時 replacement 不得生效。
+- 相容性／同步：v1／v2 Ledger 維持可讀；v2 client 遇 v3 Ledger 保留 opaque payload 且 no runtime consumption，不能 downgrade、migration 或把 raw records 當正常 FinancialEvent 消費；future schema 同樣 fail-safe。localStorage、JSON Backup、Firebase v3 round-trip 已有 characterization coverage；Firebase partial union deterministic 且未完整前不歸因；v2/v3 mixed-version merge 及同 event id 不同內容一律 reject，upload path 不得 PUT。Loan L1 principal／interest／fee／penalty semantics 維持不變。
+- 明確不包含／下一位 AI 起點：L2B 不含 UI、CSV、Import Center、Investment buy/sell consumer、FX conversion、Loan UI wiring、AI Decision、Rebalance、Dashboard、historical migration 或 existing FinancialEvents 自動轉換。UR-TODO-046 整體仍未完成；Remaining Boundary 僅為 FX attribution 與尚未授權的 Loan UI／CSV／Import Center／其他 consumer mapping。下一位 AI 必須先在 Review Mode 以最新 `origin/main` 唯讀盤點，另行取得產品決策與授權後才可啟動任何子階段。
 
 ---
 
@@ -8214,9 +8230,9 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Architecture Decisions
 
-版本：v1.0
+版本：v1.1
 
-最後更新：2026-07-25
+最後更新：2026-08-10
 
 ## 0. 文件定位
 
@@ -8246,6 +8262,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 |---|---|---|
 | ADR-001 | V7.0B 採漸進式整合（Strangler Pattern），逐步將 `App.tsx` 內的舊邏輯抽出為純函式並接上 Household Liquidity | 已採用 |
 | ADR-002 | Dip Alert 明確分離「訊號」與「資金資格」語意 | 已採用 |
+| ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
 
 ---
 
@@ -8305,5 +8322,29 @@ UI 呈現層依循 013 §14.3：訊號區塊（跌幅、門檻等純價格資訊
 - 取捨：`DipAlertRow` 型別多一個欄位，下游消費者（`getDecisionSummary`）若要呈現「資金感知」的摘要文字，需要額外讀取 `fundingStatus`（子 PR 5b 已示範：`dipStatus` 新增資金狀態感知後綴，但 `triggeredDipAlerts` 的計數邏輯本身不受影響）。
 - 延續要求：未來任何「訊號類」功能（例如再平衡門檻觸發、其他機會訊號）若同時涉及資金資格判斷，應比照本 ADR 的欄位拆分方式，不得將訊號判斷與資金判斷寫在同一個布林值或同一個計算路徑內。
 - 與 ADR-001 的關係：本 ADR 是 ADR-001 兩階段模式（抽出→串接）在 Dip Alert 這個具體模組上的直接產物——「抽出」階段鎖住訊號行為，「串接」階段才新增資金資格欄位，兩者能夠乾淨分離正是因為採用了漸進式整合而非一次性重構。
+
+---
+
+## ADR-003：Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary
+
+**狀態**：已採用
+
+**背景**：
+
+UR-TODO-046-L2A 的 Repository audit 確認，跨 domain 的 split allocation 若讓不同 component 各自被視為獨立 financial event，會產生 partial-valid、amount 不守恆、重複 transaction consumption 與 derived-evidence 錯誤壓制風險。audit 同時確認既有 v2 client 無法安全理解 generic split 的新經濟語意；僅以加法式 record shape 延伸會使舊 runtime 有將未知 payload 當成正常 FinancialEvent 消費的風險。PR #296（UR-TODO-046-L2B）將此 contract 與 compatibility boundary 正式實作並合併至 main。
+
+**決策**：
+
+1. 同一 `allocationGroupId` 的 components 是一個不可拆分的完整 economic event。只有 same domain、transactionId、account、currency、effectiveDate、group-local componentId uniqueness、completeness 與 amount conservation 全部成立的 group，才可進入 Ledger attribution、group-to-transaction reconciliation 與 derived-evidence suppression。
+2. FinancialEvent Ledger 是 generic split 的唯一 persistent SSOT；runtime derived evidence 不得偽裝為 persisted FinancialEvent，也不得另建第二套 persistent split store。
+3. 任一 component Void 令 whole group invalid。修正僅採 forward-only：append Void old group 後，另 append 使用 fresh allocationGroupId 與 fresh event ids 的 complete replacement group；`replacementOfGroupId` 本身不得隱式作廢或取代舊 group。
+4. FinancialEvent schema v3 是 generic split 的 opaque compatibility boundary。v3 client 正常 normalize 合法 v3 group；v2 client 與任何 future unsupported client 必須保留 opaque payload，但不得進 runtime attribution、reconciliation、transaction consumption 或 derived-evidence suppression，亦不得 downgrade 或自動 migration。
+5. Firebase 合併只接受可安全合併的同版本 Ledger；v2/v3 mixed-version、future unsupported schema 或同 event id 但不同 payload 一律 fail-safe reject，拒絕後 upload path 不得 PUT。partial group 的 Firebase union 可保留，但完整前不得被消費。
+
+**後果**：
+
+- 好處：economic completeness、amount conservation、void 與 replacement 都在同一 group contract 下驗證，避免部分 component 造成 double-count 或無聲遺漏；舊 client 面對新 schema 時寧可不歸因也不錯誤解讀。
+- 取捨：generic split 寫入端必須一次提供完整 group，不能做 confirmed component-level correction；舊版 client 讀取 v3 Ledger 期間不會產生 Ledger attribution，需由支援 v3 的 client 消費。
+- 延續要求：任何新 consumer（例如 Loan UI／CSV／Import Center、Investment、FX）都必須先在獨立 Sprint 定義其 domain contract 與 generic group mapping，不得將 domain-specific 商業規則滲入 generic foundation；不得因本 ADR 自動啟動後續 consumer 或 historical migration。
 
 <!-- END FILE: 020_Architecture_Decisions.md -->
