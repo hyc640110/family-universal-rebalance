@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046-L2C Cross-Version Sync Recovery & Status Contract Audit／L2C-P0 Sync Status Contract Fix（已完成，2026-08-10）
+
+- 基線與狀態：PR [#298](https://github.com/hyc640110/family-universal-rebalance/pull/298) 已由使用者授權正常 Merge，merge commit `af79903f547f498194cbe9b383a90cabdf28afdd`（parents：`149de0b9aa977a2c5fd1ef6d4af98c233af390a1`、`cd3bbaac9d9c0c440b9a61e5a6bc04e806850812`；`mergedAt: 2026-08-10T14:16:08Z`；`mergedBy: hyc640110`）。PR CI Verification／`verify` run `31396033551` success，Deploy GitHub Pages run `31397236443` success；Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 正常。
+- Root cause／資料安全：L2C Audit 證實使用者看到的「本機 v1／雲端 v2，目前支援 v2」是舊 v2 bundle 把 free-text `syncMeta.status` 持久化後，在 v3 runtime 被誤當 current status；local v1／remote v2 mixed-version merge reject 本身是既有 fail-safe 行為。沒有 localStorage 或 Firebase Ledger 資料損毀證據，且本次沒有讀寫 Production Firebase 或執行 migration。
+- 已完成 status contract：runtime failure 不進 localStorage canonical state、JSON Backup authoritative current state 或 Firebase canonical payload；reload／Ctrl+F5 會移除 stale status，下一次手動同步才依當次 runtime facts 建立 current status。schema mismatch UI 必須同時顯示 local schema、remote schema、writer schema 與 supported versions；writer schema v3 不等同 supported set v1／v2／v3。
+- merge reject／同步安全：`LedgerMergeRejectReason` 為 structured taxonomy，且不解析 error message：`schema-version-mismatch` 僅表示兩端 schema 不同、`unsupported-future-schema` 表示至少一端不在 supported set、`event-id-collision` 表示相同 event id 但內容不同。所有 reject 維持 GET → validate／merge → reject → no-PUT；download 在建立新 state 前停止，local Ledger unchanged；無 partial merge、downgrade、migration 或 Ledger rewrite。
+- Remaining Boundary／下一位 AI 起點：L2C-P0 只修 status contract，**未開始** authoritative-side selection、v1→v3／v2→v3 conversion、cross-version semantic merge 或 recovery workflow。任何正式 recovery 必須先進入 Review Mode，驗證並備份雙端 Ledger、檢查 event-id collision、void／component-group integrity 與 deterministic ordering，再由使用者選定 authoritative strategy；不得自動開始。UR-TODO-046 整體仍未完成，FX attribution、Loan UI／CSV／Import Center 與其他 consumer mapping 仍獨立保留。
+
+---
+
 ## 最新交接快照：UR-TODO-046-L2A Split Allocation Contract Audit／L2B Generic Split Allocation Foundation（已完成，2026-08-10）
 
 - 基線與狀態：PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（parents：`2dcc66b96f51d2c580007c951e6393b1b1376b92`、`724a7b2b5cb24ecad309a7d6c4bd1d04132f7f09`；`mergedAt: 2026-08-10T12:23:50Z`；`mergedBy: hyc640110`）。GitHub `main`／`origin/main`／merge commit 一致；PR CI Verification／`verify` run `31386340292` success，Deploy GitHub Pages run `31387817114` success。Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 可載入。
