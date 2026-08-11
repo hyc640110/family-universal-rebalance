@@ -8,7 +8,7 @@
 
 ## [Unreleased]
 
-**UR-TODO-001 Firebase Retirement P1／P2-A（2026-08-11）**：P1 On-demand Anonymous Auth 已由 PR #303 Merge（merge commit `1bbba423d3626b7a63fe48e5201c29597f682367`），一般 App startup 不再建立 Firebase Anonymous Auth。P2-A Draft 實作移除 App active Firebase Auth／RTDB transport caller、手動 upload/download、remote Ledger preflight／merge／apply、missing-ledger runtime boundary、sync status／baseline／remoteMeta consumer 與首頁／手機／Settings／Dashboard／AI／Debug 的 Firebase sync UI；一般 runtime 改為 localStorage canonical state，JSON Backup 保留為人工備份、跨裝置搬移與災難復原。legacy `syncMeta`／`syncSettings.firebase` 與 JSON Backup payload 維持相容讀取，未新增 persistence schema 或 migration；Financial Event Ledger core（含 `mergeFinancialEventLedgers()`）及 attribution／reconciliation 未修改。P2-A 尚待 CI、Preview、使用者驗收與 Merge；P3／P4 未開始，Firebase Console 未操作。
+**UR-TODO-001 Firebase Retirement P3-A1（2026-08-11，待 Draft PR）**：PR #304 已 Merge（merge commit `339f8c305a419117af54f4dbd69a3b47b903a26c），P2-A 正式完成。P3 唯讀盤點後，P3-A1 移除零 production caller 的 Firebase Anonymous Auth／RTDB URL helper、直屬 tests、`VITE_FIREBASE_API_KEY`、程式端 API key 與 Auth session key constant；`VITE_FIREBASE_BASE_PATH`、legacy AppState／Backup contract、`syncState.ts`、Financial Event Ledger（含 `mergeFinancialEventLedgers()`）均未處理。既有瀏覽器 Auth session 未清除；P3-B、P4 與 Firebase Console 操作均未開始。
 
 **UR-TODO-001 Firebase Retirement P0 Governance-only（2026-08-11）**：使用者拍板方案 B 分階段 retirement；治理文件定義 localStorage 為唯一 canonical runtime state、JSON Backup 為人工備份／搬移／災難復原，並鎖定 Financial Event Ledger 的 localStorage／JSON Backup persistence 與核心契約。原始 Security Rules Expiry／Anonymous Auth Phase（PR #252）歷史維持已完成、不被改寫。P1～P4 尚未開始；本次無 runtime、Firebase Console、Production 資料或部署變更。
 

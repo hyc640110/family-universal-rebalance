@@ -8,7 +8,16 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P2-A Active Firebase Runtime Retirement（Draft，2026-08-11）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-A1（本機驗證完成，待 Draft PR，2026-08-11）
+
+- 正式基線：PR #304 已 Merge，`origin/main` 為 `339f8c305a419117af54f4dbd69a3b47b903a26c`；P2-A 已正式完成。
+- P3-A1：已移除零 production caller 的 Firebase Anonymous Auth／RTDB URL helper、對應 tests、`VITE_FIREBASE_API_KEY` 與程式端 dead constants；regression guard 改為驗證模組與 API key config 不得重現。
+- 明確保留：`VITE_FIREBASE_BASE_PATH`、environment boundary、legacy `state.firebase`／`syncSettings.firebase`／`syncMeta`、localStorage／JSON Backup、`syncState.ts`、Financial Event Ledger（含 `mergeFinancialEventLedgers()`）。未清除任何 browser auth session，未觸碰 Firebase Console。
+- 下一直接起點：等待 Draft PR CI 與使用者 Preview 授權。P3-B 必須先決定 legacy Backup／localStorage Firebase 欄位的 read-time 相容策略；P4 必須再次明確授權。
+
+---
+
+## 歷史交接快照：UR-TODO-001 Firebase Retirement P2-A Active Firebase Runtime Retirement（Draft，2026-08-11）
 
 - 基線與範圍：以 `origin/main` `1bbba423d3626b7a63fe48e5201c29597f682367` 為基線、branch `codex/ur-todo-001-firebase-retirement-p2a`；P1 已由 PR #303 Merge。P2-A 只移除 active Firebase Auth／RTDB transport caller、手動同步 UI、remote Ledger merge／apply、runtime sync metadata consumer，保留 Firebase helper/env/legacy payload cleanup 給 P3。
 - 歷史保留：UR-TODO-001 原始 Security Rules Expiry／Anonymous Auth Phase（PR #252）維持已完成歷史；Firebase Retirement 是後續延伸，不得倒寫成原始需求。
