@@ -16,7 +16,7 @@
   - Vite
   - TypeScript
   - GitHub Pages
-  - Firebase Realtime Database
+  - localStorage（canonical device persistence）
   - Cloudflare Workers
   - localStorage
   - JSON Backup
@@ -37,7 +37,7 @@ Universal Rebalance 是個人與家庭財富管理平台，不只是單一再平
 - 報酬與風險分析
 - 借款管理
 - 市場報價
-- Firebase 手動同步
+- JSON Backup 手動匯出／匯入與 legacy Firebase input compatibility
 - JSON 備份與還原
 - CSV / XLSX 匯入
 - Gmail OAuth
@@ -57,7 +57,7 @@ flowchart TD
     SVC[Services]
     LS[localStorage]
     JSON[JSON Backup]
-    FB[Firebase Realtime Database]
+    LEDGER[Financial Event Ledger]
     CFQ[Quote Worker]
     CFM[Market Worker]
     CFG[Gmail OAuth Worker]
@@ -71,7 +71,7 @@ flowchart TD
     HOOK --> SVC
     SVC --> LS
     SVC --> JSON
-    SVC --> FB
+    SVC --> LEDGER
     SVC --> CFQ
     SVC --> CFM
     SVC --> CFG
@@ -116,7 +116,7 @@ family-universal-rebalance/
 | `src/pages/` | 頁面層與主要版面 | 負責組合元件，不直接處理底層 API |
 | `src/hooks/` | 共用狀態與行為 | 應保持單一責任 |
 | `src/contexts/` | 全域或跨頁狀態 | 避免所有資料集中在單一 Context |
-| `src/services/` | API、Firebase、匯入匯出等服務 | 不應依賴 UI |
+| `src/services/` | API、local persistence、匯入匯出與 legacy compatibility 等服務 | 不應依賴 UI |
 | `src/utils/` | 純函式與共用工具 | 應方便測試 |
 | `src/types/` | TypeScript 型別 | 重要資料格式變更需評估相容性 |
 | `src/data/` | 靜態資料或預設值 | 不存放敏感資訊 |
@@ -175,17 +175,17 @@ Page
 - 對外提供的方法
 - 使用頁面
 - 是否寫入 localStorage
-- 是否與 Firebase / JSON Backup 同步
+- 是否與 JSON Backup 匯入／匯出或 legacy input compatibility 有關
 - 是否涉及資料版本
 
 範例：
 
 | Context | 管理內容 | 儲存位置 | 使用區域 |
 |---|---|---|---|
-| Portfolio Context | 持股、現金、資產分類 | localStorage / Firebase | 總覽、持股、分析 |
+| Portfolio Context | 持股、現金、資產分類 | localStorage | 總覽、持股、分析 |
 | Settings Context | 顯示、同步、偏好設定 | localStorage | 全站 |
 | Market Context | 股價、報價日期、更新狀態 | localStorage / Worker | 總覽、持股 |
-| Loan Context | 借款本金、利率、期數 | localStorage / Firebase | 借款頁 |
+| Loan Context | 借款本金、利率、期數 | localStorage | 借款頁 |
 
 ### 5.1 Context 原則
 
@@ -215,7 +215,7 @@ Page
 - 市場報價
 - 再平衡
 - 加碼建議
-- Firebase 手動同步
+- legacy Firebase input compatibility（非 runtime service）
 - localStorage
 - JSON 匯入匯出
 - 響應式版面
@@ -258,7 +258,7 @@ components/
 - 市場元件：更新股價、報價日期、錯誤狀態
 - 圖表元件：資產配置、趨勢、報酬、風險
 - 借款元件：本金、利率、期數、安全存量
-- 設定元件：同步、備份、版本、除錯
+- 設定元件：備份、版本、除錯
 
 ### 7.2 手機版原則
 
@@ -278,7 +278,7 @@ Services 應負責：
 
 - 對外 API 呼叫
 - Cloudflare Worker 呼叫
-- Firebase 上傳與下載
+- legacy Firebase input compatibility 與 retirement regression
 - localStorage 讀寫封裝
 - JSON Backup
 - CSV / XLSX 匯入
@@ -297,43 +297,23 @@ Services 應負責：
 
 ---
 
-## 9. Firebase 架構
+## 9. Firebase Retirement 與 Legacy Compatibility
 
-> **現行過渡架構，已批准 retirement：** Firebase 手動同步目前仍存在，但已不是目標架構。UR-TODO-001 Firebase Retirement 採 P1～P4 漸進式移除；在 P1～P3 完成前不得描述為已移除。目標架構是 localStorage 作為唯一 canonical runtime state、JSON Backup 作為人工備份／跨裝置搬移／災難復原，Financial Event Ledger 的 localStorage／JSON Backup contract 維持不變。P4 前不得修改 Firebase Console。
+> **現行 runtime 狀態：0。** Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK 均不在現行 App runtime。localStorage 是 canonical device persistence；JSON Backup 是人工備份、裝置搬移與災難復原；Financial Event Ledger 是本機 persistence domain 的一部分。
 
-### 9.1 使用方式
+### 9.1 保留的相容性邊界
 
-- 使用 Firebase Realtime Database
-- 同步模式為手動上傳、手動下載
-- 禁止未經要求改成即時自動同步
-- 必須維持與 localStorage、JSON Backup 的相容性
+- `AppState.firebase`、`FirebaseConfig`、legacy top-level Firebase localStorage input、legacy top-level Firebase Backup input、`syncSettings.firebase` Backup input 與 hydration compatibility 仍可讀取。
+- 此相容性是 backward compatibility／retirement residual，不是 Firebase sync capability，也不得重新建立 Firebase transport 或 UI。
+- 新 JSON Backup 不輸出 `syncSettings.firebase` 或 `firebaseConfigured`；不做 schema bump 或 migration。
+- `autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是未授權的 future retirement candidate。
+- `mergeFinancialEventLedgers()` 是通用 Financial Event Ledger contract，維持 KEEP，與 Firebase retirement 分離。
 
-### 9.2 手動上傳流程
+### 9.2 P4 Console
 
-```text
-使用者按下上傳
-→ 讀取本機目前資料
-→ 驗證資料格式
-→ 加入版本資訊
-→ 寫入 Firebase
-→ 回傳成功或錯誤
-→ UI 顯示同步時間
-```
+Firebase Project、RTDB、Anonymous Auth、Security Rules、API key／Console settings、remote data 與 legacy browser Auth session 均為 `P4-CONSOLE / 待盤點`。未獲獨立明確授權前不得操作。
 
-### 9.3 手動下載流程
-
-```text
-使用者按下下載
-→ 從 Firebase 取得資料
-→ 驗證資料格式與版本
-→ 必要時執行 migration
-→ 使用者確認覆蓋
-→ 寫入 localStorage
-→ 更新 Context
-→ UI 重新渲染
-```
-
-### 9.4 安全限制
+### 9.3 安全限制
 
 禁止把以下資料寫入本文件：
 
@@ -369,7 +349,7 @@ Services 應負責：
 |---|---|---|
 | 用途 | PR 驗收 | 正式使用 |
 | Worker | Preview 專用 | Production 專用 |
-| Firebase | 不得覆蓋正式資料 | 正式資料 |
+| App persistence | Preview 獨立 localStorage／Backup 驗收資料，不得寫入正式資料 | 正式 localStorage／Backup 使用情境 |
 | OAuth | Preview callback | Production callback |
 | 部署 | 驗收後可移除 | 由使用者確認後發布 |
 
@@ -415,23 +395,20 @@ sequenceDiagram
     UI-->>U: 顯示結果與報價日期
 ```
 
-### 11.2 Firebase 手動同步
+### 11.2 JSON Backup 匯出／匯入
 
 ```mermaid
 sequenceDiagram
     participant U as 使用者
     participant UI as React UI
-    participant S as Firebase Service
-    participant F as Firebase
+    participant B as Backup Service
     participant L as localStorage
 
-    U->>UI: 按下上傳或下載
-    UI->>S: 執行同步
-    S->>L: 讀取或準備資料
-    S->>F: 上傳或下載
-    F-->>S: 回傳結果
-    S-->>UI: 成功、錯誤、時間
-    UI-->>U: 顯示同步狀態
+    U->>UI: 匯出或匯入 JSON Backup
+    UI->>B: 驗證並執行 Backup 操作
+    B->>L: 讀取或寫入本機 canonical state
+    B-->>UI: 回傳成功、錯誤或取消
+    UI-->>U: 顯示備份結果
 ```
 
 ---
@@ -442,11 +419,11 @@ sequenceDiagram
 
 建議格式：
 
-| Key | 用途 | 資料型別 | 版本 | 是否同步 Firebase |
+| Key | 用途 | 資料型別 | 版本 | 相容性 |
 |---|---|---|---|---|
-| `待掃描` | 持股資料 | Object | 待確認 | 是 |
-| `待掃描` | 設定資料 | Object | 待確認 | 視情況 |
-| `待掃描` | 市場報價 | Object | 待確認 | 視情況 |
+| `待掃描` | 持股資料 | Object | 待確認 | legacy input 讀取需另行評估 |
+| `待掃描` | 設定資料 | Object | 待確認 | JSON Backup／legacy input |
+| `待掃描` | 市場報價 | Object | 待確認 | 本機／Worker 資料邊界 |
 
 ### 12.1 localStorage 原則
 
@@ -465,7 +442,7 @@ sequenceDiagram
 任何資料格式變更，至少檢查：
 
 - localStorage 舊資料
-- Firebase 舊資料
+- legacy Firebase top-level／`syncSettings.firebase` input
 - JSON Backup 舊檔
 - CSV / XLSX 匯入
 - Preview 資料
@@ -478,7 +455,7 @@ sequenceDiagram
 → 檢查版本
 → 執行逐版本 migration
 → 驗證結果
-→ 寫回新版本
+→ 僅在明確 persistent user mutation 或 Full Restore 時依現行 canonical contract 寫回
 → 保留失敗回復方案
 ```
 
@@ -489,9 +466,9 @@ sequenceDiagram
 1. 不直接修改 `main`
 2. 不直接部署正式站
 3. 不自行 Merge PR
-4. 不改成 Firebase 自動同步
+4. 不重新建立 Firebase runtime 或同步 UI
 5. 不破壞 localStorage 舊資料
-6. 不破壞 Firebase 舊資料
+6. 不破壞 legacy Firebase input compatibility
 7. 不破壞 JSON Backup
 8. 不混用 Preview 與 Production
 9. 不在未驗證時宣稱完成
@@ -510,7 +487,7 @@ sequenceDiagram
 - CORS
 - Worker 版本落差
 - 第三方 API 不穩定
-- Firebase 手動同步衝突
+- Firebase compatibility residual 的後續 retirement 決策
 - 舊資料 migration
 - GitHub Pages base path
 - 手機 Safari 差異
@@ -526,7 +503,7 @@ sequenceDiagram
 - 新增主要 Context
 - 更換狀態管理方式
 - 新增 Worker
-- Firebase 結構改版
+- legacy Firebase compatibility contract 或 P4 Console 決策異動
 - localStorage schema 改版
 - 新增資料 migration
 - API Flow 改變
