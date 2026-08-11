@@ -13,13 +13,3 @@ export const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'family-universal
 export const FIREBASE_BASE_PATH = environmentBoundary.firebaseBasePath;
 export const buildFirebaseSyncRoot = environmentBoundary.syncRoot;
 export const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'https://00631l-pro-price-proxy.hyc640110.workers.dev';
-/** UR-TODO-001: Firebase Web API Key, safe to expose client-side (not a secret; access control is enforced by Security Rules). */
-export const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY || '';
-/**
- * Deliberately separate from STORAGE_KEY: the Anonymous Auth session
- * (idToken/refreshToken) must never round-trip through AppState, JSON
- * Backup, or the Firebase sync payload. Namespaced by STORAGE_KEY (already
- * environment-specific) because Preview and Production share the same
- * origin and therefore the same localStorage.
- */
-export const FIREBASE_AUTH_SESSION_STORAGE_KEY = `${STORAGE_KEY}:firebase-auth-session`;
