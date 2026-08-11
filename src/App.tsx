@@ -79,6 +79,7 @@ import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, norma
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { sanitizeSyncFieldFingerprints, withoutRuntimeSyncStatus, withoutSyncBaseline, type SyncMeta, type SyncSource } from './lib/syncState';
+import { shouldWriteInitialHydration } from './lib/legacyFirebasePersistence';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
@@ -393,24 +394,26 @@ export function normalizeState(raw: unknown): AppState {
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore) };
 }
-type PersistedAppState = Omit<AppState, 'financialEvents'> & { financialEvents: unknown };
-function stateWithPersistedFinancialEventLedger(state: AppState): PersistedAppState {
-  return { ...state, syncMeta: withoutRuntimeSyncStatus(state.syncMeta), financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
+type PersistedAppState = Omit<AppState, 'firebase' | 'financialEvents'> & { financialEvents: unknown };
+export function stateWithPersistedFinancialEventLedger(state: AppState): PersistedAppState {
+  const { firebase: _legacyFirebase, ...canonicalState } = state;
+  return { ...canonicalState, syncMeta: withoutRuntimeSyncStatus(state.syncMeta), financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
 }
-type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView };
+type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView; initialPersistenceWriteAllowed: boolean };
 function readStateWithSnapshotView(): AppReadState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined) };
+    if (!raw) return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined), initialPersistenceWriteAllowed: true };
     const parsed = JSON.parse(raw); assertNoOAuthSecrets(parsed);
     const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(parsed);
     const normalized = normalizeState(parsed);
     const json = JSON.stringify(stateWithPersistedFinancialEventLedger(normalized));
-    if (raw !== json) localStorage.setItem(STORAGE_KEY, json);
-    return { state: normalized, netWorthSnapshotReadTimeView };
+    const initialPersistenceWriteAllowed = shouldWriteInitialHydration(raw, json);
+    if (raw !== json && initialPersistenceWriteAllowed) localStorage.setItem(STORAGE_KEY, json);
+    return { state: normalized, netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed };
   } catch (error) {
     try { startupIssue = { message: error instanceof Error ? error.message : 'localStorage JSON 解析失敗', raw: localStorage.getItem(STORAGE_KEY) || '' }; } catch { startupIssue = { message: 'localStorage JSON 解析失敗' }; }
-    return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined) };
+    return { state: defaultState, netWorthSnapshotReadTimeView: createNetWorthSnapshotReadTimeViewFromState(undefined), initialPersistenceWriteAllowed: true };
   }
 }
 function writeState(s: AppState) { assertNoOAuthSecrets(s); const normalized = normalizeState(s); const persisted = stateWithPersistedFinancialEventLedger(normalized); assertNoOAuthSecrets(persisted); localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)); }
@@ -448,7 +451,7 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   if (backupHasRemovedStrategy(raw)) throw new Error(`${removedSymbol()} 已從正式策略移除，備份檔含有已移除的 ${removedSymbol()} 策略資料，請確認後再匯入。`);
   const r = raw as Partial<BackupPayload> & { assets?: Holding[]; cash?: CashItem[]; firebase?: FirebaseConfig };
   const syncSettings = (r.syncSettings || {}) as Partial<BackupPayload['syncSettings']>;
-  const firebase = syncSettings.firebase || r.firebase || current.firebase;
+  const firebase = syncSettings.firebase || r.firebase;
   const importedHoldings = Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [];
   const quoteNames = r.quotes && typeof r.quotes === 'object' ? r.quotes : {};
   const holdings = importedHoldings.map(holding => {
@@ -458,10 +461,10 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   });
   const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase };
   const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(raw);
-  if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView };
+  if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed: true };
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
   const { accounts: _accounts, accountSchemaVersion: _schema, cashAccountMigrationVersion: _migration, ...legacyBackupState } = backupState;
-  return { state: normalizeState(legacyBackupState), netWorthSnapshotReadTimeView };
+  return { state: normalizeState(legacyBackupState), netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed: true };
 }
 function parseWorkerQuote(symbol: SymbolCode, data: unknown, holding?: Holding): Quote | null {
   const d = data as { symbol?: string; code?: string; price?: number; latestPrice?: number; previousClose?: number | null; previousCloseDate?: string | null; previousCloseSource?: Quote['previousCloseSource']; previousCloseTrusted?: boolean; previousCloseReason?: string | null; quoteDate?: string; quoteTime?: string; volume?: number; source?: string };
@@ -1051,6 +1054,7 @@ function App() {
   const [state, setStateValue] = useState<AppState>(() => initialRead.state);
   const stateRef = useRef(state);
   const netWorthSnapshotReadTimeViewRef = useRef(initialRead.netWorthSnapshotReadTimeView);
+  const initialPersistenceWriteAllowedRef = useRef(initialRead.initialPersistenceWriteAllowed);
   const didMount = useRef(false);
   const setState = (updater: SetStateAction<AppState>) => {
     const previous = stateRef.current;
@@ -1151,6 +1155,10 @@ function App() {
   });
   useEffect(() => {
     if (stateRef.current !== state) return;
+    if (!didMount.current && !initialPersistenceWriteAllowedRef.current) {
+      didMount.current = true;
+      return;
+    }
     writeState(state);
     didMount.current = true;
   }, [state]);
