@@ -11,5 +11,4 @@ const environmentBoundary = createEnvironmentBoundary(import.meta.env.VITE_DEPLO
 export const DEPLOYMENT_ENVIRONMENT = environmentBoundary.environment;
 export const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || 'family-universal-rebalance-v100-state';
 export const FIREBASE_BASE_PATH = environmentBoundary.firebaseBasePath;
-export const buildFirebaseSyncRoot = environmentBoundary.syncRoot;
 export const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'https://00631l-pro-price-proxy.hyc640110.workers.dev';

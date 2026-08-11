@@ -1,83 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canonicalSyncPayload, hasSyncableStateChanged, withoutSyncMetadata } from '../src/lib/syncState';
+import { sanitizeSyncFieldFingerprints, withoutRuntimeSyncStatus, withoutSyncBaseline } from '../src/lib/syncState';
 
-const syncedMeta = { dirty: false, source: '本機資料' as const, status: '已同步', lastUploadAt: '2026-07-14T12:00:00.000Z' };
-const dirtyMeta = { dirty: true, source: '本機資料' as const, status: '本機資料有變更，尚未上傳' };
-const baseState = {
-  holdings: [{ symbol: '00631L', name: '元大台灣50正2', shares: 1000 }],
-  cash: [{ id: 'cash-1', amount: 1000 }],
-  accounts: [{ id: 'account-1', balance: 1000 }],
-  loans: [{ id: 'loan-1', principal: 500 }],
-  transactions: [{ id: 'tx-1', amount: 100 }],
-  netWorthHistory: [{ date: '2026-07-14', totalAssets: 1000 }],
-  refreshSec: 60,
-  syncMeta: syncedMeta,
-  remoteMeta: { holdingsCount: 1, cashCount: 1, loansCount: 1, updatedAt: '2026-07-14T12:00:00.000Z' }
-};
-
-test('sync metadata-only updates do not create dirty-worthy data changes', () => {
-  assert.equal(hasSyncableStateChanged(baseState, {
-    ...baseState,
-    syncMeta: dirtyMeta,
-    remoteMeta: { holdingsCount: 1, cashCount: 1, loansCount: 1, updatedAt: '2026-07-14T12:01:00.000Z' }
-  }), false);
+test('legacy sync baseline fingerprints remain safely sanitized on read', () => {
+  assert.deepEqual(sanitizeSyncFieldFingerprints({
+    holdings: 'sync-field-v2-0123456789abcdef',
+    remoteMeta: 'sync-field-v2-fedcba9876543210',
+    invalid: 'not-a-fingerprint'
+  }), { holdings: 'sync-field-v2-0123456789abcdef' });
+  assert.equal(sanitizeSyncFieldFingerprints(undefined), undefined);
 });
 
-test('persistent holdings, accounts, cash, loans, transactions, settings, and snapshots do create data changes', () => {
-  const changes = [
-    { ...baseState, holdings: [{ ...baseState.holdings[0], shares: 1001 }] },
-    { ...baseState, cash: [{ ...baseState.cash[0], amount: 1001 }] },
-    { ...baseState, accounts: [{ ...baseState.accounts[0], balance: 1001 }] },
-    { ...baseState, loans: [{ ...baseState.loans[0], principal: 501 }] },
-    { ...baseState, transactions: [{ ...baseState.transactions[0], amount: 101 }] },
-    { ...baseState, refreshSec: 61 },
-    { ...baseState, netWorthHistory: [{ date: '2026-07-14', totalAssets: 1001 }] }
-  ];
-  for (const changed of changes) assert.equal(hasSyncableStateChanged(baseState, changed), true);
-});
-
-test('Firebase payload removes device-local sync metadata without changing user data', () => {
-  const payload = withoutSyncMetadata(baseState);
-  assert.deepEqual(payload, {
-    holdings: baseState.holdings,
-    cash: baseState.cash,
-    accounts: baseState.accounts,
-    loans: baseState.loans,
-    transactions: baseState.transactions,
-    netWorthHistory: baseState.netWorthHistory,
-    refreshSec: 60
-  });
-  assert.equal('syncMeta' in payload, false);
-  assert.equal('remoteMeta' in payload, false);
-  assert.deepEqual(withoutSyncMetadata(baseState), payload);
-});
-
-test('legacy Firebase payloads with stale or missing sync metadata remain compatible', () => {
-  const legacyWithDirtyMeta = { ...baseState, syncMeta: dirtyMeta, remoteMeta: { holdingsCount: 999, cashCount: 999, loansCount: 999 } };
-  const legacyWithoutMeta = withoutSyncMetadata(baseState);
-  assert.deepEqual(withoutSyncMetadata(legacyWithDirtyMeta), legacyWithoutMeta);
-  assert.deepEqual(withoutSyncMetadata(legacyWithoutMeta), legacyWithoutMeta);
-});
-
-// UR-TODO-046 Firebase Ledger Sync: financialEvents/financialEventSchemaVersion are now syncable
-// (merged, not overwritten — see App.tsx's uploadCloud/stateFromFirebasePayload and
-// financialEventLedgerMerge.test.ts for the merge logic itself). attributionStartDate was not part
-// of the approved merge scope and stays excluded, same as before this feature.
-test('Firebase canonical payload 含 financialEvents／financialEventSchemaVersion，Ledger 變更會使 payload dirty；attributionStartDate 仍不進入（本次範圍未涵蓋）', () => {
-  const ledgerState = {
-    ...baseState,
-    financialEventSchemaVersion: 1,
-    financialEventAttributionStartDate: '2026-08-02',
-    financialEvents: [{ id: 'event-a', type: 'external-income', amount: 100 }]
+test('legacy sync metadata keeps compatibility while runtime status and cloud baselines stay out of portable output', () => {
+  const legacy = {
+    dirty: true,
+    source: '本機資料' as const,
+    status: '舊同步訊息',
+    baselineFingerprint: 'sync-v2-0123456789abcdef',
+    baselineFieldFingerprints: { holdings: 'sync-field-v2-0123456789abcdef' },
+    baselineCanonicalSchema: 'sync-json-v2',
+    lastUploadAt: '2026-07-14T12:00:00.000Z'
   };
-
-  const payload = canonicalSyncPayload(ledgerState);
-
-  assert.equal('financialEventSchemaVersion' in payload, true);
-  assert.equal(payload.financialEventSchemaVersion, 1);
-  assert.equal('financialEvents' in payload, true);
-  assert.deepEqual(payload.financialEvents, ledgerState.financialEvents);
-  assert.equal('financialEventAttributionStartDate' in payload, false);
-  assert.equal(hasSyncableStateChanged(baseState, ledgerState), true);
+  assert.deepEqual(withoutRuntimeSyncStatus(withoutSyncBaseline(legacy)), {
+    dirty: true,
+    source: '本機資料',
+    lastUploadAt: '2026-07-14T12:00:00.000Z'
+  });
 });

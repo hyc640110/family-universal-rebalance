@@ -8,7 +8,6 @@ import { deriveAiDecisions, type AiDecisionInput } from '../src/lib/aiDecision';
 import { deriveInvestmentPerformanceStats, normalizeInvestmentPerformanceHistory } from '../src/lib/investmentPerformanceHistory';
 import { normalizeNetWorthHistory, type NetWorthSnapshot } from '../src/lib/netWorthHistory';
 import { calculatePortfolioPerformance } from '../src/lib/performanceMetrics';
-import { canonicalSyncPayload } from '../src/lib/syncState';
 
 // Characterization only: these assertions preserve observed behavior for UR-TODO-043-A.
 // Do not treat the current local-timezone or numeric-coercion behavior as the desired contract.
@@ -78,12 +77,12 @@ test('current behavior: same-day snapshots use the final array occurrence, not a
   assert.equal(normalizeInvestmentPerformanceHistory([third, second, first])[0].netWorth, 100);
 });
 
-test('current behavior: local JSON, Firebase canonical payload, and Backup-style JSON retain duplicate snapshot array order before normalization', () => {
+test('current behavior: local JSON and Backup-style JSON retain duplicate snapshot array order before normalization', () => {
   const duplicateDates = [snapshot('2026-07-01', { netWorth: 100 }), snapshot('2026-07-01', { netWorth: 200 })];
   const localStorageRoundTrip = JSON.parse(JSON.stringify(duplicateDates));
-  const firebaseRoundTrip = canonicalSyncPayload({ netWorthHistory: duplicateDates }).netWorthHistory;
+  const portableRoundTrip = JSON.parse(JSON.stringify({ netWorthHistory: duplicateDates })).netWorthHistory;
   const backupRoundTrip = JSON.parse(JSON.stringify({ netWorthHistory: duplicateDates })).netWorthHistory;
-  for (const raw of [localStorageRoundTrip, firebaseRoundTrip, backupRoundTrip]) {
+  for (const raw of [localStorageRoundTrip, portableRoundTrip, backupRoundTrip]) {
     assert.equal(normalizeNetWorthHistory(raw)[0].netWorth, 200);
     assert.equal(normalizeInvestmentPerformanceHistory(raw)[0].netWorth, 200);
   }

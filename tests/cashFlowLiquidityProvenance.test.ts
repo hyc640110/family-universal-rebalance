@@ -11,7 +11,6 @@ import {
 import { buildHouseholdLiquidityInput } from '../src/lib/householdLiquidityInputAdapter';
 import { deriveHouseholdLiquidityInputDiagnostics } from '../src/lib/householdLiquidityInputDiagnostics';
 import { deriveHouseholdLiquidity } from '../src/lib/householdLiquidity';
-import { createSyncPayloadSnapshot } from '../src/lib/syncState';
 
 const profile = (overrides: Partial<CashFlowProfile> = {}): CashFlowProfile => ({
   monthlyIncome: null, fixedExpenses: [{ id: 'utilities', name: '水電', amount: 500, category: 'utilities', enabled: true }],
@@ -87,10 +86,9 @@ test('10. JSON localStorage round-trip 保留明確 provenance 且不含 NaN', (
   assert.doesNotMatch(JSON.stringify(restored), /NaN|Infinity/);
 });
 
-test('11. Firebase canonical snapshot round-trip 保留 provenance', () => {
+test('11. portable JSON payload round-trip 保留 provenance', () => {
   const cashFlowProfile = normalized({ fixedExpenses: [{ id: 'debt', name: '房貸', amount: 3_000, category: 'housing', enabled: true, liquidityRole: 'debt-payment', linkedLoanId: 'loan-1' }] });
-  const snapshot = createSyncPayloadSnapshot({ cashFlowProfile });
-  const restored = normalized(JSON.parse(snapshot.canonicalJson).cashFlowProfile);
+  const restored = normalized(JSON.parse(JSON.stringify({ cashFlowProfile })).cashFlowProfile);
   assert.deepEqual(restored, cashFlowProfile);
 });
 
@@ -193,11 +191,11 @@ test('24. orphan debt linkage 不由 Adapter 修正為其他 Loan', () => {
   assert.deepEqual(input.livingExpenses[0], { sourceId: 'cash-flow:debt', amount: 3_000, role: 'ambiguous' });
 });
 
-test('25. sync canonical payload 保留 optional missing 與 explicit provenance 的差異', () => {
-  const missing = createSyncPayloadSnapshot({ cashFlowProfile: normalized({ fixedExpenses: [{ id: 'legacy', name: '水電', amount: 1, category: 'utilities', enabled: true }] }) });
-  const explicit = createSyncPayloadSnapshot({ cashFlowProfile: normalized({ fixedExpenses: [{ id: 'living', name: '水電', amount: 1, category: 'utilities', enabled: true, liquidityRole: 'essential-living' }] }) });
-  assert.notEqual(missing.canonicalJson, explicit.canonicalJson);
-  assert.doesNotMatch(missing.canonicalJson, /linkedLoanId/);
+test('25. portable JSON payload 保留 optional missing 與 explicit provenance 的差異', () => {
+  const missing = JSON.stringify({ cashFlowProfile: normalized({ fixedExpenses: [{ id: 'legacy', name: '水電', amount: 1, category: 'utilities', enabled: true }] }) });
+  const explicit = JSON.stringify({ cashFlowProfile: normalized({ fixedExpenses: [{ id: 'living', name: '水電', amount: 1, category: 'utilities', enabled: true, liquidityRole: 'essential-living' }] }) });
+  assert.notEqual(missing, explicit);
+  assert.doesNotMatch(missing, /linkedLoanId/);
 });
 
 test('26. P2-A App 已移除主動 Firebase runtime，未新增自動同步或網路 API', () => {
@@ -254,14 +252,14 @@ test('29. missing、orphan 與 valid debt linkage 可被區分，explicit zero �
   ]);
 });
 
-test('30. migration、JSON 與 Firebase canonical round-trip 不改變診斷，且診斷不會被持久化', () => {
+test('30. migration 與 portable JSON round-trip 不改變診斷，且診斷不會被持久化', () => {
   const original = normalized({ fixedExpenses: [{ id: 'legacy', name: '房貸', amount: 3_000, category: 'housing', enabled: true }] });
   const expected = deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: original, loans: [{ id: 'loan-1' }] });
   const jsonRestored = normalized(JSON.parse(JSON.stringify(original)));
-  const firebaseRestored = normalized(JSON.parse(createSyncPayloadSnapshot({ cashFlowProfile: original }).canonicalJson).cashFlowProfile);
+  const portableRestored = normalized(JSON.parse(JSON.stringify({ cashFlowProfile: original })).cashFlowProfile);
 
   assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: jsonRestored, loans: [{ id: 'loan-1' }] }), expected);
-  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: firebaseRestored, loans: [{ id: 'loan-1' }] }), expected);
+  assert.deepEqual(deriveHouseholdLiquidityInputDiagnostics({ cashFlowProfile: portableRestored, loans: [{ id: 'loan-1' }] }), expected);
   assert.doesNotMatch(JSON.stringify(original), /CASH_FLOW_ROLE_UNASSIGNED|DEBT_PAYMENT_LINK_REQUIRED|DIAGNOSTIC/);
 });
 

@@ -8,7 +8,7 @@ const appInfo = readFileSync(new URL('../src/constants/appInfo.ts', import.meta.
 const productionEnv = readFileSync(new URL('../.env.production', import.meta.url), 'utf8');
 const previewEnv = readFileSync(new URL('../.env.preview-deploy', import.meta.url), 'utf8');
 
-test('P3-A1 removes Firebase Auth／RTDB runtime modules and API-key configuration', () => {
+test('Firebase retirement guard blocks Auth／RTDB runtime modules and network wiring', () => {
   for (const moduleUrl of [
     new URL('../src/lib/firebaseAnonymousAuth.ts', import.meta.url),
     new URL('../src/lib/firebaseSyncUrl.ts', import.meta.url)
@@ -22,7 +22,8 @@ test('P3-A1 removes Firebase Auth／RTDB runtime modules and API-key configurati
     'uploadFirebaseStateWithLedgerMerge',
     'fetchRemoteFinancialEventLedger',
     'downloadFirebase',
-    'buildFirebaseSyncUrl'
+    'buildFirebaseSyncUrl',
+    'buildFirebaseSyncRoot'
   ]) assert.doesNotMatch(app, new RegExp(`\\b${activeCaller}\\b`));
 
   assert.doesNotMatch(appInfo, /FIREBASE_API_KEY|FIREBASE_AUTH_SESSION_STORAGE_KEY/);
@@ -33,4 +34,9 @@ test('P3-A1 removes Firebase Auth／RTDB runtime modules and API-key configurati
   assert.doesNotMatch(app, /Identity Toolkit|Secure Token|匿名身分|上傳雲端|下載雲端/);
   assert.match(app, /匯出 JSON 備份/);
   assert.match(app, /匯入 JSON 備份/);
+
+  for (const retiredToken of ['identitytoolkit', 'securetoken', 'firebaseio', 'accounts:signUp', 'refreshToken', 'idToken']) {
+    assert.doesNotMatch(app, new RegExp(retiredToken, 'i'));
+    assert.doesNotMatch(appInfo, new RegExp(retiredToken, 'i'));
+  }
 });

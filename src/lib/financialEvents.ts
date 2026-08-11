@@ -639,10 +639,9 @@ export type LedgerMergeOutcome =
  * sync operation, same as this Ledger blocked all Firebase sync entirely
  * before this feature existed.
  *
- * Output order is sorted (createdAt, then id) rather than left as
- * insertion order — canonicalSyncJson() treats array order as
- * business-significant, so a merge that produced a different order on every
- * call would make the Ledger's sync fingerprint perpetually "dirty".
+ * Output order is sorted (createdAt, then id) rather than left as insertion
+ * order, so any future consumer can compare the forward-only Ledger without
+ * treating equivalent unions as different records.
  */
 export function mergeFinancialEventLedgers(
   local: { schemaVersion: number; events: readonly FinancialEvent[] },
