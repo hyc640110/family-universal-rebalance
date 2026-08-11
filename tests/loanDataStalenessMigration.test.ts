@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'vite';
-import { canonicalSyncPayload } from '../src/lib/syncState';
 import { isCanonicalCalendarDay } from '../src/lib/calendarDay';
 
 type LoanRecord = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number; asOf?: string };
@@ -9,7 +8,6 @@ type AppPersistence = {
   normalizeState(raw: unknown): { [key: string]: unknown; loans: LoanRecord[] };
   backupPayload(state: unknown, quotes: Record<string, unknown>): unknown;
   stateFromBackup(raw: unknown, current: unknown): { state: { [key: string]: unknown; loans: LoanRecord[] } };
-  stateFromFirebasePayload(raw: unknown, config: unknown, current: unknown): { state: { [key: string]: unknown; loans: LoanRecord[] } };
 };
 
 async function loadAppPersistence(): Promise<AppPersistence> {
@@ -37,22 +35,19 @@ test('UR-TODO-041: an already-present valid asOf is preserved verbatim, never ov
   assert.equal(state.loans[0].asOf, '2026-01-15');
 });
 
-test('UR-TODO-041: migration is consistent across localStorage, JSON Backup import, and Firebase download', async () => {
-  const { normalizeState, backupPayload, stateFromBackup, stateFromFirebasePayload } = await loadAppPersistence();
+test('UR-TODO-041: migration is consistent across localStorage and JSON Backup import', async () => {
+  const { normalizeState, backupPayload, stateFromBackup } = await loadAppPersistence();
   const localState = normalizeState({ loans: [legacyLoan] });
   const localAsOf = localState.loans[0].asOf;
 
   const restoredFromBackup = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(localState, {}))), normalizeState({})).state;
-  const remotePayload = canonicalSyncPayload(localState as Record<string, unknown>);
-  const restoredFromFirebase = stateFromFirebasePayload(remotePayload, { databaseURL: 'https://example.invalid', secretPath: 'root' }, normalizeState({})).state;
 
-  for (const state of [restoredFromBackup, restoredFromFirebase]) {
+  for (const state of [restoredFromBackup]) {
     assert.ok(isCanonicalCalendarDay(state.loans[0].asOf));
   }
   // The migrated asOf is a deterministic "today" value produced by the same canonical-day
-  // producer on every path within this single test run, so all three should agree.
+  // producer on every persisted local path within this single test run, so both should agree.
   assert.equal(restoredFromBackup.loans[0].asOf, localAsOf);
-  assert.equal(restoredFromFirebase.loans[0].asOf, localAsOf);
 });
 
 test('UR-TODO-041: migration never overwrites monthlyPayment or any other loan field', async () => {

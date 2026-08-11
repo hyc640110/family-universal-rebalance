@@ -12,7 +12,7 @@ type DashboardData = {
   riskLabel: string; reminders: DashboardReminder[];
   intelligence: ReturnType<typeof deriveInvestmentIntelligence>;
   opportunities: InvestmentOpportunity[];
-  todayConclusion: string; syncReminder: string | null;
+  todayConclusion: string;
 };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
@@ -50,9 +50,8 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
     </section>
 
     <section className="dashboard-reminders-card" aria-labelledby="dashboard-reminders-title">
-      <div className="dashboard-section-heading"><div><p className="eyebrow">狀態確認</p><h2 id="dashboard-reminders-title">有什麼資料或狀態需要確認</h2></div><Link className="dashboard-text-link" to="/settings">同步與設定</Link></div>
+      <div className="dashboard-section-heading"><div><p className="eyebrow">狀態確認</p><h2 id="dashboard-reminders-title">有什麼資料或狀態需要確認</h2></div><Link className="dashboard-text-link" to="/settings">設定與備份</Link></div>
       <p className="dashboard-support-line"><span>最後股價更新</span> <b>{quoteTime(data.lastQuoteAt)}</b></p>
-      {data.syncReminder && <p className="daily-decision-sync-reminder"><strong>資料同步提醒</strong>{data.syncReminder}</p>}
       {data.reminders.length === 0 ? <p className="dashboard-empty-state">目前沒有需要確認的資料或狀態。</p> : <ul className="dashboard-reminder-list">{data.reminders.map(item => <li key={item.key} className={item.tone}><strong>{item.title}</strong><span>{item.detail}</span></li>)}</ul>}
       <p className="dashboard-support-line"><Link className="dashboard-text-link" to={INVESTMENT_DECISION_ROUTES.investmentActionCenter}>{data.opportunities.length ? `${data.opportunities.length} 項值得查看的投資機會` : '目前沒有需要特別處理的投資機會'} →</Link></p>
     </section>

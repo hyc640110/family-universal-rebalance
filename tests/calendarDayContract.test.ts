@@ -66,7 +66,7 @@ test('canonical day shifts stay independent of runtime timezone', () => {
 test('App snapshot producer uses the compatibility entry backed by the canonical helper', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(app, /netWorthSnapshotFromTotals\(\{/);
-  assert.match(app, /upsertNetWorthSnapshot\(stateRef\.current\.netWorthHistory, currentNetWorthSnapshot\)/);
+  assert.match(app, /upsertNetWorthSnapshot\(current\.netWorthHistory, currentNetWorthSnapshot\)/);
   assert.match(readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8'), /localSnapshotDate\(date = new Date\(\)\): string \{ return canonicalCalendarDay\(date\); \}/);
 });
 

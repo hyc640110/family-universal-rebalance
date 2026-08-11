@@ -5,7 +5,6 @@ import { deriveInvestmentIntelligence, type InvestmentIntelligenceInput } from '
 
 const base = (overrides: Partial<InvestmentIntelligenceInput> = {}): InvestmentIntelligenceInput => ({
   dashboard: { dayPnl: 500, dayPnlRate: 1, quoteStatus: '報價正常', holdingsCount: 2 },
-  sync: { dirty: false, status: '已同步' },
   risk: { overallLevel: 0, overallLabel: '低風險', primaryRisk: { title: '維持監測', status: '正常', reason: '核心風險在門檻內。' } },
   portfolioRisk: { quality: { items: [] }, allocation: { deviation: 1, threshold: 5, thresholdReached: false }, concentration: { largestPct: 30 }, drawdown: { canCalculate: true, maxDrawdown: -0.05 } },
   rebalance: { canRecommend: true, blockingReasons: [], thresholdReached: false, allocationDeviation: 1 },
@@ -27,8 +26,7 @@ test('data-quality faults outrank every other status and keep unavailable values
   assert.match(result.todayPerformance.value, /資料不足/); assert.doesNotMatch(result.todayPerformance.detail, /0 元/);
 });
 
-test('sync, high-risk, blocked and usable rebalance follow the required single-action priority', () => {
-  assert.equal(deriveInvestmentIntelligence(base({ sync: { dirty: true, status: '本機資料尚未同步' }, risk: { overallLevel: 3, overallLabel: '高風險', primaryRisk: { title: '集中度', status: '高風險', reason: '測試。' } } })).nextAction.route, '/settings');
+test('high-risk, blocked and usable rebalance follow the required single-action priority', () => {
   assert.equal(deriveInvestmentIntelligence(base({ risk: { overallLevel: 3, overallLabel: '高風險', primaryRisk: { title: '集中度', status: '高風險', reason: '測試。' } } })).nextAction.route, '/tools/portfolio-risk');
   const blocked = deriveInvestmentIntelligence(base({ portfolioRisk: { ...base().portfolioRisk, allocation: { deviation: 8, threshold: 5, thresholdReached: true } }, rebalance: { canRecommend: false, blockingReasons: ['報價過期'], thresholdReached: true, allocationDeviation: 8 } }));
   assert.equal(blocked.nextAction.route, '/tools/rebalance-recommendation'); assert.equal(blocked.rebalanceStatus.blocked, true);

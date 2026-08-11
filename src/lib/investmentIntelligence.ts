@@ -5,7 +5,6 @@ export type IntelligenceItem = { label: string; value: string; detail: string; t
 
 export type InvestmentIntelligenceInput = {
   dashboard: { dayPnl: number | null; dayPnlRate: number | null; quoteStatus: string; holdingsCount: number };
-  sync: { dirty: boolean; status: string };
   risk: { overallLevel: number; overallLabel: string; primaryRisk: { title: string; status: string; reason: string } };
   portfolioRisk: { quality: { items: string[] }; allocation: { deviation: number; threshold: number; thresholdReached: boolean }; concentration: { largestPct: number }; drawdown: { canCalculate: boolean; maxDrawdown: number | null } };
   rebalance: { canRecommend: boolean; blockingReasons: string[]; thresholdReached: boolean; allocationDeviation: number | null };
@@ -53,9 +52,7 @@ export function deriveInvestmentIntelligence(input: InvestmentIntelligenceInput)
 
   const nextAction: IntelligenceAction = qualityProblems.length
     ? qualityAction
-    : input.sync.dirty
-      ? { label: '前往同步設定', route: '/settings', reason: input.sync.status || '本機資料尚未同步。', priority: 2 }
-      : highRisk
+    : highRisk
         ? { label: '查看投資組合風險', route: '/tools/portfolio-risk', reason: `${input.risk.primaryRisk.title}：${input.risk.primaryRisk.status}`, priority: 3 }
         : rebalanceBlocked
           ? { label: '查看再平衡限制', route: '/tools/rebalance-recommendation', reason: input.rebalance.blockingReasons[0] || '配置已偏離，但資料品質尚未通過。', priority: 4 }
@@ -69,7 +66,7 @@ export function deriveInvestmentIntelligence(input: InvestmentIntelligenceInput)
                   ? { label: '查看股息摘要', route: '/tools/dividend-center', reason: '已有本年有效已入帳股息可檢視。', priority: 8 }
                   : { label: '查看 AI 決策摘要', route: '/tools/ai-decision', reason: '核心資料目前未出現優先處理事項。', priority: 9 };
 
-  const overallStatus: IntelligenceStatus = qualityProblems.length ? '資料不足' : highRisk ? '高風險' : input.sync.dirty || rebalanceBlocked || allocationReached || marketNeedsReview || drawdownNeedsReview ? '注意' : '正常';
+  const overallStatus: IntelligenceStatus = qualityProblems.length ? '資料不足' : highRisk ? '高風險' : rebalanceBlocked || allocationReached || marketNeedsReview || drawdownNeedsReview ? '注意' : '正常';
   const overallTone: IntelligenceTone = overallStatus === '資料不足' || overallStatus === '高風險' ? 'bad' : overallStatus === '注意' ? 'warn' : 'good';
   const todayAvailable = input.dashboard.dayPnl !== null && input.dashboard.dayPnlRate !== null;
   const marketValue = input.market.freshness === 'today' ? '今日資料' : input.market.freshness === 'recent-effective' ? '最近有效資料' : input.market.freshness === 'stale' ? '資料較舊' : '資料不足';

@@ -200,13 +200,13 @@ test('25. sync canonical payload 保留 optional missing 與 explicit provenance
   assert.doesNotMatch(missing.canonicalJson, /linkedLoanId/);
 });
 
-test('26. 現行手動 Firebase 路徑未新增自動同步或網路 API', () => {
+test('26. P2-A App 已移除主動 Firebase runtime，未新增自動同步或網路 API', () => {
   // 2026-07-25: the householdLiquidityInputAdapter clause was dropped from this assertion — that guard belongs to,
   // and is now covered by, test 18 above (V7.0B sub-PR 1 intentionally wires the Adapter for buy-only budget).
   // This test's own concern (no Firebase realtime auto-sync) is unrelated and unaffected.
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /onValue\(/);
-  assert.match(app, /uploadCloud\(\)|downloadCloud\(\)/);
+  assert.doesNotMatch(app, /uploadCloud\(|downloadCloud\(/);
 });
 
 test('27. duplicate linkedLoanId 交由 Core 保守阻擋，不以 Cash Flow 金額重複加計', () => {

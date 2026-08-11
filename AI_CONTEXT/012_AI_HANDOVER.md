@@ -8,15 +8,15 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P0 Governance-only（已完成，2026-08-11）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P2-A Active Firebase Runtime Retirement（Draft，2026-08-11）
 
-- 基線與範圍：以 `origin/main` `ca5050c1c8a1cebe4a129f5a89d4e2facf069048` 為基線；本 Sprint 僅更新 AI_CONTEXT 與自動產生 Bundle，未修改 runtime、tests、package、workflow、Firebase Console、Production 資料或部署。
+- 基線與範圍：以 `origin/main` `1bbba423d3626b7a63fe48e5201c29597f682367` 為基線、branch `codex/ur-todo-001-firebase-retirement-p2a`；P1 已由 PR #303 Merge。P2-A 只移除 active Firebase Auth／RTDB transport caller、手動同步 UI、remote Ledger merge／apply、runtime sync metadata consumer，保留 Firebase helper/env/legacy payload cleanup 給 P3。
 - 歷史保留：UR-TODO-001 原始 Security Rules Expiry／Anonymous Auth Phase（PR #252）維持已完成歷史；Firebase Retirement 是後續延伸，不得倒寫成原始需求。
 - 已確認決策：方案 B 分階段退役；localStorage 為唯一 canonical runtime state；JSON Backup 是人工備份、跨裝置搬移與災難復原；Ledger 的 localStorage／JSON Backup serialization 與 schema、normalization、validation、identity／collision、atomic group、void、linked transaction identity、attribution start date、forward-only contract 均不可碰觸。
-- P1～P4：P1 移除 startup 背景 Auth 並保留手動 transport；P2 移除 transport／同步 UI／remote merge；P3 清理殘留 Firebase 設定、runtime references、tests 與文件；P4 僅在另行授權下處理 Firebase Console。P1～P4 皆尚未開始。
+- P1～P4：P1 已完成：移除 startup 背景 Auth、當時保留 manual transport。P2-A Draft 已移除 active transport／同步 UI／remote merge，legacy `syncMeta`／`syncSettings.firebase` 仍相容讀取、未改 JSON Backup migration；P2-B 只在明確需要時處理 local／Backup feedback。P3 清理殘留 Firebase 設定、helper、tests 與文件；P4 僅在另行授權下處理 Firebase Console。
 - Console 禁令：P4 前不得刪資料、停用 Anonymous Auth、修改／刪除 Rules、刪 RTDB／Project、改 Console 設定或部署 Production。
-- 待盤點：Console Rules／provider／retention、active devices、Production JSON Backup Export → Import → Re-export 實機驗收環境、`syncSettings.firebase`／`syncMeta` 保留策略、外部 env／Secrets 文件依賴及 Firebase-only Ledger union consumer。
-- 下一直接起點：**P1 Development 前唯讀盤點**；先確認 Auth lazy-load 最小變更與完整 regression matrix，不得自行開始 P1。
+- 待盤點：Console Rules／provider／retention、active devices、Production JSON Backup Export → Import → Re-export 實機驗收環境、`syncSettings.firebase`／`syncMeta` P3 cleanup 策略、外部 env／Secrets 文件依賴及 Firebase-only Ledger union helper 的無 caller 證明。
+- 下一直接起點：完成 P2-A CI、精準 P2 Preview branch rule、Preview／隔離資料 round-trip 與使用者驗收；不得自行 Ready、Merge、開始 P3 或操作 Firebase Console。
 
 ---
 

@@ -5,7 +5,7 @@ import { deriveDailyDecisionWorkflow } from '../src/lib/dailyDecisionWorkflow';
 import { deriveInvestmentIntelligence, type InvestmentIntelligenceInput } from '../src/lib/investmentIntelligence';
 
 const base = (overrides: Partial<InvestmentIntelligenceInput> = {}): InvestmentIntelligenceInput => ({
-  dashboard: { dayPnl: 500, dayPnlRate: 1, quoteStatus: '報價正常', holdingsCount: 2 }, sync: { dirty: false, status: '已同步' },
+  dashboard: { dayPnl: 500, dayPnlRate: 1, quoteStatus: '報價正常', holdingsCount: 2 },
   risk: { overallLevel: 0, overallLabel: '低風險', primaryRisk: { title: '維持監測', status: '正常', reason: '核心風險在門檻內。' } },
   portfolioRisk: { quality: { items: [] }, allocation: { deviation: 1, threshold: 5, thresholdReached: false }, concentration: { largestPct: 30 }, drawdown: { canCalculate: true, maxDrawdown: -0.05 } },
   rebalance: { canRecommend: true, blockingReasons: [], thresholdReached: false, allocationDeviation: 1 }, market: { freshness: 'today', availableCount: 3 },
