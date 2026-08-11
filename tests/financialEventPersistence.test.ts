@@ -76,8 +76,10 @@ test('localStorage 正規化與 JSON Backup 匯出匯入保留有效 Ledger', as
   const localState = await stateWithLedger();
   const backup = backupPayload(localState, {});
   const restored = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
+  const reExported = backupPayload(restored, {});
+  const restoredAgain = stateFromBackup(JSON.parse(JSON.stringify(reExported)), normalizeState({})).state;
 
-  for (const state of [localState, restored]) {
+  for (const state of [localState, restored, restoredAgain]) {
     assert.equal(state.financialEventSchemaVersion, 1);
     assert.equal(state.financialEventAttributionStartDate, '2026-08-02');
     assert.deepEqual(state.financialEvents, [event]);
