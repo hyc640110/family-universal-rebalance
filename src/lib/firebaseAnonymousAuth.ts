@@ -136,3 +136,23 @@ export async function ensureFirebaseAnonymousSession(deps: FirebaseAuthOrchestra
   const raw = await deps.signUp();
   return parseSignUpResponse(raw, deps.now);
 }
+
+/**
+ * Shares one in-flight manual Auth operation between multiple UI entry points.
+ * This belongs at the App boundary: callers still decide when Auth is needed,
+ * while concurrent clicks cannot create two anonymous users before persistence
+ * records the first session.
+ */
+export function createFirebaseAnonymousSessionSingleFlight(ensure: () => Promise<FirebaseAuthSession>): () => Promise<FirebaseAuthSession> {
+  let inFlight: Promise<FirebaseAuthSession> | null = null;
+  return () => {
+    if (inFlight) return inFlight;
+    const current = ensure();
+    inFlight = current;
+    void current.then(
+      () => { if (inFlight === current) inFlight = null; },
+      () => { if (inFlight === current) inFlight = null; }
+    );
+    return current;
+  };
+}
