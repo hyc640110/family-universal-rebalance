@@ -8,7 +8,16 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-A1（已 Merge，2026-08-11）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B1 Legacy Contract Adapter（Draft，2026-08-11）
+
+- 正式基線與分支：`origin/main` `130e673257585c8dcd8733e35cd6c0491bb544ef`；開發 branch `codex/ur-todo-001-firebase-retirement-p3b1`。本階段為 Draft，未 Preview、未 Ready、未 Merge、未部署，Production 未變。
+- 已拍板 contract：**Backward-readable, not backward-re-export**。舊 top-level `firebase`、`syncSettings.firebase`、`firebaseConfigured` 均可讀入，沒有 Firebase functional runtime／canonical 意義；清理只在 genuine persistent user mutation 或明確 Backup Full Restore 產出新的 canonical localStorage 時發生。
+- 防呆與相容性：首載、reload、瀏覽、read normalization、legacy-only delta、mount effect 與背景 migration 均不得清除或寫入。乾淨 Backup 缺少全部 Firebase 欄位時不得 fallback 到 `current.firebase`；P3-B1 不清理 Backup export 內的 `syncSettings.firebase`／`firebaseConfigured`。Ledger v1／v2／v3／future persistence、atomic group、void、`mergeFinancialEventLedgers()`、`syncState.ts`、autoSync／syncMeta、`VITE_FIREBASE_BASE_PATH`、environment boundary、Firebase Console 與 stale browser auth session 均不在範圍。
+- 下一步：完成 Draft PR 的 CI／Preview 驗收前，P3-B2 不得開始；Preview、Ready、Merge、Production deploy 或 Firebase Console 操作均需使用者另行授權。
+
+---
+
+## 歷史交接快照：UR-TODO-001 Firebase Retirement P3-A1（已 Merge，2026-08-11）
 
 - 正式基線：P2-A 已由 PR #304 Merge；P3 Repository 唯讀盤點與 P3-A1 已由 PR [#305](https://github.com/hyc640110/family-universal-rebalance/pull/305) 正常 Merge。`origin/main` 為 `78e50c3d09f122b18d968ebcddf0bd2b52bf177f`（parents：`339f8c305a419117af54f4dbd69a3b47b903a26c`、`40101739a1429aac5bd6ecf0a13d910ac397a5b6`；`mergedAt: 2026-08-11T14:20:24Z`；`mergedBy: hyc640110`；未使用 admin override）。Merge 後 Production Pages workflow `31500994060` success；Production HTTP 200、metadata=`production`、asset=`index-D4cszGRQ.js`；Preview HTTP 200、metadata=`preview`、asset=`index-DCUgxpdq.js`，assets 路徑隔離正常。
 - P3-A1：已移除零 production caller 的 Firebase Anonymous Auth runtime module、Firebase RTDB URL builder runtime module、對應 tests、`VITE_FIREBASE_API_KEY` 與程式端 dead constants；production Firebase Auth／RTDB runtime reference = 0，regression guard 改為驗證模組與 API key config 不得重現。

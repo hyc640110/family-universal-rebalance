@@ -10,8 +10,9 @@ test('P2-A leaves legacy sync metadata readable without using a Firebase baselin
   assert.doesNotMatch(app, /deriveSyncBaselineDiagnostics|hasSyncableStateChanged|baselineFingerprint: uploadedSnapshot/);
 });
 
-test('P2-A keeps JSON Backup payload compatibility while removing active Firebase transport', () => {
+test('P3-B1 keeps JSON Backup legacy read compatibility without falling back to current Firebase config', () => {
   assert.match(app, /syncSettings: \{ refreshSec: normalized\.refreshSec, autoSync: normalized\.autoSync, autoSyncSec: normalized\.autoSyncSec, workerUrl: DEFAULT_WORKER_URL, firebase: normalized\.firebase/);
-  assert.match(app, /const firebase = syncSettings\.firebase \|\| r\.firebase \|\| current\.firebase/);
+  assert.match(app, /const firebase = syncSettings\.firebase \|\| r\.firebase/);
+  assert.doesNotMatch(app, /const firebase = syncSettings\.firebase \|\| r\.firebase \|\| current\.firebase/);
   assert.doesNotMatch(app, /fetchRemoteFinancialEventLedger|uploadFirebaseStateWithLedgerMerge|stateFromFirebasePayload/);
 });
