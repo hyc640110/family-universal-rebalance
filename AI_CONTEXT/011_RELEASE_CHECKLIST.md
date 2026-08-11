@@ -21,7 +21,7 @@
 ## 3. 資料相容性
 
 - [ ] 舊 localStorage 可讀取
-- [ ] UR-TODO-001 P1 前：Firebase 手動上傳／下載正常；P2／P3：Firebase runtime reference cleanup 已驗證
+- [ ] UR-TODO-001 P3：Firebase Auth／RTDB／upload-download UI／remote Ledger merge runtime absence 已驗證；legacy Firebase input compatibility 未被破壞
 - [ ] JSON Backup 可匯出
 - [ ] JSON Backup 可還原
 - [ ] UR-TODO-001 P2／P3：JSON Backup Export → Import → Re-export round-trip 與 Ledger regression 已驗證

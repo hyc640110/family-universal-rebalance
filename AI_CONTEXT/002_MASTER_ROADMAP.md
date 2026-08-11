@@ -1,6 +1,6 @@
 # Universal Rebalance Master Roadmap v7.6
 
-最後更新：2026-07-28
+最後更新：2026-08-12
 
 > **命名提醒**：本文件標題的「v7.5」是**文件本身的版本號**（文件迭代次數），與第 5.1 節「產品版本 V7.0A／V7.0B……」的產品功能版本代號是兩套不同的編號系統，僅為巧合撞號，兩者無關。完整區隔規則見 [016_Product_Decisions.md](016_Product_Decisions.md) 第 5 節。
 
@@ -13,7 +13,7 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - 資產配置與再平衡
 - 投資風險與決策
 - 股息與績效分析
-- Firebase 手動同步（UR-TODO-001 Retirement Phase 中的現行過渡能力；P1～P4 詳細順序以 `008_TODO_BACKLOG.md` 為準）
+- localStorage canonical device persistence、JSON Backup 人工備份／裝置搬移，以及 Firebase legacy input compatibility（UR-TODO-001 P3-B2-A／P3-B2-B 已完成；P3-B2-C 為現行治理清理，P4 Console 尚未開始）
 - CSV／Excel／Backup 匯入匯出
 - CLEC 策略中心
 - 後續家庭流動性、銀行通知與長期財富規劃
@@ -21,11 +21,8 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 ## 2. 最新正式基線
 
 - 正式版本：產品版本 V7.0B Financial Liquidity Core（Sprint 3～5 已完成；Sprint 6 尚未授權）
-- 最新 PR：#157（MERGED，UR-TODO-010 Sprint 5 結案治理同步）
-- `origin/main`：
-  `e6642326d1aaf286b1ac86796afc11495d112149`
-- Production Pages workflow：
-  `30321000360`（success，headSha `e6642326d1aaf286b1ac86796afc11495d112149`）——`deploy.yml` 於 push to main 時自動觸發；Production HTTP 200、`environment=production`，且未混用 Preview assets，詳見 `003_CURRENT_STATUS.md` 第 3 節
+- Firebase Retirement 最新正式基線：PR #310（P3-B2-B）已 Merge；`origin/main` 為 `4262c565aee309074b16ad083947e6dd52a96664`。P3-B2-A／PR #309 merge commit 為 `15a8f3466dd8ba09b3d68de935749b3ff9257f4c`；P3-B2-C 僅校正治理文件與 Bundle，P4 Console 尚未開始。
+- 最新環境與部署證據以 `003_CURRENT_STATUS.md` 為準；Roadmap 不重複維護可漂移的 workflow run／asset hash。
 - Production Price Worker：
   `00631l-pro-price-proxy`
 - Worker version ID：
@@ -114,7 +111,7 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - `liquidityRole` — 已完成
 - Cash Flow schema version（→ 3） — 已完成
 - normalize／migration — 已完成
-- Firebase canonical — 已完成
+- Firebase canonical — 歷史里程碑已完成；現行 Firebase runtime 已退休，不得據此視為現行 persistence layer
 - Backup round-trip — 已完成
 - Plan input（`externalContribution`／`plannedWithdrawal`）持久化與 UI Entry Point — PR #105 已完成，超出 Sprint 2 原始範圍
 - 尚未完成：接入任何正式 consumer（Rebalance／Risk／AI／CLEC／Simulator），詳見 `008_TODO_BACKLOG.md` UR-TODO-007
@@ -178,7 +175,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 3. 桌機／手機目前偏離目標一致性
 4. 00685L、00895 名稱持久化
 5. 正式報價來源、時間與 freshness 一致性
-6. Firebase Realtime Database Security Rules 到期風險
+6. UR-TODO-001 P4 Firebase Console retirement（Project／RTDB／Auth／Rules／remote data，尚未開始且須另行授權）
 
 ## 7. 後續新功能
 

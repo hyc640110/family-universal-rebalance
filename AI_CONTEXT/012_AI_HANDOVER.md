@@ -8,12 +8,19 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B1 Legacy Contract Adapter（已 Merge，2026-08-11）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B2-A／P3-B2-B 已 Merge；P3-B2-C Governance Cleanup（進行中，2026-08-12）
 
-- 正式基線與完成狀態：PR [#307](https://github.com/hyc640110/family-universal-rebalance/pull/307) 已一般 Merge；`origin/main`／merge commit `2770eb2bddf256c4956da95ad0b5ee937495ba6a`（parents：`130e673257585c8dcd8733e35cd6c0491bb544ef`、`fdad14ff1eac3e8cbb9def2ab36517606455b6fd`；`mergedAt: 2026-08-11T15:06:07Z`；`mergedBy: hyc640110`；未使用 admin override）。Production workflow `31505208134` success；Production HTTP 200、metadata=`production`、asset=`index-BUPn4cyd.js`；Preview HTTP 200、metadata=`preview`、asset=`index-Blnxpgms.js`，assets 路徑隔離正常。
-- 已拍板 contract：**Backward-readable, not backward-re-export**。舊 top-level `firebase`、`syncSettings.firebase`、`firebaseConfigured` 均可讀入，沒有 Firebase functional runtime／canonical 意義；清理只在 genuine persistent user mutation 或明確 Backup Full Restore 產出新的 canonical localStorage 時發生。
-- 防呆與相容性：首載、reload、read-time normalization、legacy-only delta、mount effect 與背景 migration 均不得清除或寫入；乾淨 Backup 缺少全部 Firebase 欄位時不得 fallback 到 `current.firebase`。無 AppState／Backup／Ledger schema bump、無 Migration A；Ledger v1／v2／v3、future opaque schema、void、Atomic Group、Split Allocation、reconciliation、attribution、Backup round-trip 維持原契約。P3-B1 不清理 Backup export 內的 `syncSettings.firebase`／`firebaseConfigured`。
-- 明確未處理與下一步：`VITE_FIREBASE_BASE_PATH`、`syncMeta`、`autoSync`／`autoSyncSec`、Backup Export cleanup、`syncState.ts` dead-cloud cleanup、stale browser auth session、Firebase Console／RTDB／Auth／Rules／Project 均未處理。**P3-B2 尚未開始**，僅候選為 canonical Backup output、`firebaseConfigured`／`syncSettings.firebase` output retirement、autoSync 最終政策、AppState legacy 欄位退役、base path generic environment discriminator 與 `syncState.ts` cleanup 是否另拆 Sprint；任何項目均須先決策與授權。
+- 正式基線：PR [#309](https://github.com/hyc640110/family-universal-rebalance/pull/309)（P3-B2-A）merge commit `15a8f3466dd8ba09b3d68de935749b3ff9257f4c`；PR [#310](https://github.com/hyc640110/family-universal-rebalance/pull/310)（P3-B2-B）一般 Merge，`origin/main`／merge commit `4262c565aee309074b16ad083947e6dd52a96664`（`mergedAt: 2026-08-11T16:16:20Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-B Production workflow `31511512490` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
+- 現行架構：Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK runtime 均為 0。localStorage 是唯一 canonical device persistence；JSON Backup 是人工備份／裝置搬移；Financial Event Ledger 維持 localStorage／JSON Backup persistence contract。
+- 相容性：舊 top-level `firebase`、`syncSettings.firebase` 與 `firebaseConfigured` 可讀；新 JSON Backup 不再輸出 `syncSettings.firebase`／`firebaseConfigured`。無 schema bump、migration 或 legacy input rewrite。`mergeFinancialEventLedgers()` 是通用 Ledger 的 forward-only union、collision semantics、deterministic ordering 與 Atomic Group contract，**KEEP**，不是 Firebase retirement blocker。
+- 現行範圍與未處理項目：P3-B2-C 僅校正治理文件與 Full／Lite Bundle。`AppState.firebase`、`FirebaseConfig`、`autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是 remaining compatibility residual，需獨立決策與授權。P4 Firebase Console（Project、RTDB、Anonymous Auth、Rules、API key／settings、remote data、legacy browser Auth session）尚未開始，禁止操作。
+
+---
+
+## 歷史交接快照：UR-TODO-001 Firebase Retirement P3-B1 Legacy Contract Adapter（已 Merge，2026-08-11）
+
+- 正式基線與完成狀態：PR [#307](https://github.com/hyc640110/family-universal-rebalance/pull/307) 已一般 Merge；merge commit `2770eb2bddf256c4956da95ad0b5ee937495ba6a`（`mergedAt: 2026-08-11T15:06:07Z`；`mergedBy: hyc640110`；未使用 admin override）。Production workflow `31505208134` success；Production HTTP 200、metadata=`production`；Preview HTTP 200、metadata=`preview`，assets 路徑隔離正常。
+- 已拍板 contract：**Backward-readable, not backward-re-export**。舊 top-level `firebase`、`syncSettings.firebase`、`firebaseConfigured` 均可讀入，沒有 Firebase functional runtime／canonical 意義；首載、reload、read-time normalization、legacy-only delta、mount effect 與背景 migration 均不得自行清除或寫入。P3-B1 不清理 Backup export 內的 `syncSettings.firebase`／`firebaseConfigured`，該 output retirement 後由 P3-B2-B 完成。
 
 ---
 

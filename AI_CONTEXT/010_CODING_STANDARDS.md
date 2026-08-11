@@ -94,14 +94,16 @@ interface ServiceResult<T> {
 
 ---
 
-## 7. localStorage / Firebase / JSON
+## 7. localStorage / JSON Backup / Legacy Firebase Compatibility
 
 - 不任意更改既有 key
 - 不直接刪除舊欄位
 - Schema 變更要有版本
 - 匯入資料先驗證
 - Migration 失敗時不得覆蓋原資料
-- Firebase 維持手動上傳與下載
+- 不得重新建立 Firebase Auth、RTDB、upload/download UI 或 remote Ledger merge runtime
+- legacy Firebase localStorage／Backup input 未經 migration 決策不得破壞
+- JSON Backup 是正式人工備份／裝置搬移路徑
 - 不新增背景自動同步
 
 ---

@@ -121,12 +121,12 @@ npm run build:preview
 - 手機版
 - 主要資料流程
 - localStorage 舊資料
-- Firebase 手動同步
+- Firebase runtime absence regression 與 legacy Backup compatibility
 - JSON Backup
 - 報價日期
 - Preview / Production 隔離
 
-UR-TODO-001 Firebase Retirement 依階段調整：P1 前仍驗 Firebase 手動同步；P2／P3 改驗 localStorage persistence、JSON Backup round-trip、Ledger regression 與 Firebase runtime reference cleanup。不得在 P1～P3 前宣稱 Firebase 已移除；P4 Console 操作需另行明確授權。
+UR-TODO-001 Firebase Retirement：P3-B2-A／B 已完成，現行驗證為 Firebase Auth／RTDB／upload-download UI／remote Ledger merge runtime absence、localStorage persistence、JSON Backup round-trip、legacy Firebase Backup input compatibility、Ledger regression 與 Preview／Production isolation。P4 Console 操作需另行明確授權；不得因 runtime 退休破壞 legacy input。
 
 ---
 
@@ -161,7 +161,7 @@ PR 應包含：
 - [ ] Desktop
 - [ ] Mobile
 - [ ] localStorage
-- [ ] Firebase
+- [ ] Firebase runtime absence／legacy compatibility（適用時）
 - [ ] JSON Backup
 
 ## Preview
