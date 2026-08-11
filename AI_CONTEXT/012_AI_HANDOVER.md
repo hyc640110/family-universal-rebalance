@@ -8,12 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-A1（本機驗證完成，待 Draft PR，2026-08-11）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-A1（已 Merge，2026-08-11）
 
-- 正式基線：PR #304 已 Merge，`origin/main` 為 `339f8c305a419117af54f4dbd69a3b47b903a26c`；P2-A 已正式完成。
-- P3-A1：已移除零 production caller 的 Firebase Anonymous Auth／RTDB URL helper、對應 tests、`VITE_FIREBASE_API_KEY` 與程式端 dead constants；regression guard 改為驗證模組與 API key config 不得重現。
-- 明確保留：`VITE_FIREBASE_BASE_PATH`、environment boundary、legacy `state.firebase`／`syncSettings.firebase`／`syncMeta`、localStorage／JSON Backup、`syncState.ts`、Financial Event Ledger（含 `mergeFinancialEventLedgers()`）。未清除任何 browser auth session，未觸碰 Firebase Console。
-- 下一直接起點：等待 Draft PR CI 與使用者 Preview 授權。P3-B 必須先決定 legacy Backup／localStorage Firebase 欄位的 read-time 相容策略；P4 必須再次明確授權。
+- 正式基線：P2-A 已由 PR #304 Merge；P3 Repository 唯讀盤點與 P3-A1 已由 PR [#305](https://github.com/hyc640110/family-universal-rebalance/pull/305) 正常 Merge。`origin/main` 為 `78e50c3d09f122b18d968ebcddf0bd2b52bf177f`（parents：`339f8c305a419117af54f4dbd69a3b47b903a26c`、`40101739a1429aac5bd6ecf0a13d910ac397a5b6`；`mergedAt: 2026-08-11T14:20:24Z`；`mergedBy: hyc640110`；未使用 admin override）。Merge 後 Production Pages workflow `31500994060` success；Production HTTP 200、metadata=`production`、asset=`index-D4cszGRQ.js`；Preview HTTP 200、metadata=`preview`、asset=`index-DCUgxpdq.js`，assets 路徑隔離正常。
+- P3-A1：已移除零 production caller 的 Firebase Anonymous Auth runtime module、Firebase RTDB URL builder runtime module、對應 tests、`VITE_FIREBASE_API_KEY` 與程式端 dead constants；production Firebase Auth／RTDB runtime reference = 0，regression guard 改為驗證模組與 API key config 不得重現。
+- 明確保留：`VITE_FIREBASE_BASE_PATH`、environment boundary、legacy `state.firebase`／`syncSettings.firebase`／`syncMeta`、localStorage／JSON Backup、`syncState.ts`、Financial Event Ledger（含 `mergeFinancialEventLedgers()`）。未清除 stale browser Firebase auth session，未觸碰 Firebase Console、RTDB、Auth provider、Rules 或 Project。
+- 下一直接起點：P3-B 尚未開始，必須先完成 legacy Firebase 欄位的 read-time／localStorage／JSON Backup 相容策略產品決策；不得自行開始實作。P4 必須再次明確授權。
 
 ---
 
