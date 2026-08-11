@@ -63,7 +63,8 @@ test('the four supported symbols, market suffix normalization, and one quote map
   assert.match(app, /mergeQuoteMap\(current, importedQuotes\)/);
 });
 
-test('quote cache stays outside Firebase canonical sync state', () => {
-  const sync = readFileSync(new URL('../tests/syncBaseline.test.ts', import.meta.url), 'utf8');
-  assert.match(sync, /quote cache and fetchedAt stay outside AppState and cannot change its fingerprint/);
+test('quote cache stays outside local canonical AppState', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const appState = app.match(/export type AppState = \{([^}]*)\};/)?.[1] || '';
+  assert.doesNotMatch(appState, /quotes|fetchedAt|marketSnapshot/);
 });

@@ -17,8 +17,6 @@ export type InvestmentDashboardInput = {
   quoteStatus: string;
   lastQuoteAt?: string;
   hasUpdatedQuotes: boolean;
-  syncDirty: boolean;
-  syncStatus: string;
   targetInvalid: boolean;
   holdingsCount: number;
 };
@@ -36,7 +34,6 @@ export function deriveInvestmentDashboard(input: InvestmentDashboardInput) {
   if (input.quoteStatus !== '報價正常') reminders.push({ key: 'quotes', title: '股價資料需要確認', detail: input.quoteStatus, tone: 'warn' });
   if (input.targetInvalid) reminders.push({ key: 'targets', title: '目標比例需要調整', detail: '持股目標比例合計超過 100%。', tone: 'warn' });
   if (input.thresholdReached) reminders.push({ key: 'rebalance', title: '配置已偏離目標', detail: `偏離已達既有再平衡門檻 ${input.rebalanceThreshold.toFixed(1)}%。`, tone: 'warn' });
-  if (input.syncDirty) reminders.push({ key: 'sync', title: '本機資料尚未同步', detail: input.syncStatus || '請依需要使用既有手動上傳功能。', tone: 'neutral' });
   return {
     dayPnl,
     dayPnlRate,

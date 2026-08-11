@@ -4,17 +4,19 @@ import { readFileSync } from 'node:fs';
 
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 
-test('cold startup does not start Firebase Auth, while manual sync obtains it on demand', () => {
-  assert.doesNotMatch(app, /useEffect\(\(\) => \{ ensureFirebaseAuthSessionFresh\(\)\.catch\(\(\) => \{\}\); \}, \[\]\);/);
-  assert.match(app, /status: 'idle', session: null, errorMessage: null/);
-  assert.match(app, /僅在手動同步時建立／更新匿名身分/);
+test('P2-A removes every App caller that could start Firebase Auth or RTDB transport', () => {
+  for (const activeCaller of [
+    'ensureFirebaseAuthSessionOnDemand',
+    'createFirebaseAnonymousSessionSingleFlight',
+    'uploadCloud',
+    'downloadCloud',
+    'uploadFirebaseStateWithLedgerMerge',
+    'fetchRemoteFinancialEventLedger',
+    'downloadFirebase',
+    'buildFirebaseSyncUrl'
+  ]) assert.doesNotMatch(app, new RegExp(`\\b${activeCaller}\\b`));
 
-  const upload = app.slice(app.indexOf('const uploadCloud = async () =>'), app.indexOf('const downloadCloud = async () =>'));
-  const download = app.slice(app.indexOf('const downloadCloud = async () =>'), app.indexOf('useEffect(() => { refreshQuotes(); }, []);'));
-  const authBoundary = app.slice(app.indexOf('const ensureFirebaseAuthSessionFresh = async'), app.indexOf('if (!firebaseAuthSingleFlightRef.current)'));
-  assert.match(upload, /const session = await ensureFirebaseAuthSessionOnDemand\(\);/);
-  assert.match(download, /if \(!window\.confirm[\s\S]*?\) return;\s*const session = await ensureFirebaseAuthSessionOnDemand\(\);/);
-  assert.match(upload, /fetchRemoteFinancialEventLedger[\s\S]*?await flushDrafts\(\)[\s\S]*?uploadFirebaseStateWithLedgerMerge/);
-  assert.match(download, /await downloadFirebase\(state\.firebase, stateRef\.current, session\.uid, session\.idToken\)/);
-  assert.doesNotMatch(authBoundary, /writeState\(|setState\(|updateSyncMeta|updateRemoteMeta|financialEvents/);
+  assert.doesNotMatch(app, /Identity Toolkit|Secure Token|匿名身分|上傳雲端|下載雲端/);
+  assert.match(app, /匯出 JSON 備份/);
+  assert.match(app, /匯入 JSON 備份/);
 });
