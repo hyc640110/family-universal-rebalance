@@ -9,7 +9,6 @@ import {
   type CashFlowProfile
 } from '../src/lib/cashFlow';
 import { buildHouseholdLiquidityInput } from '../src/lib/householdLiquidityInputAdapter';
-import { createSyncPayloadSnapshot } from '../src/lib/syncState';
 
 const baseProfile = (overrides: Record<string, unknown> = {}) => ({
   monthlyIncome: null,
@@ -142,14 +141,14 @@ test('11. localStorage state normalizer、Backup import 與 export 都經過同�
   assert.ok(app.includes('...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile })'));
 });
 
-test('12. Firebase canonical snapshot 區分 absent、explicit zero 與 positive plan input', () => {
-  const absent = createSyncPayloadSnapshot({ cashFlowProfile: normalizeCashFlowProfile(baseProfile()) });
-  const zero = createSyncPayloadSnapshot({ cashFlowProfile: normalizeCashFlowProfile(baseProfile({ externalContribution: 0, plannedWithdrawal: 0 })) });
-  const positive = createSyncPayloadSnapshot({ cashFlowProfile: normalizeCashFlowProfile(baseProfile({ externalContribution: 1_000, plannedWithdrawal: 200 })) });
-  assert.notEqual(absent.canonicalJson, zero.canonicalJson);
-  assert.notEqual(zero.canonicalJson, positive.canonicalJson);
-  assert.match(zero.canonicalJson, /"externalContribution":0/);
-  assert.match(positive.canonicalJson, /"plannedWithdrawal":200/);
+test('12. portable JSON payload 區分 absent、explicit zero 與 positive plan input', () => {
+  const absent = JSON.stringify({ cashFlowProfile: normalizeCashFlowProfile(baseProfile()) });
+  const zero = JSON.stringify({ cashFlowProfile: normalizeCashFlowProfile(baseProfile({ externalContribution: 0, plannedWithdrawal: 0 })) });
+  const positive = JSON.stringify({ cashFlowProfile: normalizeCashFlowProfile(baseProfile({ externalContribution: 1_000, plannedWithdrawal: 200 })) });
+  assert.notEqual(absent, zero);
+  assert.notEqual(zero, positive);
+  assert.match(zero, /"externalContribution":0/);
+  assert.match(positive, /"plannedWithdrawal":200/);
 });
 
 test('13. plan input round-trip 不持久化 Household Liquidity 的 runtime derived result', () => {

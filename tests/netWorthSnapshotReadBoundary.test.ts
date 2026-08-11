@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { canonicalSyncPayload } from '../src/lib/syncState';
 import { normalizeNetWorthHistory } from '../src/lib/netWorthHistory';
 import {
   createNetWorthSnapshotReadTimeView,
@@ -71,18 +70,18 @@ test('localStorage-shaped raw state is classified before legacy lenient normaliz
   assert.equal(legacyState[0].cash, 0);
 });
 
-test('Firebase and Backup-shaped payloads can share the same read-time boundary without schema changes', () => {
+test('portable JSON and Backup-shaped payloads can share the same read-time boundary without schema changes', () => {
   const rawPayload = {
     netWorthHistory: [{ date: '2026-01-01', ...completeFields, investmentValue: 'not-a-number' }]
   };
-  const firebasePayload = canonicalSyncPayload(rawPayload as never);
-  const firebaseView = createNetWorthSnapshotReadTimeViewFromState(firebasePayload);
+  const portablePayload = JSON.parse(JSON.stringify(rawPayload));
+  const portableView = createNetWorthSnapshotReadTimeViewFromState(portablePayload);
   const backupView = createNetWorthSnapshotReadTimeViewFromState(JSON.parse(JSON.stringify(rawPayload)));
 
-  assert.equal(firebaseView.rows.length, 1);
-  assert.equal(firebaseView.rows[0].fields.investmentValue.status, 'invalid');
+  assert.equal(portableView.rows.length, 1);
+  assert.equal(portableView.rows[0].fields.investmentValue.status, 'invalid');
   assert.equal(backupView.rows[0].fields.investmentValue.status, 'invalid');
-  assert.equal(firebaseView.rows[0].raw.investmentValue, 'not-a-number');
+  assert.equal(portableView.rows[0].raw.investmentValue, 'not-a-number');
   assert.equal(backupView.rows[0].raw.investmentValue, 'not-a-number');
 });
 

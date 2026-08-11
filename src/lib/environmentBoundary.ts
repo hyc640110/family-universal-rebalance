@@ -25,17 +25,6 @@ export function createEnvironmentBoundary(environmentValue: string | undefined, 
 
   return {
     environment,
-    firebaseBasePath,
-    /**
-     * UR-TODO-001: keyed by the Firebase Anonymous Auth uid, not the legacy
-     * user-chosen secretPath, so Security Rules can enforce
-     * `auth.uid === $uid` per environment prefix. uid is stable across a
-     * future linkWithCredential() upgrade, so this path never needs a
-     * migration when that ships.
-     */
-    syncRoot(uid: string) {
-      if (!uid) throw configurationError();
-      return `${firebaseBasePath}/users/${encodeURIComponent(uid)}`;
-    }
+    firebaseBasePath
   };
 }
