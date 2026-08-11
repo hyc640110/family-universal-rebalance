@@ -126,6 +126,8 @@ npm run build:preview
 - 報價日期
 - Preview / Production 隔離
 
+UR-TODO-001 Firebase Retirement 依階段調整：P1 前仍驗 Firebase 手動同步；P2／P3 改驗 localStorage persistence、JSON Backup round-trip、Ledger regression 與 Firebase runtime reference cleanup。不得在 P1～P3 前宣稱 Firebase 已移除；P4 Console 操作需另行明確授權。
+
 ---
 
 ## 7. Pull Request 流程

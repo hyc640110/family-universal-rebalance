@@ -299,6 +299,8 @@ Services 應負責：
 
 ## 9. Firebase 架構
 
+> **現行過渡架構，已批准 retirement：** Firebase 手動同步目前仍存在，但已不是目標架構。UR-TODO-001 Firebase Retirement 採 P1～P4 漸進式移除；在 P1～P3 完成前不得描述為已移除。目標架構是 localStorage 作為唯一 canonical runtime state、JSON Backup 作為人工備份／跨裝置搬移／災難復原，Financial Event Ledger 的 localStorage／JSON Backup contract 維持不變。P4 前不得修改 Firebase Console。
+
 ### 9.1 使用方式
 
 - 使用 Firebase Realtime Database

@@ -1,8 +1,8 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.1
+版本：v1.2
 
-最後更新：2026-08-10
+最後更新：2026-08-11
 
 ## 0. 文件定位
 
@@ -33,6 +33,7 @@
 | ADR-001 | V7.0B 採漸進式整合（Strangler Pattern），逐步將 `App.tsx` 內的舊邏輯抽出為純函式並接上 Household Liquidity | 已採用 |
 | ADR-002 | Dip Alert 明確分離「訊號」與「資金資格」語意 | 已採用 |
 | ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
+| ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
 
 ---
 
@@ -116,3 +117,24 @@ UR-TODO-046-L2A 的 Repository audit 確認，跨 domain 的 split allocation �
 - 好處：economic completeness、amount conservation、void 與 replacement 都在同一 group contract 下驗證，避免部分 component 造成 double-count 或無聲遺漏；舊 client 面對新 schema 時寧可不歸因也不錯誤解讀。
 - 取捨：generic split 寫入端必須一次提供完整 group，不能做 confirmed component-level correction；舊版 client 讀取 v3 Ledger 期間不會產生 Ledger attribution，需由支援 v3 的 client 消費。
 - 延續要求：任何新 consumer（例如 Loan UI／CSV／Import Center、Investment、FX）都必須先在獨立 Sprint 定義其 domain contract 與 generic group mapping，不得將 domain-specific 商業規則滲入 generic foundation；不得因本 ADR 自動啟動後續 consumer 或 historical migration。
+
+---
+
+## ADR-004：Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立
+
+**狀態**：已採用
+
+**背景**：UR-TODO-001 的原始 Security Rules Expiry／Anonymous Auth Phase 已由 PR #252 完成；後續 L2C audit 證實 Firebase transport、startup Anonymous Auth、sync UI 與 remote Ledger merge 耦合。一次完整移除會同時擴大 regression surface、使 Ledger remote merge 清理難以獨立驗證，並提高 rollback 難度。
+
+**決策**：
+
+1. localStorage 是唯一 canonical runtime state；JSON Backup 是人工備份、跨裝置搬移與災難復原。
+2. Financial Event Ledger 的 localStorage／JSON Backup serialization、schema、normalization、validation、event identity／collision、atomic group、void、linked transaction identity、attribution start date 與 forward-only 契約維持獨立，不得隨 Firebase code 一併刪除。
+3. P1 移除 startup 背景 Auth；P2 移除手動 transport、UI、sync metadata 與 Firebase-only remote merge；P3 清理無使用點設定、runtime references、tests 與文件；P4 的 Console retirement 另行授權。
+4. P4 前禁止 Firebase Console 變更。JSON Backup payload 若需變更，必須另行證明必要性並取得授權。
+
+**後果**：
+
+- 好處：每個階段都能對 localStorage、JSON Backup 與 Ledger regression 獨立驗證，且可在早期階段回退。
+- 取捨：退役期間會短暫保留過渡程式與文件；P1 或 P2 均不構成完整 retirement 結論。
+- 延續要求：P1～P3 必須以最小單一 Sprint／Draft PR 執行；不得處理 Gmail OAuth、非 Firebase Workers、核心財務公式或未授權的 Backup migration。

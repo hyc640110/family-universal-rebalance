@@ -13,7 +13,7 @@ Universal Rebalance 是以 React、Vite、TypeScript 建立的個人／家庭財
 - 資產配置與再平衡
 - 投資風險與決策
 - 股息與績效分析
-- Firebase 手動同步
+- Firebase 手動同步（UR-TODO-001 Retirement Phase 中的現行過渡能力；P1～P4 詳細順序以 `008_TODO_BACKLOG.md` 為準）
 - CSV／Excel／Backup 匯入匯出
 - CLEC 策略中心
 - 後續家庭流動性、銀行通知與長期財富規劃
