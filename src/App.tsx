@@ -70,7 +70,7 @@ import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceIt
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
 import { voidFinancialEventAndAppend } from './lib/financialEventVoid';
 import type { RuntimeAttributionConfirmOutcome, RuntimeAttributionVoidOutcome } from './components/RuntimeAttributionProvenanceCard';
-import { ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
+import { createFirebaseAnonymousSessionSingleFlight, ensureFirebaseAnonymousSession, readPersistedFirebaseAuthSession, requestAnonymousSignUp, requestTokenRefresh, writePersistedFirebaseAuthSession, type FirebaseAuthSession } from './lib/firebaseAnonymousAuth';
 import { buildFirebaseSyncUrl } from './lib/firebaseSyncUrl';
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './lib/calendarDay';
 import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
@@ -479,9 +479,10 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   return { state: normalizeState(legacyBackupState), netWorthSnapshotReadTimeView };
 }
 function defaultSyncStatus(state: AppState) { return state.firebase.databaseURL ? '本機已儲存，尚未上傳雲端' : '尚未設定 Firebase，同步僅保存在本機'; }
-/** UR-TODO-001: surfaces Anonymous Auth session status in the existing sync status rows, so a failed background sign-in is never silently invisible. */
-function firebaseAuthStatusText(auth: { status: 'pending' | 'ready' | 'error'; errorMessage: string | null }): string {
-  if (auth.status === 'pending') return '登入中…';
+/** UR-TODO-001 P1: Auth is idle until a user explicitly starts manual Firebase sync. */
+function firebaseAuthStatusText(auth: { status: 'idle' | 'pending' | 'ready' | 'error'; errorMessage: string | null }): string {
+  if (auth.status === 'idle') return '僅在手動同步時建立／更新匿名身分';
+  if (auth.status === 'pending') return '正在建立／更新匿名身分…';
   if (auth.status === 'error') return `❌ 匿名登入失敗：${auth.errorMessage || '未知錯誤'}`;
   return '已建立匿名身分';
 }
@@ -1147,7 +1148,8 @@ function App() {
   }
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [analyticsView, setAnalyticsView] = useState<'performance' | 'risk'>('performance');
-  const [firebaseAuth, setFirebaseAuth] = useState<{ status: 'pending' | 'ready' | 'error'; session: FirebaseAuthSession | null; errorMessage: string | null }>({ status: 'pending', session: null, errorMessage: null });
+  const [firebaseAuth, setFirebaseAuth] = useState<{ status: 'idle' | 'pending' | 'ready' | 'error'; session: FirebaseAuthSession | null; errorMessage: string | null }>({ status: 'idle', session: null, errorMessage: null });
+  const firebaseAuthSingleFlightRef = useRef<(() => Promise<FirebaseAuthSession>) | null>(null);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -1346,9 +1348,10 @@ function App() {
   const assetsPullRefreshRef = useRef<ReturnType<typeof createAssetsPullToRefresh> | null>(null);
   if (!assetsPullRefreshRef.current) assetsPullRefreshRef.current = createAssetsPullToRefresh({ threshold: 72, onRefresh: () => { void refreshQuotes(true); } });
   // UR-TODO-001: establishes (or refreshes) the Firebase Anonymous Auth session used to authorize
-  // RTDB requests. Runs invisibly in the background; failures surface only in the sync UI, they
-  // never block the rest of the app since all other features work purely off localStorage.
+  // RTDB requests. P1 calls this only after a user explicitly starts manual sync; failures surface
+  // in the sync UI and never block the localStorage-backed app.
   const ensureFirebaseAuthSessionFresh = async (): Promise<FirebaseAuthSession> => {
+    setFirebaseAuth(current => ({ status: 'pending', session: current.session, errorMessage: null }));
     try {
       const persisted = readPersistedFirebaseAuthSession(FIREBASE_AUTH_SESSION_STORAGE_KEY);
       const session = await ensureFirebaseAnonymousSession({
@@ -1367,7 +1370,10 @@ function App() {
       throw error instanceof Error ? error : new Error(message);
     }
   };
-  useEffect(() => { ensureFirebaseAuthSessionFresh().catch(() => {}); }, []);
+  if (!firebaseAuthSingleFlightRef.current) {
+    firebaseAuthSingleFlightRef.current = createFirebaseAnonymousSessionSingleFlight(ensureFirebaseAuthSessionFresh);
+  }
+  const ensureFirebaseAuthSessionOnDemand = () => firebaseAuthSingleFlightRef.current!();
   const flushDrafts = async () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
@@ -1386,8 +1392,7 @@ function App() {
   };
   const uploadCloud = async () => {
     if (!hasUpdatedQuotes || isRefreshingQuotes) throw new Error('請等待本次股價更新完成後再上傳雲端');
-    const session = firebaseAuth.session;
-    if (!session) throw new Error('Firebase 匿名身分尚未就緒，請稍後再試');
+    const session = await ensureFirebaseAuthSessionOnDemand();
     setRuntimeSyncStatus({ kind: 'progress', operation: 'upload' });
     const preflightRemoteLedger = await fetchRemoteFinancialEventLedger(stateRef.current.firebase, session.uid, session.idToken);
     const flushed = await flushDrafts();
@@ -1428,8 +1433,7 @@ function App() {
   };
   const downloadCloud = async () => {
     if (!window.confirm('下載雲端資料會覆蓋目前本機畫面資料，但不會自動合併（財務記帳事件 Ledger 除外：這一項會自動與雲端既有紀錄合併，雙邊各自獨有的事件都會保留，不會互相覆蓋）。是否繼續？')) return;
-    const session = firebaseAuth.session;
-    if (!session) throw new Error('Firebase 匿名身分尚未就緒，請稍後再試');
+    const session = await ensureFirebaseAuthSessionOnDemand();
     setRuntimeSyncStatus({ kind: 'progress', operation: 'download' });
     const remoteResult = await downloadFirebase(state.firebase, stateRef.current, session.uid, session.idToken);
     const remote = remoteResult.state;

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  createFirebaseAnonymousSessionSingleFlight,
   ensureFirebaseAnonymousSession,
   isSessionFresh,
   parseRefreshResponse,
@@ -96,6 +97,25 @@ test('ensureFirebaseAnonymousSession rejects when apiKey is missing, before atte
     ensureFirebaseAnonymousSession({ apiKey: '', now: NOW, persisted: null, signUp: async () => ({}), refresh: async () => ({}) }),
     /API Key/
   );
+});
+
+test('single-flight shares one in-flight manual Auth operation and permits a later operation after it settles', async () => {
+  let calls = 0;
+  const singleFlight = createFirebaseAnonymousSessionSingleFlight(() => {
+    calls += 1;
+    return Promise.resolve(session({ uid: `uid-${calls}` }));
+  });
+
+  const first = singleFlight();
+  const second = singleFlight();
+  assert.equal(calls, 1);
+  assert.equal(first, second);
+  await first;
+
+  const third = singleFlight();
+  assert.equal(calls, 2);
+  assert.notEqual(third, first);
+  await third;
 });
 
 test('persisted session storage round-trips through the given storage key and rejects malformed stored values', () => {

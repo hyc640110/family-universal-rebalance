@@ -271,7 +271,8 @@ test('uploadCloud() 使用唯一的 production merge-before-PUT helper，拒絕�
   assert.match(app, /const preflightRemoteLedger = await fetchRemoteFinancialEventLedger\(stateRef\.current\.firebase, session\.uid, session\.idToken\);\s*const flushed = await flushDrafts\(\);/);
   assert.match(app, /const \{ uploadedSnapshot, normalized, mergeOutcome \} = await uploadFirebaseStateWithLedgerMerge\(flushed\.firebase, flushed, session\.uid, session\.idToken, preflightRemoteLedger\)/);
   const uploadCloud = app.slice(app.indexOf('const uploadCloud = async () =>'), app.indexOf('const downloadCloud = async () =>'));
-  assert.doesNotMatch(uploadCloud, /ensureFirebaseAuthSessionFresh\(\)/);
+  assert.match(uploadCloud, /const session = await ensureFirebaseAuthSessionOnDemand\(\);/);
+  assert.match(app, /const firebaseAuthSingleFlightRef = useRef/);
 });
 
 test('missing-ledger 在 raw remote payload 層攔截，且僅是 runtime-only status', () => {
