@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'vite';
+import { toCbcUsdTwdFxRateRecord } from '../src/lib/cbcFxProvider';
 
 type Persistence = {
   normalizeState(raw: unknown): Record<string, unknown>;
@@ -60,4 +61,16 @@ test('FX-A1: a pinned snapshot valuation does not change after a later rate revi
     netWorthHistory: [{ date: '2026-08-12', totalAssets: 31_000, netWorth: 31_000, investmentValue: 0, cash: 31_000, debt: 0, fxValuations: [pinnedValuation] }]
   });
   assert.equal((state.netWorthHistory as Array<{ fxValuations?: Array<{ quotePerBase: number }> }>)[0].fxValuations?.[0].quotePerBase, 31);
+});
+
+test('FX-A2: a CBC provider record survives localStorage-shaped and JSON Backup round-trips without changing pinned snapshots', async () => {
+  const { normalizeState, backupPayload, stateFromBackup } = await loadPersistence();
+  const cbcRate = toCbcUsdTwdFxRateRecord({
+    status: 'available', baseCurrency: 'USD', quoteCurrency: 'TWD', rateType: 'reference-close', rateDate: '2026-08-12', quotePerBase: 32.246,
+    provider: 'Central Bank of the Republic of China (Taiwan) — Interbank Closing Rate', capturedAt: '2026-08-12T09:00:00.000Z'
+  });
+  const state = normalizeState({ fxRateHistory: [cbcRate], netWorthHistory: [{ date: '2026-08-12', totalAssets: 31_000, netWorth: 31_000, investmentValue: 0, cash: 31_000, debt: 0, fxValuations: [pinnedValuation] }] });
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(state, {}))), normalizeState({})).state;
+  assert.deepEqual(restored.fxRateHistory, [cbcRate]);
+  assert.deepEqual((restored.netWorthHistory as Array<Record<string, unknown>>)[0].fxValuations, [pinnedValuation]);
 });

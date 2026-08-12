@@ -4,6 +4,7 @@ import { getFinancialAccountBalance, type FinancialAccount } from './financialAc
 export const FX_VALUATION_CURRENCY = 'TWD' as const;
 export const USD_TWD_REFERENCE_CLOSE_RATE_TYPE = 'reference-close' as const;
 export const FX_MAX_STALE_CALENDAR_DAYS = 3;
+export const FX_RATE_POLICY_VERSION = 'fx-a1-v1' as const;
 
 export type FxRateRecord = {
   id: string;

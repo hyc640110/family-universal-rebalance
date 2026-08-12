@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter（Draft 實作候選，尚未 Merge，2026-08-13）
+
+- 分支：`feat/ur-todo-046-fx-a2-cbc-provider`，自正式 `origin/main` `559c32e4f7c2042ce3795536ed4da7e7025a2a8d` 建立；此實作只可經 Draft PR 審查，**尚未進 Production**。UR-TODO-046 整體仍 **OPEN**。
+- 決策與來源：唯一 current source 是 CBC 官方 `https://cpx.cbc.gov.tw/api/OpenData/FTDOpenData_Day`；資料列必須同時含 `日期`（`YYYYMMDD`）與 `NTD_USD` 正數字串，語意固定為 `1 USD = quotePerBase TWD`。禁止 BP01D01en、HTML scraping、Yahoo／臺灣銀行 fallback、硬編碼 rate 或猜測。
+- Worker boundary：只新增 Market Data Worker `GET /fx-rates/usd-twd`；先逐列驗證完整 raw array，再輸出 `available`／`unavailable` 的 normalized JSON，絕不回傳 CBC raw rows。duplicate same-date same-value 可接受，不同值為 `provider-conflict`；空、schema change、invalid、HTTP／timeout 均 fail-safe。Preview Worker 已部署為 `family-universal-rebalance-market-data-preview`，HTTP 200、`environment=preview`、`rateDate=2026-08-12`、`quotePerBase=32.246`；Production Worker 沒有部署。
+- App boundary：`cbcFxProvider.ts` 是可呼叫 service，無 startup／render auto-fetch、無 UI。只有 `available` 才形成 deterministic `cbc-ftd-usd-twd-reference-close-YYYY-MM-DD` record；同 ID 同值 idempotent，不同值不覆寫既有歷史。staleness 僅重用 FX-A1 的 3 calendar days policy；localStorage／JSON Backup 維持加法式 round-trip，pinned snapshots 不改。
+- 未包含：FX attribution、snapshot producer、totals、currency conversion、realized FX、foreign investment／loan、Generic Split FX consumer、Financial Event／Ledger、AI Decision、Rebalance 與 Household Liquidity。後續只可依 PR CI、Preview 驗收與使用者明確 Merge 指示前進。
+
+---
+
 ## 最新交接快照：UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation（已完成／Merge／Production Verified，2026-08-12）
 
 - 正式基線：PR [#316](https://github.com/hyc640110/family-universal-rebalance/pull/316) 已正常 Merge；`origin/main`／merge commit 為 `62a5a9a8ed269bbac9d6e9370c524356cd3fa5e0`（parents：`98cd44ed2493594b1b67dc22e93f7b55345b2090`、`0c4da369449eea1d20d70b4767bdcba1bcb23002`；`mergedAt: 2026-08-12T15:21:56Z`；`mergedBy: hyc640110`；未使用 admin override）。PR CI Verification `31610595323`、Preview workflow_dispatch `31611211649` 與 Merge 後 Deploy GitHub Pages `31611895289` 均 success；Production／Preview HTTP 200、environment metadata 正確、assets 隔離正常。
