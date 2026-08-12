@@ -8,7 +8,15 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-C Environment Naming Cleanup（完成候選，2026-08-12）
+## 最新交接快照：UR-TODO-001 Firebase Retirement 正式完成（Archived Retirement，2026-08-12）
+
+- 正式基線：PR [#314](https://github.com/hyc640110/family-universal-rebalance/pull/314) 已 Merge，`origin/main`／merge commit `54bd6794c0ac8ec1704c979cdb7e56e81818de32`。P3-B2-A～P3-B3-C 全數完成；Firebase Auth／RTDB transport／Firebase SDK dependency／active Firebase environment naming／canonical Firebase config 均為 0。localStorage 是 canonical device persistence，JSON Backup 是人工備份／裝置搬移，legacy Firebase input 僅 tolerant-read／accept-and-discard；Financial Event Ledger 與 `mergeFinancialEventLedgers()` KEEP，Preview／Production isolation 不變。
+- P4 Archived Retirement：Firebase Project `l-pro-web-app`、RTDB historical data、19 個歷史 anonymous users 與 Web App registration 均保留；RTDB Rules 為 deny-all，Anonymous Auth disabled。受控離線 RTDB archive 已完成 JSON parse 驗證，SHA-256 evidence 為 `E22FD669E3787F28B5174CE5C748A9317EE2EE935E48EDF996A07B8D741E4150`；archive 本體不進 Repository、Bundle 或公開資源。Production InPrivate／Ctrl+F5 實機驗證證實不依賴 RTDB／Anonymous Auth，localStorage 設定可保留。
+- 結案：**UR-TODO-001 已 CLOSED，無 REQUIRED-DELETE blocker。** 下一位 AI 不得再啟動 Firebase retirement；若使用者未來要求刪除 users、RTDB、Web App registration、API key、Project 或 browser storage，均為 optional destructive housekeeping，必須重新唯讀盤點並取得明確授權。
+
+---
+
+## 歷史交接快照：UR-TODO-001 Firebase Retirement P3-B3-C Environment Naming Cleanup（完成候選，2026-08-12）
 
 - 正式基線：PR [#313](https://github.com/hyc640110/family-universal-rebalance/pull/313) 已一般 Merge，`origin/main`／merge commit `aee3e5cfa590ec2d650fc06f7222d81ce309c687`（`mergedAt: 2026-08-12T11:33:18Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B3-B 移除 canonical `AppState.firebase`／`FirebaseConfig`；legacy top-level localStorage、top-level Backup、nested `syncSettings.firebase` 均 accept-and-discard，不進入 canonical state 或後續 output。Production workflow `31592370757` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
 - 完成候選：branch `codex/ur-todo-001-firebase-retirement-p3b3c-environment-naming-cleanup` 從最新 `origin/main` 建立。P3-B3-C 只將 active environment safety boundary 從 `VITE_FIREBASE_BASE_PATH`／`FIREBASE_BASE_PATH` 更名為 `VITE_DEPLOYMENT_SCOPE`／`DEPLOYMENT_SCOPE`；scope value、Production／Preview isolation、storage key、Worker URL 與 app base 均不變。

@@ -25,7 +25,7 @@
 
 ## 專案定位
 
-Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理平台，涵蓋持股管理、資產配置、再平衡、借款、績效、股息、JSON 備份／匯入、Gmail OAuth、AI 決策與家庭流動性。Firebase 跨裝置同步 runtime 已退休；Firebase 僅保留 legacy input compatibility 與 P4 Console retirement 脈絡。
+Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理平台，涵蓋持股管理、資產配置、再平衡、借款、績效、股息、JSON 備份／匯入、Gmail OAuth、AI 決策與家庭流動性。Firebase 已完成 **Archived Retirement／封存保留**：不再有產品 runtime 角色；Firebase Project 僅作為封存的歷史外部資源保留。legacy Firebase input 僅維持 backward-compatible tolerant-read／accept-and-discard，並非同步能力。
 
 ## 核心原則
 
@@ -35,7 +35,7 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 - Preview 驗收後才 Ready
 - 使用者手動 Merge
 - Preview／Production 隔離
-- localStorage 為 canonical device persistence，JSON Backup 為人工備份／裝置搬移；legacy Firebase input 維持受控相容
+- localStorage 為 canonical device persistence，JSON Backup 為人工備份／裝置搬移；Firebase 為 archived retired project，legacy Firebase input 維持受控相容
 - 不新增未經允許的自動同步
 
 ## Active AI Context 文件

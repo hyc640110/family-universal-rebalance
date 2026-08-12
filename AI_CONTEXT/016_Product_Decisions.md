@@ -162,13 +162,16 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 ---
 
-## 14. Firebase Retirement（永久產品決策，2026-08-11）
+## 14. Firebase Retirement Closure Policy（永久產品決策，2026-08-12）
 
 1. 採方案 B 分階段正式退役 Firebase 跨裝置同步；Firebase 不再是一般 App runtime 的必要資料來源。
 2. localStorage 是唯一 canonical runtime state；不得以 Firebase 覆寫作為一般資料來源。
 3. JSON Backup 是正式人工備份、跨裝置資料搬移與災難復原方案。Production 真實資料 Export → Import → Re-export round-trip 必須在後續獨立驗收中完成。
 4. Financial Event Ledger 的持久化與核心契約保留於 localStorage／JSON Backup；Firebase retirement 不得改變 schema、normalization、validation、identity、atomic group、void、linked transaction identity、attribution start date、forward-only、attribution 或 reconciliation 語意。
-5. Firebase runtime retirement 與 Firebase Console retirement 必須分開 Sprint；P4 前不得對 Console 做資料、Auth、Rules、RTDB／Project 或設定的不可逆操作。
+5. Firebase runtime retirement 與 Firebase Console retirement 必須分開 Sprint；P4 已依獨立明確授權完成 Archived Retirement／封存保留。
+6. 產品 runtime 退出不等於必須物理刪除歷史雲端資源。當 runtime=0、network path=0、access frozen、受控 archive 已驗證且 Production 已實機證實不依賴 Firebase 時，UR-TODO-001 可採 Archived Retirement 結案。
+7. Firebase Project、RTDB historical data、歷史 anonymous users 與 Web App registration 可保留為 archived retired resource；RTDB Rules 維持 deny-all、Anonymous Auth 維持 disabled。不存在 REQUIRED-DELETE blocker。
+8. 未來刪除 anonymous users、RTDB data／instance、Web App registration、API key、Firebase Project 或 browser storage，皆是 optional destructive housekeeping，必須重新唯讀盤點並取得明確使用者授權，不得重新成為 UR-TODO-001 blocker。
 
 此決策是 UR-TODO-001 原始 Security Rules／Anonymous Auth 已完成歷史的後續延伸，不改寫 PR #252 與既有 Console 複驗結論。
 
@@ -178,3 +181,4 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 - v1.0（2026-07-25）：首次建立，落地 V7.0A Foundation & Product Governance；內容來源為使用者於 ChatGPT（Project Knowledge）規劃、經 Claude Code 唯讀核對後由使用者逐項拍板確認。
 - v1.1（2026-08-11）：新增 Firebase Retirement 永久產品決策；原始 UR-TODO-001 Security Rules／Anonymous Auth 歷史維持不變。
+- v1.2（2026-08-12）：Firebase Retirement Closure Policy 採 Archived Retirement；產品 runtime 退出與可選的破壞性 housekeeping 正式分離。

@@ -310,9 +310,11 @@ Services 應負責：
 - `autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl` 是未授權的 future retirement candidate。
 - `mergeFinancialEventLedgers()` 是通用 Financial Event Ledger contract，維持 KEEP，與 Firebase retirement 分離。
 
-### 9.2 P4 Console
+### 9.2 Archived External Legacy Resource
 
-Firebase Project、RTDB、Anonymous Auth、Security Rules、API key／Console settings、remote data 與 legacy browser Auth session 均為 `P4-CONSOLE / 待盤點`。未獲獨立明確授權前不得操作。
+Firebase Project 為 archived retired project，沒有現行 runtime data flow：RTDB Rules 維持 deny-all、Anonymous Auth 維持 disabled，RTDB historical data、19 個歷史 anonymous users 與 Web App registration 均保留。已建立並驗證受控離線 RTDB archive 的 hash evidence；archive 本體不進 Repository、Bundle 或公開資源。這是產品 runtime 退出後的封存狀態，不是 active persistence architecture。
+
+未來若要刪除 anonymous users、RTDB data／instance、Web App registration、API key 或 Firebase Project，均屬獨立 destructive housekeeping，必須先重新唯讀盤點並取得明確授權；不構成 UR-TODO-001 blocker。legacy browser Auth session 是否存在不影響 closure：現行 App 無 caller、Anonymous Auth disabled、RTDB deny-all；若未來清除 browser storage，同樣屬 optional housekeeping。
 
 ### 9.3 安全限制
 
