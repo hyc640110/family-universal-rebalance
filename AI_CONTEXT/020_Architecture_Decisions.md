@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.2
+版本：v1.3
 
 最後更新：2026-08-11
 
@@ -35,6 +35,19 @@
 | ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
 | ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
 | ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
+| ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
+
+---
+
+## ADR-006：FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離
+
+**狀態**：已採用
+
+**背景**：UR-TODO-046 FX audit 證實既有非 TWD evidence 必須 fail-safe 排除；裸 Net Worth snapshots 沒有原幣部位、匯率、來源或時間，不能把 residual 改稱 FX。帳戶雖可保存 `currency`，但既有 totals 是裸數字相加，直接接入 USD 會擴大 Dashboard、Household Liquidity 與決策 consumer 的風險。
+
+**決策**：FX-A1 將 household valuation currency 定為 TWD，第一版只定義 USD/TWD `reference-close` rate，固定方向 `1 USD = quotePerBase TWD`。rate history 為加法式且 immutable-style；每日 foreign-cash valuation 最多可使用 3 calendar days 的 previous rate carry-forward，並保存 rate id、pinned rate value、rate date、staleness、原幣金額與 TWD result 於新 snapshot optional provenance。TWD 帳戶不建立假 TWD/TWD rate；無 rate、stale、unsupported 或 legacy snapshot 一律不產生可用 FX valuation。FX valuation rate 不得承載 conversion execution rate、spread、fee 或成本基礎。
+
+**後果**：新快照可重現已保存的 valuation，不依賴 provider 後續 revision；舊快照保持 legacy／residual。FX-A1 不接 provider、Worker、UI、既有 totals、FinancialEvent、Ledger 或 attribution calculator。未來 FX attribution 必須另定 signed evidence taxonomy；conversion、realized FX、foreign investment 與 foreign loan 均為獨立 domain contract。
 
 ---
 
