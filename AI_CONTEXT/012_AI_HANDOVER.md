@@ -8,11 +8,11 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter（Draft 實作候選，尚未 Merge，2026-08-13）
+## 最新交接快照：UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter（已完成／Merge／Production Worker Deployed，2026-08-13）
 
-- 分支：`feat/ur-todo-046-fx-a2-cbc-provider`，自正式 `origin/main` `559c32e4f7c2042ce3795536ed4da7e7025a2a8d` 建立；此實作只可經 Draft PR 審查，**尚未進 Production**。UR-TODO-046 整體仍 **OPEN**。
+- 正式基線：PR [#318](https://github.com/hyc640110/family-universal-rebalance/pull/318) 已正常 Merge，`origin/main` 為 `3341dfd81e7c1e57fe5d325e85c6303bc5d3b358`。PR CI Verification／`verify` run `31615645452` success；Merge 後 Deploy GitHub Pages run `31616344290` success，head 與 merge commit 一致。UR-TODO-046 整體仍 **OPEN**；FX-A3 尚未開始。
 - 決策與來源：唯一 current source 是 CBC 官方 `https://cpx.cbc.gov.tw/api/OpenData/FTDOpenData_Day`；資料列必須同時含 `日期`（`YYYYMMDD`）與 `NTD_USD` 正數字串，語意固定為 `1 USD = quotePerBase TWD`。禁止 BP01D01en、HTML scraping、Yahoo／臺灣銀行 fallback、硬編碼 rate 或猜測。
-- Worker boundary：只新增 Market Data Worker `GET /fx-rates/usd-twd`；先逐列驗證完整 raw array，再輸出 `available`／`unavailable` 的 normalized JSON，絕不回傳 CBC raw rows。duplicate same-date same-value 可接受，不同值為 `provider-conflict`；空、schema change、invalid、HTTP／timeout 均 fail-safe。Preview Worker 已部署為 `family-universal-rebalance-market-data-preview`，HTTP 200、`environment=preview`、`rateDate=2026-08-12`、`quotePerBase=32.246`；Production Worker 沒有部署。
+- Worker boundary：只新增 Market Data Worker `GET /fx-rates/usd-twd`；先逐列驗證完整 raw array，再輸出 `available`／`unavailable` 的 normalized JSON，絕不回傳 CBC raw rows。duplicate same-date same-value 可接受，不同值為 `provider-conflict`；空、schema change、invalid、HTTP／timeout 均 fail-safe。Production Worker `family-universal-rebalance-market-data-production` 已於 `2026-08-12T16:17:13.176Z` 成功部署 version `7d4221c1-691f-42e4-b1ae-0a48e40603ba`，`/health` HTTP 200、`environment=production`；`/fx-rates/usd-twd?refresh=1` HTTP 200、`status=available`、`rateDate=2026-08-12`、`quotePerBase=32.246`，與 CBC `NTD_USD` 一致、無 raw rows、`cache-control: no-store`。Preview Worker 為 `family-universal-rebalance-market-data-preview` version `b83bc7f0-3f7d-4bb3-9093-93a0b256ba44`，HTTP 200、`environment=preview`；兩個 Worker 環境隔離正常。
 - App boundary：`cbcFxProvider.ts` 是可呼叫 service，無 startup／render auto-fetch、無 UI。只有 `available` 才形成 deterministic `cbc-ftd-usd-twd-reference-close-YYYY-MM-DD` record；同 ID 同值 idempotent，不同值不覆寫既有歷史。staleness 僅重用 FX-A1 的 3 calendar days policy；localStorage／JSON Backup 維持加法式 round-trip，pinned snapshots 不改。
 - 未包含：FX attribution、snapshot producer、totals、currency conversion、realized FX、foreign investment／loan、Generic Split FX consumer、Financial Event／Ledger、AI Decision、Rebalance 與 Household Liquidity。後續只可依 PR CI、Preview 驗收與使用者明確 Merge 指示前進。
 
@@ -24,8 +24,8 @@
 - 已完成 contract：TWD 為 household valuation currency；唯一 MVP pair 為 USD/TWD，`quotePerBase` 表示 `1 USD = N TWD`，rate type 固定 `reference-close`。rate history 僅保存有效、正規化、deterministic dedupe 的 records；valuation 最多 carry-forward 3 個 calendar days，超限、missing、unsupported 或無可用 balance 一律 fail-safe。
 - persistence／歷史：`AppState.fxRateHistory` 與 JSON Backup 加法式 round-trip；新 `NetWorthSnapshot.fxValuations?` 保存 account id、原幣金額、pinned rate id/value/date、stale 資訊與結果。舊 snapshots 可讀但無 provenance，不回填、不重算、不改寫；後續 rate revision 不得改變已 pinned snapshot。
 - 已完成／不再列為 active residual：Generic Split Allocation Foundation、Investment buy／sell attribution core、Loan principal／interest attribution 與 FX-A1 provenance foundation。現行 Generic Split contract 已足夠，沒有證據需要 Generic Split consumer。
-- Remaining Boundary：UR-TODO-046 **仍 OPEN**。live FX provider／Central Bank API、foreign cash valuation producer/source、FX attribution evidence/integration、conversion、realized FX、foreign investment／loan 均未開始；Loan UI／CSV／Import Center producer mapping 是 delivery boundary，不是核心 attribution consumer gap。FX-A2 尚未開始，任何下一階段都必須先唯讀盤點與取得明確授權。
-- 明確不包含：未接 provider／network／Worker／UI，未將 USD 自動放入既有 TWD totals 或 snapshot producer；未修改 Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。
+- Remaining Boundary：UR-TODO-046 **仍 OPEN**。FX-A3 Foreign Cash Producer／Snapshot Integration 尚未開始；FX attribution evidence/runtime integration、conversion、realized FX、foreign investment／loan 均為後續獨立階段。Loan UI／CSV／Import Center producer mapping 是 delivery boundary，不是核心 attribution consumer gap。任何下一階段都必須先唯讀盤點與取得明確授權。
+- 明確不包含：FX-A2 未接 foreign-cash totals、snapshot producer、valuation UI、FX attribution、Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance；不得因 Production Worker rollout 自行擴大範圍。
 
 ---
 
