@@ -29,8 +29,8 @@ test('Firebase retirement guard blocks Auth／RTDB runtime modules and network w
   assert.doesNotMatch(appInfo, /FIREBASE_API_KEY|FIREBASE_AUTH_SESSION_STORAGE_KEY/);
   assert.doesNotMatch(productionEnv, /^VITE_FIREBASE_API_KEY=/m);
   assert.doesNotMatch(previewEnv, /^VITE_FIREBASE_API_KEY=/m);
-  assert.match(productionEnv, /^VITE_FIREBASE_BASE_PATH=/m);
-  assert.match(previewEnv, /^VITE_FIREBASE_BASE_PATH=/m);
+  assert.match(productionEnv, /^VITE_DEPLOYMENT_SCOPE=/m);
+  assert.match(previewEnv, /^VITE_DEPLOYMENT_SCOPE=/m);
   assert.doesNotMatch(app, /Identity Toolkit|Secure Token|匿名身分|上傳雲端|下載雲端/);
   assert.match(app, /匯出 JSON 備份/);
   assert.match(app, /匯入 JSON 備份/);

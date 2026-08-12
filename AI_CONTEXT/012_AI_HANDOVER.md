@@ -8,12 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-B Canonical AppState Firebase Retirement（Draft 候選，2026-08-12）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-C Environment Naming Cleanup（完成候選，2026-08-12）
 
-- 正式基線：PR [#312](https://github.com/hyc640110/family-universal-rebalance/pull/312) 已一般 Merge，`origin/main`／merge commit `1bbff5b8dd06223be1a00c2c1b92457396355076`（`mergedAt: 2026-08-12T10:14:16Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B3-A Production workflow `31586522310` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
-- Draft candidate：branch `codex/ur-todo-001-firebase-retirement-p3b3b-canonical-appstate-retirement` 從最新 `origin/main` 建立。P3-B3-B 移除 canonical `AppState.firebase`／`FirebaseConfig`；legacy top-level localStorage、top-level Backup、nested `syncSettings.firebase` 均 accept-and-discard，不進入 canonical state 或後續 output。
+- 正式基線：PR [#313](https://github.com/hyc640110/family-universal-rebalance/pull/313) 已一般 Merge，`origin/main`／merge commit `aee3e5cfa590ec2d650fc06f7222d81ce309c687`（`mergedAt: 2026-08-12T11:33:18Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B3-B 移除 canonical `AppState.firebase`／`FirebaseConfig`；legacy top-level localStorage、top-level Backup、nested `syncSettings.firebase` 均 accept-and-discard，不進入 canonical state 或後續 output。Production workflow `31592370757` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
+- 完成候選：branch `codex/ur-todo-001-firebase-retirement-p3b3c-environment-naming-cleanup` 從最新 `origin/main` 建立。P3-B3-C 只將 active environment safety boundary 從 `VITE_FIREBASE_BASE_PATH`／`FIREBASE_BASE_PATH` 更名為 `VITE_DEPLOYMENT_SCOPE`／`DEPLOYMENT_SCOPE`；scope value、Production／Preview isolation、storage key、Worker URL 與 app base 均不變。
 - Hydration／資料安全：raw legacy localStorage 與 canonical state 若僅差退休 metadata（含 top-level `firebase`）時不得首載自動寫回；真實 mutation 與 Full Restore 維持既有 canonical write semantic。無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。Financial Event Ledger schema、merge、void、Atomic Group、split、loan 與 attribution 均未修改；`mergeFinancialEventLedgers()` **KEEP**。
-- 明確保留與下一直接起點：`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步只可進行 P3-B3-B Draft PR／Preview 驗收；不得 Merge，亦不得開始 P3-B3-C 或 P4 Firebase Console；**UR-TODO-001 仍 OPEN。**
+- 明確保留：`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步是 P3-B3-C Draft PR 的 Preview 驗收與使用者 Merge 決策；不得自行 Merge，亦不得開始 P4 Firebase Console；**UR-TODO-001 仍 OPEN，repository 端剩餘工作僅 P4。**
 
 ---
 

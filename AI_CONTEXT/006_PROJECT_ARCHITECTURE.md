@@ -303,10 +303,11 @@ Services 應負責：
 
 ### 9.1 保留的相容性邊界
 
-- `AppState.firebase`、`FirebaseConfig`、legacy top-level Firebase localStorage input、legacy top-level Firebase Backup input、`syncSettings.firebase` Backup input 與 hydration compatibility 仍可讀取。
+- canonical `AppState` 已無 Firebase config；legacy top-level Firebase localStorage／Backup input 與 `syncSettings.firebase` Backup input 僅在 tolerant-read compatibility boundary accept-and-discard，並保留既有 hydration compatibility。
 - 此相容性是 backward compatibility／retirement residual，不是 Firebase sync capability，也不得重新建立 Firebase transport 或 UI。
 - 新 JSON Backup 不輸出 `syncSettings.firebase` 或 `firebaseConfigured`；不做 schema bump 或 migration。
-- `autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是未授權的 future retirement candidate。
+- `VITE_DEPLOYMENT_SCOPE`／`DEPLOYMENT_SCOPE` 是中性的 environment safety boundary，不是 Firebase root；Production／Preview scope value 維持既有 identity 與隔離語意。
+- `autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl` 是未授權的 future retirement candidate。
 - `mergeFinancialEventLedgers()` 是通用 Financial Event Ledger contract，維持 KEEP，與 Firebase retirement 分離。
 
 ### 9.2 P4 Console
