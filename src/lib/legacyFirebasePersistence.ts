@@ -13,17 +13,29 @@ function canonicalJson(value: unknown): string {
 }
 
 /**
- * Identifies the one safe hydration exception: an otherwise-identical persisted
- * document that only still carries the retired top-level Firebase legacy field.
- * This is intentionally structural, not tied to React render timing.
+ * Identifies an otherwise-identical persisted document that only still carries
+ * retired cloud-sync compatibility fields. This is intentionally structural,
+ * not tied to React render timing.
  */
 export function isLegacyFirebaseOnlyPersistenceDelta(rawJson: string, nextJson: string): boolean {
   try {
     const raw = asRecord(JSON.parse(rawJson));
     const next = asRecord(JSON.parse(nextJson));
-    if (!raw || !next || !Object.prototype.hasOwnProperty.call(raw, 'firebase')) return false;
-    const { firebase: _legacyFirebase, ...withoutLegacyFirebase } = raw;
-    return canonicalJson(withoutLegacyFirebase) === canonicalJson(next);
+    if (!raw || !next) return false;
+    const { firebase: _legacyFirebase, autoSync: _autoSync, autoSyncSec: _autoSyncSec, workerUrl: _workerUrl, ...withoutLegacyCloudSync } = raw;
+    const legacySyncMeta = asRecord(withoutLegacyCloudSync.syncMeta);
+    if (legacySyncMeta) {
+      const {
+        baselineFingerprint: _baselineFingerprint,
+        baselineFieldFingerprints: _baselineFieldFingerprints,
+        baselineCanonicalSchema: _baselineCanonicalSchema,
+        lastUploadAt: _lastUploadAt,
+        lastDownloadAt: _lastDownloadAt,
+        ...withoutLegacySyncMeta
+      } = legacySyncMeta;
+      withoutLegacyCloudSync.syncMeta = withoutLegacySyncMeta;
+    }
+    return canonicalJson(withoutLegacyCloudSync) === canonicalJson(next);
   } catch {
     return false;
   }

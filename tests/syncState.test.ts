@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeSyncFieldFingerprints, withoutRuntimeSyncStatus, withoutSyncBaseline } from '../src/lib/syncState';
+import { sanitizeSyncFieldFingerprints, withoutRetiredCloudSyncMetadata, withoutRuntimeSyncStatus, withoutSyncBaseline } from '../src/lib/syncState';
 
 test('legacy sync baseline fingerprints remain safely sanitized on read', () => {
   assert.deepEqual(sanitizeSyncFieldFingerprints({
@@ -11,7 +11,7 @@ test('legacy sync baseline fingerprints remain safely sanitized on read', () => 
   assert.equal(sanitizeSyncFieldFingerprints(undefined), undefined);
 });
 
-test('legacy sync metadata keeps compatibility while runtime status and cloud baselines stay out of portable output', () => {
+test('legacy sync metadata keeps only approved local metadata in canonical output', () => {
   const legacy = {
     dirty: true,
     source: '本機資料' as const,
@@ -19,11 +19,17 @@ test('legacy sync metadata keeps compatibility while runtime status and cloud ba
     baselineFingerprint: 'sync-v2-0123456789abcdef',
     baselineFieldFingerprints: { holdings: 'sync-field-v2-0123456789abcdef' },
     baselineCanonicalSchema: 'sync-json-v2',
-    lastUploadAt: '2026-07-14T12:00:00.000Z'
+    lastUploadAt: '2026-07-14T12:00:00.000Z',
+    lastDownloadAt: '2026-07-14T13:00:00.000Z',
+    lastLocalSaveAt: '2026-07-14T14:00:00.000Z',
+    lastBackupExportAt: '2026-07-14T15:00:00.000Z',
+    lastBackupImportAt: '2026-07-14T16:00:00.000Z'
   };
-  assert.deepEqual(withoutRuntimeSyncStatus(withoutSyncBaseline(legacy)), {
+  assert.deepEqual(withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(withoutSyncBaseline(legacy))), {
     dirty: true,
     source: '本機資料',
-    lastUploadAt: '2026-07-14T12:00:00.000Z'
+    lastLocalSaveAt: '2026-07-14T14:00:00.000Z',
+    lastBackupExportAt: '2026-07-14T15:00:00.000Z',
+    lastBackupImportAt: '2026-07-14T16:00:00.000Z'
   });
 });
