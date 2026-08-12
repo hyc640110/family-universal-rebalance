@@ -71,3 +71,16 @@ export function withoutRuntimeSyncStatus(meta: SyncMeta): SyncMeta {
   const { status: _status, ...portableMeta } = meta;
   return portableMeta;
 }
+
+/** Removes cloud-sync metadata that is accepted from legacy payloads but no longer written canonically. */
+export function withoutRetiredCloudSyncMetadata(meta: SyncMeta): SyncMeta {
+  const {
+    baselineFingerprint: _baselineFingerprint,
+    baselineFieldFingerprints: _baselineFieldFingerprints,
+    baselineCanonicalSchema: _baselineCanonicalSchema,
+    lastUploadAt: _lastUploadAt,
+    lastDownloadAt: _lastDownloadAt,
+    ...portableMeta
+  } = meta;
+  return portableMeta;
+}

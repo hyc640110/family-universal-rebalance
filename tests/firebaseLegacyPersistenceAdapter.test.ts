@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { createServer } from 'vite';
 import { createFinancialAccount } from '../src/lib/financialAccounts';
-import { isLegacyFirebaseOnlyPersistenceDelta } from '../src/lib/legacyFirebasePersistence';
+import { isLegacyFirebaseOnlyPersistenceDelta, shouldWriteInitialHydration } from '../src/lib/legacyFirebasePersistence';
 
 type Persistence = {
   normalizeState(raw: unknown): Record<string, unknown>;
@@ -29,6 +29,46 @@ test('P3-B1: legacy-only Firebase localStorage delta 不得取得 initial hydrat
 
 test('P3-B1: 真實持久化 mutation 不得被 legacy write gate 阻擋', () => {
   const raw = JSON.stringify({ holdings: [], firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } });
+  const changed = JSON.stringify({ holdings: [{ symbol: '00662' }] });
+  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, changed), false);
+});
+
+test('P3-B3-A: 僅含已退休 cloud-sync metadata 的 legacy localStorage delta 不得在 hydration 寫回', () => {
+  const raw = JSON.stringify({
+    holdings: [],
+    firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' },
+    autoSync: true,
+    autoSyncSec: 30,
+    workerUrl: 'https://legacy-worker.example.invalid',
+    syncMeta: {
+      dirty: true,
+      source: '本機資料',
+      lastLocalSaveAt: '2026-08-12T00:00:00.000Z',
+      lastBackupExportAt: '2026-08-12T00:00:00.000Z',
+      lastBackupImportAt: '2026-08-12T00:00:00.000Z',
+      baselineFingerprint: 'sync-v2-0123456789abcdef',
+      baselineFieldFingerprints: { holdings: 'sync-field-v2-0123456789abcdef' },
+      baselineCanonicalSchema: 'sync-json-v2',
+      lastUploadAt: '2026-08-12T00:00:00.000Z',
+      lastDownloadAt: '2026-08-12T00:00:00.000Z'
+    }
+  });
+  const canonical = JSON.stringify({
+    holdings: [],
+    syncMeta: {
+      dirty: true,
+      source: '本機資料',
+      lastLocalSaveAt: '2026-08-12T00:00:00.000Z',
+      lastBackupExportAt: '2026-08-12T00:00:00.000Z',
+      lastBackupImportAt: '2026-08-12T00:00:00.000Z'
+    }
+  });
+  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, canonical), true);
+  assert.equal(shouldWriteInitialHydration(raw, canonical), false);
+});
+
+test('P3-B3-A: legacy-only fixture 在 genuine mutation 後必須取得 clean canonical write 資格', () => {
+  const raw = JSON.stringify({ holdings: [], autoSync: true, autoSyncSec: 30, workerUrl: 'https://legacy-worker.example.invalid' });
   const changed = JSON.stringify({ holdings: [{ symbol: '00662' }] });
   assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, changed), false);
 });
@@ -86,11 +126,11 @@ test('P3-B2-B: new Backup 不得輸出 retired Firebase config metadata', async 
   const backup = backupPayload(normalizeState({ firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } }), {}) as { syncSettings: Record<string, unknown> };
   assert.equal('firebase' in backup.syncSettings, false);
   assert.equal('firebaseConfigured' in backup.syncSettings, false);
-  assert.deepEqual(Object.keys(backup.syncSettings).sort(), ['autoSync', 'autoSyncSec', 'refreshSec', 'workerUrl']);
+  assert.deepEqual(Object.keys(backup.syncSettings).sort(), ['refreshSec']);
   assert.equal(backup.syncSettings.refreshSec, 60);
-  assert.equal(backup.syncSettings.autoSync, false);
-  assert.equal(backup.syncSettings.autoSyncSec, 60);
-  assert.equal(typeof backup.syncSettings.workerUrl, 'string');
+  assert.equal('autoSync' in backup.syncSettings, false);
+  assert.equal('autoSyncSec' in backup.syncSettings, false);
+  assert.equal('workerUrl' in backup.syncSettings, false);
 });
 
 test('P3-B2-B: legacy Backup import 後的新 export 保留 semantic，但不重建 retired Firebase metadata', async () => {
@@ -116,11 +156,50 @@ test('P3-B2-B: legacy Backup import 後的新 export 保留 semantic，但不重
   assert.equal(reimported.financialEventSchemaVersion, 3);
   assert.deepEqual((reimported.financialEvents as Array<{ id: string }>).map(({ id }) => id), ['event-1']);
   assert.deepEqual(backup.cashFlowProfile, { schemaVersion: 3, monthlyIncome: 1000, fixedExpenses: [], variableExpenseBudget: null, monthlyInvestmentBudget: null, emergencyFundTargetMonths: 6, notes: '' });
-  assert.deepEqual(Object.keys(backup.syncSettings).sort(), ['autoSync', 'autoSyncSec', 'refreshSec', 'workerUrl']);
+  assert.deepEqual(Object.keys(backup.syncSettings).sort(), ['refreshSec']);
   assert.equal(backup.syncSettings.refreshSec, 75);
-  assert.equal(backup.syncSettings.autoSync, true);
-  assert.equal(backup.syncSettings.autoSyncSec, 30);
-  assert.equal(typeof backup.syncSettings.workerUrl, 'string');
+  assert.equal('autoSync' in backup.syncSettings, false);
+  assert.equal('autoSyncSec' in backup.syncSettings, false);
+  assert.equal('workerUrl' in backup.syncSettings, false);
+});
+
+test('P3-B3-A: canonical localStorage 與 Backup 僅退休指定 cloud-sync output，保留 syncMeta KEEP 欄位', async () => {
+  const { backupPayload, normalizeState, stateWithPersistedFinancialEventLedger } = await loadPersistence();
+  const legacy = normalizeState({
+    autoSync: true,
+    autoSyncSec: 30,
+    workerUrl: 'https://legacy-worker.example.invalid',
+    syncMeta: {
+      dirty: true,
+      source: '本機資料',
+      lastLocalSaveAt: '2026-08-12T00:00:00.000Z',
+      lastBackupExportAt: '2026-08-12T00:00:00.000Z',
+      lastBackupImportAt: '2026-08-12T00:00:00.000Z',
+      baselineFingerprint: 'sync-v2-0123456789abcdef',
+      baselineFieldFingerprints: { holdings: 'sync-field-v2-0123456789abcdef' },
+      baselineCanonicalSchema: 'sync-json-v2',
+      lastUploadAt: '2026-08-12T00:00:00.000Z',
+      lastDownloadAt: '2026-08-12T00:00:00.000Z'
+    }
+  });
+  const persisted = stateWithPersistedFinancialEventLedger(legacy);
+  const backup = backupPayload(legacy, {}) as { syncMeta: Record<string, unknown>; syncSettings: Record<string, unknown> };
+
+  for (const output of [persisted, backup.syncSettings]) {
+    assert.equal('autoSync' in output, false);
+    assert.equal('autoSyncSec' in output, false);
+    assert.equal('workerUrl' in output, false);
+  }
+  for (const output of [persisted.syncMeta as Record<string, unknown>, backup.syncMeta]) {
+    for (const field of ['baselineFingerprint', 'baselineFieldFingerprints', 'baselineCanonicalSchema', 'lastUploadAt', 'lastDownloadAt']) {
+      assert.equal(field in output, false, field);
+    }
+    assert.equal(output.dirty, true);
+    assert.equal(output.source, '本機資料');
+    assert.equal(output.lastLocalSaveAt, '2026-08-12T00:00:00.000Z');
+    assert.equal(output.lastBackupExportAt, '2026-08-12T00:00:00.000Z');
+    assert.equal(output.lastBackupImportAt, '2026-08-12T00:00:00.000Z');
+  }
 });
 
 test('P3-B1: v3 split atomic group 與 void marker 在 legacy Firebase 輸入下仍完整 round-trip', async () => {

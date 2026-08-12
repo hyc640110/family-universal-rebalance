@@ -8,12 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B2-A／P3-B2-B 已 Merge；P3-B2-C Governance Cleanup（進行中，2026-08-12）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-A Legacy Persistence Canonical Output Retirement（Draft 候選，2026-08-12）
 
-- 正式基線：PR [#309](https://github.com/hyc640110/family-universal-rebalance/pull/309)（P3-B2-A）merge commit `15a8f3466dd8ba09b3d68de935749b3ff9257f4c`；PR [#310](https://github.com/hyc640110/family-universal-rebalance/pull/310)（P3-B2-B）一般 Merge，`origin/main`／merge commit `4262c565aee309074b16ad083947e6dd52a96664`（`mergedAt: 2026-08-11T16:16:20Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-B Production workflow `31511512490` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
-- 現行架構：Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK runtime 均為 0。localStorage 是唯一 canonical device persistence；JSON Backup 是人工備份／裝置搬移；Financial Event Ledger 維持 localStorage／JSON Backup persistence contract。
-- 相容性：舊 top-level `firebase`、`syncSettings.firebase` 與 `firebaseConfigured` 可讀；新 JSON Backup 不再輸出 `syncSettings.firebase`／`firebaseConfigured`。無 schema bump、migration 或 legacy input rewrite。`mergeFinancialEventLedgers()` 是通用 Ledger 的 forward-only union、collision semantics、deterministic ordering 與 Atomic Group contract，**KEEP**，不是 Firebase retirement blocker。
-- 現行範圍與未處理項目：P3-B2-C 僅校正治理文件與 Full／Lite Bundle。`AppState.firebase`、`FirebaseConfig`、`autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是 remaining compatibility residual，需獨立決策與授權。P4 Firebase Console（Project、RTDB、Anonymous Auth、Rules、API key／settings、remote data、legacy browser Auth session）尚未開始，禁止操作。
+- 正式基線：PR [#311](https://github.com/hyc640110/family-universal-rebalance/pull/311) 已一般 Merge，`origin/main`／merge commit `cc0cc23d04806fd7a33819ec87b3bc77371fc8ef`（`mergedAt: 2026-08-11T16:37:32Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-C Production workflow `31513386306` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
+- Draft candidate：branch `codex/ur-todo-001-firebase-retirement-p3b3a-persistence-output-retirement` 從最新 `origin/main` 建立。P3-B3-A 只停止新 canonical localStorage／JSON Backup 輸出 `autoSync`、`autoSyncSec`、persisted `workerUrl`、`syncMeta.baselineFingerprint`、`baselineFieldFingerprints`、`baselineCanonicalSchema`、`lastUploadAt`、`lastDownloadAt`；legacy localStorage／Backup、Full Restore、normalization 與 hydration 持續 tolerant-read。
+- Hydration／資料安全：raw legacy localStorage 與 canonical state 若僅差上述退休 metadata（或既有 top-level `firebase`）時不得首載自動寫回；真實 mutation 與 Full Restore 維持既有 canonical write semantic。無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。Financial Event Ledger schema、merge、void、Atomic Group、split、loan 與 attribution 均未修改；`mergeFinancialEventLedgers()` **KEEP**。
+- 明確保留與下一直接起點：`AppState.firebase`、`FirebaseConfig`、legacy Firebase input normalization／Backup import、`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步只可進行 P3-B3-A Draft PR／Preview 驗收；不得 Merge，亦不得開始 P3-B3-B、P3-B3-C 或 P4 Firebase Console。
 
 ---
 

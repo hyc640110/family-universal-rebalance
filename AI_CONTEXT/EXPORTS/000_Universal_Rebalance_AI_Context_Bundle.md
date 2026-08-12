@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-11T16:28:53.834338+00:00
+Generated UTC: 2026-08-12T09:56:23.780362+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-11T16:28:53.834338+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `3bbc26051773cd965594c968e2ce6f7964d5f06af4517df9f562874ca8154a85`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `1d498cbb52a2a61701748976e202063103d37314df95e1edb621fa0600c98ada`
+- `003_CURRENT_STATUS.md` — SHA-256 `63e41f32b9cd4aafa6ec4946bba3070b7a688694e3eaccdcd449ab662ff4cf64`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5fe1deb206e97144fe9e622673e232b565fd61b87c16582f297b065291e43679`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `10225fe58f415032b49f708a358be4a521664087d4744c6127cd470999164531`
+- `008_TODO_BACKLOG.md` — SHA-256 `402f0ef1ccb8cae6eb790b260c6463167a4a281e83d902281caa9a1176559eca`
 - `009_CHANGELOG.md` — SHA-256 `b92f45ac95b7905c7b85b6bf9200cd320185c6874c8729e01248e08928f824c7`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `87614b7b743eda5386082f8f8d59fccac041b20c62f0282b66735303cefe08b3`
+- `012_AI_HANDOVER.md` — SHA-256 `fe3466e5fa97d4459900302dfc9ceb76fd5500545da3e19528b7aeb11ba70908`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -659,7 +659,7 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 最後更新：2026-08-12
 
-**UR-TODO-001 Firebase Retirement：P3-B2-A 與 P3-B2-B 已正式完成，P3-B2-C Governance Cleanup 為現行文件 Sprint。** 正式 `origin/main` 為 PR [#310](https://github.com/hyc640110/family-universal-rebalance/pull/310) merge commit `4262c565aee309074b16ad083947e6dd52a96664`（`mergedAt: 2026-08-11T16:16:20Z`；`mergedBy: hyc640110`；未使用 admin override）；P3-B2-A／PR [#309](https://github.com/hyc640110/family-universal-rebalance/pull/309) merge commit 為 `15a8f3466dd8ba09b3d68de935749b3ff9257f4c`。現行 App 的 Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK runtime 均為 0。localStorage 是唯一 canonical device persistence；JSON Backup 是正式人工備份／裝置搬移；Financial Event Ledger 維持本機 persistence contract。舊 top-level `firebase`、`syncSettings.firebase` 與 `firebaseConfigured` 仍可讀取，但新 JSON Backup 已不再輸出 `syncSettings.firebase`／`firebaseConfigured`；無 schema bump 或 migration。`mergeFinancialEventLedgers()` 是通用 Ledger 的 forward-only union／collision／ordering／Atomic Group contract，**KEEP**，不是 Firebase retirement blocker。`AppState.firebase`、`FirebaseConfig`、`autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是未授權的 compatibility residual；P4 Console（Project、RTDB、Anonymous Auth、Rules、API key／Console settings、remote data、legacy browser Auth session）尚未開始，禁止操作。P3-B2-C 只修正治理文件與 Bundle，不處理上述 residual 或 P4。
+**UR-TODO-001 Firebase Retirement：P3-B2-A、P3-B2-B 與 P3-B2-C 已正式完成；P3-B3-A Legacy Persistence Canonical Output Retirement 為 Draft 候選，待 Preview 驗收與使用者 Merge 決策。** 正式 `origin/main` 為 PR [#311](https://github.com/hyc640110/family-universal-rebalance/pull/311) merge commit `cc0cc23d04806fd7a33819ec87b3bc77371fc8ef`（`mergedAt: 2026-08-11T16:37:32Z`；`mergedBy: hyc640110`；未使用 admin override）。現行 App 的 Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK runtime 均為 0。localStorage 是唯一 canonical device persistence；JSON Backup 是正式人工備份／裝置搬移；Financial Event Ledger 維持本機 persistence contract。P3-B3-A 保留 legacy localStorage／Backup tolerant-read，新的 canonical localStorage／JSON Backup 不再輸出 `autoSync`、`autoSyncSec`、persisted `workerUrl`、Firebase baseline metadata、`lastUploadAt` 或 `lastDownloadAt`；無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。`AppState.firebase`、`FirebaseConfig`、`syncMeta.dirty`／`source`／local-Backup timestamps、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 與 `mergeFinancialEventLedgers()` 均保持不變。P3-B3-B canonical AppState Firebase retirement、P3-B3-C environment naming cleanup 與 P4 Console 尚未開始，禁止操作。
 
 > 下段為 PR #304 Merge 前的 P2-A Draft 歷史快照；現行狀態以本段與 GitHub `main` 為準。
 
@@ -3164,22 +3164,22 @@ Hotfix 仍需：
 
 PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已由使用者手動 Merge，merge commit `2a038802aac1a345f5be2a5100913142d42d23a4`，`mergedAt: 2026-08-05T08:22:26Z`。新增純 REST（非 `firebase` SDK）Firebase Anonymous Authentication，維持既有 raw `fetch()` 架構：`src/lib/firebaseAnonymousAuth.ts` 直接呼叫 Identity Toolkit／Secure Token API 建立與更新匿名 session；`src/lib/environmentBoundary.ts` 的 `syncRoot()` 由 `secretPath` 改為 `uid`，路徑格式改為 `{basePath}/users/{uid}`，滿足「路徑以 uid 為基礎、未來 `linkWithCredential()` 升級不需 migration」的產品要求；`src/lib/firebaseSyncUrl.ts` 組出帶 `?auth=<idToken>` 的 RTDB REST URL。使用者已於 Firebase Console 套用新 Security Rules（`$envPath` 萬用字元只鎖 `auth.uid === $uid`）並啟用「匿名」登入方式；既有雲端舊資料依使用者拍板視為已遺失、不做遷移。**實機以真實 Firebase 後端複驗**：全新使用者背景自動登入成功並取得真實 uid；以實際簽發的 uid／idToken 重放 RTDB REST 呼叫，上傳／下載成功且資料一致；跨 uid 存取回傳 HTTP 401 Permission denied，證實 Rules 正確生效。詳細變更範圍、測試清單與明確排除項目見 `003_CURRENT_STATUS.md` 最上方 2026-08-05 記錄。**下一潛在候選為 Google 登入／帳號升級（`linkWithCredential()`），屬重大產品語意事件，須另行拍板，未經授權不得開始。**
 
-#### 後續延伸：Firebase Retirement Phase（方案 B 已批准；P0、P1、P2-A、P3-A1、P3-B1、P3-B2-A、P3-B2-B 已完成；P3-B2-C 進行中）
+#### 後續延伸：Firebase Retirement Phase（方案 B 已批准；P0、P1、P2-A、P3-A1、P3-B1、P3-B2-A、P3-B2-B、P3-B2-C 已完成；P3-B3-A 為 Draft 候選）
 
 - P2-A 已由 PR #304 Merge，merge commit `339f8c305a419117af54f4dbd69a3b47b903a26c`；P3 Repository 唯讀盤點已完成。
 - P3-A1 已由 PR #305 正常 Merge，merge commit `78e50c3d09f122b18d968ebcddf0bd2b52bf177f`（`mergedAt: 2026-08-11T14:20:24Z`；`mergedBy: hyc640110`；未使用 admin override）。移除 Firebase Anonymous Auth runtime module、Firebase RTDB URL builder runtime module、直屬 tests、`VITE_FIREBASE_API_KEY` 與程式端 dead constants；production Firebase Auth／RTDB runtime reference = 0。Production workflow `31500994060` success，Production／Preview HTTP 200 且 metadata 分別為 `production`／`preview`、assets 路徑隔離正常。
-- 明確保留：`VITE_FIREBASE_BASE_PATH`、legacy AppState／Backup Firebase contract、`syncState.ts` 與 Financial Event Ledger（含 `mergeFinancialEventLedgers()`）。`mergeFinancialEventLedgers()` 是 Firebase 以外仍有效的通用 Ledger contract，保持 KEEP；未清除 stale browser Firebase auth session。P3-B 的相容策略、P3-B1、P3-B2-A 與 P3-B2-B 均已完成；P3-B2-C 僅進行治理清理。P4 Firebase Console／RTDB／Auth provider／Rules／Project 仍未處理。
+- 明確保留：`VITE_FIREBASE_BASE_PATH`、`AppState.firebase`／`FirebaseConfig` legacy read contract、`syncMeta.dirty`／`source`／local-Backup timestamps 與 Financial Event Ledger（含 `mergeFinancialEventLedgers()`）。`mergeFinancialEventLedgers()` 是 Firebase 以外仍有效的通用 Ledger contract，保持 KEEP；未清除 stale browser Firebase auth session。P3-B3-A 僅退休新的 canonical output：`autoSync`、`autoSyncSec`、persisted `workerUrl`、Firebase baseline metadata、`lastUploadAt`、`lastDownloadAt`；legacy input 持續可讀。P4 Firebase Console／RTDB／Auth provider／Rules／Project 仍未處理。
 
 本段是 UR-TODO-001 的**後續延伸**，不取代、不改寫上方原始「Security Rules Expiry／Anonymous Auth」已完成歷史與 PR #252／Firebase Console 複驗結論。
 
-- 現行狀態：P0 Governance-only、P1、P2-A、P3 Repository 唯讀盤點、P3-A1、P3-B1、P3-B2-A 與 P3-B2-B 均已完成；P3-B2-C Governance Cleanup 為現行文件 Sprint；P4 尚未開始。
+- 現行狀態：P0 Governance-only、P1、P2-A、P3 Repository 唯讀盤點、P3-A1、P3-B1、P3-B2-A、P3-B2-B 與 P3-B2-C 均已完成；P3-B3-A 為 Draft 候選，待 Preview 驗收與使用者 Merge 決策；P4 尚未開始。
 - localStorage：唯一 canonical runtime state；Firebase 不再是一般 App runtime 的必要資料來源。
 - JSON Backup：正式人工備份、跨裝置資料搬移與災難復原機制。後續必須以真實 Production 資料完成 Export → Import → Re-export round-trip 驗收；可接受 `exportedAt` 與裝置診斷資料差異，但持股、帳戶／現金、交易、借款、Cash Flow、淨資產歷史及 Ledger contract 必須保留。
 - Financial Event Ledger：必須保留 localStorage persistence、JSON Backup serialization、schema、normalization、validation、event identity／collision validation、atomic group、void、linked transaction identity、`financialEventAttributionStartDate` 與既有 forward-only 契約；不得因 retirement 誤刪或改變 attribution／reconciliation 公式。
 - P1：已完成。移除一般 App startup 的背景 Firebase Anonymous Auth；當時保留手動同步，Auth 僅在使用者手動觸發時按需取得。
 - P2-A：移除 active Firebase Anonymous Auth／RTDB transport caller、手動 upload/download、首頁／手機／Settings 同步 UI、sync status／baseline／remoteMeta runtime consumer 與 Firebase-only remote Ledger merge orchestration；legacy `syncMeta`／`syncSettings.firebase` 仍相容讀取，JSON Backup payload migration 不變。不得刪除共用 Ledger 契約，亦不得修改 JSON Backup payload migration。
 - P2-B：僅在後續明確需要時處理 local／Backup runtime feedback 的進一步解耦；不得自行新增 persistence schema。
-- P3：P3-A1 已清理 Firebase Auth／RTDB runtime references；P3-B2-A 已清理 dead runtime；P3-B2-B 已退休新 JSON Backup 的 `syncSettings.firebase`／`firebaseConfigured` output；P3-B2-C 只校正治理文件與 Bundle。剩餘 compatibility residual 不在本 Sprint 處理；不處理 Gmail OAuth、Quote／Market／其他非 Firebase Workers。
+- P3：P3-A1 已清理 Firebase Auth／RTDB runtime references；P3-B2-A 已清理 dead runtime；P3-B2-B 已退休新 JSON Backup 的 `syncSettings.firebase`／`firebaseConfigured` output；P3-B2-C 已校正治理文件與 Bundle；P3-B3-A 僅退休已證實無 production consumer 的 legacy cloud-sync canonical output，並保護 legacy-only hydration 不自動改寫。P3-B3-B、P3-B3-C 與其他 compatibility residual 不在本 Sprint 處理；不處理 Gmail OAuth、Quote／Market／其他非 Firebase Workers。
 - P4：Firebase Console retirement 只先允許唯讀盤點與方案設計；任何實際 Console 操作必須再次取得使用者明確授權。
 - P4 前禁止：刪除 Firebase 資料、停用 Anonymous Auth provider、修改／刪除 Security Rules、刪除 RTDB／Firebase Project、修改 Console 設定、不可逆操作或 Production deploy。
 - 待盤點：Firebase Console Rules／Anonymous Auth provider／retention、active device 使用情況、Production round-trip 的裝置／browser profile、`AppState.firebase`／`FirebaseConfig`／`autoSync`／`autoSyncSec`／`syncMeta`／`workerUrl` 後續處理、base path 外部依賴，以及 legacy browser Auth session。`mergeFinancialEventLedgers()` 已確認為通用 Ledger contract，不是 Firebase-only cleanup 對象。
@@ -4860,12 +4860,12 @@ interface ServiceResult<T> {
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B2-A／P3-B2-B 已 Merge；P3-B2-C Governance Cleanup（進行中，2026-08-12）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-A Legacy Persistence Canonical Output Retirement（Draft 候選，2026-08-12）
 
-- 正式基線：PR [#309](https://github.com/hyc640110/family-universal-rebalance/pull/309)（P3-B2-A）merge commit `15a8f3466dd8ba09b3d68de935749b3ff9257f4c`；PR [#310](https://github.com/hyc640110/family-universal-rebalance/pull/310)（P3-B2-B）一般 Merge，`origin/main`／merge commit `4262c565aee309074b16ad083947e6dd52a96664`（`mergedAt: 2026-08-11T16:16:20Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-B Production workflow `31511512490` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
-- 現行架構：Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge 與 Firebase SDK runtime 均為 0。localStorage 是唯一 canonical device persistence；JSON Backup 是人工備份／裝置搬移；Financial Event Ledger 維持 localStorage／JSON Backup persistence contract。
-- 相容性：舊 top-level `firebase`、`syncSettings.firebase` 與 `firebaseConfigured` 可讀；新 JSON Backup 不再輸出 `syncSettings.firebase`／`firebaseConfigured`。無 schema bump、migration 或 legacy input rewrite。`mergeFinancialEventLedgers()` 是通用 Ledger 的 forward-only union、collision semantics、deterministic ordering 與 Atomic Group contract，**KEEP**，不是 Firebase retirement blocker。
-- 現行範圍與未處理項目：P3-B2-C 僅校正治理文件與 Full／Lite Bundle。`AppState.firebase`、`FirebaseConfig`、`autoSync`、`autoSyncSec`、`syncMeta`、`workerUrl`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH` 是 remaining compatibility residual，需獨立決策與授權。P4 Firebase Console（Project、RTDB、Anonymous Auth、Rules、API key／settings、remote data、legacy browser Auth session）尚未開始，禁止操作。
+- 正式基線：PR [#311](https://github.com/hyc640110/family-universal-rebalance/pull/311) 已一般 Merge，`origin/main`／merge commit `cc0cc23d04806fd7a33819ec87b3bc77371fc8ef`（`mergedAt: 2026-08-11T16:37:32Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-C Production workflow `31513386306` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
+- Draft candidate：branch `codex/ur-todo-001-firebase-retirement-p3b3a-persistence-output-retirement` 從最新 `origin/main` 建立。P3-B3-A 只停止新 canonical localStorage／JSON Backup 輸出 `autoSync`、`autoSyncSec`、persisted `workerUrl`、`syncMeta.baselineFingerprint`、`baselineFieldFingerprints`、`baselineCanonicalSchema`、`lastUploadAt`、`lastDownloadAt`；legacy localStorage／Backup、Full Restore、normalization 與 hydration 持續 tolerant-read。
+- Hydration／資料安全：raw legacy localStorage 與 canonical state 若僅差上述退休 metadata（或既有 top-level `firebase`）時不得首載自動寫回；真實 mutation 與 Full Restore 維持既有 canonical write semantic。無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。Financial Event Ledger schema、merge、void、Atomic Group、split、loan 與 attribution 均未修改；`mergeFinancialEventLedgers()` **KEEP**。
+- 明確保留與下一直接起點：`AppState.firebase`、`FirebaseConfig`、legacy Firebase input normalization／Backup import、`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步只可進行 P3-B3-A Draft PR／Preview 驗收；不得 Merge，亦不得開始 P3-B3-B、P3-B3-C 或 P4 Firebase Console。
 
 ---
 
