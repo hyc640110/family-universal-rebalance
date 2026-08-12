@@ -2,7 +2,7 @@ export type DeploymentEnvironment = 'preview' | 'production';
 
 const configurationError = () => new Error('環境隔離設定無效，應用程式未啟動。');
 
-export function normalizeFirebaseBasePath(value: string | undefined): string {
+export function normalizeDeploymentScope(value: string | undefined): string {
   const raw = String(value ?? '').trim();
   if (!raw || raw === '/' || raw.includes('//')) throw configurationError();
   const normalized = raw.replace(/^\/+|\/+$/g, '');
@@ -16,15 +16,15 @@ export function environmentIdentity(value: string | undefined): DeploymentEnviro
   throw configurationError();
 }
 
-export function createEnvironmentBoundary(environmentValue: string | undefined, firebaseBasePathValue: string | undefined) {
+export function createEnvironmentBoundary(environmentValue: string | undefined, deploymentScopeValue: string | undefined) {
   const environment = environmentIdentity(environmentValue);
-  const firebaseBasePath = normalizeFirebaseBasePath(firebaseBasePathValue);
-  const isPreviewRoot = firebaseBasePath.endsWith('-preview');
+  const deploymentScope = normalizeDeploymentScope(deploymentScopeValue);
+  const isPreviewScope = deploymentScope.endsWith('-preview');
 
-  if ((environment === 'preview' && !isPreviewRoot) || (environment === 'production' && isPreviewRoot)) throw configurationError();
+  if ((environment === 'preview' && !isPreviewScope) || (environment === 'production' && isPreviewScope)) throw configurationError();
 
   return {
     environment,
-    firebaseBasePath
+    deploymentScope
   };
 }

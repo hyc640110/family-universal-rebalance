@@ -5,15 +5,15 @@ import { assertEnvironmentBoundary, parseEnv } from './environment-boundary-chec
 
 const read = path => readFileSync(path, 'utf8');
 const scripts = directory => readdirSync(join(directory, 'assets')).filter(file => file.endsWith('.js')).map(file => read(join(directory, 'assets', file))).join('\n');
-const inspect = (mode, directory, envFile, oppositeRoot) => {
+const inspect = (mode, directory, envFile, oppositeScope) => {
   assert.ok(existsSync(join(directory, 'index.html')), `${mode} build is missing`);
   const env = parseEnv(read(envFile));
   assertEnvironmentBoundary(mode, env);
   const bundle = scripts(directory);
-  for (const key of ['VITE_FIREBASE_BASE_PATH', 'VITE_STORAGE_KEY', 'VITE_WORKER_URL', 'VITE_MARKET_DATA_WORKER_URL']) {
+  for (const key of ['VITE_DEPLOYMENT_SCOPE', 'VITE_STORAGE_KEY', 'VITE_WORKER_URL', 'VITE_MARKET_DATA_WORKER_URL']) {
     assert.ok(bundle.includes(env[key]), `${mode} runtime bundle is missing ${key}`);
   }
-  assert.doesNotMatch(bundle, new RegExp(`['\"]${oppositeRoot}['\"]`), `${mode} runtime bundle contains the opposite Firebase root`);
+  assert.doesNotMatch(bundle, new RegExp(`['\"]${oppositeScope}['\"]`), `${mode} runtime bundle contains the opposite deployment scope`);
 };
 
 inspect('production', 'dist', '.env.production', 'family-universal-rebalance-preview');

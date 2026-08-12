@@ -6,7 +6,7 @@ const expected = {
     values: {
       VITE_APP_BASE: '/family-universal-rebalance/',
       VITE_DEPLOYMENT_ENVIRONMENT: 'production',
-      VITE_FIREBASE_BASE_PATH: 'family-universal-rebalance',
+      VITE_DEPLOYMENT_SCOPE: 'family-universal-rebalance',
       VITE_STORAGE_KEY: 'family-universal-rebalance-v100-state',
       VITE_WORKER_URL: 'https://00631l-pro-price-proxy.hyc640110.workers.dev',
       VITE_MARKET_DATA_WORKER_URL: 'https://family-universal-rebalance-market-data-production.hyc640110.workers.dev'
@@ -17,7 +17,7 @@ const expected = {
     values: {
       VITE_APP_BASE: '/family-universal-rebalance/preview/',
       VITE_DEPLOYMENT_ENVIRONMENT: 'preview',
-      VITE_FIREBASE_BASE_PATH: 'family-universal-rebalance-preview',
+      VITE_DEPLOYMENT_SCOPE: 'family-universal-rebalance-preview',
       VITE_STORAGE_KEY: 'family-universal-rebalance-preview-v100-state',
       VITE_WORKER_URL: 'https://00631l-pro-price-proxy-preview.hyc640110.workers.dev',
       VITE_MARKET_DATA_WORKER_URL: 'https://family-universal-rebalance-market-data-preview.hyc640110.workers.dev'
@@ -36,7 +36,7 @@ export function assertEnvironmentBoundary(mode, env) {
   for (const [key, value] of Object.entries(contract.values)) {
     if (env[key] !== value) throw new Error('Invalid environment boundary configuration.');
   }
-  if (env.VITE_STORAGE_KEY === env.VITE_FIREBASE_BASE_PATH || !String(env.VITE_FIREBASE_BASE_PATH ?? '').trim()) throw new Error('Invalid environment boundary configuration.');
+  if (env.VITE_STORAGE_KEY === env.VITE_DEPLOYMENT_SCOPE || !String(env.VITE_DEPLOYMENT_SCOPE ?? '').trim()) throw new Error('Invalid environment boundary configuration.');
   return contract;
 }
 
