@@ -6,11 +6,18 @@ const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.
 const calendarDaySource = readFileSync(new URL('../src/lib/calendarDay.ts', import.meta.url), 'utf8');
 const calendarDayCompiled = ts.transpileModule(calendarDaySource, { compilerOptions }).outputText;
 const calendarDayUrl = `data:text/javascript;base64,${Buffer.from(calendarDayCompiled).toString('base64')}`;
+const financialAccountsSource = readFileSync(new URL('../src/lib/financialAccounts.ts', import.meta.url), 'utf8');
+const financialAccountsCompiled = ts.transpileModule(financialAccountsSource, { compilerOptions }).outputText;
+const financialAccountsUrl = `data:text/javascript;base64,${Buffer.from(financialAccountsCompiled).toString('base64')}`;
+const fxValuationSource = readFileSync(new URL('../src/lib/fxValuation.ts', import.meta.url), 'utf8');
+const fxValuationCompiled = ts.transpileModule(fxValuationSource, { compilerOptions }).outputText
+  .replace(/from ['"]\.\/calendarDay['"];?/u, `from '${calendarDayUrl}';`)
+  .replace(/from ['"]\.\/financialAccounts['"];?/u, `from '${financialAccountsUrl}';`);
+const fxValuationUrl = `data:text/javascript;base64,${Buffer.from(fxValuationCompiled).toString('base64')}`;
 const source = readFileSync(new URL('../src/lib/netWorthHistory.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, { compilerOptions }).outputText.replace(
-  /from ['"]\.\/calendarDay['"];?/u,
-  `from '${calendarDayUrl}';`
-);
+const compiled = ts.transpileModule(source, { compilerOptions }).outputText
+  .replace(/from ['"]\.\/calendarDay['"];?/u, `from '${calendarDayUrl}';`)
+  .replace(/from ['"]\.\/fxValuation['"];?/u, `from '${fxValuationUrl}';`);
 const history = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
 const snapshot = (date, netWorth) => ({date,totalAssets:netWorth+100,netWorth,investmentValue:netWorth, cash:100, debt:100});
 

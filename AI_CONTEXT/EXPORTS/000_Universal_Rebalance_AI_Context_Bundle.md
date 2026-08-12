@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-12T14:04:23.445375+00:00
+Generated UTC: 2026-08-12T15:03:59.082933+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-12T14:04:23.445375+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `f7e0a01301b3ab7c2833625b7ed2a4f71b5cdf69695845feb9cef131934f0686`
+- `003_CURRENT_STATUS.md` — SHA-256 `213bbfefd929d3fd0dd843de8b09ac04ea2f3d79e7f28cb783900ff026aeda4f`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `738ff640efeddfd9e8c08249735d00f18ba65e32760d296af29ddc04d376c988`
+- `008_TODO_BACKLOG.md` — SHA-256 `8eca6f8c86a8581ac3da1b2b328c26bd5b6b4b5c23a56bf699e3cc0ca03a8dda`
 - `009_CHANGELOG.md` — SHA-256 `b92f45ac95b7905c7b85b6bf9200cd320185c6874c8729e01248e08928f824c7`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `848314271f67e904d9df1ce46de4a9c191ba4f55f6571181bddf76dedb5d58bf`
+- `012_AI_HANDOVER.md` — SHA-256 `e50b5f8fd2c6d1654dd767b7214fd87e1084193b31493d3fc26a8727539e0519`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -28,7 +28,7 @@ Generated UTC: 2026-08-12T14:04:23.445375+00:00
 - `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
 - `019_Idea_Pool.md` — SHA-256 `3c8baa228d78c53eb88f8c226381312af8ac7fad835df96d2552900297793021`
-- `020_Architecture_Decisions.md` — SHA-256 `d999fd3c232d543bc49c1745b03834a73358fceec682bacd3979f6ff72fa0f84`
+- `020_Architecture_Decisions.md` — SHA-256 `6c9a212c263bdc67be17aefce3822d8fcd77e147e099c11cebfb393e86cb26d0`
 
 ---
 
@@ -658,6 +658,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v3.94
 
 最後更新：2026-08-12
+
+**UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation 已完成本機實作驗證，待 Draft PR／CI／Preview 驗收。** 此 Sprint 將 household valuation currency 明確定為 TWD，僅建立 provider-independent 的 USD/TWD `reference-close` rate contract（`1 USD = quotePerBase TWD`）、最多 3 個 calendar days 的 carry-forward 與 fail-safe stale policy。`fxRateHistory` 為 AppState／localStorage／JSON Backup 的加法式 persistence；新 `NetWorthSnapshot.fxValuations?` 可保存 pinned USD foreign-cash valuation provenance，歷史重開不因 rate history 後續 revision 而重算。既有 snapshots 繼續可讀、沒有 provenance 時不回填、不改寫且 FX attribution 維持 unavailable／residual。**未將 USD 自動併入既有 account totals 或 snapshot producer，未新增 provider network／Worker／UI，未修改 FinancialEvent、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。** UR-TODO-046 整體仍 OPEN；FX attribution 與 Loan UI／CSV／Import Center producer mapping 仍為獨立 Remaining Boundary。
 
 **UR-TODO-001 Firebase Retirement 已正式完成／CLOSED，採 Archived Retirement／封存保留。** 正式 `origin/main` 為 PR [#314](https://github.com/hyc640110/family-universal-rebalance/pull/314) merge commit `54bd6794c0ac8ec1704c979cdb7e56e81818de32`。P3-B2-A～P3-B3-C 已全數完成並 Merge；現行 App 的 Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge、Firebase SDK dependency 與 active Firebase environment naming 均為 0。canonical `AppState` 無 Firebase config；新 JSON Backup 不輸出 Firebase config；legacy Firebase input 僅 tolerant-read／accept-and-discard。localStorage 是唯一 canonical device persistence，JSON Backup 是正式人工備份／裝置搬移，Financial Event Ledger 與 `mergeFinancialEventLedgers()` 均維持 KEEP，Preview／Production isolation 不變。P4 已完成受控 archive/hash evidence、RTDB deny-all Rules 與 Anonymous Auth disabled 的封存驗證；Production 實機證實不依賴 RTDB／Anonymous Auth。Firebase Project、RTDB historical data、19 個歷史 anonymous users 與 Web App registration 均保留為 archived retired resource；不存在 REQUIRED-DELETE blocker。未來任何破壞性清理均為 optional housekeeping，須重新唯讀盤點與明確授權。
 
@@ -2924,6 +2926,8 @@ Hotfix 仍需：
 
 最後更新：2026-08-12
 
+2026-08-12 **UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation 已完成本機實作驗證，待 Draft PR／CI／Preview 驗收。** 本 Sprint 只建立 USD→TWD foreign cash valuation 的 provider-independent foundation：canonical `quotePerBase` direction（1 USD = N TWD）、`reference-close`、最多 3 日 carry-forward、missing／stale／unsupported fail-safe、`fxRateHistory` 加法式持久化與新 snapshot optional pinned `fxValuations` provenance。localStorage／JSON Backup round-trip、legacy snapshot 可讀與 pinned result 不受後續 rate revision 影響皆有測試。**明確不包含** provider network、Worker、UI、USD 自動計入既有 account／net-worth totals、FX attribution、conversion／execution rate／fee／spread、realized FX、foreign investment、foreign loan、FinancialEvent／Ledger／Generic Split、Household Liquidity、AI Decision、Rebalance、migration 或歷史 snapshot rewrite；非 TWD Ledger／derived evidence 的既有 fail-safe 排除不變。UR-TODO-046 整體仍為部分完成／後續待評估。
+
 2026-08-10 **UR-TODO-046-L2A Split Allocation Contract Audit 與 UR-TODO-046-L2B Generic Split Allocation Foundation 正式標記為已完成**。PR [#296](https://github.com/hyc640110/family-universal-rebalance/pull/296) 已由使用者 Merge，merge commit `a355a3986f45f7bd15b61bc1d3f93f06ad633a41`（`mergedAt: 2026-08-10T12:23:50Z`、`mergedBy: hyc640110`）；PR CI Verification／`verify` run `31386340292` success，Merge 後 Deploy GitHub Pages run `31387817114` success，Production HTTP 200、environment=production、App root 與正式 JavaScript bundle 均可載入。L2A 完成 schema boundary 與 Atomic Group contract 的唯讀實證；L2B 將 FinancialEvent schema 升至 v3，generic split 以 Atomic Group 持久化於 FinancialEvent Ledger（唯一 persistent SSOT），僅完整、有效、amount-conserving group 可參與 attribution／group-to-transaction reconciliation。任一 component Void 令 whole group invalid；correction 只允許 forward-only 的 Void old group → complete replacement group，replacement 必須使用新的 allocationGroupId 與 event ids。v2 runtime 對 v3 Ledger 維持 opaque preservation／no-runtime-consumption；v2/v3 Firebase mixed-version merge、event-id collision different payload 均 fail-safe reject；partial Firebase union 在完整前不得 attribution。Loan L1 principal／interest／fee／penalty semantics 未改變。本次不含 UI、CSV、Import Center、Investment／FX consumer、Loan UI wiring、AI Decision、Rebalance、Dashboard、historical migration 或 existing FinancialEvent 自動轉換。**UR-TODO-046 整體仍為部分完成**；後續只保留 FX attribution、Loan UI／CSV／Import Center 與其他尚未授權 consumer mapping，均須另行唯讀盤點、產品決策與授權，不得自動開始。
 
 2026-08-08 **UR-TODO-053（趨勢圖改為「相對今日淨資產」基準線填色）正式標記為已完成**。已由使用者手動指示 Merge [PR #290](https://github.com/hyc640110/family-universal-rebalance/pull/290)（`feat/trend-chart-baseline-relative-fill`），merge commit `8d8dddf`，為目前 `main`／`origin/main` 正式基線。取代 UR-TODO-027 已完成的「逐段漲跌」填色邏輯（不是新增並存），改為新增一條固定在「今日淨資產／今日{title}」高度的水平基準線，折線高於基準線紅色、低於綠色。唯讀盤點確認 `monotoneSegments()`／`monotonePath` 曲線計算可完全重用，並驗證既有時間範圍篩選函式保證陣列最後一筆永遠是最新資料，基準線可安全固定為絕對值不隨範圍切換改變。使用者決策：交叉點計算採線性插值、基準線加淡色虛線＋「今日」文字標示、文案採「以今日{title}為基準：...」放在圖表下方。開發中發現 `TrendChart` 為淨資產／投資資產共用元件，已改用 `title` prop 動態組字避免文案誤植。**首次 Preview 驗收發現真實 Bug 並已修正**：30 天視圖中明顯低於基準線的一段完全沒有綠色填色（高於基準線的紅色正常）。直接檢視渲染後 SVG DOM 確認根因（非猜測）：`up`／`down` 兩個方向的 `<linearGradient>` 誤共用同一組 `y1`／`y2` 座標範圍（`top`→`refY`），紅色區塊的像素座標剛好完全落在此範圍內、綠色區塊則明顯超出，SVG 預設 `spreadMethod="pad"` 讓超出範圍的部分沿用最後一個 stop 的顏色（全透明），導致綠色填色路徑幾何正確但畫面全透明。修正：`down` 漸層改用 `height-bottom`→`refY`（與 `up` 的 `top`→`refY` 對稱），新增迴歸測試直接斷言每個方向的漸層範圍必須完整涵蓋該方向填色路徑的座標範圍。`tests/trendChartGradientArea.test.ts` 因語意完全改變全數改寫並新增迴歸測試（7→11 個測試）。868 tests pass，`npx tsc -b`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證兩種圖表文案、紅綠填色（含明顯低於基準線的低谷）皆正確渲染。詳見下方 **UR-TODO-053** 正式條目。
@@ -4859,6 +4863,15 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation（Draft 候選，2026-08-12）
+
+- 基線與 branch：從 `origin/main` `98cd44ed2493594b1b67dc22e93f7b55345b2090` 建立 `feat/ur-todo-046-fx-a1-provenance-foundation`；待 Draft PR、CI 與 Preview 驗收，禁止自行 Ready、Merge 或 Production deploy。
+- 已完成 contract：TWD 為 household valuation currency；唯一 MVP pair 為 USD/TWD，`quotePerBase` 表示 `1 USD = N TWD`，rate type 固定 `reference-close`。rate history 僅保存有效、正規化、deterministic dedupe 的 records；valuation 最多 carry-forward 3 個 calendar days，超限、missing、unsupported 或無可用 balance 一律 fail-safe。
+- persistence／歷史：`AppState.fxRateHistory` 與 JSON Backup 加法式 round-trip；新 `NetWorthSnapshot.fxValuations?` 保存 account id、原幣金額、pinned rate id/value/date、stale 資訊與結果。舊 snapshots 可讀但無 provenance，不回填、不重算、不改寫；後續 rate revision 不得改變已 pinned snapshot。
+- 明確不包含：未接 provider／network／Worker／UI，未將 USD 自動放入既有 TWD totals 或 snapshot producer；未修改 Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。FX attribution、conversion、realized FX、foreign investment／loan 仍需獨立授權。
 
 ---
 
@@ -8340,7 +8353,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Architecture Decisions
 
-版本：v1.2
+版本：v1.3
 
 最後更新：2026-08-11
 
@@ -8375,6 +8388,19 @@ Review → Architecture Review → Product Review → Development → Verificati
 | ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
 | ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
 | ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
+| ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
+
+---
+
+## ADR-006：FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離
+
+**狀態**：已採用
+
+**背景**：UR-TODO-046 FX audit 證實既有非 TWD evidence 必須 fail-safe 排除；裸 Net Worth snapshots 沒有原幣部位、匯率、來源或時間，不能把 residual 改稱 FX。帳戶雖可保存 `currency`，但既有 totals 是裸數字相加，直接接入 USD 會擴大 Dashboard、Household Liquidity 與決策 consumer 的風險。
+
+**決策**：FX-A1 將 household valuation currency 定為 TWD，第一版只定義 USD/TWD `reference-close` rate，固定方向 `1 USD = quotePerBase TWD`。rate history 為加法式且 immutable-style；每日 foreign-cash valuation 最多可使用 3 calendar days 的 previous rate carry-forward，並保存 rate id、pinned rate value、rate date、staleness、原幣金額與 TWD result 於新 snapshot optional provenance。TWD 帳戶不建立假 TWD/TWD rate；無 rate、stale、unsupported 或 legacy snapshot 一律不產生可用 FX valuation。FX valuation rate 不得承載 conversion execution rate、spread、fee 或成本基礎。
+
+**後果**：新快照可重現已保存的 valuation，不依賴 provider 後續 revision；舊快照保持 legacy／residual。FX-A1 不接 provider、Worker、UI、既有 totals、FinancialEvent、Ledger 或 attribution calculator。未來 FX attribution 必須另定 signed evidence taxonomy；conversion、realized FX、foreign investment 與 foreign loan 均為獨立 domain contract。
 
 ---
 

@@ -8,6 +8,15 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation（Draft 候選，2026-08-12）
+
+- 基線與 branch：從 `origin/main` `98cd44ed2493594b1b67dc22e93f7b55345b2090` 建立 `feat/ur-todo-046-fx-a1-provenance-foundation`；待 Draft PR、CI 與 Preview 驗收，禁止自行 Ready、Merge 或 Production deploy。
+- 已完成 contract：TWD 為 household valuation currency；唯一 MVP pair 為 USD/TWD，`quotePerBase` 表示 `1 USD = N TWD`，rate type 固定 `reference-close`。rate history 僅保存有效、正規化、deterministic dedupe 的 records；valuation 最多 carry-forward 3 個 calendar days，超限、missing、unsupported 或無可用 balance 一律 fail-safe。
+- persistence／歷史：`AppState.fxRateHistory` 與 JSON Backup 加法式 round-trip；新 `NetWorthSnapshot.fxValuations?` 保存 account id、原幣金額、pinned rate id/value/date、stale 資訊與結果。舊 snapshots 可讀但無 provenance，不回填、不重算、不改寫；後續 rate revision 不得改變已 pinned snapshot。
+- 明確不包含：未接 provider／network／Worker／UI，未將 USD 自動放入既有 TWD totals 或 snapshot producer；未修改 Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。FX attribution、conversion、realized FX、foreign investment／loan 仍需獨立授權。
+
+---
+
 ## 最新交接快照：UR-TODO-001 Firebase Retirement 正式完成（Archived Retirement，2026-08-12）
 
 - 正式基線：PR [#314](https://github.com/hyc640110/family-universal-rebalance/pull/314) 已 Merge，`origin/main`／merge commit `54bd6794c0ac8ec1704c979cdb7e56e81818de32`。P3-B2-A～P3-B3-C 全數完成；Firebase Auth／RTDB transport／Firebase SDK dependency／active Firebase environment naming／canonical Firebase config 均為 0。localStorage 是 canonical device persistence，JSON Backup 是人工備份／裝置搬移，legacy Firebase input 僅 tolerant-read／accept-and-discard；Financial Event Ledger 與 `mergeFinancialEventLedgers()` KEEP，Preview／Production isolation 不變。
