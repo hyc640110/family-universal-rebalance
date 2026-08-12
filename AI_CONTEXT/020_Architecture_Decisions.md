@@ -34,6 +34,7 @@
 | ADR-002 | Dip Alert 明確分離「訊號」與「資金資格」語意 | 已採用 |
 | ADR-003 | Generic Split Allocation 採 Atomic Group、FinancialEvent Ledger SSOT 與 schema v3 opaque boundary | 已採用 |
 | ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
+| ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
 
 ---
 
@@ -138,3 +139,24 @@ UR-TODO-046-L2A 的 Repository audit 確認，跨 domain 的 split allocation �
 - 好處：每個階段都能對 localStorage、JSON Backup 與 Ledger regression 獨立驗證，且可在早期階段回退。
 - 取捨：退役期間會短暫保留過渡程式與文件；P1 或 P2 均不構成完整 retirement 結論。
 - 延續要求：P1～P3 必須以最小單一 Sprint／Draft PR 執行；不得處理 Gmail OAuth、非 Firebase Workers、核心財務公式或未授權的 Backup migration。
+
+---
+
+## ADR-005：Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion
+
+**狀態**：已採用
+
+**背景**：UR-TODO-001 已完成 P1～P3 的 repository runtime removal 與 P4 Console 授權作業。Firebase 已不再有 Auth、RTDB transport、SDK dependency、active environment naming 或 canonical persistence role；Production 實機亦已驗證不依賴 RTDB／Anonymous Auth。另一方面，Firebase Project、RTDB historical data、歷史 anonymous users 與 Web App registration 仍可能有稽核、回溯或使用者保留價值；強制刪除會降低 auditability 與 rollback 選項，且屬獨立破壞性風險。
+
+**決策**：
+
+1. Firebase retirement 的完成條件為 runtime removal、network path removal、access freeze、受控 archive 驗證與 Production independence proof；不以物理刪除 Firebase Project／RTDB／users 作為必要條件。
+2. Firebase Project 維持 archived retired project；RTDB Rules 維持 deny-all，Anonymous Auth 維持 disabled。RTDB historical data、歷史 users 與 Web App registration 可保留，archive 本體不得進 Repository 或公開 Bundle。
+3. localStorage 與 JSON Backup 是現行 persistence architecture；Financial Event Ledger 與 `mergeFinancialEventLedgers()` 保持獨立，不因 Firebase retirement 而改動。
+4. 未來任何 users、RTDB、Web App registration、API key、Project 或 browser storage 的刪除，均須重新唯讀盤點並取得明確 destructive authorization。
+
+**後果**：
+
+- 好處：產品可在安全凍結與驗證 archive 下正式結案，同時保留可稽核性與 rollback／歷史查核選項。
+- 取捨：封存資源仍需在未來決定其保留期限；這是治理／housekeeping 決策，不恢復任何產品 runtime 路徑。
+- 延續要求：不得將 optional destructive housekeeping 重新列為 UR-TODO-001 blocker；任何新 Firebase 整合都必須是新的、獨立且明確授權的產品決策。
