@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { createServer } from 'vite';
 import { createFinancialAccount } from '../src/lib/financialAccounts';
-import { isLegacyFirebaseOnlyPersistenceDelta, shouldWriteInitialHydration } from '../src/lib/legacyFirebasePersistence';
+import { isLegacyOnlyPersistenceDelta, shouldWriteInitialHydration } from '../src/lib/legacyFirebasePersistence';
 
 type Persistence = {
   normalizeState(raw: unknown): Record<string, unknown>;
@@ -24,13 +24,13 @@ async function loadPersistence(): Promise<Persistence> {
 test('P3-B1: legacy-only Firebase localStorage delta 不得取得 initial hydration write 資格', () => {
   const raw = JSON.stringify({ holdings: [], firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } });
   const clean = JSON.stringify({ holdings: [] });
-  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, clean), true);
+  assert.equal(isLegacyOnlyPersistenceDelta(raw, clean), true);
 });
 
 test('P3-B1: 真實持久化 mutation 不得被 legacy write gate 阻擋', () => {
   const raw = JSON.stringify({ holdings: [], firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } });
   const changed = JSON.stringify({ holdings: [{ symbol: '00662' }] });
-  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, changed), false);
+  assert.equal(isLegacyOnlyPersistenceDelta(raw, changed), false);
 });
 
 test('P3-B3-A: 僅含已退休 cloud-sync metadata 的 legacy localStorage delta 不得在 hydration 寫回', () => {
@@ -63,14 +63,14 @@ test('P3-B3-A: 僅含已退休 cloud-sync metadata 的 legacy localStorage delta
       lastBackupImportAt: '2026-08-12T00:00:00.000Z'
     }
   });
-  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, canonical), true);
+  assert.equal(isLegacyOnlyPersistenceDelta(raw, canonical), true);
   assert.equal(shouldWriteInitialHydration(raw, canonical), false);
 });
 
 test('P3-B3-A: legacy-only fixture 在 genuine mutation 後必須取得 clean canonical write 資格', () => {
   const raw = JSON.stringify({ holdings: [], autoSync: true, autoSyncSec: 30, workerUrl: 'https://legacy-worker.example.invalid' });
   const changed = JSON.stringify({ holdings: [{ symbol: '00662' }] });
-  assert.equal(isLegacyFirebaseOnlyPersistenceDelta(raw, changed), false);
+  assert.equal(isLegacyOnlyPersistenceDelta(raw, changed), false);
 });
 
 test('P3-B1: canonical localStorage writer 在 genuine mutation 時不再輸出 Firebase legacy config', async () => {
@@ -78,6 +78,16 @@ test('P3-B1: canonical localStorage writer 在 genuine mutation 時不再輸出 
   const legacy = normalizeState({ firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' }, holdings: [] });
   const changed = normalizeState({ ...legacy, holdings: [{ symbol: '00662', shares: 1, avgCost: 1, assetClass: 'growth' }] });
   assert.equal('firebase' in stateWithPersistedFinancialEventLedger(changed), false);
+});
+
+test('P3-B3-B: canonical AppState 接受後丟棄 legacy Firebase config', async () => {
+  const { normalizeState } = await loadPersistence();
+  const state = normalizeState({
+    firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' },
+    holdings: [{ symbol: '00662', shares: 2, avgCost: 10, assetClass: 'growth' }]
+  });
+  assert.equal('firebase' in state, false);
+  assert.deepEqual((state.holdings as Array<{ symbol: string }>).map(({ symbol }) => symbol), ['00662']);
 });
 
 test('P3-B1: 實際 App hydration 與 mount persistence 均使用明確 legacy write gate', () => {
@@ -90,35 +100,36 @@ test('P3-B1: clean Backup 不得 fallback 到 current Firebase config', async ()
   const { normalizeState, stateFromBackup, stateWithPersistedFinancialEventLedger } = await loadPersistence();
   const current = normalizeState({ firebase: { databaseURL: 'https://current.example.invalid', secretPath: 'current' } });
   const restored = stateFromBackup({ holdings: [], cashAccounts: [], accounts: [], transactions: [], loans: [], financialEventSchemaVersion: 3, financialEvents: [] }, current).state;
-  assert.notDeepEqual(restored.firebase, current.firebase);
+  assert.equal('firebase' in restored, false);
   assert.equal('firebase' in stateWithPersistedFinancialEventLedger(restored), false, 'Full Restore 的後續 canonical localStorage 輸出不得重建 legacy config');
 });
 
-test('P3-B2-B: old top-level Firebase Backup 仍可讀取', async () => {
+test('P3-B3-B: old top-level Firebase Backup 可讀取但會在 canonical state discard', async () => {
   const { normalizeState, stateFromBackup } = await loadPersistence();
   const current = normalizeState({});
-  const restored = stateFromBackup({ holdings: [], cashAccounts: [], accounts: [], transactions: [], loans: [], financialEventSchemaVersion: 3, financialEvents: [], firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } }, current).state;
-  assert.deepEqual(restored.firebase, { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' });
+  const restored = stateFromBackup({ holdings: [{ symbol: '00662', shares: 2, avgCost: 10, assetClass: 'growth' }], cashAccounts: [], accounts: [], transactions: [], loans: [], financialEventSchemaVersion: 3, financialEvents: [], firebase: { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' } }, current).state;
+  assert.equal('firebase' in restored, false);
+  assert.deepEqual((restored.holdings as Array<{ symbol: string }>).map(({ symbol }) => symbol), ['00662']);
 });
 
-test('P3-B2-B: old nested syncSettings.firebase Backup 仍可讀取，但不具有 runtime sync 意義', async () => {
+test('P3-B3-B: old nested syncSettings.firebase Backup 可讀取但會在 canonical state discard', async () => {
   const { normalizeState, stateFromBackup } = await loadPersistence();
   const firebase = { databaseURL: 'https://legacy.example.invalid', secretPath: 'legacy' };
   const restored = stateFromBackup({
     holdings: [], cashAccounts: [], accounts: [], transactions: [], loans: [], financialEventSchemaVersion: 3, financialEvents: [],
     syncSettings: { refreshSec: 60, autoSync: false, autoSyncSec: 60, firebase, firebaseConfigured: true }
   }, normalizeState({})).state;
-  assert.deepEqual(restored.firebase, firebase);
+  assert.equal('firebase' in restored, false);
 });
 
-test('P3-B2-B: nested legacy Firebase Backup 優先於 top-level Firebase Backup', async () => {
+test('P3-B3-B: nested 與 top-level legacy Firebase Backup 同時存在時可安全 import 並 discard', async () => {
   const { normalizeState, stateFromBackup } = await loadPersistence();
   const restored = stateFromBackup({
     holdings: [], cashAccounts: [], accounts: [], transactions: [], loans: [], financialEventSchemaVersion: 3, financialEvents: [],
     firebase: { databaseURL: 'https://top-level.example.invalid', secretPath: 'top-level' },
     syncSettings: { refreshSec: 60, autoSync: false, autoSyncSec: 60, firebase: { databaseURL: 'https://nested.example.invalid', secretPath: 'nested' }, firebaseConfigured: true }
   }, normalizeState({})).state;
-  assert.deepEqual(restored.firebase, { databaseURL: 'https://nested.example.invalid', secretPath: 'nested' });
+  assert.equal('firebase' in restored, false);
 });
 
 test('P3-B2-B: new Backup 不得輸出 retired Firebase config metadata', async () => {
@@ -150,6 +161,7 @@ test('P3-B2-B: legacy Backup import 後的新 export 保留 semantic，但不重
   const restored = stateFromBackup(legacy, normalizeState({})).state;
   const backup = backupPayload(restored, {}) as { holdings: Array<{ symbol: string }>; transactions: Array<{ id: string }>; loans: Array<{ id: string }>; financialEventSchemaVersion: number; cashFlowProfile?: unknown; syncSettings: Record<string, unknown> };
   const reimported = stateFromBackup(JSON.parse(JSON.stringify(backup)), normalizeState({})).state;
+  assert.equal('firebase' in restored, false);
   assert.deepEqual(backup.holdings.map(({ symbol }) => symbol), ['00662']);
   assert.deepEqual(backup.transactions.map(({ id }) => id), ['tx-1']);
   assert.deepEqual(backup.loans.map(({ id }) => id), ['loan-1']);
@@ -217,6 +229,7 @@ test('P3-B1: v3 split atomic group 與 void marker 在 legacy Firebase 輸入下
     ]
   });
   const restored = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(state, {}))), normalizeState({})).state;
+  assert.equal('firebase' in state, false);
   assert.equal(restored.financialEventSchemaVersion, 3);
   assert.deepEqual((restored.financialEvents as Array<{ id: string }>).map(({ id }) => id), ['split-a', 'split-b', 'void-a']);
   assert.equal((restored.financialEvents as Array<{ voidedEventId?: string }>)[2]?.voidedEventId, 'split-a');

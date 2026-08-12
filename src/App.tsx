@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, FIREBASE_BASE_PATH, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
@@ -96,11 +96,11 @@ type AssetClass = 'growth' | 'defensive';
 export type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number; asOf?: string };
-type FirebaseConfig = { databaseURL: string; secretPath: string };
+type LegacyFirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; firebase: FirebaseConfig; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta };
+export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta };
 type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number } };
-type LegacySyncSettings = { refreshSec?: number; autoSync?: boolean; autoSyncSec?: number; workerUrl?: string; firebase?: FirebaseConfig; firebaseConfigured?: boolean };
+type LegacySyncSettings = { refreshSec?: number; autoSync?: boolean; autoSyncSec?: number; workerUrl?: string; firebase?: LegacyFirebaseConfig; firebaseConfigured?: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
@@ -274,7 +274,6 @@ const defaultState: AppState = {
   gmailOAuth: disconnectedGmailOAuth(),
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
   refreshSec: 60,
-  firebase: { databaseURL: '', secretPath: FIREBASE_BASE_PATH },
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
   autoSyncSec: 60,
@@ -387,17 +386,16 @@ export function normalizeState(raw: unknown): AppState {
     transactionIds: new Set(transactionState.transactions.map(transaction => transaction.id)),
     transactionsById: new Map(transactionState.transactions.map(transaction => [transaction.id, transaction]))
   });
-  const firebase = { ...defaultState.firebase, ...(s.firebase || {}) };
   const importSessions = Array.isArray(r.importSessions) ? r.importSessions.filter(value => value && typeof value === 'object').slice(-50) as ImportSession[] : [];
   const importPresets = normalizeMappingPresets(r.importPresets);
-  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, firebase, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   return { ...normalizedCore, wealthGoal: normalizeWealthGoalSettings(s.wealthGoal), ...(cashFlowProfile ? { cashFlowProfile } : {}), ...(netWorthHistory ? { netWorthHistory } : {}), syncMeta: sanitizeSyncMeta(s.syncMeta, normalizedCore) };
 }
-type PersistedAppState = Omit<AppState, 'firebase' | 'financialEvents' | 'autoSync' | 'autoSyncSec' | 'workerUrl'> & { financialEvents: unknown };
+type PersistedAppState = Omit<AppState, 'financialEvents' | 'autoSync' | 'autoSyncSec' | 'workerUrl'> & { financialEvents: unknown };
 export function stateWithPersistedFinancialEventLedger(state: AppState): PersistedAppState {
-  const { firebase: _legacyFirebase, autoSync: _autoSync, autoSyncSec: _autoSyncSec, workerUrl: _workerUrl, ...canonicalState } = state;
+  const { autoSync: _autoSync, autoSyncSec: _autoSyncSec, workerUrl: _workerUrl, ...canonicalState } = state;
   return { ...canonicalState, syncMeta: withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(state.syncMeta)), financialEvents: serializeFinancialEventLedgerEvents(state.financialEventSchemaVersion, state.financialEvents) };
 }
 type AppReadState = { state: AppState; netWorthSnapshotReadTimeView: NetWorthSnapshotReadTimeView; initialPersistenceWriteAllowed: boolean };
@@ -450,9 +448,8 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
   // Scheme A: reject the entire backup rather than silently removing an OAuth secret.
   assertNoOAuthSecrets(raw);
   if (backupHasRemovedStrategy(raw)) throw new Error(`${removedSymbol()} 已從正式策略移除，備份檔含有已移除的 ${removedSymbol()} 策略資料，請確認後再匯入。`);
-  const r = raw as Omit<Partial<BackupPayload>, 'syncSettings'> & { assets?: Holding[]; cash?: CashItem[]; firebase?: FirebaseConfig; syncSettings?: LegacySyncSettings };
+  const r = raw as Omit<Partial<BackupPayload>, 'syncSettings'> & { assets?: Holding[]; cash?: CashItem[]; firebase?: LegacyFirebaseConfig; syncSettings?: LegacySyncSettings };
   const syncSettings = r.syncSettings || {};
-  const firebase = syncSettings.firebase || r.firebase;
   const importedHoldings = Array.isArray(r.holdings) ? r.holdings : Array.isArray(r.assets) ? r.assets : [];
   const quoteNames = r.quotes && typeof r.quotes === 'object' ? r.quotes : {};
   const holdings = importedHoldings.map(holding => {
@@ -460,7 +457,7 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }), firebase };
+  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }) };
   const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(raw);
   if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed: true };
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
