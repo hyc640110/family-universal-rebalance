@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-12T15:28:53.329875+00:00
+Generated UTC: 2026-08-12T16:02:59.875942+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-12T15:28:53.329875+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `f27a4fc992bb5cec8a2b1986994d3ed2e7f0ef4e289a830efbe4ca22d4b1fb2f`
+- `003_CURRENT_STATUS.md` — SHA-256 `3eac1e576199eb87cc18af1b681766c72f0b59f0c45c91f3ad5abb733cd088b1`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `05b761858e25a386090713734ad55e4fe31fda5fc5c9eecc12b6f5a5e9c850a6`
+- `008_TODO_BACKLOG.md` — SHA-256 `fe1019aba83dbfab1cc31a907bcbaf9af1dbf2f7d1b2b3d3acb281d421f4f81b`
 - `009_CHANGELOG.md` — SHA-256 `9fe7e8140a11df530c05bd0aa0a3d776e014c9bdcec1cc348bbbefab257e1507`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `7e649dcf5f32d93f75eaca4d92246bd836cde65459e46008e9721c58bdb391f3`
+- `012_AI_HANDOVER.md` — SHA-256 `3a8439c0be075e43a56dd56b9b0717e5a74aa198e83d9fba8d74a08071c1f7f7`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -28,7 +28,7 @@ Generated UTC: 2026-08-12T15:28:53.329875+00:00
 - `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
 - `019_Idea_Pool.md` — SHA-256 `3c8baa228d78c53eb88f8c226381312af8ac7fad835df96d2552900297793021`
-- `020_Architecture_Decisions.md` — SHA-256 `6c9a212c263bdc67be17aefce3822d8fcd77e147e099c11cebfb393e86cb26d0`
+- `020_Architecture_Decisions.md` — SHA-256 `4781e8ca18169c9aa3c3376612d5c5bd425553bb53f70d5620becadc52534734`
 
 ---
 
@@ -657,9 +657,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 # Universal Rebalance Current Status v3.95
 
-最後更新：2026-08-12
+最後更新：2026-08-13
 
 **UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation 已完成／Merge／Production Verified。** PR [#316](https://github.com/hyc640110/family-universal-rebalance/pull/316) 已正常 Merge，merge commit `62a5a9a8ed269bbac9d6e9370c524356cd3fa5e0`（parents：`98cd44ed2493594b1b67dc22e93f7b55345b2090`、`0c4da369449eea1d20d70b4767bdcba1bcb23002`；`mergedAt: 2026-08-12T15:21:56Z`；`mergedBy: hyc640110`；未使用 admin override）。PR CI Verification／`verify` run `31610595323` success；Preview workflow_dispatch run `31611211649` success，Preview source 為 PR head；Merge 後 Deploy GitHub Pages run `31611895289` success，head SHA 與 merge commit 一致。Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 路徑隔離正常。FX-A1 將 household valuation currency 定為 TWD，只建立 provider-independent 的 USD/TWD `reference-close` rate contract（`1 USD = quotePerBase TWD`）、最多 3 個 calendar days 的 carry-forward 與 fail-safe stale policy。`fxRateHistory` 為 AppState／localStorage／JSON Backup 的加法式 persistence；新 `NetWorthSnapshot.fxValuations?` 可保存 pinned USD foreign-cash valuation provenance，既有 snapshots 可讀但不回填、不重算、不改寫。**未接 live provider／Central Bank API、Worker、UI、USD 自動 totals 或 snapshot producer；未完成 FX attribution、realized FX、conversion、foreign investment／loan、Generic Split FX consumer、AI Decision、Rebalance 或 Household Liquidity FX consumer。** UR-TODO-046 整體仍 OPEN；FX-A2 尚未開始。
+
+**UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter 為 Draft 實作候選，尚未 Merge／尚未進 Production。** 本分支僅新增 Market Data Preview Worker 的 `GET /fx-rates/usd-twd` 與前端可呼叫 adapter：Worker 僅向 CBC 官方 `FTDOpenData_Day` JSON 取得資料，逐列驗證 `日期`／`NTD_USD`、拒絕 malformed、same-day conflict、空資料與 provider failure，並只輸出正規化 `available`／`unavailable` contract；前端重用 FX-A1 既有 3 calendar days stale policy，將有效資料以 deterministic `cbc-ftd-usd-twd-reference-close-YYYY-MM-DD` 追加到 `fxRateHistory`，同日同值 idempotent、不同值保留既有歷史且回報 conflict。Preview Worker 已部署驗證 HTTP 200、`environment=preview`、`1 USD = 32.246 TWD`（2026-08-12），但這不是 Production deploy 或正式完成證據。未接 UI、startup auto-fetch、totals、snapshot producer、FX attribution、Financial Event／Ledger、conversion、realized FX、foreign investment／loan、AI Decision、Rebalance 或 Household Liquidity；無 schema／Backup version bump、migration 或 legacy rewrite。UR-TODO-046 整體仍 OPEN，FX-A2 仍待 PR CI、Preview 驗收與使用者 Merge 授權。
 
 **UR-TODO-001 Firebase Retirement 已正式完成／CLOSED，採 Archived Retirement／封存保留。** 正式 `origin/main` 為 PR [#314](https://github.com/hyc640110/family-universal-rebalance/pull/314) merge commit `54bd6794c0ac8ec1704c979cdb7e56e81818de32`。P3-B2-A～P3-B3-C 已全數完成並 Merge；現行 App 的 Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge、Firebase SDK dependency 與 active Firebase environment naming 均為 0。canonical `AppState` 無 Firebase config；新 JSON Backup 不輸出 Firebase config；legacy Firebase input 僅 tolerant-read／accept-and-discard。localStorage 是唯一 canonical device persistence，JSON Backup 是正式人工備份／裝置搬移，Financial Event Ledger 與 `mergeFinancialEventLedgers()` 均維持 KEEP，Preview／Production isolation 不變。P4 已完成受控 archive/hash evidence、RTDB deny-all Rules 與 Anonymous Auth disabled 的封存驗證；Production 實機證實不依賴 RTDB／Anonymous Auth。Firebase Project、RTDB historical data、19 個歷史 anonymous users 與 Web App registration 均保留為 archived retired resource；不存在 REQUIRED-DELETE blocker。未來任何破壞性清理均為 optional housekeeping，須重新唯讀盤點與明確授權。
 
@@ -4132,7 +4134,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   - **Generic Split Allocation Foundation**：已完成；現行 contract 已足夠，沒有證據需要 Generic Split consumer，不再列為 active residual。
   - **Investment buy／sell attribution core、Loan principal／interest attribution**：已完成；不擴大為 foreign investment／loan、realized FX 或其他 consumer。
   - **FX-A1 provenance foundation**：已完成／Merge／Production Verified；只涵蓋 USD/TWD `reference-close` rate domain、3 日 stale policy、foreign cash valuation foundation、pinned snapshot provenance、`fxRateHistory` persistence、localStorage／JSON Backup round-trip 與 legacy snapshot compatibility／no backfill。
-  - **FX 後續階段**：live FX provider／source integration、foreign cash valuation 真正 producer/source integration、FX attribution evidence/integration、conversion／execution、realized FX、foreign investment 與 foreign loan 均未開始，須分別唯讀盤點、產品決策與授權；**FX-A2 尚未開始**。
+  - **FX-A2 CBC USD/TWD Provider Adapter**：Draft 實作候選，尚未 Merge／未進 Production。唯一 provider 為 CBC 官方 `FTDOpenData_Day` JSON，經既有 Market Data Preview Worker `GET /fx-rates/usd-twd` 正規化並由可呼叫 adapter 追加 FX-A1 `fxRateHistory`；重用 3 calendar days stale policy，拒絕 malformed／conflict／future／stale／provider failure，不 fallback、猜測或改寫既有資料。僅 Preview Worker 已部署驗證；仍待 PR CI、Preview 驗收與使用者 Merge 授權。
+  - **FX 後續階段**：FX attribution evidence/integration、conversion／execution、realized FX、foreign investment 與 foreign loan 均未開始，須分別唯讀盤點、產品決策與授權；FX-A2 不包含 foreign cash valuation snapshot producer、UI 或 totals consumer。
   - **跨版本 Ledger recovery**：L2C-P1 已以 Production raw-state evidence 確認本次兩端均沒有可 recovery 的 event，無需 recovery、authoritative-side selection、conversion 或 union；L2C-P2 已對 remote missing-ledger 加上 runtime-only protective reject。mixed-version semantic merge、v1→v3／v2→v3 conversion、migration 與 recovery workflow 仍未開始，也不得由本 Todo 自行啟動。
   - **Loan UI／CSV／Import Center producer mapping**：屬 delivery boundary，不是核心 attribution consumer gap；L1 已完成 contract／reconciliation foundation，但尚未建立任何 UI 或 import mapping，須另行授權，不新增 Todo 編號。
 - **下一正式候選（待盤點，未開始）**：FX provider／source integration、foreign cash valuation producer、FX attribution evidence/integration、conversion／realized FX、foreign investment／loan，或 Loan UI／CSV／Import Center producer mapping。**若下一候選涉及 Ledger 寫入語意、schema／persistence 結構性變更、核心 attribution 結果或 AI Decision／Rebalance／Household Liquidity 接線，屬重大產品／核心財務語意事件，須另行拍板，不得自動開始。** UR-TODO-046 整體維持「部分完成／OPEN」，不得因 FX-A1 完成自行標記整體完成。
@@ -4868,6 +4871,16 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter（Draft 實作候選，尚未 Merge，2026-08-13）
+
+- 分支：`feat/ur-todo-046-fx-a2-cbc-provider`，自正式 `origin/main` `559c32e4f7c2042ce3795536ed4da7e7025a2a8d` 建立；此實作只可經 Draft PR 審查，**尚未進 Production**。UR-TODO-046 整體仍 **OPEN**。
+- 決策與來源：唯一 current source 是 CBC 官方 `https://cpx.cbc.gov.tw/api/OpenData/FTDOpenData_Day`；資料列必須同時含 `日期`（`YYYYMMDD`）與 `NTD_USD` 正數字串，語意固定為 `1 USD = quotePerBase TWD`。禁止 BP01D01en、HTML scraping、Yahoo／臺灣銀行 fallback、硬編碼 rate 或猜測。
+- Worker boundary：只新增 Market Data Worker `GET /fx-rates/usd-twd`；先逐列驗證完整 raw array，再輸出 `available`／`unavailable` 的 normalized JSON，絕不回傳 CBC raw rows。duplicate same-date same-value 可接受，不同值為 `provider-conflict`；空、schema change、invalid、HTTP／timeout 均 fail-safe。Preview Worker 已部署為 `family-universal-rebalance-market-data-preview`，HTTP 200、`environment=preview`、`rateDate=2026-08-12`、`quotePerBase=32.246`；Production Worker 沒有部署。
+- App boundary：`cbcFxProvider.ts` 是可呼叫 service，無 startup／render auto-fetch、無 UI。只有 `available` 才形成 deterministic `cbc-ftd-usd-twd-reference-close-YYYY-MM-DD` record；同 ID 同值 idempotent，不同值不覆寫既有歷史。staleness 僅重用 FX-A1 的 3 calendar days policy；localStorage／JSON Backup 維持加法式 round-trip，pinned snapshots 不改。
+- 未包含：FX attribution、snapshot producer、totals、currency conversion、realized FX、foreign investment／loan、Generic Split FX consumer、Financial Event／Ledger、AI Decision、Rebalance 與 Household Liquidity。後續只可依 PR CI、Preview 驗收與使用者明確 Merge 指示前進。
 
 ---
 
@@ -8360,9 +8373,9 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Architecture Decisions
 
-版本：v1.3
+版本：v1.4
 
-最後更新：2026-08-11
+最後更新：2026-08-13
 
 ## 0. 文件定位
 
@@ -8396,6 +8409,19 @@ Review → Architecture Review → Product Review → Development → Verificati
 | ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
 | ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
 | ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
+| ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
+
+---
+
+## ADR-007：FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary
+
+**狀態**：已採用
+
+**背景**：FX-A1 已定義 USD/TWD `reference-close`、`1 USD = quotePerBase TWD`、3 calendar days stale policy 與 immutable-style history，但刻意未指定 live source。CBC 現行官方 `FTDOpenData_Day` JSON 提供日期與 `NTD_USD`；其跨來源 CORS 不可作為 Pages 前端可靠契約，且 provider raw data 不應流入 App persistence boundary。
+
+**決策**：FX-A2 唯一採用 CBC `https://cpx.cbc.gov.tw/api/OpenData/FTDOpenData_Day`，由既有 Market Data Worker 的新增 `GET /fx-rates/usd-twd` route 取得。Worker 必須驗證 raw array 的每一列都有合法 `日期` 與正數 `NTD_USD`，對 duplicate date 的不同值 fail-safe，並只回傳 normalized `available`／`unavailable` contract；不得使用 BP01D01en、HTML scrape、Yahoo／臺灣銀行 fallback、硬編碼或猜測。前端 adapter 只在 `available` 時追加 deterministic CBC record，重用 FX-A1 stale policy；同日同值 idempotent、不同值不得覆寫。Worker 不自行宣告 stale 的最終 truth，App domain 維持 FX-A1 policy 的最終判定者。
+
+**後果**：Provider endpoint 與 raw-shape 變化被隔離在 Worker；失敗永遠不會製造 rate 或改寫既有歷史。此決策不授權 UI、auto-fetch、totals、snapshot producer、FX attribution、conversion、realized FX、foreign investment／loan、Financial Event／Ledger、AI Decision、Rebalance 或 Household Liquidity consumer。Preview Worker 可作為驗收環境；Production deploy 仍須經獨立授權與 PR Merge。
 
 ---
 

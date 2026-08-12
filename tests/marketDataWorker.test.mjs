@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import worker, { healthEnvironment, parseTreasuryLatest, parseTwseIndex, parseTwseSignedChange } from '../workers/market-data/src/index.js';
+import worker, { healthEnvironment, parseCbcUsdTwdLatest, parseTreasuryLatest, parseTwseIndex, parseTwseSignedChange } from '../workers/market-data/src/index.js';
 
 const fetchedAt = '2026-07-14T01:00:00.000Z';
 const taiex = (overrides = {}) => ({ 日期: '1150713', 指數: '發行量加權股價指數', 收盤指數: '45,380.52', 漲跌: '+', 漲跌點數: '25.91', 漲跌百分比: '0.06%', ...overrides });
@@ -63,3 +63,64 @@ test('TWSE parser accepts validated encoded or tagged direction symbols without 
 });
 
 test('Treasury adapter returns 2Y, 10Y, 30Y and calculated spread with a recent-effective status', () => { const xml = '<entry><d:NEW_DATE>2026-07-13T00:00:00</d:NEW_DATE><d:BC_2YEAR>4.10</d:BC_2YEAR><d:BC_10YEAR>4.50</d:BC_10YEAR><d:BC_30YEAR>5.00</d:BC_30YEAR></entry>'; const points = parseTreasuryLatest(xml, fetchedAt); assert.equal(points.length, 4); assert.equal(points[3].value, 0.4); assert.equal(points[0].asOf, '2026-07-13T00:00:00-04:00'); assert.equal(points[0].status, 'recent-effective'); });
+
+const cbcRow = (日期, NTD_USD, extra = {}) => ({ 日期, NTD_USD, ...extra });
+
+test('CBC parser selects the latest valid USD/TWD row regardless of source ordering and permits harmless additive fields', () => {
+  assert.deepEqual(parseCbcUsdTwdLatest([
+    cbcRow('20260812', '32.246', { source: 'CBC' }), cbcRow('20260811', '32.278')
+  ], '2026-08-12T09:00:00.000Z'), {
+    status: 'available', baseCurrency: 'USD', quoteCurrency: 'TWD', rateType: 'reference-close', rateDate: '2026-08-12', quotePerBase: 32.246,
+    provider: 'Central Bank of the Republic of China (Taiwan) — Interbank Closing Rate', capturedAt: '2026-08-12T09:00:00.000Z'
+  });
+});
+
+test('CBC parser fails closed for empty, changed, malformed, invalid, or conflicting provider rows', () => {
+  for (const raw of [
+    [], {}, [cbcRow('20260812', '-')], [cbcRow('20260812', '')], [cbcRow('20260812', '0')], [cbcRow('20260812', '-1')],
+    [cbcRow('bad', '32.246')], [cbcRow(20260812, '32.246')], [cbcRow('20260812', 32.246)], [{ 日期: '20260812' }], [{ NTD_USD: '32.246' }],
+    [cbcRow('20260812', '32.246'), cbcRow('20260812', '32.5')]
+  ]) assert.equal(parseCbcUsdTwdLatest(raw, fetchedAt).status, 'unavailable');
+});
+
+test('FX route normalizes CBC data, uses worker CORS/cache contract, and never exposes raw rows', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify([cbcRow('20260812', '32.246')]), { headers: { 'content-type': 'application/json' } });
+  try {
+    const response = await worker.fetch(new Request('https://worker.example/fx-rates/usd-twd?refresh=1', { headers: { origin: 'https://pages.example' } }), { ENVIRONMENT: 'preview' });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('access-control-allow-origin'), 'https://pages.example');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const body = await response.json();
+    assert.deepEqual({ ...body, capturedAt: 'captured' }, {
+      status: 'available', baseCurrency: 'USD', quoteCurrency: 'TWD', rateType: 'reference-close', rateDate: '2026-08-12', quotePerBase: 32.246,
+      provider: 'Central Bank of the Republic of China (Taiwan) — Interbank Closing Rate', capturedAt: 'captured'
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('FX route reports timeout and provider HTTP failures without a fallback rate', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => {
+      const error = new Error('timed out');
+      error.name = 'AbortError';
+      throw error;
+    };
+    const timeout = await worker.fetch(new Request('https://worker.example/fx-rates/usd-twd'), { ENVIRONMENT: 'preview' });
+    const timeoutBody = await timeout.json();
+    assert.equal(timeoutBody.status, 'unavailable');
+    assert.equal(timeoutBody.reason, 'timeout');
+    assert.match(timeoutBody.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
+
+    globalThis.fetch = async () => new Response('', { status: 503 });
+    const providerFailure = await worker.fetch(new Request('https://worker.example/fx-rates/usd-twd'), { ENVIRONMENT: 'preview' });
+    const failureBody = await providerFailure.json();
+    assert.equal(failureBody.status, 'unavailable');
+    assert.equal(failureBody.reason, 'provider-http');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

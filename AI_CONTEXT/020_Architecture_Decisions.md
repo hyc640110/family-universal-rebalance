@@ -1,8 +1,8 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.3
+版本：v1.4
 
-最後更新：2026-08-11
+最後更新：2026-08-13
 
 ## 0. 文件定位
 
@@ -36,6 +36,19 @@
 | ADR-004 | Firebase 跨裝置同步採 P1～P4 漸進式 retirement，localStorage／JSON Backup／Ledger 保持獨立 | 已採用 |
 | ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
 | ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
+| ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
+
+---
+
+## ADR-007：FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary
+
+**狀態**：已採用
+
+**背景**：FX-A1 已定義 USD/TWD `reference-close`、`1 USD = quotePerBase TWD`、3 calendar days stale policy 與 immutable-style history，但刻意未指定 live source。CBC 現行官方 `FTDOpenData_Day` JSON 提供日期與 `NTD_USD`；其跨來源 CORS 不可作為 Pages 前端可靠契約，且 provider raw data 不應流入 App persistence boundary。
+
+**決策**：FX-A2 唯一採用 CBC `https://cpx.cbc.gov.tw/api/OpenData/FTDOpenData_Day`，由既有 Market Data Worker 的新增 `GET /fx-rates/usd-twd` route 取得。Worker 必須驗證 raw array 的每一列都有合法 `日期` 與正數 `NTD_USD`，對 duplicate date 的不同值 fail-safe，並只回傳 normalized `available`／`unavailable` contract；不得使用 BP01D01en、HTML scrape、Yahoo／臺灣銀行 fallback、硬編碼或猜測。前端 adapter 只在 `available` 時追加 deterministic CBC record，重用 FX-A1 stale policy；同日同值 idempotent、不同值不得覆寫。Worker 不自行宣告 stale 的最終 truth，App domain 維持 FX-A1 policy 的最終判定者。
+
+**後果**：Provider endpoint 與 raw-shape 變化被隔離在 Worker；失敗永遠不會製造 rate 或改寫既有歷史。此決策不授權 UI、auto-fetch、totals、snapshot producer、FX attribution、conversion、realized FX、foreign investment／loan、Financial Event／Ledger、AI Decision、Rebalance 或 Household Liquidity consumer。Preview Worker 可作為驗收環境；Production deploy 仍須經獨立授權與 PR Merge。
 
 ---
 
