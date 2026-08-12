@@ -15,7 +15,6 @@ test('P3-B3-A keeps JSON Backup legacy read compatibility without re-exporting c
   assert.doesNotMatch(app, /syncSettings: \{[^}]*firebase:/);
   assert.doesNotMatch(app, /syncSettings: \{[^}]*autoSync:/);
   assert.doesNotMatch(app, /syncSettings: \{[^}]*workerUrl:/);
-  assert.match(app, /const firebase = syncSettings\.firebase \|\| r\.firebase/);
-  assert.doesNotMatch(app, /const firebase = syncSettings\.firebase \|\| r\.firebase \|\| current\.firebase/);
+  assert.doesNotMatch(app, /const firebase = syncSettings\.firebase/);
   assert.doesNotMatch(app, /fetchRemoteFinancialEventLedger|uploadFirebaseStateWithLedgerMerge|stateFromFirebasePayload/);
 });

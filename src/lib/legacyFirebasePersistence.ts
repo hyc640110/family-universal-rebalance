@@ -17,7 +17,7 @@ function canonicalJson(value: unknown): string {
  * retired cloud-sync compatibility fields. This is intentionally structural,
  * not tied to React render timing.
  */
-export function isLegacyFirebaseOnlyPersistenceDelta(rawJson: string, nextJson: string): boolean {
+export function isLegacyOnlyPersistenceDelta(rawJson: string, nextJson: string): boolean {
   try {
     const raw = asRecord(JSON.parse(rawJson));
     const next = asRecord(JSON.parse(nextJson));
@@ -42,5 +42,5 @@ export function isLegacyFirebaseOnlyPersistenceDelta(rawJson: string, nextJson: 
 }
 
 export function shouldWriteInitialHydration(rawJson: string, nextJson: string): boolean {
-  return rawJson === nextJson || !isLegacyFirebaseOnlyPersistenceDelta(rawJson, nextJson);
+  return rawJson === nextJson || !isLegacyOnlyPersistenceDelta(rawJson, nextJson);
 }

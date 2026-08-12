@@ -8,12 +8,12 @@
 
 ---
 
-## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-A Legacy Persistence Canonical Output Retirement（Draft 候選，2026-08-12）
+## 最新交接快照：UR-TODO-001 Firebase Retirement P3-B3-B Canonical AppState Firebase Retirement（Draft 候選，2026-08-12）
 
-- 正式基線：PR [#311](https://github.com/hyc640110/family-universal-rebalance/pull/311) 已一般 Merge，`origin/main`／merge commit `cc0cc23d04806fd7a33819ec87b3bc77371fc8ef`（`mergedAt: 2026-08-11T16:37:32Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B2-C Production workflow `31513386306` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
-- Draft candidate：branch `codex/ur-todo-001-firebase-retirement-p3b3a-persistence-output-retirement` 從最新 `origin/main` 建立。P3-B3-A 只停止新 canonical localStorage／JSON Backup 輸出 `autoSync`、`autoSyncSec`、persisted `workerUrl`、`syncMeta.baselineFingerprint`、`baselineFieldFingerprints`、`baselineCanonicalSchema`、`lastUploadAt`、`lastDownloadAt`；legacy localStorage／Backup、Full Restore、normalization 與 hydration 持續 tolerant-read。
-- Hydration／資料安全：raw legacy localStorage 與 canonical state 若僅差上述退休 metadata（或既有 top-level `firebase`）時不得首載自動寫回；真實 mutation 與 Full Restore 維持既有 canonical write semantic。無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。Financial Event Ledger schema、merge、void、Atomic Group、split、loan 與 attribution 均未修改；`mergeFinancialEventLedgers()` **KEEP**。
-- 明確保留與下一直接起點：`AppState.firebase`、`FirebaseConfig`、legacy Firebase input normalization／Backup import、`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步只可進行 P3-B3-A Draft PR／Preview 驗收；不得 Merge，亦不得開始 P3-B3-B、P3-B3-C 或 P4 Firebase Console。
+- 正式基線：PR [#312](https://github.com/hyc640110/family-universal-rebalance/pull/312) 已一般 Merge，`origin/main`／merge commit `1bbff5b8dd06223be1a00c2c1b92457396355076`（`mergedAt: 2026-08-12T10:14:16Z`；`mergedBy: hyc640110`；未使用 admin override）。P3-B3-A Production workflow `31586522310` success；Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 隔離正常。
+- Draft candidate：branch `codex/ur-todo-001-firebase-retirement-p3b3b-canonical-appstate-retirement` 從最新 `origin/main` 建立。P3-B3-B 移除 canonical `AppState.firebase`／`FirebaseConfig`；legacy top-level localStorage、top-level Backup、nested `syncSettings.firebase` 均 accept-and-discard，不進入 canonical state 或後續 output。
+- Hydration／資料安全：raw legacy localStorage 與 canonical state 若僅差退休 metadata（含 top-level `firebase`）時不得首載自動寫回；真實 mutation 與 Full Restore 維持既有 canonical write semantic。無 schema bump、Backup version bump、migration 或歷史 localStorage 主動 rewrite。Financial Event Ledger schema、merge、void、Atomic Group、split、loan 與 attribution 均未修改；`mergeFinancialEventLedgers()` **KEEP**。
+- 明確保留與下一直接起點：`syncMeta.dirty`／`source`／`lastLocalSaveAt`／`lastBackupExportAt`／`lastBackupImportAt`、`FIREBASE_BASE_PATH`／`VITE_FIREBASE_BASE_PATH`、runtime Worker URLs 與 `public/auto-sync.js` 均未處理。下一步只可進行 P3-B3-B Draft PR／Preview 驗收；不得 Merge，亦不得開始 P3-B3-C 或 P4 Firebase Console；**UR-TODO-001 仍 OPEN。**
 
 ---
 
