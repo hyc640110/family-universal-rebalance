@@ -8,12 +8,14 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation（Draft 候選，2026-08-12）
+## 最新交接快照：UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation（已完成／Merge／Production Verified，2026-08-12）
 
-- 基線與 branch：從 `origin/main` `98cd44ed2493594b1b67dc22e93f7b55345b2090` 建立 `feat/ur-todo-046-fx-a1-provenance-foundation`；待 Draft PR、CI 與 Preview 驗收，禁止自行 Ready、Merge 或 Production deploy。
+- 正式基線：PR [#316](https://github.com/hyc640110/family-universal-rebalance/pull/316) 已正常 Merge；`origin/main`／merge commit 為 `62a5a9a8ed269bbac9d6e9370c524356cd3fa5e0`（parents：`98cd44ed2493594b1b67dc22e93f7b55345b2090`、`0c4da369449eea1d20d70b4767bdcba1bcb23002`；`mergedAt: 2026-08-12T15:21:56Z`；`mergedBy: hyc640110`；未使用 admin override）。PR CI Verification `31610595323`、Preview workflow_dispatch `31611211649` 與 Merge 後 Deploy GitHub Pages `31611895289` 均 success；Production／Preview HTTP 200、environment metadata 正確、assets 隔離正常。
 - 已完成 contract：TWD 為 household valuation currency；唯一 MVP pair 為 USD/TWD，`quotePerBase` 表示 `1 USD = N TWD`，rate type 固定 `reference-close`。rate history 僅保存有效、正規化、deterministic dedupe 的 records；valuation 最多 carry-forward 3 個 calendar days，超限、missing、unsupported 或無可用 balance 一律 fail-safe。
 - persistence／歷史：`AppState.fxRateHistory` 與 JSON Backup 加法式 round-trip；新 `NetWorthSnapshot.fxValuations?` 保存 account id、原幣金額、pinned rate id/value/date、stale 資訊與結果。舊 snapshots 可讀但無 provenance，不回填、不重算、不改寫；後續 rate revision 不得改變已 pinned snapshot。
-- 明確不包含：未接 provider／network／Worker／UI，未將 USD 自動放入既有 TWD totals 或 snapshot producer；未修改 Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。FX attribution、conversion、realized FX、foreign investment／loan 仍需獨立授權。
+- 已完成／不再列為 active residual：Generic Split Allocation Foundation、Investment buy／sell attribution core、Loan principal／interest attribution 與 FX-A1 provenance foundation。現行 Generic Split contract 已足夠，沒有證據需要 Generic Split consumer。
+- Remaining Boundary：UR-TODO-046 **仍 OPEN**。live FX provider／Central Bank API、foreign cash valuation producer/source、FX attribution evidence/integration、conversion、realized FX、foreign investment／loan 均未開始；Loan UI／CSV／Import Center producer mapping 是 delivery boundary，不是核心 attribution consumer gap。FX-A2 尚未開始，任何下一階段都必須先唯讀盤點與取得明確授權。
+- 明確不包含：未接 provider／network／Worker／UI，未將 USD 自動放入既有 TWD totals 或 snapshot producer；未修改 Financial Event、Ledger、Generic Split、`netWorthAttribution.ts`、runtime attribution、Investment、Loan、Household Liquidity、AI Decision 或 Rebalance。
 
 ---
 
