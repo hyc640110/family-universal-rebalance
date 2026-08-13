@@ -43,19 +43,47 @@ test('R12: opaque rows delete through the dedicated confirmation handler, not th
   assert.doesNotMatch(block, /\bonDelete\(/, '不得沿用普通交易的無確認刪除路徑');
 });
 
-test('R12: the opaque delete handler requires an explicit, irreversible-warning confirmation before mutating state', () => {
-  const handlerStart = app.indexOf('const deleteOpaqueTransaction = (id: string) => {');
-  assert.notEqual(handlerStart, -1);
-  const handlerEnd = app.indexOf('};', handlerStart);
-  const handler = app.slice(handlerStart, handlerEnd);
+/**
+ * UR-TODO-046 FX-F2C-2: the handler now has nested `{ }` blocks (atomic-FX-delete branch vs.
+ * generic F1A branch), so a naive first-`};` search truncates it — this walks brace depth from
+ * the opening `=> {` to the matching close, the same technique used to correctly bound a
+ * multi-branch function body regardless of how many `};`-shaped object literals it contains.
+ */
+function extractFunctionBody(source: string, signature: string): string {
+  const start = source.indexOf(signature);
+  assert.notEqual(start, -1, `signature not found: ${signature}`);
+  const bodyStart = start + signature.length;
+  let depth = 1;
+  let index = bodyStart;
+  while (depth > 0 && index < source.length) {
+    const char = source[index];
+    if (char === '{') depth += 1;
+    else if (char === '}') depth -= 1;
+    index += 1;
+  }
+  assert.equal(depth, 0, 'unbalanced braces while extracting function body');
+  return source.slice(start, index);
+}
+
+test('R12: the opaque delete handler requires an explicit, irreversible-warning confirmation before mutating state (generic F1A path)', () => {
+  const handler = extractFunctionBody(app, 'const deleteOpaqueTransaction = (id: string) => {');
   assert.match(handler, /window\.confirm\(/);
   assert.match(handler, /不可復原/);
   assert.match(handler, /永久移除/);
-  // The confirm() call must gate the state mutation (an early return on cancel), not merely be
-  // present somewhere nearby.
-  const confirmIndex = handler.indexOf('window.confirm(');
-  const setStateIndex = handler.indexOf('setState(');
-  assert.ok(confirmIndex !== -1 && setStateIndex !== -1 && confirmIndex < setStateIndex);
+  // Every window.confirm() call in the handler must gate its own state mutation (an early return
+  // on cancel), not merely be present somewhere nearby — checked for both branches (atomic FX
+  // delete and the generic F1A fallback).
+  const confirmMatches = [...handler.matchAll(/window\.confirm\(/g)];
+  assert.equal(confirmMatches.length, 2, 'expects exactly one confirm for the FX branch and one for the generic branch');
+  const firstConfirmIndex = handler.indexOf('window.confirm(');
+  const firstSetStateIndex = handler.indexOf('setState(');
+  assert.ok(firstConfirmIndex !== -1 && firstSetStateIndex !== -1 && firstConfirmIndex < firstSetStateIndex);
+});
+
+test('UR-TODO-046 FX-F2C-2: the opaque delete handler routes a valid FX conversion envelope to the atomic-delete confirmation text, not the generic one', () => {
+  const handler = extractFunctionBody(app, 'const deleteOpaqueTransaction = (id: string) => {');
+  assert.match(handler, /將一併刪除此換匯記錄及其兩筆關聯交易/);
+  assert.match(handler, /buildFxConversionDeletion/);
 });
 
 test('TransactionList wires opaqueTransactions/onDeleteOpaque props from the top-level opaque state, not a derived/filtered subset', () => {

@@ -1,8 +1,8 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.9
+版本：v2.0
 
-最後更新：2026-08-13
+最後更新：2026-08-14
 
 ## 0. 文件定位
 
@@ -42,6 +42,26 @@
 | ADR-010 | FX opaque producer 上線採 Controlled Rollout Policy：pre-F1A／stale client 無法被 retroactively 保護（正式 architecture constraint），改用 narrow code-constant feature gate 做 risk reduction，非 absolute guarantee | 已採用 |
 | ADR-011 | FX conversion pairing identity 採 envelope-id-as-identity、pinned-leg-amounts、derived-not-persisted executed rate 與 fee 四態 contract；Foundation／Producer／Attribution 三層明確分離 | 已採用 |
 | ADR-012 | FX conversion principal legs 沿用既有 `expense`／`income` type，搭配 additive `fxConversionLeg` metadata 作為最小 consumer safety boundary；Producer 不得先於 Consumer Guard 上線 | 已採用 |
+| ADR-013 | Manual FX Conversion Producer 採純函式 build-then-commit atomicity、submit-time identity creation 與雙層（UI＋write path）gate；Producer 程式碼存在 ≠ capability 啟用 | 已採用 |
+
+---
+
+## ADR-013：Manual FX Conversion Producer 採純函式 build-then-commit atomicity、submit-time identity creation 與雙層（UI＋write path）gate；Producer 程式碼存在 ≠ capability 啟用
+
+**狀態**：已採用
+
+**背景**：ADR-012（FX-F2C-1）落地 additive consumer guard 後，UR-TODO-046 FX-F2C-2 需要建立第一版 Manual FX Conversion Producer，同時滿足兩個表面上互相拉扯的要求：(1) 必須真正建立可運作的 producer 程式碼與 UI，不能只是空殼；(2) 必須確保在 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 仍為 `false` 的現況下，Production／Preview 都不能真正建立出一筆 FX conversion——這代表「程式碼存在」與「capability 啟用」必須是兩件可以獨立驗證的事。開發中另外發現一個原本未預期的正確性問題：若「防止雙擊建立兩筆 conversion」的 guard 只在 `try/finally` 內同步設置與釋放，因為 builder 與 `setState` 全為同步操作，這個 guard 對真實雙擊完全無效——第一次點擊的整個函式呼叫（含 `finally` 釋放）會在瀏覽器處理第二次點擊事件之前就已經跑完。
+
+**決策**：
+
+1. **Producer builder 為純函式，採 build-then-commit atomicity**：`buildFxConversionCreation()`（`src/lib/fxConversionProducer.ts`）在記憶體中完成全部驗證（gate、帳戶、幣別、金額、`effectiveDate`、fee）與三筆記錄（source leg、destination leg、opaque envelope）的建構，只有全部通過才回傳完整結果；builder 本身**不呼叫 `setState`、不寫 localStorage、不操作 DOM、不 fetch**。App 層（`App.tsx` 的 `createFxConversion()`）只在 builder 回傳 `success` 時執行**單一** `setState()`，任何失敗結果都不觸發狀態變更。兩腿的建構重用既有 `updateTransaction()`／`normalizeCandidate()` 正規化管線（與 `App.tsx` 既有 `createTransaction` handler 相同模式），而非另建一套平行邏輯，確保建出的記錄與未來任何 `normalizeState()` 呼叫的結果天然一致（re-normalization safety）。
+2. **Identity 全部在 submit 當下建立**：`sourceTransactionId`、`destinationTransactionId`、`conversionId`（＝envelope id）依此順序以既有 `createTransactionId()` 產生，不在表單開啟／欄位變動時預先產生、不使用日期或金額 hash、不 reserve id。因為 id 只存在於未提交的記憶體候選物件中，驗證失敗或使用者取消不會留下任何殘留狀態。
+3. **雙層 gate，UI 隱藏不等於安全阻擋**：UI 層由 `FxConversionProducerForm` 的 `enabled` prop 控制（`false` 時整個元件回傳 `null`，不渲染任何 DOM）；write path 層由 builder 自身的 `gateEnabled` 參數（由 `App.tsx` 於呼叫當下以 `isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)` 解析並傳入）獨立把關，即使 UI 被繞過，builder 仍會在最前面直接回傳 `gate-blocked`、不執行任何後續驗證或建構。兩層各自獨立、不互相依賴。
+4. **雙重送出防護必須用同步 ref＋延後釋放，不能只靠 React state 或天真的 try/finally**：`FxConversionProducerForm` 用 `useRef` 做同步防護（React state 的更新在同一個事件迴圈內不保證已反映到 DOM／下一次事件處理，ref 的變更則是立即生效），並將 guard 的釋放延後到 `queueMicrotask()`，而非在 builder／`setState` 執行完的同一個同步呼叫內立刻釋放——否則對純同步的 producer 而言，guard 形同虛設。這一點已用真實 jsdom DOM click 事件（而非合成事件）的回歸測試鎖定：修正前的寫法在測試中確實會讓兩次連續點擊都呼叫 `onSubmit`，修正後只有一次。
+5. **Opaque delete 路由依「是否為 `valid`-resolved FX conversion」二分，不是「是否為 opaque」二分**：`buildFxConversionDeletion()` 只有在 F2B `resolveFxConversionEnvelope()` 回傳 `valid` 時才視為「active」換匯、才走 atomic 三記錄同時刪除；非 FX payload、或雖是 FX payload 但因缺少 linked transaction／金額幣別不一致而無法 valid-resolve，一律回退到既有 F1A generic opaque delete（不猜測、不強行修復、不因為「看起來像」FX conversion 就冒然刪除可能不完整或不一致的記錄）。這與 ADR-012（F2C-1 ordinary-delete linkage guard）採用同一個「只認 `valid`-resolved 為 active」的定義，兩處判斷邊界一致。
+6. **Transaction List 呈現維持 F2C Review 建議的第一版範圍**：不修改 `TransactionList` 本身，換匯建立後顯示為兩筆一般交易列＋一筆既有 opaque placeholder 列（共三列），不做 grouped row、不隱藏任一列——UI polish 留待後續獨立待辦，不影響本 ADR 的資料安全結論。
+
+**後果**：Production／Preview 兩份 build bundle 因 producer 現為真正 runtime 呼叫路徑（`isFxOpaqueProducerEnabled()` 的判斷發生在 runtime，Vite 無法對此做 build-time tree-shaking），**確認皆含**producer 相關程式碼——這與 ADR-010／ADR-011（F1D／F2B 零 caller、bundle 天然排除）的驗證方式不同，本 ADR 明確記錄此差異：未來任何驗證「gate 是否真正生效」都必須看 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 常數本身與 runtime 行為（例如本輪已完成的隔離 dev server 實機驗證：展開交易區塊後畫面不出現 Producer 表單），不能再用「bundle 是否包含相關字串」作為 Production OFF 的證據。**Producer 程式碼與測試的存在，不代表 capability 已啟用**：`FX_OPAQUE_PRODUCER_SOURCE_GATE` 本輪維持 `false` 全程未觸碰；即使未來翻轉為 `true`，依 ADR-010 既有設計也只會讓 Preview 具備 capability、Production 恆為 OFF，且翻轉本身仍須是另一個獨立、明確授權、單獨審查的 PR。本 ADR 不授權 `fxConversionAttribution`、`FinancialEvent` FX 接線、reconciliation `candidate`／`matched`、或任何形式的 Preview／Production capability 啟用。
 
 ---
 
