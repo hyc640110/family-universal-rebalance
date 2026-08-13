@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.5
+版本：v1.6
 
 最後更新：2026-08-13
 
@@ -38,6 +38,19 @@
 | ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
 | ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
 | ADR-008 | FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除 | 已採用 |
+| ADR-009 | Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神 | 已採用 |
+
+---
+
+## ADR-009：Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神
+
+**狀態**：已採用
+
+**背景**：FX-F1 Pre-Implementation Gate Audit（UR-TODO-046）證實 `FinancialTransaction` 的 `normalizeCandidate()` 是封閉欄位白名單重建（`{ id, accountId, ...(named fields only) }`，不做 `...record` spread），任何未來新增的、目前 client 不認識的欄位會被靜默丟棄——不同於 `FinancialEvent` 已有的三層 opaque 機制（已知事件的 spread 保留、v3 envelope 搭便車既有 `void` 排除語意、whole-Ledger unsupported-version 原樣保留）。`FinancialEvent` 的機制無法整套照搬：`FinancialTransaction` 是可編輯／可硬刪除的 producer（帳戶餘額、收支統計、Household Liquidity 的直接輸入），consumer 數量遠多於唯讀的 `FinancialEvent` attribution evidence，且沒有像 `void` 這種「已被舊 runtime 天然排除、且無使用者可互動 UI」的既有安全值可以借用。
+
+**決策**：新增 domain-neutral 的 `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion` 明確 discriminator＋`id`＋不解讀的 `payload`），作為與 `FinancialTransaction` 分開、但在同一個 `AppState`／同一個持久化文件內共存的型別。`AppState` 以兩個獨立欄位（`transactions: FinancialTransaction[]`、`opaqueTransactions: OpaqueFinancialTransactionEnvelope[]`）取代把 `FinancialTransaction` 直接改成 union 的做法，讓既有 consumer 的型別簽章與行為完全不變（opaque 記錄在型別層級就不可能被誤讀進財務計算）；但在 localStorage／JSON Backup 的原始 JSON 上，兩者於持久化邊界（`serializeTransactionCollection()`）合併回單一 `transactions` 欄位，維持與任何其他版本 client 讀寫同一個欄位名稱的相容性，不新增第二套 store 或 localStorage key。`normalizeTransactions()` 明確三分：已知合法交易（沿用既有驗證邏輯）、明確帶 opaque marker 的記錄（原樣保留 `payload`，不解讀）、格式錯誤（含 marker 本身格式錯誤）一律 skipped——validation-failure 絕不能被誤判為 opaque。opaque 記錄不可編輯，只能在明確不可逆確認後刪除。
+
+**後果**：任何未來需要在 `FinancialTransaction` 引入目前 client 無法安全理解的新經濟語意（不限於 FX——investment／loan 未來的擴充亦可比照），都可以先讓舊版 client 安全地「不理解但不丟失、不誤算」，而不必每次都設計一套特製的相容機制。此決策不授權任何具體的新 transaction 經濟語意（`fxConversionAttribution` 等）、不追溯保護既有 `investmentAttribution`／`loanAttribution` 的 mixed-version 弱點（兩者維持現狀，若未來要補強須另行唯讀盤點與授權）、不修改 `FinancialEvent` Ledger 或其 opaque 機制本身。`TRANSACTION_SCHEMA_VERSION` 常數的角色維持不變（僅記錄用途，不參與 runtime 判斷）；此 opaque envelope 是「structural shape detection」而非「version number gate」，這與 `FinancialEvent` 的 `isV3OpaqueFinancialEventEnvelope()` 判斷方式一致。
 
 ---
 

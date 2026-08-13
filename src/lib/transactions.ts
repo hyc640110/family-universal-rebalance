@@ -46,6 +46,24 @@ export type LoanDisbursementAttribution = { kind: 'disbursement'; paymentId: str
 export type LoanCashMovementAttribution = { kind: 'cash-movement'; cashMovementId: string; direction: 'decrease' | 'increase'; cashAccountId: string; currency: string; settlementAmount: number };
 export type LoanAttribution = LoanRepaymentAttribution | LoanDisbursementAttribution | LoanCashMovementAttribution;
 export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution; loanAttribution?: LoanAttribution };
+
+/**
+ * UR-TODO-046 FX-F1A: an explicit, versioned marker for a transaction record whose economic
+ * semantics this client does not yet understand. `payload` is never interpreted — not read for
+ * `type`/`amount`/`currency`, not merged into a `FinancialTransaction`, not shown as an ordinary
+ * income/expense row. Its only job is safe, lossless custody until a newer client can read it.
+ * A record only takes this path when it explicitly carries `transactionOpaqueEnvelopeVersion`;
+ * an ordinary transaction that merely fails known-shape validation is skipped, never preserved
+ * here (see normalizeTransactions()).
+ */
+export const TRANSACTION_OPAQUE_ENVELOPE_VERSION = 1;
+export type OpaqueFinancialTransactionEnvelope = {
+  transactionOpaqueEnvelopeVersion: typeof TRANSACTION_OPAQUE_ENVELOPE_VERSION;
+  id: string;
+  payload: Record<string, unknown>;
+};
+/** The union only exists at the raw/serialized boundary (see serializeTransactionCollection()); AppState keeps `transactions` and `opaqueTransactions` as two separately-typed fields so existing consumers of `FinancialTransaction[]` need no narrowing. */
+export type PersistedFinancialTransaction = FinancialTransaction | OpaqueFinancialTransactionEnvelope;
 export type TransactionCategory = { id: string; name: string; kind: 'income' | 'expense' | 'transfer' | 'other'; isActive: boolean; sortOrder: number };
 export const DEFAULT_TRANSACTION_CATEGORIES: TransactionCategory[] = [
   { id: 'income-salary', name: '薪資', kind: 'income', isActive: true, sortOrder: 0 }, { id: 'income-interest', name: '利息', kind: 'income', isActive: true, sortOrder: 1 }, { id: 'income-dividend', name: '股息', kind: 'income', isActive: true, sortOrder: 2 }, { id: 'income-refund', name: '退款', kind: 'income', isActive: true, sortOrder: 3 }, { id: 'income-other', name: '其他收入', kind: 'income', isActive: true, sortOrder: 4 },
@@ -227,17 +245,56 @@ export function updateTransaction(current: FinancialTransaction, patch: Partial<
   return normalizeCandidate({ ...current, ...patch, type: nextType, ...(nextType === 'transfer' ? {} : { transferAccountId: undefined }) }, accounts, timestamp, current.id, current);
 }
 
+/** Deterministic collision-avoidance shared by known and opaque records so neither kind can silently steal the other's id (UR-TODO-046 FX-F1A R9). */
+function resolveUniqueTransactionId(candidateId: string, fingerprintSource: unknown, used: Set<string>): string {
+  let id = candidateId && !used.has(candidateId) ? candidateId : `legacy-transaction-${hash(JSON.stringify(fingerprintSource))}`;
+  let n = 1;
+  while (used.has(id)) id = `legacy-transaction-${hash(`${JSON.stringify(fingerprintSource)}:${n++}`)}`;
+  return id;
+}
+
+/** True only when the record explicitly opts into the opaque path; malformed-but-silent records must never be routed here. */
+function isOpaqueTransactionEnvelopeCandidate(record: Record<string, unknown>): boolean {
+  return 'transactionOpaqueEnvelopeVersion' in record;
+}
+
+function normalizeOpaqueTransactionEnvelope(record: Record<string, unknown>): { payload: Record<string, unknown> } | undefined {
+  if (record.transactionOpaqueEnvelopeVersion !== TRANSACTION_OPAQUE_ENVELOPE_VERSION) return undefined;
+  const payload = record.payload;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+  return { payload: payload as Record<string, unknown> };
+}
+
 export function normalizeTransactions(raw: unknown, accountInput: AccountReference[] | Set<string>, fallback = LEGACY_TRANSACTION_FALLBACK) {
   const accountList = references(accountInput); const used = new Set<string>(), skipped: string[] = [];
-  const transactions = (Array.isArray(raw) ? raw : []).flatMap((value, index) => {
-    if (!value || typeof value !== 'object') { skipped.push(`第 ${index + 1} 筆不是交易物件`); return []; }
-    const v = value as Partial<FinancialTransaction>; const candidateId = text(v.id); let id = candidateId && !used.has(candidateId) ? candidateId : `legacy-transaction-${hash(JSON.stringify(v))}`; let n = 1; while (used.has(id)) id = `legacy-transaction-${hash(`${JSON.stringify(v)}:${n++}`)}`;
+  const transactions: FinancialTransaction[] = [];
+  const opaqueTransactions: OpaqueFinancialTransactionEnvelope[] = [];
+  for (const [index, value] of (Array.isArray(raw) ? raw : []).entries()) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) { skipped.push(`第 ${index + 1} 筆不是交易物件`); continue; }
+    const record = value as Record<string, unknown>;
+    if (isOpaqueTransactionEnvelopeCandidate(record)) {
+      const envelope = normalizeOpaqueTransactionEnvelope(record);
+      if (!envelope) { skipped.push(`第 ${index + 1} 筆為無效的未支援格式交易（opaque envelope 格式錯誤）`); continue; }
+      const candidateId = text(record.id);
+      if (!candidateId) { skipped.push(`第 ${index + 1} 筆未支援格式交易缺少 id`); continue; }
+      const id = resolveUniqueTransactionId(candidateId, record, used);
+      used.add(id);
+      opaqueTransactions.push({ transactionOpaqueEnvelopeVersion: TRANSACTION_OPAQUE_ENVELOPE_VERSION, id, payload: envelope.payload });
+      continue;
+    }
+    const candidateId = text(record.id);
+    const id = resolveUniqueTransactionId(candidateId, record, used);
     try {
-      const normalized = normalizeCandidate(v, accountList, fallback, id);
-      used.add(id); return [normalized];
-    } catch (error) { skipped.push(`第 ${index + 1} 筆交易無效：${error instanceof Error ? error.message : '格式錯誤'}`); return []; }
-  });
-  return { transactions, skipped };
+      const normalized = normalizeCandidate(value as Partial<FinancialTransaction>, accountList, fallback, id);
+      used.add(id); transactions.push(normalized);
+    } catch (error) { skipped.push(`第 ${index + 1} 筆交易無效：${error instanceof Error ? error.message : '格式錯誤'}`); }
+  }
+  return { transactions, opaqueTransactions, skipped };
+}
+
+/** The single inverse of normalizeTransactions()'s split: merges known and opaque records back into one raw array so localStorage/Backup persist exactly one `transactions` field, matching what any other version of this client reads from and writes to. */
+export function serializeTransactionCollection(transactions: readonly FinancialTransaction[], opaqueTransactions: readonly OpaqueFinancialTransactionEnvelope[]): PersistedFinancialTransaction[] {
+  return [...transactions, ...opaqueTransactions];
 }
 
 export function deriveTransactionAccountBalances(transactions: FinancialTransaction[]) { const balances: Record<string, number> = {}; for (const t of transactions) { if (t.status !== 'posted' || t.excluded) continue; const add = (id: string, value: number) => balances[id] = (balances[id] || 0) + value; if (t.type === 'income' || t.type === 'adjustment') add(t.accountId, t.amount); else if (t.type === 'expense') add(t.accountId, -t.amount); else { add(t.accountId, -t.amount); if (t.transferAccountId) add(t.transferAccountId, t.amount); } } return balances; }

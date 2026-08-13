@@ -14,7 +14,7 @@
     "test:financial-accounts": "tsx --test tests/financialAccounts.test.ts",
     "test:change-presentation": "tsx --test tests/changePresentation.test.ts",
     "test:v4-1": "npm run test:financial-accounts && npm run test:change-presentation",
-    "test:transactions": "tsx --test tests/transactions.test.ts",
+    "test:transactions": "tsx --test tests/transactions.test.ts tests/transactionOpaqueCompatibility.test.ts tests/transactionOpaquePlaceholderUi.test.ts",
     "test:transaction-reconciliation": "tsx --test tests/transactionReconciliation.test.ts",
     "test:derived-attribution-evidence": "tsx --test tests/derivedAttributionEvidence.test.ts",
     "test:runtime-attribution-composition": "tsx --test tests/runtimeAttributionComposition.test.ts",

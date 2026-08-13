@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-13T09:49:42.195370+00:00
+Generated UTC: 2026-08-13T12:02:15.649702+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-13T09:49:42.195370+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `379b402c3a1f55ccbec844d558262a3821161f6e78a25752e2a53357b29f9346`
+- `003_CURRENT_STATUS.md` — SHA-256 `caee20e4eb3f61a45bb8e7814412cdd7ff2a5e28b6984889266ddf7bad67ea16`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `b99927a1ed285d6da0fc8e78e67bfe346a5f4fdb1bef2b1c236e1490d3f08f14`
-- `009_CHANGELOG.md` — SHA-256 `581a8aebd8f0074b92b767fad3d0a89155971bf963a9f8d848a3bd2686eef7e0`
+- `008_TODO_BACKLOG.md` — SHA-256 `126292452b205b6111cba2b8f0a3d3fea531de4daca5fc5ac14aea3f1bfac563`
+- `009_CHANGELOG.md` — SHA-256 `55fe0eaa6ef32b28c14d9e6a63c8886705c60635846109086c24784ec6833bea`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `cede148f393214e53713ea3e8a4d7d6ff96294f8e84ccd437ece075e91a32386`
+- `012_AI_HANDOVER.md` — SHA-256 `820a2c5f7d51daf19eefcad80286fa0220a65f88edfc450cffbe996a82fff6fd`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -28,7 +28,7 @@ Generated UTC: 2026-08-13T09:49:42.195370+00:00
 - `017_Design_System.md` — SHA-256 `f34371c074bbf77134572e1febebffbce550a8aec5f8f3d46f1fba3ff4cfa9d6`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
 - `019_Idea_Pool.md` — SHA-256 `3c8baa228d78c53eb88f8c226381312af8ac7fad835df96d2552900297793021`
-- `020_Architecture_Decisions.md` — SHA-256 `79bfa77cecca13a02fc9643d5acd31dd49563ea1e143dcacbb39ef39e5e04f3f`
+- `020_Architecture_Decisions.md` — SHA-256 `1cb2918af743f1a59e47a9264676b3a1ca9bb28d861531e5f5bccef0f8e9bd41`
 
 ---
 
@@ -658,6 +658,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v3.96
 
 最後更新：2026-08-13
+
+**UR-TODO-046 FX-F1A Transaction Opaque Compatibility Foundation 開發完成，Draft PR 待 CI／Preview／使用者驗收，尚未 Merge。** 建立 `FinancialTransaction` 層的 mixed-version persistence compatibility capability——讓未來新經濟語意（含未來 FX conversion）能安全導入而不 silent drop、不 silent semantic downgrade。新增明確 discriminator `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion: 1`＋`id`＋不解讀的 `payload`）；`normalizeTransactions()` 明確三分（已知合法／明確 opaque marker 保留／格式錯誤 skipped，malformed ordinary 不得誤判成 opaque）。`AppState.opaqueTransactions` 為與既有 `transactions` 分開的加法式必要欄位，producer（帳戶餘額、收支統計、Household Liquidity、reconciliation）零 blast radius——opaque 記錄在型別層級無法被讀入計算；但 localStorage／JSON Backup 的原始 JSON 仍只有單一 `transactions` 欄位（`serializeTransactionCollection()` 於持久化邊界合併回同一陣列），不新增第二套 store 或 localStorage key。UI 提供最小 unsupported placeholder（無收入/支出徽章、無普通編輯、刪除需明確 `window.confirm()` 不可逆警告）。`TRANSACTION_SCHEMA_VERSION` 維持 `2` 不變。新增 17 個測試，`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證 placeholder 呈現、編輯/徽章隔離、刪除確認攔截後未刪除、reload 後 localStorage 正確合併回單一 `transactions` 欄位、390px 無溢出、console 無錯誤。**明確不包含**：`fxConversionAttribution`、FX identity／pairing／taxonomy、Household Liquidity／AI Decision／Rebalance／FinancialEvent Ledger／Generic Split／Investment／Loan 修改。FX-F1B 須等本 Sprint Production capability 驗證後才可開始，不與本 PR 合併同一 Sprint。UR-TODO-046 整體仍 OPEN。
 
 **UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation 已完成／Merge／Production Verified。** PR [#316](https://github.com/hyc640110/family-universal-rebalance/pull/316) 已正常 Merge，merge commit `62a5a9a8ed269bbac9d6e9370c524356cd3fa5e0`（parents：`98cd44ed2493594b1b67dc22e93f7b55345b2090`、`0c4da369449eea1d20d70b4767bdcba1bcb23002`；`mergedAt: 2026-08-12T15:21:56Z`；`mergedBy: hyc640110`；未使用 admin override）。PR CI Verification／`verify` run `31610595323` success；Preview workflow_dispatch run `31611211649` success，Preview source 為 PR head；Merge 後 Deploy GitHub Pages run `31611895289` success，head SHA 與 merge commit 一致。Production／Preview HTTP 200，metadata 分別為 `production`／`preview`，assets 路徑隔離正常。FX-A1 將 household valuation currency 定為 TWD，只建立 provider-independent 的 USD/TWD `reference-close` rate contract（`1 USD = quotePerBase TWD`）、最多 3 個 calendar days 的 carry-forward 與 fail-safe stale policy。`fxRateHistory` 為 AppState／localStorage／JSON Backup 的加法式 persistence；新 `NetWorthSnapshot.fxValuations?` 可保存 pinned USD foreign-cash valuation provenance，既有 snapshots 可讀但不回填、不重算、不改寫。FX-A1 本身未接 live provider／Central Bank API／Worker／UI、USD 自動 totals 或 snapshot producer；該 provider／Worker 階段已由下段 FX-A2 獨立完成。UR-TODO-046 整體仍 OPEN。
 
@@ -2930,6 +2932,8 @@ Hotfix 仍需：
 
 最後更新：2026-08-13
 
+2026-08-13 **UR-TODO-046 FX-F1A Transaction Opaque Compatibility Foundation 開發完成，Draft PR 待 CI／Preview／使用者驗收，尚未 Merge。** 依 ChatGPT 架構審查後拍板的 FX-F1 / FX-F1A 系列規劃（Repository contract audit → identity foundation design → pre-implementation gate audit，皆為 Review Mode，未寫入本文件因無程式異動）之後，本輪正式建立 Transaction 層的 mixed-version persistence compatibility capability——不是 FX 功能本身，是讓未來任何 `FinancialTransaction` 新經濟語意（含未來的 FX conversion）都能安全導入的地基。新增明確 discriminator `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion: 1`＋`id`＋不解讀的 `payload`），`normalizeTransactions()` 明確三分：已知合法交易照舊行為、明確 opaque marker 的記錄原樣保留、格式錯誤（含 marker 本身格式錯誤）一律 skipped 而非誤判成 opaque。`AppState` 新增加法式必要欄位 `opaqueTransactions`（與既有 `transactions` 分開，consumer 端零 blast radius——`deriveTransactionAccountBalances`／`transactionCashFlowSummary`／Household Liquidity／Reconciliation 等現有函式簽名與行為完全不變，opaque 記錄在型別層級就無法被這些函式讀到），但在 localStorage／JSON Backup 的**原始 JSON 上仍只有單一 `transactions` 欄位**（`serializeTransactionCollection()` 在持久化邊界把兩者合併回同一個陣列，`normalizeState()` 重新正規化時同時讀取 `r.transactions` 與 `r.opaqueTransactions` 兩種來源以避免二次正規化遺失資料）——不新增第二套 store、不另開 localStorage key。UI 新增最小 unsupported placeholder（無收入/支出徽章、無普通 Edit、僅提供需明確 `window.confirm()` 不可逆警告的刪除）。`TRANSACTION_SCHEMA_VERSION` 維持 `2` 不變（未做無 runtime 效果的假 bump）。新增 17 個測試（`tests/transactionOpaqueCompatibility.test.ts` 11 項涵蓋 known/opaque/malformed 三分、duplicate id、idempotency、producer isolation、localStorage／Backup round-trip、unrelated edit/create 隔離；`tests/transactionOpaquePlaceholderUi.test.ts` 6 項鎖定 UI 文案與行為邊界），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功。隔離本機 dev server 實機驗證：opaque 交易正確顯示 placeholder、無普通編輯/徽章、刪除經 `window.confirm()` 攔截後正確保持未刪除、reload 後 localStorage 原始 JSON 確認僅有單一 `transactions` 欄位且已知與 opaque 記錄正確合併、390px 無水平溢出、console 全程無錯誤。**明確不包含**：`fxConversionAttribution`、第一筆 FX transaction、FX identity／pairing、FX taxonomy、Household Liquidity／AI Decision／Rebalance／FinancialEvent Ledger／Generic Split／Investment／Loan 修改。依規劃，FX-F1B（taxonomy／consumer guard 設計）須等本 Sprint 完成 Preview 驗收、Merge、Production 部署、Production capability 驗證後才可開始，不得與本 PR 合併同一個 Sprint。UR-TODO-046 整體仍 OPEN。
+
 2026-08-13 **UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter 已完成／Merge／Production Worker Deployed／Production Verified。** PR [#318](https://github.com/hyc640110/family-universal-rebalance/pull/318) 正常 Merge，merge commit `3341dfd81e7c1e57fe5d325e85c6303bc5d3b358`；PR CI Verification `31615645452` success，Merge 後 Deploy GitHub Pages `31616344290` success，head 與 merge commit 一致。Production Worker `family-universal-rebalance-market-data-production` 已於 `2026-08-12T16:17:13.176Z` 部署 version `7d4221c1-691f-42e4-b1ae-0a48e40603ba`；Production `/health` HTTP 200、`environment=production`。`/fx-rates/usd-twd?refresh=1` HTTP 200，normalized `status=available`、USD→TWD、`rateDate=2026-08-12`、`quotePerBase=32.246`，與 CBC 官方 `FTDOpenData_Day` 的 `NTD_USD` 一致；不回傳 raw CBC rows 且為 `cache-control: no-store`。Preview Worker `b83bc7f0-3f7d-4bb3-9093-93a0b256ba44` 維持 preview isolation，Production／Preview Pages 均 HTTP 200、metadata 正確、assets 隔離正常。FX-A2 完成 CBC parser／provider adapter、Worker endpoint、前端 callable adapter、`fxRateHistory` deterministic append、same-day conflict fail-safe 與 Preview／Production Worker isolation；無 schema／Backup version bump、migration 或 legacy rewrite。**仍不包含** foreign-cash totals 或 snapshot producer、valuation UI、FX attribution、realized FX、conversion、foreign investment／loan、FinancialEvent／Ledger／Generic Split FX consumer、Household Liquidity、AI Decision 或 Rebalance。UR-TODO-046 整體仍為部分完成／OPEN；FX-A3 尚未開始。
 
 2026-08-12 **UR-TODO-046 FX-A1 USD/TWD Rate Provenance & Foreign Cash Valuation Foundation 已完成／Merge／Production Verified。** PR [#316](https://github.com/hyc640110/family-universal-rebalance/pull/316) 正常 Merge，merge commit `62a5a9a8ed269bbac9d6e9370c524356cd3fa5e0`（parents：`98cd44ed2493594b1b67dc22e93f7b55345b2090`、`0c4da369449eea1d20d70b4767bdcba1bcb23002`；`mergedAt: 2026-08-12T15:21:56Z`；`mergedBy: hyc640110`；未使用 admin override）。PR CI Verification `31610595323` success；Preview workflow_dispatch `31611211649` success，head 為 `0c4da369449eea1d20d70b4767bdcba1bcb23002`；Merge 後 Deploy GitHub Pages `31611895289` success，head 與 merge commit 一致，Production／Preview HTTP 200、metadata 正確、assets 隔離正常。本 Sprint 完成 USD→TWD foreign cash valuation 的 provider-independent foundation：canonical `quotePerBase` direction（1 USD = N TWD）、`reference-close`、最多 3 日 carry-forward、missing／stale／unsupported fail-safe、`fxRateHistory` 加法式持久化與新 snapshot optional pinned `fxValuations` provenance。localStorage／JSON Backup round-trip、legacy snapshot 可讀與 pinned result 不受後續 rate revision 影響皆已驗證。FX-A1 本身不包含 live provider／Central Bank API integration、Worker、UI、foreign cash valuation producer/source integration、USD 自動計入既有 account／net-worth totals、FX attribution evidence、conversion／execution rate／fee／spread、realized FX、foreign investment、foreign loan、FinancialEvent／Ledger／Generic Split FX consumer、Household Liquidity、AI Decision、Rebalance、migration 或歷史 snapshot rewrite；provider／Worker 已由後續 FX-A2 獨立完成。非 TWD Ledger／derived evidence 的既有 fail-safe 排除不變；UR-TODO-046 整體仍為部分完成／OPEN。
@@ -4376,6 +4380,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ## [Unreleased]
 
+**UR-TODO-046 FX-F1A Transaction Opaque Compatibility Foundation（2026-08-13，Draft PR，待 CI／Preview／使用者驗收，尚未 Merge）**：建立 `FinancialTransaction` 層 mixed-version persistence compatibility capability。新增明確 discriminator `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion`＋`id`＋不解讀的 `payload`），`normalizeTransactions()` 明確三分（已知合法／opaque 保留／格式錯誤 skipped）。`AppState.opaqueTransactions` 為與 `transactions` 分開的加法式欄位，既有財務 producer 零 blast radius；localStorage／Backup 原始 JSON 仍只有單一 `transactions` 欄位（合併／拆分邏輯於持久化邊界處理），不新增第二套 store。UI 提供最小 unsupported placeholder，無編輯、刪除需 `window.confirm()` 明確不可逆確認。`TRANSACTION_SCHEMA_VERSION` 維持不變。新增 17 個測試，`npx tsc -b`、`test:ci`、Production／Preview build 皆成功；隔離本機 dev server 實機驗證 placeholder、編輯/徽章隔離、刪除確認、localStorage round-trip、390px layout。不含 `fxConversionAttribution`／FX identity／taxonomy；FX-F1B 須等本 Sprint Production 部署驗證後才可開始。UR-TODO-046 整體仍 OPEN。
+
 **UR-TODO-046 FX-A3 Foreign Cash Producer / Snapshot Integration（2026-08-13，已 Merge／Production Verified）**：PR [#320](https://github.com/hyc640110/family-universal-rebalance/pull/320) 已正常 Merge，merge commit `46d7b25a6c0f4bf56464d9aaa4a7e6aadebd5b0e`；PR CI Verification run `31623622367` success，Merge 後 Deploy GitHub Pages run `31687807762` success；Production／Preview HTTP 200、metadata 正確、assets 隔離正常。修正真實存在的 mixed-currency naked-sum Production bug——`calculateMetrics()`（`src/App.tsx`）先前把非 TWD `FinancialAccount` 的原幣 balance 直接裸加進 `cash`／`totalAssets`／`netWorth`。新增純函式 `deriveCanonicalNetWorthTotals()`（`src/lib/canonicalNetWorthTotals.ts`），完全重用 FX-A1 既有 `deriveForeignCashValuation()`／`selectUsdTwdReferenceCloseRate()`：TWD 帳戶沿用原 balance，USD 帳戶以有效匯率轉為 pinned TWD 估值，missing／stale rate、unsupported currency 或 invalid balance 一律排除原幣金額並標記相關 totals `unavailable`（使用者拍板 Canonical TWD Totals Strategy = A，不得裸加、不得靜默假裝完整）。`NetWorthSnapshot` 新增加法式 optional 欄位 `cashAvailable`／`totalAssetsAvailable`／`netWorthAvailable`，缺席即視為 legacy／available，不回填不改寫；snapshot 建立當下同步傳入 pinned `fxValuations`（FX-A1 此欄位至此才第一次被實際使用）。無 UI（使用者拍板 FX-A3 MVP UI Strategy = A）、無 schema／Backup version bump、無 migration；Household Liquidity 與 FX attribution 完全未修改，Worker 未修改／未部署。新增 16 個測試，`npx tsc -b`、`test:ci`、Production／Preview build 皆成功；已於正式 Production 與 Preview 環境實機驗證 mixed-currency（TWD 100,000＋USD 1,000＠31 = 131,000，非裸加 101,000）與 missing-rate fail-safe。UR-TODO-046 整體仍 OPEN。
 
 **UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter（2026-08-13，已 Merge／Production Worker Deployed）**：PR [#318](https://github.com/hyc640110/family-universal-rebalance/pull/318) 已正常 Merge，merge commit `3341dfd81e7c1e57fe5d325e85c6303bc5d3b358`；PR CI Verification／`verify` run `31615645452` success，Merge 後 Deploy GitHub Pages `31616344290` success，head 與 merge commit 一致。Production Worker `family-universal-rebalance-market-data-production` 已於 `2026-08-12T16:17:13.176Z` 成功部署 version `7d4221c1-691f-42e4-b1ae-0a48e40603ba`；`/health` HTTP 200、`environment=production`。`/fx-rates/usd-twd?refresh=1` HTTP 200，輸出 normalized `available` USD→TWD reference-close（`rateDate=2026-08-12`、`quotePerBase=32.246`），與 CBC 官方 `FTDOpenData_Day` `NTD_USD` 一致，不回傳 raw CBC rows，採 `cache-control: no-store`。Preview Worker version `b83bc7f0-3f7d-4bb3-9093-93a0b256ba44` 維持 preview isolation；Production／Preview Pages HTTP 200、metadata 正確、assets 未混用。FX-A2 完成 CBC parser／provider adapter、Worker endpoint、callable adapter、`fxRateHistory` deterministic append、same-day conflict fail-safe 與兩環境 Worker rollout；無 schema／Backup version bump、migration 或 legacy rewrite。FX-A3 Foreign Cash Producer／Snapshot Integration 尚未開始；UR-TODO-046 整體仍 OPEN。
@@ -4882,6 +4888,18 @@ interface ServiceResult<T> {
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-046 FX-F1A Transaction Opaque Compatibility Foundation（開發完成／Draft PR 待驗收，2026-08-13）
+
+- 任務背景：先前三輪 Review Mode（FX Attribution Contract Audit → FX-F1 Transaction FX Identity Foundation Contract Design → FX-F1A Pre-Implementation Gate Audit）確認 FX attribution 現階段 NO-GO B（evidence／identity 契約不足），FX-F1（新增 `fxConversionAttribution`）本身又存在兩個 pre-implementation blocker：(1) mixed-version persistence——舊 client 的 `normalizeCandidate()` 是封閉欄位白名單重建，會靜默丟棄未知欄位；(2) income/expense taxonomy consumer blast radius——即使欄位存活，Household Liquidity／收支統計等既有 consumer 也會誤把 FX legs 當一般收支計算。本輪只處理 Gate A（persistence），建立 domain-neutral 的 opaque compatibility capability，**不產生任何 FX transaction，不實作 `fxConversionAttribution`**。
+- 核心設計：`OpaqueFinancialTransactionEnvelope`（`src/lib/transactions.ts`）為明確 discriminator（`transactionOpaqueEnvelopeVersion: 1`＋`id`＋不解讀的 `payload`），與既有 `FinancialTransaction` 分開（非把 `FinancialTransaction` 改成 union）。`normalizeTransactions()` 明確三分：known valid（沿用既有行為）、explicit opaque valid（原樣保留，marker/id/payload 格式錯誤一律 skipped，不得被誤判成 opaque）、malformed（skipped）。id 的重複防線（`resolveUniqueTransactionId()`）在 known／opaque 之間共用同一個 `used` id 空間，防止兩者共用同一 id 同時 active。
+- Persistence boundary：`AppState.opaqueTransactions` 是與既有 `transactions: FinancialTransaction[]` **分開的加法式必要欄位**（型別不變，既有 consumer 零 blast radius——`deriveTransactionAccountBalances`／`transactionCashFlowSummary`／Household Liquidity／reconciliation 等函式簽名完全不變，opaque 記錄在 TypeScript 型別層級就不可能被這些函式讀到）；但 localStorage／JSON Backup 的**原始 JSON 上仍只有單一 `transactions` 欄位**——`serializeTransactionCollection()`（於 `stateWithPersistedFinancialEventLedger()`／`backupPayload()`）在持久化邊界把 `transactions`＋`opaqueTransactions` 合併回同一陣列。**開發中發現並修正一個唯讀盤點階段未預見的連帶缺口**：`normalizeState()` 若只讀 `r.transactions` 而不讀 `r.opaqueTransactions`，對已經正規化過一次的 `AppState` 再次呼叫 `normalizeState()`（`writeState()`／`backupPayload()` 皆會這樣做）會讓 opaque 記錄消失——已修正為同時合併兩個可能的 raw 來源再重新正規化，避免二次正規化遺失資料。
+- UI：`TransactionList`（`src/App.tsx`）新增 opaque placeholder 區塊，文案明確告知「原始資料已安全保留，但未納入財務計算」，無收入/支出徽章、無普通編輯按鈕；刪除走獨立的 `deleteOpaqueTransaction()` handler，`window.confirm()` 明確告知不可復原後才執行，比照既有危險操作慣例（帳戶刪除等）。
+- 驗證：新增 17 個測試（`tests/transactionOpaqueCompatibility.test.ts` 11 項、`tests/transactionOpaquePlaceholderUi.test.ts` 6 項），`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功。**已於隔離本機 dev server 實機驗證**：opaque 交易正確顯示 placeholder（無編輯/徽章）、點擊刪除經 `window.confirm()` 攔截後正確保持未刪除（未點確認前不執行）、reload 後 localStorage 原始 JSON 確認僅有單一 `transactions` 欄位且已知與 opaque 記錄正確合併回同一陣列、已知交易的收支統計與帳戶餘額未被 opaque 記錄的（刻意誇大的）金額污染、390px 無水平溢出、console 全程無錯誤。
+- 明確不包含：`fxConversionAttribution`、第一筆 FX transaction、FX identity／pairing、FX taxonomy、Household Liquidity／AI Decision／Rebalance／`FinancialEvent` Ledger／Generic Split／Investment／Loan 修改；`TRANSACTION_SCHEMA_VERSION` 未 bump（維持 `2`，因為改動本身無 runtime 版本判斷邏輯依賴它）。
+- 下一直接起點：Draft PR 待使用者 Preview 驗收與明確 Merge 指示。**FX-F1B（taxonomy／consumer guard 設計）必須等本 Sprint 完成 Preview 驗收、Merge、Production 部署、Production capability 驗證後才可開始，不得與本 PR 合併同一個 Sprint。** UR-TODO-046 整體仍 OPEN；**不得自行 Merge、Ready for review 或部署 Production。**
 
 ---
 
@@ -8397,7 +8415,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Architecture Decisions
 
-版本：v1.5
+版本：v1.6
 
 最後更新：2026-08-13
 
@@ -8435,6 +8453,19 @@ Review → Architecture Review → Product Review → Development → Verificati
 | ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
 | ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
 | ADR-008 | FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除 | 已採用 |
+| ADR-009 | Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神 | 已採用 |
+
+---
+
+## ADR-009：Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神
+
+**狀態**：已採用
+
+**背景**：FX-F1 Pre-Implementation Gate Audit（UR-TODO-046）證實 `FinancialTransaction` 的 `normalizeCandidate()` 是封閉欄位白名單重建（`{ id, accountId, ...(named fields only) }`，不做 `...record` spread），任何未來新增的、目前 client 不認識的欄位會被靜默丟棄——不同於 `FinancialEvent` 已有的三層 opaque 機制（已知事件的 spread 保留、v3 envelope 搭便車既有 `void` 排除語意、whole-Ledger unsupported-version 原樣保留）。`FinancialEvent` 的機制無法整套照搬：`FinancialTransaction` 是可編輯／可硬刪除的 producer（帳戶餘額、收支統計、Household Liquidity 的直接輸入），consumer 數量遠多於唯讀的 `FinancialEvent` attribution evidence，且沒有像 `void` 這種「已被舊 runtime 天然排除、且無使用者可互動 UI」的既有安全值可以借用。
+
+**決策**：新增 domain-neutral 的 `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion` 明確 discriminator＋`id`＋不解讀的 `payload`），作為與 `FinancialTransaction` 分開、但在同一個 `AppState`／同一個持久化文件內共存的型別。`AppState` 以兩個獨立欄位（`transactions: FinancialTransaction[]`、`opaqueTransactions: OpaqueFinancialTransactionEnvelope[]`）取代把 `FinancialTransaction` 直接改成 union 的做法，讓既有 consumer 的型別簽章與行為完全不變（opaque 記錄在型別層級就不可能被誤讀進財務計算）；但在 localStorage／JSON Backup 的原始 JSON 上，兩者於持久化邊界（`serializeTransactionCollection()`）合併回單一 `transactions` 欄位，維持與任何其他版本 client 讀寫同一個欄位名稱的相容性，不新增第二套 store 或 localStorage key。`normalizeTransactions()` 明確三分：已知合法交易（沿用既有驗證邏輯）、明確帶 opaque marker 的記錄（原樣保留 `payload`，不解讀）、格式錯誤（含 marker 本身格式錯誤）一律 skipped——validation-failure 絕不能被誤判為 opaque。opaque 記錄不可編輯，只能在明確不可逆確認後刪除。
+
+**後果**：任何未來需要在 `FinancialTransaction` 引入目前 client 無法安全理解的新經濟語意（不限於 FX——investment／loan 未來的擴充亦可比照），都可以先讓舊版 client 安全地「不理解但不丟失、不誤算」，而不必每次都設計一套特製的相容機制。此決策不授權任何具體的新 transaction 經濟語意（`fxConversionAttribution` 等）、不追溯保護既有 `investmentAttribution`／`loanAttribution` 的 mixed-version 弱點（兩者維持現狀，若未來要補強須另行唯讀盤點與授權）、不修改 `FinancialEvent` Ledger 或其 opaque 機制本身。`TRANSACTION_SCHEMA_VERSION` 常數的角色維持不變（僅記錄用途，不參與 runtime 判斷）；此 opaque envelope 是「structural shape detection」而非「version number gate」，這與 `FinancialEvent` 的 `isV3OpaqueFinancialEventEnvelope()` 判斷方式一致。
 
 ---
 
