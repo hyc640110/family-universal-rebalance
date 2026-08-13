@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.7
+版本：v1.8
 
 最後更新：2026-08-13
 
@@ -40,6 +40,7 @@
 | ADR-008 | FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除 | 已採用 |
 | ADR-009 | Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神 | 已採用 |
 | ADR-010 | FX opaque producer 上線採 Controlled Rollout Policy：pre-F1A／stale client 無法被 retroactively 保護（正式 architecture constraint），改用 narrow code-constant feature gate 做 risk reduction，非 absolute guarantee | 已採用 |
+| ADR-011 | FX conversion pairing identity 採 envelope-id-as-identity、pinned-leg-amounts、derived-not-persisted executed rate 與 fee 四態 contract；Foundation／Producer／Attribution 三層明確分離 | 已採用 |
 
 ---
 
@@ -69,6 +70,27 @@
 5. **第一個 opaque FX producer 需要獨立明確授權**：即使 source gate 未來被翻成 `true`（僅限 Preview），仍不等於「已解決 legacy client 風險」，只代表「已排除 Production 意外過早啟用」這一項風險。正式解鎖前至少應包含：adoption window（依實際裝置／分頁使用節奏判斷，不得假設每日使用）、manual upgrade confirmation SOP、JSON Backup 前置、Preview producer 驗收通過、rollback policy（flag OFF＋redeploy，不刪除已存在的 opaque 記錄）。
 
 **後果**：本決策明確禁止任何未來 PR 把「已建立 feature gate」包裝成「已解決相容性問題」的宣稱——**risk reduction ≠ absolute compatibility guarantee**，這句話本身必須在未來任何相關 PR 說明、governance 文件或使用者溝通中保留，不得被簡化或省略。第一個 opaque FX producer（以及未來任何其他 domain 的 opaque producer）上線前，必須先確認 gate 為 Production OFF、Preview 依當時授權狀態，且使用者已理解「此為風險降低機制，非保證」後才可繼續。`fxConversionAttribution` 本身、FX rate provider／valuation、Investment／Loan attribution、Generic Split、`FinancialEvent` schema 均不受本決策影響，亦不因本決策自動被授權開始。
+
+---
+
+## ADR-011：FX conversion pairing identity 採 envelope-id-as-identity、pinned-leg-amounts、derived-not-persisted executed rate 與 fee 四態 contract；Foundation／Producer／Attribution 三層明確分離
+
+**狀態**：已採用
+
+**背景**：ADR-010（FX-F1D）落地 controlled rollout gate 後，UR-TODO-046 FX-F2A（Repository Audit，Review Mode）逐一盤點現有 FX Foundation（FX-A1/A2/A3），證實其只能證明「單一外幣現金帳戶單一時點的 TWD 估值」，完全無法證明「兩筆 `FinancialTransaction` 共同構成一次換匯」——現有 Repository 對此**沒有任何 pairing identity 機制**，且既有唯一的兩腿關聯型別（`transfer` type）在 `validateTransferAccounts()` 明確拒絕跨幣別（`'目前尚未支援跨幣別轉帳'`），結構上不可重用。FX-F2B（Pairing Identity Contract Review，Review Mode）進一步逐一比較 Investment（`tradeId`）、Loan（`paymentId`／`componentId`／`confirmationGroupId`）、Generic Split（`allocationGroupId`／`componentId`／`replacementOfGroupId`）、`FinancialEvent`（`voidedEventId`）四種既有 identity pattern，並修正 F2A 兩項候選 contract 的潛在缺陷：(1) `executedRate` 不得與兩腿金額同時形成三個互相競爭的 authoritative facts，應為 deterministic derived 值；(2) missing fee evidence 不得解讀為 `fee=0`，必須能區分「明確無 fee」「有 explicit fee」「fee 狀態未知」。
+
+**決策**：
+1. **Conversion identity ＝ `OpaqueFinancialTransactionEnvelope.id`**（UR-TODO-046 FX-F1A 既有型別），payload 內不另存 `conversionId`，避免同一件事有兩個 identity。
+2. **Leg identity直接使用既有 `FinancialTransaction.id`**（`sourceTransactionId`／`destinationTransactionId`），不新增獨立的 `legId`。
+3. **第一版嚴格限定 TWD↔USD**（雙方向皆支援，不限單一方向），不泛化到其他貨幣對或 foreign↔foreign——現有 rate provenance foundation（FX-A1/A2）僅涵蓋此貨幣對，擴大範圍等同從零開始建立新 foundation，非本次範圍。
+4. **`sourceCurrency`／`destinationCurrency`／`sourceAmount`／`destinationAmount` 為 payload 內 pinned validation copy**，比照既有 Investment（`InvestmentTradeAttribution`）／Loan（`LoanRepaymentAttribution`）的 denormalized-copy-with-cross-validation 慣例（與 linked transaction 對應欄位不一致即整筆 invalid，不得猜測修復）；`accountId` 不存於 payload，一律從 linked transaction resolve（`FinancialAccount.currency` 為單一固定值，兩腿天然不可能共用同一帳戶，重複保存無新增驗證力）。
+5. **`executedRate` 永不持久化**，只作為 runtime 驗證通過後的衍生結果欄位；canonical quote convention 固定 `TWD per USD`，不論換匯方向為何皆是同一單位；CBC reference-close rate（`fxValuation.ts`／`cbcFxProvider.ts`）與 executed rate 是完全獨立的兩個事實，前者永遠不得作為後者的 SSOT 或替代品。
+6. **Fee 採四態 contract**：`none`（明確宣告無 fee）、`explicit`（指向另一筆獨立 `FinancialTransaction`）、`included`（明確宣告已內含於某腿金額，不拆分）、`unknown`（未宣告，fail-safe）。缺失 `feeTreatment` 欄位視為 payload 格式錯誤（`malformed-payload`），不得預設為 `none`。`explicit` 型別若對應的 `feeTransactionId` 找不到，只讓 fee 本身的 resolution 退化為 unresolved，principal conversion（兩腿本身）不受影響，仍可為 `valid`——principal 與 fee evidence 的 validity 是分開判定的兩件事。`unknown`／`included` 的 resolution 結果不得包含任何金額欄位，防止下游誤讀出一個推算出來的 fee 金額。
+7. **Raw conversion 為 immutable**，未建立 `replacementOfGroupId` 同類的 forward-only replacement 機制；修正模式為刪除舊 envelope、建立帶新 id 的新 envelope（比照既有 F1A opaque「不可編輯，只能刪除」契約），attribution 層（未來 `FinancialEvent`）的 void／replacement 是完全獨立的機制，留給未來 Attribution Sprint。
+8. **Missing linked transaction 時**：opaque envelope 仍 preserve（不因引用消失而被連帶刪除），resolver 回 `unsupported`，不 throw、不自動修復、不自動刪除——延續 ADR-009 的 Preserve≠Interpret 原則。
+9. **Foundation／Producer／Attribution 三層明確分離**，不得合併為單一 Sprint：Foundation（type、pure parser／validator／resolver，UR-TODO-046 FX-F2B 本次範圍）→ Producer（manual FX 表單、two-leg creation、opaque write path、Preview-only gate enable，需 ADR-010 授權）→ Attribution（`FinancialEvent` 接線、reconciliation 修改、runtime composition、zero-effect contribution，需另行拍板）。任何單一 PR 若跨越這三層邊界，屬重大產品／核心財務語意事件，須另行拍板，不得自動開始。
+
+**後果**：`src/lib/fxConversionIdentity.ts` 建立後，未來 Producer Sprint 只需重用既有 `parseFxConversionPayloadV1()`／`resolveFxConversions()` 等 pure 函式，不需要重新設計 identity 邏輯；未來 Attribution Sprint 的 `FinancialEvent` 只需連結 `envelope.id`（＝conversion identity）這一個 canonical linkage，不需要疊加第二層 identity。`effectiveDate` 的精確來源公式（是否需要使用者在表單額外輸入，或由兩腿 `occurredAt` 規則決定）與 fee `none`／`included` 兩態在 UI 上如何「明確宣告」而非「預設留空」，仍未拍板，留給 Producer Sprint 依產品需求決定，**不得假設兩者已有預設答案**。本決策不授權任何具體的 producer 開發、`fxConversionAttribution` 或 `FinancialEvent` 修改；ADR-010 的 Controlled Rollout Policy（Production 恆為 OFF、風險降低非絕對保證）完全不受本決策影響，第一個 opaque FX producer 仍需獨立明確授權。
 
 ---
 
