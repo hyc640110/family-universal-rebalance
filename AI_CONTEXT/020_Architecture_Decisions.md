@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.4
+版本：v1.5
 
 最後更新：2026-08-13
 
@@ -37,6 +37,19 @@
 | ADR-005 | Firebase Retirement 採 Archived Retirement，以 runtime removal、access freeze 與 verified archive 取代強制 destructive deletion | 已採用 |
 | ADR-006 | FX-A1 採 pinned USD/TWD foreign-cash valuation provenance，與 conversion、Ledger 及 attribution 分離 | 已採用 |
 | ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
+| ADR-008 | FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除 | 已採用 |
+
+---
+
+## ADR-008：FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除
+
+**狀態**：已採用
+
+**背景**：唯讀盤點證實既有 `calculateMetrics()`（`src/App.tsx`）的 `financialAccountLiquidTotal()`／`financialAccountNetWorthContribution()` 完全不讀取 `FinancialAccount.currency`，把非 TWD 帳戶（例如 USD）原幣 balance 直接裸加進 `cash`／`totalAssets`／`netWorth`（TWD 100,000 + USD 1,000 會變成錯誤的 101,000）。FX-A1（ADR-006）已建立 pinned USD/TWD valuation 能力，但依其決策範圍刻意未接既有 totals；此缺口需要一個明確的 canonical totals 契約，而非各 consumer 各自猜測。
+
+**決策**：canonical TWD totals（`cash`／`totalAssets`／`netWorth`）只使用 TWD-valued amount：TWD 帳戶直接採用 balance；非 TWD 帳戶只有在 FX-A1 valuation 回傳 `status: 'available'` 時才計入其 TWD 估值。任何帳戶的 valuation 為 `missing-rate`／`stale-rate`／`unsupported-currency`／`balance-unavailable` 時，該帳戶原幣金額一律排除（貢獻 0，不得裸加、不得用 stale／missing rate 猜值），並將受影響的 total 標記為 `unavailable`（`NetWorthSnapshot` 新增加法式 optional 欄位 `cashAvailable`／`totalAssetsAvailable`／`netWorthAvailable`）——不得靜默排除後讓 total 看起來完整。availability 依帳戶類型 cascade：liquid-type（cash/bank/eWallet）帳戶不可估值時 `cashAvailable=false`；任一帳戶（含非 liquid type）不可估值時驅動 `totalAssets`／`netWorth` 的 `accountNetWorth` unavailable。舊有（legacy）snapshot 缺少這三個欄位時一律視為 available，不回填、不重算、不改寫。snapshot 建立當下同步 pin FX-A1 的 `fxValuations`，provider revision／rate refresh 不得改寫已 pinned 的歷史 snapshot。
+
+**後果**：Dashboard／Assets／Analytics／Net Worth History 等既有 consumer 透過共用 `calculateMetrics()` SSOT 自動獲得正確數字，無需逐頁修改。新 availability 欄位為 additive optional，無 schema／Backup version bump、無 migration。此決策不授權 FX attribution、conversion、realized FX、foreign investment／loan、Financial Event／Ledger、Generic Split、AI Decision、Rebalance 或 Household Liquidity（`householdLiquidityInputAdapter.ts` 維持既有非 TWD 帳戶 `unavailable` fail-safe，不因 Net Worth 已可 TWD valuation 而自動放寬）；亦不新增任何 UI 或 FX-A2 startup／render auto-fetch。未來若要把已估值的外幣現金接回 Household Liquidity 可投資現金池，須另行唯讀盤點與產品決策。
 
 ---
 
