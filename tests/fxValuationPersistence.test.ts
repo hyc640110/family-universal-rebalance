@@ -74,3 +74,33 @@ test('FX-A2: a CBC provider record survives localStorage-shaped and JSON Backup 
   assert.deepEqual(restored.fxRateHistory, [cbcRate]);
   assert.deepEqual((restored.netWorthHistory as Array<Record<string, unknown>>)[0].fxValuations, [pinnedValuation]);
 });
+
+test('FX-A3: cashAvailable/totalAssetsAvailable/netWorthAvailable survive localStorage-shaped and JSON Backup round-trips', async () => {
+  const { normalizeState, backupPayload, stateFromBackup } = await loadPersistence();
+  const state = normalizeState({
+    fxRateHistory: [rate],
+    netWorthHistory: [{
+      date: '2026-08-12', totalAssets: 100_000, netWorth: 100_000, investmentValue: 0, cash: 100_000, debt: 0,
+      cashAvailable: false, totalAssetsAvailable: false, netWorthAvailable: false
+    }]
+  });
+  const row = (state.netWorthHistory as Array<Record<string, unknown>>)[0];
+  assert.equal(row.cashAvailable, false);
+  assert.equal(row.totalAssetsAvailable, false);
+  assert.equal(row.netWorthAvailable, false);
+
+  const restored = stateFromBackup(JSON.parse(JSON.stringify(backupPayload(state, {}))), normalizeState({})).state;
+  const restoredRow = (restored.netWorthHistory as Array<Record<string, unknown>>)[0];
+  assert.equal(restoredRow.cashAvailable, false);
+  assert.equal(restoredRow.totalAssetsAvailable, false);
+  assert.equal(restoredRow.netWorthAvailable, false);
+});
+
+test('FX-A3: a legacy snapshot without availability fields stays without them (absence means available, never inferred otherwise)', async () => {
+  const { normalizeState } = await loadPersistence();
+  const legacy = normalizeState({ netWorthHistory: [{ date: '2026-08-01', totalAssets: 100, netWorth: 100, investmentValue: 0, cash: 100, debt: 0 }] });
+  const row = (legacy.netWorthHistory as Array<Record<string, unknown>>)[0];
+  assert.equal('cashAvailable' in row, false);
+  assert.equal('totalAssetsAvailable' in row, false);
+  assert.equal('netWorthAvailable' in row, false);
+});

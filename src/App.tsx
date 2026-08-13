@@ -64,6 +64,7 @@ import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/co
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { normalizeFxRateHistory, type FxRateRecord } from './lib/fxValuation';
+import { deriveCanonicalNetWorthTotals } from './lib/canonicalNetWorthTotals';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
 import { FINANCIAL_EVENT_SCHEMA_VERSION, isFinancialEventLedgerSchemaSupported, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
@@ -74,7 +75,7 @@ import type { RuntimeAttributionConfirmOutcome, RuntimeAttributionVoidOutcome } 
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './lib/calendarDay';
 import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
-import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, financialAccountLiquidTotal, financialAccountNetWorthContribution, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
+import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type TransactionStatus, type TransactionType } from './lib/transactions';
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
@@ -488,11 +489,20 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const stocks = rows.reduce((a, r) => a + r.marketValue, 0);
   // V4.1 accounts are the only cash/net-worth source. Legacy CashItem stays persisted for safe rollback but is never double-counted.
   const derivedBalances = deriveTransactionAccountBalances(state.transactions);
-  const cash = financialAccountLiquidTotal(state.accounts, { derivedBalances });
-  const accountNetWorth = financialAccountNetWorthContribution(state.accounts, { derivedBalances });
+  // UR-TODO-046 FX-A3: canonical TWD-only totals. A non-TWD account never contributes its raw
+  // balance here (no naked-currency sum); when it cannot be safely valued the relevant total is
+  // marked unavailable instead of silently presented as complete (Canonical TWD Totals Strategy A).
+  const canonicalTotals = deriveCanonicalNetWorthTotals(state.accounts, state.fxRateHistory, canonicalCalendarDay(new Date()), { derivedBalances });
+  const cash = canonicalTotals.cash;
+  const cashAvailable = canonicalTotals.cashAvailable;
+  const accountNetWorth = canonicalTotals.accountNetWorth;
+  const accountNetWorthAvailable = canonicalTotals.accountNetWorthAvailable;
+  const fxValuations = canonicalTotals.fxValuations;
   const debt = state.loans.reduce((a, l) => a + num(l.principal), 0);
   const totalAssets = stocks + Math.max(0, accountNetWorth);
+  const totalAssetsAvailable = accountNetWorthAvailable;
   const netWorth = stocks + accountNetWorth - debt;
+  const netWorthAvailable = accountNetWorthAvailable;
   const todayPnlAvailable = rows.length > 0 && rows.every(row => row.dayPnl !== null);
   const dayPnl = todayPnlAvailable ? rows.reduce((a, r) => a + (r.dayPnl ?? 0), 0) : 0;
   const defensiveHoldings = rows.filter(r => isDefensiveHolding(r));
@@ -528,7 +538,7 @@ function calculateMetrics(state: AppState, quotes: Record<SymbolCode, Quote>) {
   // 扣利息後真實淨利
   const trueNetPnlAfterInterest = portfolioTotalPnl - totalLoanInterestPaid;
 
-  return { rows, stocks, cash, debt, totalAssets, netWorth, dayPnl, todayPnlAvailable, growth, defensive, growthHoldings, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
+  return { rows, stocks, cash, cashAvailable, debt, totalAssets, totalAssetsAvailable, netWorth, netWorthAvailable, fxValuations, dayPnl, todayPnlAvailable, growth, defensive, growthHoldings, defensiveHoldings, defensiveHoldingsValue, growthTargetPct, defensiveTargetPct, beta, cashRatio, defensiveRatio, leverage, monthlyPayment, averageRemainingMonths, repaymentSafetyMonths, repaymentSafetyDays, totalLoanInterestPaid, trueNetPnlAfterInterest };
 }
 function rebalance(state: AppState, quotes: Record<SymbolCode, Quote>) {
   const m = calculateMetrics(state, quotes);
@@ -1075,8 +1085,11 @@ function App() {
     netWorth: m.netWorth,
     investmentValue: m.stocks,
     cash: m.cash,
-    debt: m.debt
-  }), [m.totalAssets, m.netWorth, m.stocks, m.cash, m.debt]);
+    debt: m.debt,
+    cashAvailable: m.cashAvailable,
+    totalAssetsAvailable: m.totalAssetsAvailable,
+    netWorthAvailable: m.netWorthAvailable
+  }, undefined, m.fxValuations), [m.totalAssets, m.netWorth, m.stocks, m.cash, m.debt, m.cashAvailable, m.totalAssetsAvailable, m.netWorthAvailable, m.fxValuations]);
   const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot>(() => buildUnavailableMarketSnapshot());
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
@@ -1205,7 +1218,7 @@ function App() {
   useEffect(() => {
     if (!hasUpdatedQuotes) return;
     const latest = snapshotConsumerRows.at(-1);
-    if (latest?.status === 'complete' && latest.date === currentNetWorthSnapshot.date && latest.totalAssets === currentNetWorthSnapshot.totalAssets && latest.netWorth === currentNetWorthSnapshot.netWorth && latest.investmentValue === currentNetWorthSnapshot.investmentValue && latest.cash === currentNetWorthSnapshot.cash && latest.debt === currentNetWorthSnapshot.debt) return;
+    if (latest?.status === 'complete' && latest.date === currentNetWorthSnapshot.date && latest.totalAssets === currentNetWorthSnapshot.totalAssets && latest.netWorth === currentNetWorthSnapshot.netWorth && latest.investmentValue === currentNetWorthSnapshot.investmentValue && latest.cash === currentNetWorthSnapshot.cash && latest.debt === currentNetWorthSnapshot.debt && (latest.raw.cashAvailable ?? true) === (currentNetWorthSnapshot.cashAvailable ?? true) && (latest.raw.totalAssetsAvailable ?? true) === (currentNetWorthSnapshot.totalAssetsAvailable ?? true) && (latest.raw.netWorthAvailable ?? true) === (currentNetWorthSnapshot.netWorthAvailable ?? true)) return;
     netWorthSnapshotReadTimeViewRef.current = upsertNetWorthSnapshotReadTimeView(netWorthSnapshotReadTimeViewRef.current, currentNetWorthSnapshot);
     setState(current => ({ ...current, netWorthHistory: upsertNetWorthSnapshot(current.netWorthHistory, currentNetWorthSnapshot) }));
   }, [currentNetWorthSnapshot, hasUpdatedQuotes, snapshotConsumerRows]);
