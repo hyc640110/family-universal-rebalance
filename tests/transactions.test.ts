@@ -200,3 +200,67 @@ test('Loan repayment contract 是加法式 round-trip；不完整或 component �
   assert.equal(updateTransaction(normalized[0]!, { note: '保留已驗證契約' }, accounts, '2026-08-10T00:00:00.000Z').loanAttribution?.paymentId, 'payment-1');
   assert.deepEqual(normalizeTransactions(JSON.parse(JSON.stringify(normalized)), accounts, '2026-08-09T00:00:00.000Z').transactions, normalized, 'localStorage、Firebase 與 JSON Backup 共用 normalizer，僅保留完整明示的 Loan contract');
 });
+
+// UR-TODO-046 FX-F2C-1: additive FX conversion leg metadata — normalization, persistence round-trip,
+// account balance and cash-flow guard. No producer/opaque envelope exists yet; these fixtures are
+// hand-authored to characterize the consumer-guard contract in isolation.
+
+test('FX conversion leg metadata: valid source/destination metadata is preserved, invalid role or empty conversionId is dropped, ordinary transactions unaffected', () => {
+  const raw = [
+    { id: 'fx-source', accountId: 'a', type: 'expense', status: 'posted', amount: 32000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'source' } },
+    { id: 'fx-destination', accountId: 'usd', type: 'income', status: 'posted', amount: 1000, currency: 'USD', categoryId: 'income-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'destination' } },
+    { id: 'fx-invalid-role', accountId: 'a', type: 'expense', status: 'posted', amount: 1000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-2', role: 'both' } },
+    { id: 'fx-empty-conversion-id', accountId: 'a', type: 'expense', status: 'posted', amount: 1000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: '', role: 'source' } },
+    { id: 'fx-malformed-shape', accountId: 'a', type: 'expense', status: 'posted', amount: 1000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: 'not-an-object' },
+    { id: 'ordinary', accountId: 'a', type: 'expense', status: 'posted', amount: 500, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z' }
+  ];
+  const { transactions, skipped } = normalizeTransactions(raw, accounts, '2026-08-13T00:00:00.000Z');
+  assert.equal(skipped.length, 0, 'malformed fxConversionLeg must not become skipped/opaque — only the metadata itself is dropped');
+  const byId = new Map(transactions.map(t => [t.id, t]));
+  assert.deepEqual(byId.get('fx-source')?.fxConversionLeg, { conversionId: 'conv-1', role: 'source' });
+  assert.deepEqual(byId.get('fx-destination')?.fxConversionLeg, { conversionId: 'conv-1', role: 'destination' });
+  assert.equal(byId.get('fx-invalid-role')?.fxConversionLeg, undefined, 'invalid role is dropped');
+  assert.equal(byId.get('fx-empty-conversion-id')?.fxConversionLeg, undefined, 'empty conversionId is dropped');
+  assert.equal(byId.get('fx-malformed-shape')?.fxConversionLeg, undefined, 'non-object metadata is dropped');
+  assert.equal(byId.get('fx-malformed-shape')?.amount, 1000, 'the rest of the transaction is unaffected by dropped metadata');
+  assert.equal(byId.get('ordinary')?.fxConversionLeg, undefined);
+  assert.equal(byId.get('ordinary')?.amount, 500, 'ordinary transactions are completely unaffected');
+});
+
+test('FX conversion leg metadata survives localStorage/JSON Backup round-trip and a second normalization pass', () => {
+  const raw = [
+    { id: 'fx-source', accountId: 'a', type: 'expense', status: 'posted', amount: 32000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'source' } },
+    { id: 'fx-destination', accountId: 'usd', type: 'income', status: 'posted', amount: 1000, currency: 'USD', categoryId: 'income-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'destination' } }
+  ];
+  const first = normalizeTransactions(raw, accounts, '2026-08-13T00:00:00.000Z').transactions;
+  const roundTripped = normalizeTransactions(JSON.parse(JSON.stringify(first)), accounts, '2026-08-13T00:00:00.000Z').transactions;
+  assert.deepEqual(roundTripped, first, 'JSON Backup/localStorage round-trip must preserve fxConversionLeg exactly');
+  const secondPass = normalizeTransactions(roundTripped, accounts, '2026-08-13T00:00:00.000Z').transactions;
+  assert.deepEqual(secondPass, first, 'a second normalizeTransactions() pass (writeState() re-normalizes) must not lose the metadata');
+});
+
+test('FX conversion leg metadata does not change account balance semantics: source expense still decreases, destination income still increases', () => {
+  const raw = [
+    { id: 'fx-source', accountId: 'a', type: 'expense', status: 'posted', amount: 32000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'source' } },
+    { id: 'fx-destination', accountId: 'usd', type: 'income', status: 'posted', amount: 1000, currency: 'USD', categoryId: 'income-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'destination' } }
+  ];
+  const transactions = normalizeTransactions(raw, accounts, '2026-08-13T00:00:00.000Z').transactions;
+  assert.deepEqual(deriveTransactionAccountBalances(transactions), { a: -32000, usd: 1000 }, 'the consumer guard must not make FX legs skip account balance derivation');
+});
+
+test('FX conversion leg metadata excludes the principal leg from household cash-flow summary, regardless of expense/income type; ordinary transactions unaffected', () => {
+  const fxSourceExpense = normalizeTransactions([{ id: 'fx-source', accountId: 'a', type: 'expense', status: 'posted', amount: 32000, currency: 'TWD', categoryId: 'expense-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'source' } }], accounts, '2026-08-13T00:00:00.000Z').transactions;
+  const fxDestinationIncome = normalizeTransactions([{ id: 'fx-destination', accountId: 'usd', type: 'income', status: 'posted', amount: 1000, currency: 'USD', categoryId: 'income-other', occurredAt: '2026-08-13T00:00:00.000Z', fxConversionLeg: { conversionId: 'conv-1', role: 'destination' } }], accounts, '2026-08-13T00:00:00.000Z').transactions;
+  const ordinaryExpense = normalizeTransactions([{ id: 'ordinary-expense', accountId: 'a', type: 'expense', status: 'posted', amount: 300, currency: 'TWD', categoryId: 'expense-food', occurredAt: '2026-08-13T00:00:00.000Z' }], accounts, '2026-08-13T00:00:00.000Z').transactions;
+  const ordinaryIncome = normalizeTransactions([{ id: 'ordinary-income', accountId: 'a', type: 'income', status: 'posted', amount: 200, currency: 'TWD', categoryId: 'income-salary', occurredAt: '2026-08-13T00:00:00.000Z' }], accounts, '2026-08-13T00:00:00.000Z').transactions;
+
+  assert.deepEqual(transactionCashFlowSummary(fxSourceExpense), { income: 0, expense: 0 }, 'FX source expense leg excluded');
+  assert.deepEqual(transactionCashFlowSummary(fxDestinationIncome), { income: 0, expense: 0 }, 'FX destination income leg excluded');
+  assert.deepEqual(transactionCashFlowSummary(ordinaryExpense), { income: 0, expense: 300 }, 'ordinary expense still counted');
+  assert.deepEqual(transactionCashFlowSummary(ordinaryIncome), { income: 200, expense: 0 }, 'ordinary income still counted');
+  assert.deepEqual(
+    transactionCashFlowSummary([...ordinaryExpense, ...ordinaryIncome, ...fxSourceExpense, ...fxDestinationIncome]),
+    { income: 200, expense: 300 },
+    'mixed ordinary + FX legs: only ordinary transactions contribute'
+  );
+});

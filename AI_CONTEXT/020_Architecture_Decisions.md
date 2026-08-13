@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.8
+版本：v1.9
 
 最後更新：2026-08-13
 
@@ -41,6 +41,24 @@
 | ADR-009 | Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神 | 已採用 |
 | ADR-010 | FX opaque producer 上線採 Controlled Rollout Policy：pre-F1A／stale client 無法被 retroactively 保護（正式 architecture constraint），改用 narrow code-constant feature gate 做 risk reduction，非 absolute guarantee | 已採用 |
 | ADR-011 | FX conversion pairing identity 採 envelope-id-as-identity、pinned-leg-amounts、derived-not-persisted executed rate 與 fee 四態 contract；Foundation／Producer／Attribution 三層明確分離 | 已採用 |
+| ADR-012 | FX conversion principal legs 沿用既有 `expense`／`income` type，搭配 additive `fxConversionLeg` metadata 作為最小 consumer safety boundary；Producer 不得先於 Consumer Guard 上線 | 已採用 |
+
+---
+
+## ADR-012：FX conversion principal legs 沿用既有 `expense`／`income` type，搭配 additive `fxConversionLeg` metadata 作為最小 consumer safety boundary；Producer 不得先於 Consumer Guard 上線
+
+**狀態**：已採用
+
+**背景**：ADR-011（FX-F2B）建立 pairing identity 後，UR-TODO-046 FX-F2C（Manual FX Conversion Producer Contract Review，Review Mode）盤點既有 `TransactionType`（`income`／`expense`／`transfer`／`adjustment`）與交易建立 pipeline，證實沒有一個既有 type 能乾淨承載 FX conversion 兩腿語意：`deriveTransactionAccountBalances()` 對 `adjustment` 恆為加（無法表示扣款），`transfer` 是單一記錄模型且 `validateTransferAccounts()` 明確拒絕跨幣別（`'目前尚未支援跨幣別轉帳'`）。若暫用 `expense`（source）／`income`（destination）——現有唯一能給出正確帳戶餘額方向的組合——`deriveTransactionAccountBalances()` 確實正確，但 `transactionCashFlowSummary()` 會把兩腿 `t.amount` 原始加總、不做任何幣別換算，誤算成 household expense／income；`transactionReconciliation.ts` 的 `fx-attribution-unsupported` fail-safe 只依 `transaction.currency !== 'TWD'` 判斷，TWD leg（`currency === 'TWD'`）會**通過**此檢查、被靜默分類為普通 `external-expense`，進而可能被消費進 Financial Event Ledger／淨值成長歸因計算——這是會產生真實錯誤數字的邏輯缺陷，不是「尚未支援」的中性狀態。F2C 判定 **GO C：Producer 不得先裸上線，須與 Minimal Consumer Guard 同一 Sprint 具備**。
+
+**決策**：
+
+1. **不新增第五種 `TransactionType`，不重新定義 `transfer` 語意**——FX conversion principal legs 繼續使用既有 `expense`（source）／`income`（destination），保留 `deriveTransactionAccountBalances()` 既有正確行為，避免大範圍修改帳戶餘額計算與既有 `transfer` 資料的既有假設。
+2. **新增 additive `FinancialTransaction.fxConversionLeg?: { conversionId: string; role: 'source' | 'destination' }`**，比照既有 `investmentAttribution`／`loanAttribution` 的 additive discriminated union 慣例。刻意不保存 `amount`／`currency`／`accountId`／`executedRate`／`fee`——這些事實已存在於交易本身或（未來）opaque envelope payload，重複保存會製造第二套互相競爭的 authoritative facts，違反 ADR-011 已建立的單一事實來源原則。`conversionId` 預期未來等於 `OpaqueFinancialTransactionEnvelope.id`（ADR-011 既有 conversion identity），但本決策不建立、不要求任何 producer 或 envelope 的存在。
+3. **Consumer guard 範圍嚴格限定三處**：`transactionCashFlowSummary()` 排除帶有效 `fxConversionLeg` 標記的交易（不論 `type`），比照既有 `transfer` 零效果慣例；`transactionReconciliation.ts` 新增 unconditional guard，帶 `fxConversionLeg` 一律 `unsupported`／`fx-attribution-unsupported`，判斷純以 metadata 是否存在為準（不依 `currency === 'TWD'` 等間接條件），確保 TWD／USD、source／destination 四種組合對稱、一致；一般交易刪除路徑（`deleteTransaction`）新增 linkage guard，重用 ADR-011 既有 `resolveFxConversionEnvelope()`，只有 `valid`-resolved 的 envelope 才視為「active」、才阻擋刪除，malformed／missing-linked-transaction 的 envelope 不構成阻擋（延續 F1A Preserve≠Interpret 原則）。**不修改** `deriveTransactionAccountBalances()`、`deleteOpaqueTransaction()`、`FinancialEvent`、runtime attribution composition、Household Liquidity 公式。
+4. **Foundation／Producer／Attribution 三層分離（ADR-011 §9）進一步細分**：Consumer Guard（本 ADR，UR-TODO-046 FX-F2C-1）必須先於或同 Sprint 於 Producer（UR-TODO-046 FX-F2C-2：manual FX 表單、opaque write path、Preview-only gate enable）完成，Producer 不得單獨先上線（即使只 Preview）——因為污染本質是邏輯錯誤而非環境未就緒，Preview-only 無法單獨解決此缺口。
+
+**後果**：`fxConversionIdentity.ts` 首次被 `App.tsx` 呼叫（`findLinkedFxConversionId()`，僅限刪除防護這一個唯讀用途），F2B 原本「零 caller」的 regression test 已同步更新為「僅此一個授權呼叫點，其餘 producer／write path 符號仍必須為零」。本決策**不建立**任何 producer、UI、opaque write path、`fxConversionAttribution`，也**不代表** F1D gate（ADR-010）可以被翻轉——`FX_OPAQUE_PRODUCER_SOURCE_GATE` 仍為 `false`。未來 F2C-2 Producer Sprint 建立 opaque envelope 後，仍須另行明確授權，不因本 ADR 已建立 consumer guard 而自動解鎖；atomic FX delete（`deleteOpaqueTransaction()` 一併刪除兩腿）亦留給 F2C-2 與完整 FX UI 一起落地，本 ADR 只確保「腿不會被單獨刪除留下孤兒」，尚未提供「一次刪除整筆換匯」的能力。
 
 ---
 

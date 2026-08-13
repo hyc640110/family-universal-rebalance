@@ -190,6 +190,18 @@ export function reconcileTransactions(input: TransactionReconciliationInput): Tr
     }
   }
   return input.transactions.map(transaction => {
+    /**
+     * UR-TODO-046 FX-F2C-1: a principal FX conversion leg must never become `candidate`/`matched`
+     * and must never resolve to `external-income`/`external-expense` — regardless of currency
+     * (TWD source, TWD destination, USD source, or USD destination all take this path
+     * identically) and regardless of `type` (`expense`/`income`). This is a minimal consumer
+     * guard only: no `FinancialEvent`, no attribution, no derived evidence — full FX attribution
+     * remains a separate, not-yet-started Sprint. Checked before loan/investment attribution so
+     * it takes unconditional priority.
+     */
+    if (transaction.fxConversionLeg) {
+      return { transactionId: transaction.id, status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false };
+    }
     const loan = transaction.loanAttribution;
     if (loan) {
       if (loan.kind === 'cash-movement') return { transactionId: transaction.id, status: 'unsupported', reason: 'linked-loan-cash-movement', completedPeriodEvidence: false };

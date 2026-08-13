@@ -249,3 +249,24 @@ export function resolveFxConversions(envelopes: readonly OpaqueFinancialTransact
     ? { status: 'duplicate', conversionId: resolution.conversionId, reason: 'duplicate-transaction-claim' }
     : resolution);
 }
+
+/**
+ * UR-TODO-046 FX-F2C-1: pure delete-linkage guard. Returns the `conversionId` of the FX
+ * conversion that legitimately references `transactionId` as a leg, or `undefined` if no such
+ * active conversion exists. Only a `valid`-resolved envelope counts as "active" — a malformed
+ * opaque payload, a payload whose linked transaction is missing, or one that fails cross-
+ * validation must never block deletion of an unrelated transaction (F1A's Preserve≠Interpret
+ * boundary: an opaque record that cannot be interpreted has no economic claim on anything).
+ * There is no producer yet, so in normal operation this will simply find nothing; the helper
+ * exists so the ordinary delete path stays safe once a producer starts writing real envelopes.
+ */
+export function findLinkedFxConversionId(transactionId: string, transactions: readonly FinancialTransaction[], opaqueTransactions: readonly OpaqueFinancialTransactionEnvelope[]): string | undefined {
+  const transactionsById = new Map(transactions.map(transaction => [transaction.id, transaction]));
+  for (const envelope of opaqueTransactions) {
+    const resolution = resolveFxConversionEnvelope(envelope, transactionsById);
+    if (resolution?.status === 'valid' && (resolution.sourceTransactionId === transactionId || resolution.destinationTransactionId === transactionId)) {
+      return resolution.conversionId;
+    }
+  }
+  return undefined;
+}
