@@ -307,3 +307,46 @@ test('reconciliation 結果不會進入既有 attribution calculator 或提升 q
   assert.deepEqual(after, before);
   assert.equal(after.attributionQuality, 'snapshot-only');
 });
+
+// UR-TODO-046 FX-F2C-1: a principal FX conversion leg must always resolve to `unsupported`/
+// `fx-attribution-unsupported` — never `candidate`/`matched`, never `external-income`/
+// `external-expense`, never derived evidence — symmetric across all four TWD/USD source/
+// destination combinations. No FinancialEvent/attribution wiring exists yet; this is the minimal
+// fail-safe guard only.
+
+test('FX conversion leg guard: TWD source leg (expense) resolves to fx-attribution-unsupported', () => {
+  const output = results([transaction('fx-source', { type: 'expense', categoryId: 'expense-other', amount: 32000, fxConversionLeg: { conversionId: 'conv-1', role: 'source' } })]);
+  assert.deepEqual(output[0], { transactionId: 'fx-source', status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false });
+});
+
+test('FX conversion leg guard: TWD destination leg (income) resolves to fx-attribution-unsupported', () => {
+  const output = results([transaction('fx-destination', { type: 'income', categoryId: 'income-other', amount: 32000, fxConversionLeg: { conversionId: 'conv-1', role: 'destination' } })]);
+  assert.deepEqual(output[0], { transactionId: 'fx-destination', status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false });
+});
+
+test('FX conversion leg guard: USD source leg (expense) remains fx-attribution-unsupported', () => {
+  const output = results([transaction('fx-source-usd', { accountId: 'usd-a', type: 'expense', categoryId: 'expense-other', currency: 'USD', amount: 1000, fxConversionLeg: { conversionId: 'conv-2', role: 'source' } })]);
+  assert.deepEqual(output[0], { transactionId: 'fx-source-usd', status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false });
+});
+
+test('FX conversion leg guard: USD destination leg (income) remains fx-attribution-unsupported', () => {
+  const output = results([transaction('fx-destination-usd', { accountId: 'usd-a', type: 'income', categoryId: 'income-other', currency: 'USD', amount: 1000, fxConversionLeg: { conversionId: 'conv-2', role: 'destination' } })]);
+  assert.deepEqual(output[0], { transactionId: 'fx-destination-usd', status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false });
+});
+
+test('FX conversion leg guard: never produces external-income/external-expense even with a matching linked-transaction ledger event present', () => {
+  const fxTransaction = transaction('fx-source', { type: 'expense', categoryId: 'expense-other', amount: 32000, fxConversionLeg: { conversionId: 'conv-1', role: 'source' } });
+  const ledgerEvents = [event('would-be-match', { type: 'external-expense', transactionId: 'fx-source', amount: 32000, effectiveDate: '2026-08-02' })];
+  const output = results([fxTransaction], ledgerEvents);
+  assert.equal(output[0]?.status, 'unsupported');
+  assert.equal(output[0]?.reason, 'fx-attribution-unsupported');
+  assert.equal(output[0]?.eventType, undefined, 'must never carry an external-income/external-expense eventType');
+});
+
+test('FX conversion leg guard: ordinary TWD transaction behavior is completely unchanged', () => {
+  const output = results([transaction('salary'), transaction('expense', { type: 'expense', categoryId: 'expense-food' })]);
+  assert.deepEqual(output.map(item => [item.transactionId, item.status, item.eventType]), [
+    ['salary', 'candidate', 'external-income'],
+    ['expense', 'candidate', 'external-expense']
+  ]);
+});

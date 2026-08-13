@@ -77,6 +77,10 @@ import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, serializeTransactionCollection, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type OpaqueFinancialTransactionEnvelope, type TransactionStatus, type TransactionType } from './lib/transactions';
+// UR-TODO-046 FX-F2C-1: the only authorized wiring point into the FX conversion identity module —
+// a read-only linkage lookup for the ordinary-delete guard. No producer, no write path (see
+// findLinkedFxConversionId's own doc comment for why only `valid`-resolved envelopes count).
+import { findLinkedFxConversionId } from './lib/fxConversionIdentity';
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
@@ -1617,7 +1621,15 @@ function App() {
     if (account && window.confirm(`確定要刪除帳戶「${account.name}」嗎？目前尚無交易資料引用，刪除不會影響舊版現金相容資料。`)) setState(current => ({ ...current, accounts: removeFinancialAccount(current.accounts, id) }));
   };
   const createTransaction = (input: Partial<FinancialTransaction>) => setState(current => { const timestamp = now(); const account = current.accounts.find(item => item.id === input.accountId); if (!account || !input.type || !input.status || !input.occurredAt) return current; if (input.type === 'transfer') { try { return { ...current, transactions: [...current.transactions, createTransferTransaction({ accountId: input.accountId || '', transferAccountId: input.transferAccountId, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, excluded: Boolean(input.excluded) }, current.accounts, timestamp)] }; } catch { return current; } } try { const draft: FinancialTransaction = { id: createTransactionId(), accountId: input.accountId || '', type: input.type, status: input.status, source: 'manual', amount: input.amount || 0, currency: account.currency, categoryId: input.categoryId || '', description: input.description || '', merchant: input.merchant || '', note: input.note || '', occurredAt: input.occurredAt, fingerprint: '', excluded: Boolean(input.excluded), createdAt: timestamp, updatedAt: timestamp, ...(input.assetSymbol ? { assetSymbol: input.assetSymbol } : {}), ...(input.assetName ? { assetName: input.assetName } : {}), ...(input.grossAmount !== undefined ? { grossAmount: input.grossAmount } : {}), ...(input.withholdingTax !== undefined ? { withholdingTax: input.withholdingTax } : {}) }; return { ...current, transactions: [...current.transactions, updateTransactionRecord(draft, {}, current.accounts, timestamp)] }; } catch { return current; } });
-  const deleteTransaction = (id: string) => setState(current => ({ ...current, transactions: current.transactions.filter(transaction => transaction.id !== id) }));
+  // UR-TODO-046 FX-F2C-1: a transaction referenced by an active (valid-resolved) FX conversion
+  // envelope must not be individually deleted — it would leave the other leg or the envelope
+  // pointing at nothing, silently miscounted forever. No FX producer exists yet, so this guard
+  // only ever fires against hand-authored test fixtures / a future producer's real records.
+  const deleteTransaction = (id: string) => {
+    const linkedConversionId = findLinkedFxConversionId(id, stateRef.current.transactions, stateRef.current.opaqueTransactions);
+    if (linkedConversionId) { window.alert('此交易屬於一筆換匯記錄，不能單獨刪除。請先處理完整換匯記錄。'); return; }
+    setState(current => ({ ...current, transactions: current.transactions.filter(transaction => transaction.id !== id) }));
+  };
   // UR-TODO-046 FX-F1A: opaque transactions cannot be edited (their content is never interpreted),
   // only explicitly, irreversibly deleted after the user acknowledges the payload will be lost.
   const deleteOpaqueTransaction = (id: string) => {

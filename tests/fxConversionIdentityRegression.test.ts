@@ -94,7 +94,9 @@ test('UR-TODO-046 FX-F2B: the identity foundation module has no write path — i
   assert.doesNotMatch(identity, /setState/);
 });
 
-test('UR-TODO-046 FX-F2B: no producer UI or write path exists anywhere in App.tsx for FX conversions', () => {
+test('UR-TODO-046 FX-F2C-1: App.tsx wires only the delete-linkage guard from the FX conversion identity module, no producer or write path', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(app, /fxConversionIdentity|FxConversionOpaquePayload|createFxConversion|createFxTransaction/);
+  // FX-F2C-1 authorizes exactly one caller (the ordinary-delete linkage guard); still no producer/write symbols.
+  assert.doesNotMatch(app, /FxConversionOpaquePayload|createFxConversion|createFxTransaction|resolveFxConversionEnvelope|resolveFxConversions\(|parseFxConversionPayloadV1|deriveFxConversionExecutedRate|isFxConversionPayloadCandidate/);
+  assert.match(app, /findLinkedFxConversionId/, 'F2C-1 delete-linkage guard must be the only FX conversion identity wiring in App.tsx');
 });

@@ -45,7 +45,17 @@ export type LoanRepaymentAttribution = { kind: 'repayment'; paymentId: string; l
 export type LoanDisbursementAttribution = { kind: 'disbursement'; paymentId: string; loanId: string; cashAccountId: string; currency: string; settlementAmount: number; cashMovementId?: string };
 export type LoanCashMovementAttribution = { kind: 'cash-movement'; cashMovementId: string; direction: 'decrease' | 'increase'; cashAccountId: string; currency: string; settlementAmount: number };
 export type LoanAttribution = LoanRepaymentAttribution | LoanDisbursementAttribution | LoanCashMovementAttribution;
-export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution; loanAttribution?: LoanAttribution };
+/**
+ * UR-TODO-046 FX-F2C-1: additive marker identifying a `FinancialTransaction` as one principal
+ * leg of a future FX conversion (see fxConversionIdentity.ts for the opaque envelope contract).
+ * Deliberately minimal — no amount/currency/accountId/executedRate/fee, all of which already
+ * live on the transaction itself or the (not-yet-produced) opaque envelope payload, to avoid a
+ * second, competing source of truth. `conversionId` is expected to equal a future
+ * `OpaqueFinancialTransactionEnvelope.id`, but this module never creates or resolves envelopes —
+ * it only lets consumers (cash-flow summary, reconciliation, delete guard) recognize the leg.
+ */
+export type FxConversionLegAttribution = { conversionId: string; role: 'source' | 'destination' };
+export type FinancialTransaction = { id: string; accountId: string; transferAccountId?: string; type: TransactionType; status: TransactionStatus; source: TransactionSource; amount: number; currency: string; categoryId: string; description: string; merchant: string; note: string; occurredAt: string; fingerprint: string; excluded: boolean; createdAt: string; updatedAt: string; assetSymbol?: string; assetName?: string; grossAmount?: number; withholdingTax?: number; investmentAttribution?: InvestmentAttribution; loanAttribution?: LoanAttribution; fxConversionLeg?: FxConversionLegAttribution };
 
 /**
  * UR-TODO-046 FX-F1A: an explicit, versioned marker for a transaction record whose economic
@@ -164,6 +174,20 @@ function normalizeLoanAttribution(value: unknown, transaction: { type: Transacti
   if (components.reduce((total, component) => total + component.amount, 0) !== settlementAmount) return undefined;
   return { kind: 'repayment', paymentId, loanId, cashAccountId, currency, settlementAmount, components, ...(cashMovementId ? { cashMovementId } : {}) };
 }
+/**
+ * Malformed metadata is dropped to `undefined` — it never falls back to becoming an F1A opaque
+ * envelope, and it never blocks normalization of the rest of the transaction. No cross-validation
+ * against the transaction's own fields is performed here (there is nothing to cross-validate:
+ * this metadata deliberately carries no amount/currency/accountId).
+ */
+function normalizeFxConversionLegAttribution(value: unknown): FxConversionLegAttribution | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const conversionId = optionalText(record.conversionId);
+  const role = record.role === 'source' || record.role === 'destination' ? record.role : undefined;
+  return conversionId && role ? { conversionId, role } : undefined;
+}
+
 /** Safely repairs legacy or mismatched categories before state is persisted. */
 export const normalizeTransactionCategory = (transactionType: TransactionType, categoryId: string) => {
   const available = categoriesForTransactionType(transactionType);
@@ -200,6 +224,7 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
   const currency = (resolvedType === 'transfer' ? sourceAccount.currency : text(candidate.currency ?? current?.currency, sourceAccount.currency)).toUpperCase().slice(0, 8);
   const investmentAttribution = normalizeInvestmentAttribution(candidate.investmentAttribution, { type: resolvedType, accountId, amount, currency });
   const loanAttribution = normalizeLoanAttribution(candidate.loanAttribution ?? current?.loanAttribution, { type: resolvedType, accountId, amount, currency });
+  const fxConversionLeg = normalizeFxConversionLegAttribution(candidate.fxConversionLeg ?? current?.fxConversionLeg);
   const normalized: FinancialTransaction = {
     id,
     accountId,
@@ -225,7 +250,8 @@ function normalizeCandidate(candidate: Partial<FinancialTransaction>, accountLis
       ...(withholdingTax !== undefined ? { withholdingTax } : {})
     } : {}),
     ...(investmentAttribution ? { investmentAttribution } : {}),
-    ...(loanAttribution ? { loanAttribution } : {})
+    ...(loanAttribution ? { loanAttribution } : {}),
+    ...(fxConversionLeg ? { fxConversionLeg } : {})
   };
   const fingerprintChanged = !current || ['accountId', 'transferAccountId', 'type', 'amount', 'currency', 'occurredAt', 'categoryId', 'description', 'merchant'].some(key => String(current[key as keyof FinancialTransaction] ?? '') !== String(normalized[key as keyof FinancialTransaction] ?? ''));
   return { ...normalized, fingerprint: fingerprintChanged ? transactionFingerprint(normalized) : current.fingerprint };
@@ -298,5 +324,6 @@ export function serializeTransactionCollection(transactions: readonly FinancialT
 }
 
 export function deriveTransactionAccountBalances(transactions: FinancialTransaction[]) { const balances: Record<string, number> = {}; for (const t of transactions) { if (t.status !== 'posted' || t.excluded) continue; const add = (id: string, value: number) => balances[id] = (balances[id] || 0) + value; if (t.type === 'income' || t.type === 'adjustment') add(t.accountId, t.amount); else if (t.type === 'expense') add(t.accountId, -t.amount); else { add(t.accountId, -t.amount); if (t.transferAccountId) add(t.transferAccountId, t.amount); } } return balances; }
-export function transactionCashFlowSummary(transactions: FinancialTransaction[]) { return transactions.filter(t => t.status === 'posted' && !t.excluded).reduce((s, t) => ({ income: s.income + (t.type === 'income' ? t.amount : 0), expense: s.expense + (t.type === 'expense' ? t.amount : 0) }), { income: 0, expense: 0 }); }
+/** UR-TODO-046 FX-F2C-1: FX conversion principal legs are internal asset reallocation, not household income/expense — excluded regardless of `type`, mirroring the existing zero-cash-flow-effect treatment of `transfer`. */
+export function transactionCashFlowSummary(transactions: FinancialTransaction[]) { return transactions.filter(t => t.status === 'posted' && !t.excluded && !t.fxConversionLeg).reduce((s, t) => ({ income: s.income + (t.type === 'income' ? t.amount : 0), expense: s.expense + (t.type === 'expense' ? t.amount : 0) }), { income: 0, expense: 0 }); }
 export const accountHasTransactions = (transactions: FinancialTransaction[], accountId: string) => transactions.some(t => t.accountId === accountId || t.transferAccountId === accountId);
