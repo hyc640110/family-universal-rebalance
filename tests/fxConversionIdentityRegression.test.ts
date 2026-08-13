@@ -94,9 +94,19 @@ test('UR-TODO-046 FX-F2B: the identity foundation module has no write path — i
   assert.doesNotMatch(identity, /setState/);
 });
 
-test('UR-TODO-046 FX-F2C-1: App.tsx wires only the delete-linkage guard from the FX conversion identity module, no producer or write path', () => {
+test('UR-TODO-046 FX-F2C-2: App.tsx wires the ordinary-delete linkage guard and the Manual FX Conversion Producer, but never constructs a raw FX payload literal itself', () => {
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-  // FX-F2C-1 authorizes exactly one caller (the ordinary-delete linkage guard); still no producer/write symbols.
-  assert.doesNotMatch(app, /FxConversionOpaquePayload|createFxConversion|createFxTransaction|resolveFxConversionEnvelope|resolveFxConversions\(|parseFxConversionPayloadV1|deriveFxConversionExecutedRate|isFxConversionPayloadCandidate/);
-  assert.match(app, /findLinkedFxConversionId/, 'F2C-1 delete-linkage guard must be the only FX conversion identity wiring in App.tsx');
+  // F2C-2 authorizes the producer to exist and be wired in — it must reuse the pure builder/
+  // deletion-plan functions (fxConversionProducer.ts), never hand-construct a payload with
+  // `kind: 'fx-conversion'` or call the F2B resolver/parser functions directly.
+  assert.doesNotMatch(app, /FxConversionOpaquePayload|resolveFxConversionEnvelope|resolveFxConversions\(|parseFxConversionPayloadV1|deriveFxConversionExecutedRate|isFxConversionPayloadCandidate|FX_CONVERSION_PAYLOAD_KIND/);
+  assert.match(app, /findLinkedFxConversionId/, 'F2C-1 ordinary-delete linkage guard must remain wired');
+  assert.match(app, /buildFxConversionCreation/, 'F2C-2 producer must go through the pure builder, not construct records inline');
+  assert.match(app, /buildFxConversionDeletion/, 'F2C-2 atomic delete must go through the pure deletion-plan builder');
+  assert.match(app, /isFxOpaqueProducerEnabled/, 'the write path must resolve the F1D gate itself, not only hide the UI');
+});
+
+test('UR-TODO-046 FX-F2C-2: the F1D source gate constant is untouched by the producer Sprint', () => {
+  const gate = readFileSync(new URL('../src/lib/fxOpaqueProducerGate.ts', import.meta.url), 'utf8');
+  assert.match(gate, /FX_OPAQUE_PRODUCER_SOURCE_GATE\s*=\s*false/, 'Production/Preview must both remain OFF after F2C-2');
 });

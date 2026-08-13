@@ -77,10 +77,15 @@ import { deriveLoanDataFreshness } from './lib/loanDataFreshness';
 import { formatTransactionAmount } from './lib/transactionPresentation';
 import { CASH_ACCOUNT_MIGRATION_VERSION, FINANCIAL_ACCOUNT_SCHEMA_VERSION, FINANCIAL_ACCOUNT_TYPES, createFinancialAccount, deactivateFinancialAccount, getFinancialAccountBalance, normalizeAccountState, normalizeFinancialAccounts, removeFinancialAccount, restoreFinancialAccount, updateFinancialAccount, type AccountBalanceMode, type FinancialAccount, type FinancialAccountType } from './lib/financialAccounts';
 import { TRANSACTION_SCHEMA_VERSION, accountHasTransactions, categoriesForTransactionType, createTransactionId, createTransferTransaction, deriveTransactionAccountBalances, normalizeTransactionCategory, normalizeTransactions, serializeTransactionCollection, transactionCategoryLabel, transactionCashFlowSummary, transactionSourceLabel, transactionStatusLabel, updateTransaction as updateTransactionRecord, validateTransferAccounts, type FinancialTransaction, type OpaqueFinancialTransactionEnvelope, type TransactionStatus, type TransactionType } from './lib/transactions';
-// UR-TODO-046 FX-F2C-1: the only authorized wiring point into the FX conversion identity module —
-// a read-only linkage lookup for the ordinary-delete guard. No producer, no write path (see
+// UR-TODO-046 FX-F2C-1: read-only linkage lookup reused by the ordinary-delete guard (see
 // findLinkedFxConversionId's own doc comment for why only `valid`-resolved envelopes count).
 import { findLinkedFxConversionId } from './lib/fxConversionIdentity';
+// UR-TODO-046 FX-F2C-2: the Manual FX Conversion Producer. Both functions are pure — this file
+// still owns the single `setState()` commit and the F1D gate resolution (isFxOpaqueProducerEnabled
+// below); see fxConversionProducer.ts's own doc comment for why it never imports the gate itself.
+import { buildFxConversionCreation, buildFxConversionDeletion, type FxConversionCreationInput } from './lib/fxConversionProducer';
+import { isFxOpaqueProducerEnabled } from './lib/fxOpaqueProducerGate';
+import FxConversionProducerForm from './components/fx/FxConversionProducerForm';
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
@@ -1632,9 +1637,42 @@ function App() {
   };
   // UR-TODO-046 FX-F1A: opaque transactions cannot be edited (their content is never interpreted),
   // only explicitly, irreversibly deleted after the user acknowledges the payload will be lost.
+  // UR-TODO-046 FX-F2C-2: if this opaque envelope is a `valid`-resolved FX conversion, routes to
+  // atomic FX delete (envelope + both legs, one confirmation, one setState) instead — anything
+  // else (not an FX payload, or an inconsistent one) falls through to the unchanged generic path.
   const deleteOpaqueTransaction = (id: string) => {
+    const current = stateRef.current;
+    const envelope = current.opaqueTransactions.find(entry => entry.id === id);
+    const fxPlan = envelope ? buildFxConversionDeletion(envelope, current.transactions) : { status: 'not-fx-conversion' as const };
+    if (fxPlan.status === 'success') {
+      if (!window.confirm('將一併刪除此換匯記錄及其兩筆關聯交易，無法復原，除非另有備份。確定要刪除嗎？')) return;
+      setState(current => ({
+        ...current,
+        transactions: current.transactions.filter(transaction => transaction.id !== fxPlan.sourceTransactionId && transaction.id !== fxPlan.destinationTransactionId),
+        opaqueTransactions: current.opaqueTransactions.filter(entry => entry.id !== id)
+      }));
+      return;
+    }
     if (!window.confirm('目前版本無法辨識此筆交易的完整內容，原始資料目前仍安全保存。刪除後其內容將永久移除，此操作不可復原，除非您另有備份。確定要刪除嗎？')) return;
     setState(current => ({ ...current, opaqueTransactions: current.opaqueTransactions.filter(entry => entry.id !== id) }));
+  };
+  // UR-TODO-046 FX-F2C-2: thin App-layer commit for the pure `buildFxConversionCreation()`
+  // builder — a single `setState()` on success, no state change on any failure. The gate is
+  // resolved here (never inside the pure builder) so the builder stays environment-agnostic.
+  const createFxConversion = (input: FxConversionCreationInput) => {
+    const current = stateRef.current;
+    const result = buildFxConversionCreation(input, {
+      accounts: current.accounts, transactions: current.transactions, opaqueTransactions: current.opaqueTransactions,
+      gateEnabled: isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)
+    });
+    if (result.status === 'success') {
+      setState(current => ({
+        ...current,
+        transactions: [...current.transactions, result.sourceLeg, result.destinationLeg],
+        opaqueTransactions: [...current.opaqueTransactions, result.envelope]
+      }));
+    }
+    return result;
   };
   const updateTransaction = (id: string, patch: Partial<FinancialTransaction>) => setState(current => { try { return { ...current, transactions: current.transactions.map(transaction => transaction.id === id ? updateTransactionRecord(transaction, patch, current.accounts) : transaction) }; } catch { return current; } });
   const commitImport = (session: ImportSession, imported: FinancialTransaction[]) => setState(current => ({ ...current, transactions: [...current.transactions, ...imported], importSessions: [...current.importSessions, session].slice(-50) }));
@@ -1860,7 +1898,7 @@ function App() {
           {accountWarning && <p className="warning-message">{accountWarning}</p>}
           <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
         </SectionCard>
-        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
+        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><FxConversionProducerForm enabled={isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)} accounts={state.accounts} transactions={state.transactions} onSubmit={createFxConversion} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
         <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
