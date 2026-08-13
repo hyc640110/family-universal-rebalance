@@ -1,6 +1,6 @@
 # Universal Rebalance Architecture Decisions
 
-版本：v1.6
+版本：v1.7
 
 最後更新：2026-08-13
 
@@ -39,6 +39,7 @@
 | ADR-007 | FX-A2 採 CBC FTDOpenData_Day JSON 經 Market Data Worker 的 fail-safe provider boundary | 已採用 |
 | ADR-008 | FX-A3 canonical TWD totals 採 unavailable propagation，禁止 mixed-currency naked sum 或靜默排除 | 已採用 |
 | ADR-009 | Transaction 層 mixed-version compatibility 採 domain-neutral 的 per-transaction opaque envelope，與 `FinancialEvent` 的 opaque 機制分開設計但同源精神 | 已採用 |
+| ADR-010 | FX opaque producer 上線採 Controlled Rollout Policy：pre-F1A／stale client 無法被 retroactively 保護（正式 architecture constraint），改用 narrow code-constant feature gate 做 risk reduction，非 absolute guarantee | 已採用 |
 
 ---
 
@@ -51,6 +52,23 @@
 **決策**：新增 domain-neutral 的 `OpaqueFinancialTransactionEnvelope`（`transactionOpaqueEnvelopeVersion` 明確 discriminator＋`id`＋不解讀的 `payload`），作為與 `FinancialTransaction` 分開、但在同一個 `AppState`／同一個持久化文件內共存的型別。`AppState` 以兩個獨立欄位（`transactions: FinancialTransaction[]`、`opaqueTransactions: OpaqueFinancialTransactionEnvelope[]`）取代把 `FinancialTransaction` 直接改成 union 的做法，讓既有 consumer 的型別簽章與行為完全不變（opaque 記錄在型別層級就不可能被誤讀進財務計算）；但在 localStorage／JSON Backup 的原始 JSON 上，兩者於持久化邊界（`serializeTransactionCollection()`）合併回單一 `transactions` 欄位，維持與任何其他版本 client 讀寫同一個欄位名稱的相容性，不新增第二套 store 或 localStorage key。`normalizeTransactions()` 明確三分：已知合法交易（沿用既有驗證邏輯）、明確帶 opaque marker 的記錄（原樣保留 `payload`，不解讀）、格式錯誤（含 marker 本身格式錯誤）一律 skipped——validation-failure 絕不能被誤判為 opaque。opaque 記錄不可編輯，只能在明確不可逆確認後刪除。
 
 **後果**：任何未來需要在 `FinancialTransaction` 引入目前 client 無法安全理解的新經濟語意（不限於 FX——investment／loan 未來的擴充亦可比照），都可以先讓舊版 client 安全地「不理解但不丟失、不誤算」，而不必每次都設計一套特製的相容機制。此決策不授權任何具體的新 transaction 經濟語意（`fxConversionAttribution` 等）、不追溯保護既有 `investmentAttribution`／`loanAttribution` 的 mixed-version 弱點（兩者維持現狀，若未來要補強須另行唯讀盤點與授權）、不修改 `FinancialEvent` Ledger 或其 opaque 機制本身。`TRANSACTION_SCHEMA_VERSION` 常數的角色維持不變（僅記錄用途，不參與 runtime 判斷）；此 opaque envelope 是「structural shape detection」而非「version number gate」，這與 `FinancialEvent` 的 `isV3OpaqueFinancialEventEnvelope()` 判斷方式一致。
+
+---
+
+## ADR-010：FX opaque producer 上線採 Controlled Rollout Policy：pre-F1A／stale client 無法被 retroactively 保護（正式 architecture constraint），改用 narrow code-constant feature gate 做 risk reduction，非 absolute guarantee
+
+**狀態**：已採用
+
+**背景**：ADR-009（FX-F1A）建立 opaque envelope 後，UR-TODO-046 FX-F1B（Consumer Guard Audit，Review Mode）逐一核對 account balance、cash-flow、reconciliation、runtime derived evidence、runtime attribution composition、Investment、Loan、Generic Split、Household Liquidity 等既有 consumer，確認全數以 `readonly FinancialTransaction[]` 型別簽章隔離，opaque 在編譯期即無法傳入計算——**consumer 本身不是問題**。真正的 blocker 是：pre-F1A（或任何尚未載入 F1A 程式碼的 stale tab）client 的 `normalizeTransactions()` 完全不認識 opaque marker，會把它誤判為格式錯誤而 skip；且該 client 的 `readStateWithSnapshotView()`／`writeState()` 是 root-overwrite（全量覆蓋 `localStorage`），只要該 client 執行任何一次持久化寫入（包含完全不需使用者操作的 boot-time hydration write），就會把該筆 opaque 記錄從 localStorage 永久抹除——此結論已直接以 `git show` 讀取 pre-F1A 版本的 `src/lib/transactions.ts`／`src/App.tsx` 原始碼證實，非推測。UR-TODO-046 FX-F1C（Producer Rollout / Minimum-Reader Compatibility Contract Review，Review Mode）進一步評估三個技術方案（Minimum Reader Version Gate、Producer Capability Version、Build/Stale-Tab Detection），逐一證實它們的共同弱點完全相同：**保護機制的本質是「新程式碼」，而「舊 client」的定義就是「沒有新程式碼」**——這是 SPA 架構下無法用資料格式設計解開的邏輯迴圈，因為任何 persistence-layer 的判斷邏輯都必須先被下載、解析、執行才能生效，pre-F1A client 的 JS bundle 裡完全不存在會讀取這些新欄位或做這些新判斷的程式碼。
+
+**決策**：
+1. **明確列為正式 architecture constraint**：任何 persistence-layer（資料格式層）的相容性設計，只能保護「執行該設計程式碼的 client」，無法對「該程式碼發布前就已載入記憶體、且此後不再重新載入該程式碼」的 client 產生任何保護效果。這不是 F1A／F1B／F1C／F1D 特定設計的缺陷，未來任何新增的 opaque capability（不限於 FX）都適用此限制，不得重新開放討論「是否真的無法保護舊 client」。
+2. **Preserve ≠ Interpret 邊界維持不變**：opaque 記錄可以被保存（persist）、顯示 placeholder、刪除；但不能被計算（account balance、cash-flow）、reconciliation、attribution、rebalance、liquidity 或任何形式的 AI 解讀。任何違反此邊界的 consumer 都是缺口，需獨立唯讀盤點與修正，不屬於本 ADR 授權範圍。
+3. **不建立 general persistence concurrency guard**（revision token、`storage` event、BroadcastChannel、lock、multi-tab last-write-wins 保護）。stale-tab overwrite 與一般 multi-tab last-write-wins 是同一個既有根本問題，但 opaque rollout 真正需要的是「時序保證」（所有 client 已升級）而非「並發保護」，兩者投資效益不對等，此類 general guard 留給未來獨立評估，不與 FX producer rollout 綁定。
+4. **改採 Controlled Rollout Policy**：以 **narrow、code-constant（source constant）的 feature gate** 取代任何依賴 persistence 欄位的 retroactive 方案，搭配既有 Preview／Production environment boundary（`environmentBoundary.ts`／`environmentIdentity()`）作為第二層防護——gate 的作用是**防止 Production 意外過早啟用第一個 opaque producer**，不是保護 legacy client。UR-TODO-046 FX-F1D 落地此決策：新增 `src/lib/fxOpaqueProducerGate.ts`，`deriveFxOpaqueProducerCapability(sourceGateEnabled, deploymentEnvironment)` 為長期可重用的純函式 contract（`sourceGateEnabled && deploymentEnvironment === 'preview'`），`isFxOpaqueProducerEnabled()` 讀取 hardcoded `FX_OPAQUE_PRODUCER_SOURCE_GATE = false`；Production 在任何 source gate 值下永遠不滿足此 contract。gate 本身不需要、也未新增任何 Vite env 或 schema／persistence 變更。
+5. **第一個 opaque FX producer 需要獨立明確授權**：即使 source gate 未來被翻成 `true`（僅限 Preview），仍不等於「已解決 legacy client 風險」，只代表「已排除 Production 意外過早啟用」這一項風險。正式解鎖前至少應包含：adoption window（依實際裝置／分頁使用節奏判斷，不得假設每日使用）、manual upgrade confirmation SOP、JSON Backup 前置、Preview producer 驗收通過、rollback policy（flag OFF＋redeploy，不刪除已存在的 opaque 記錄）。
+
+**後果**：本決策明確禁止任何未來 PR 把「已建立 feature gate」包裝成「已解決相容性問題」的宣稱——**risk reduction ≠ absolute compatibility guarantee**，這句話本身必須在未來任何相關 PR 說明、governance 文件或使用者溝通中保留，不得被簡化或省略。第一個 opaque FX producer（以及未來任何其他 domain 的 opaque producer）上線前，必須先確認 gate 為 Production OFF、Preview 依當時授權狀態，且使用者已理解「此為風險降低機制，非保證」後才可繼續。`fxConversionAttribution` 本身、FX rate provider／valuation、Investment／Loan attribution、Generic Split、`FinancialEvent` schema 均不受本決策影響，亦不因本決策自動被授權開始。
 
 ---
 
