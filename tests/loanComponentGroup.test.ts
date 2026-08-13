@@ -131,6 +131,24 @@ test('任一 component Void 時整組停止；重新確認只能使用新的完�
   assert.deepEqual([...resolution.validEventIds].sort(), ['new-interest', 'new-principal']);
 });
 
+test('兩個完整、皆 posted、皆未 void 的 confirmation group 共用同一 paymentId 時，雙方一律 fail-safe 排除，不得各自被確認一次', () => {
+  const groupA = [event('a-principal', 'principal', 'group-a'), event('a-interest', 'interest', 'group-a')];
+  const groupB = [event('b-principal', 'principal', 'group-b'), event('b-interest', 'interest', 'group-b')];
+  const resolution = resolveActiveLoanComponentGroups([...groupA, ...groupB], context);
+  assert.equal(resolution.validEventIds.size, 0, '不得任一 group 被單獨採用，也不得兩個 group 都被採用造成 double count');
+  assert.equal(resolution.confirmedPaymentIds.size, 0);
+
+  const base = {
+    openingSnapshot: { date: '2026-08-08', netWorth: 100_000, totalAssets: 100_000, investmentValue: 0, cash: 100_000, debt: 0 },
+    closingSnapshot: { date: '2026-08-09', netWorth: 95_000, totalAssets: 95_000, investmentValue: 0, cash: 95_000, debt: 0 },
+    transactions: [transaction], accounts: [createFinancialAccount({ id: 'cash-a', name: '現金', type: 'bank', manualBalance: 0 })], loans: [{ id: 'loan-a' }]
+  };
+  const result = composeRuntimeNetWorthAttribution({ ...base, ledgerEvents: [...groupA, ...groupB] });
+  assert.equal(result.ledgerContribution, 0, '兩組皆未被確認，不得產生 -5,000 或 -10,000 這類 double-count 的 Ledger 貢獻');
+  assert.equal(result.derivedContribution, -5_000, '整組失效後仍應 fallback 到單一 C3 derived evidence，不得漏記');
+  assert.deepEqual(result.reconciliationResults.map(item => [item.status, item.reason]), [['candidate', 'loan-payment-contract-candidate']]);
+});
+
 test('v1 保持可讀，v1/v2 Firebase Ledger 不安全混合一律拒絕', () => {
   const legacy = normalizeFinancialEventLedger({ financialEventSchemaVersion: 1, financialEvents: [] }, context);
   assert.equal(legacy.supported, true);

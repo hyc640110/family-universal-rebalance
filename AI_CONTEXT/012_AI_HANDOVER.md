@@ -8,6 +8,18 @@
 
 ---
 
+## 最新交接快照：UR-TODO-046 Loan principal／interest attribution Repository 唯讀盤點（NO-GO DEVELOPMENT，2026-08-13）
+
+- 任務背景：使用者指示先確認既有 `loan-payment` atomic contract（UR-TODO-046-L1，PR #294）是否已完整覆蓋 loan principal／interest attribution，不得預設一定需要寫程式，也不得為了「完成 Todo」硬改程式或建立第二套 Loan attribution 架構。
+- 盤點方法：兩個獨立唯讀 agent 分別深入 (a) 資料契約與 Atomic Group（`transactions.ts` 的 `LoanAttribution` discriminated union、`loanAttributionContract.ts` 的 identity 驗證、`financialEvents.ts` 的 `appendFinancialEventGroup()`／`resolveActiveLoanComponentGroups()`）、(b) attribution pipeline 與 persistence（`transactionReconciliation.ts`、`runtimeAttributionComposition.ts`、`netWorthAttribution.ts`、localStorage／JSON Backup round-trip），逐項附檔案路徑、行號與程式碼片段佐證，非依治理文件敘述推測。
+- 核心結論（Go/No-Go Gate 判定為情況 1，NO-GO DEVELOPMENT）：principal 恆為 0、interest／fee／penalty 恆為一次性負貢獻（derived 與 Ledger 兩條路徑結果一致）；`componentId`＋`paymentId`＋`confirmationGroupId` 三層 stable identity；`appendFinancialEventGroup()` 原子寫入、`resolveActiveLoanComponentGroups()` 完整性守恆（pending／mixed／不完整一律整組不生效）；reconciliation 的 candidate→matched 升級與三層 double-count 防護皆有程式碼與測試互證；void 一個 component 使整組正確回退為 candidate、貢獻正確從 Ledger 路徑轉回 derived 路徑；persistence round-trip 完整，schema v1/v2/v3 有明確 gate。Loan-payment 明確不與 Generic Split 共用通道（`genericSplitAllocation.ts` 排除 `domain==='loan-payment'`），現行專屬 contract 已足夠，不需要也不應該重做第二套。
+- 發現的唯一缺口是**測試覆蓋缺口，非程式碼邏輯缺口**：`resolveActiveLoanComponentGroups()` 的 `paymentCounts.get(paymentId) !== 1` fail-safe 理論上會排除「兩個完整、皆 posted、皆未 void、共用同一 paymentId」的 duplicate confirmation group，但先前沒有直接測試斷言。已在 `tests/loanComponentGroup.test.ts` 新增 1 個 regression test 驗證此行為，測試通過且**零生產程式碼變更**，證實現行 contract 本已正確處理。
+- 基線與變更：branch `feat/ur-todo-046-loan-attribution-audit` 從最新 `origin/main`（`69ea401cc6f892ae36991cc5dacbbd3f56c8e1b1`）建立。變更僅 `tests/loanComponentGroup.test.ts`（+18 行，新增 1 個 test）；`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功，`git diff --check` pass。
+- 明確不包含／未修改：`src/lib/netWorthAttribution.ts` 核心公式（未證明公式錯誤，未修改）、Generic Split、FX attribution、Investment attribution、Loan UI／CSV／Import Center、AI Decision、Rebalance、Household Liquidity、Worker、Firebase、Production 部署。
+- 下一直接起點：UR-TODO-046 下一真正缺口轉向 **FX attribution evidence／runtime integration**；Loan UI／CSV／Import Center producer mapping 為 delivery boundary（非 attribution consumer gap），須另行授權才可啟動。**不得自行 Merge、Ready for review 或部署 Production。**
+
+---
+
 ## 最新交接快照：UR-TODO-046 FX-A3 Foreign Cash Producer / Snapshot Integration（已完成／Merge／Production Verified，2026-08-13）
 
 - 正式基線：PR [#320](https://github.com/hyc640110/family-universal-rebalance/pull/320) 已正常 Merge，merge commit `46d7b25a6c0f4bf56464d9aaa4a7e6aadebd5b0e`（parents：`b9abbb0ba8bc0195a94ba255a43257689c592ed7`、`57ce13a3679d5c74141f7f477b1de6eb2c6dfb91`；`mergedAt: 2026-08-13T09:42:23Z`；`mergedBy: hyc640110`；正常 merge commit，未使用 admin override）。PR CI Verification run `31623622367` success；Merge 後 Deploy GitHub Pages run `31687807762` success（`event=push`、`branch=main`、head 與 merge commit 一致）。Production HTTP 200、`environment=production`、asset `index-BQwS4psK.js`；Preview HTTP 200、`environment=preview`、asset `index-CIIiw0Ut.js`；Production／Preview isolation 已驗證正常，assets 路徑各自獨立。
