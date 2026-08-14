@@ -108,7 +108,7 @@ import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentH
 import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
 import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
-import { deriveCreditCardDueSoonReminders } from './lib/creditCardReminders';
+import { deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate } from './lib/creditCardReminders';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -119,7 +119,7 @@ type LoanItem = { id: string; name: string; principal: number; annualRate: numbe
 // UR-TODO-060: B1 scope only — reminder date + manually entered amount, no transaction linkage,
 // no attribution/taxonomy type (unlike LoanItem's repayment attribution counterpart). `amount` is
 // the user-entered "this cycle's payment", independent of the linked account's actual balance.
-type CreditCardItem = { id: string; name: string; paymentDueDay: number; amount: number; linkedAccountId?: string; note?: string; asOf?: string };
+type CreditCardItem = { id: string; name: string; paymentDueDay: number; linkedAccountId?: string; note?: string; acknowledgedCycleDueDate?: string; asOf?: string };
 type LegacyFirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
 export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; opaqueTransactions: OpaqueFinancialTransactionEnvelope[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta };
@@ -353,12 +353,15 @@ function sanitizeLoanItem(l: LoanItem): LoanItem {
   return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths, asOf };
 }
 // UR-TODO-060: additive sibling to sanitizeLoanItem — paymentDueDay clamped to a valid
-// day-of-month (1-31); amount is the manually entered current-cycle payment, never derived.
+// day-of-month (1-31). `acknowledgedCycleDueDate` is reminder-display state only (mirrors
+// Loan's confirmationGroupId concept: one identifier per cycle, never touches
+// FinancialEvent/Ledger) — malformed values are dropped rather than guessed at, exactly like
+// `asOf`.
 function sanitizeCreditCardItem(c: CreditCardItem): CreditCardItem {
   const rawDay = Math.round(num(Number(c.paymentDueDay)));
   const paymentDueDay = Math.min(31, Math.max(1, rawDay || 15));
   const asOf = isCanonicalCalendarDay(c.asOf) ? c.asOf : localSnapshotDate();
-  return { id: c.id || uid(), name: c.name || '信用卡', paymentDueDay, amount: Math.max(0, num(Number(c.amount))), ...(c.linkedAccountId ? { linkedAccountId: c.linkedAccountId } : {}), ...(c.note ? { note: c.note } : {}), asOf };
+  return { id: c.id || uid(), name: c.name || '信用卡', paymentDueDay, ...(c.linkedAccountId ? { linkedAccountId: c.linkedAccountId } : {}), ...(c.note ? { note: c.note } : {}), ...(isCanonicalCalendarDay(c.acknowledgedCycleDueDate) ? { acknowledgedCycleDueDate: c.acknowledgedCycleDueDate } : {}), asOf };
 }
 function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
@@ -1085,8 +1088,18 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
 // never read by any balance/net-worth calculation.
 function CreditCardList({ items, setItems, accounts, isMobile }: { items: CreditCardItem[]; setItems: (items: SetStateAction<CreditCardItem[]>) => void; accounts: FinancialAccount[]; isMobile: boolean }) {
   const creditCardAccounts = accounts.filter(account => account.type === 'creditCard');
+  // UR-TODO-060: changing paymentDueDay redefines the billing cycle itself, so the previous
+  // acknowledgment (tied to the old day-of-month) is no longer meaningful — reseed it to the
+  // new day's most recent past occurrence. This is also what keeps a brand-new card from
+  // immediately reading as "overdue" for a cycle that predates its own creation (see the
+  // 新增 button below, which seeds the same way).
   const update = (id: string, patch: Partial<CreditCardItem>) => {
-    setItems(items => items.map(item => sanitizeCreditCardItem(item.id === id ? { ...item, ...patch, asOf: localSnapshotDate() } : item)));
+    setItems(items => items.map(item => {
+      if (item.id !== id) return item;
+      const today = localSnapshotDate();
+      const dueDayChanged = 'paymentDueDay' in patch && patch.paymentDueDay !== item.paymentDueDay;
+      return sanitizeCreditCardItem({ ...item, ...patch, asOf: today, ...(dueDayChanged ? { acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(patch.paymentDueDay as number, today) || undefined } : {}) });
+    }));
   };
   const remove = (item: CreditCardItem) => {
     if (window.confirm(`確定要刪除信用卡提醒「${item.name || '未命名'}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
@@ -1095,7 +1108,7 @@ function CreditCardList({ items, setItems, accounts, isMobile }: { items: Credit
   const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
   const labelStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', marginBottom: '0.75rem', boxSizing: 'border-box' } : {};
   const labelSpanStyle: CSSProperties = isMobile ? { fontSize: '0.9rem', color: '#888', marginBottom: '0.35rem', textAlign: 'left', display: 'block' } : {};
-  return <div className="list credit-card-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>繳費日前 3 天會自動顯示於首頁提醒，金額需手動輸入，系統不會自動加總信用卡消費。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>繳費日</span><span>本期應繳</span><span>關聯帳戶</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '信用卡'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>繳費日（1-31）</span><DraftInput type="number" min="1" value={item.paymentDueDay} onCommit={value => update(item.id, { paymentDueDay: Math.min(31, Math.max(1, parsePositive(value, item.paymentDueDay))) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>本期應繳（元）</span><DraftInput type="number" value={item.amount} onCommit={value => update(item.id, { amount: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>關聯帳戶</span><select value={item.linkedAccountId || ''} onChange={event => update(item.id, { linkedAccountId: event.currentTarget.value || undefined })}><option value="">未連結</option>{creditCardAccounts.map(account => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note || ''} onCommit={value => update(item.id, { note: value || undefined })} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '信用卡', paymentDueDay: 15, amount: 0 }])}>新增</button></div>;
+  return <div className="list credit-card-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>繳費日前 3 天會自動顯示於首頁提醒；未按「完成」會持續顯示為已逾期，直到確認或下個週期到期日再次進入提醒範圍。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>繳費日</span><span>關聯帳戶</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '信用卡'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>繳費日（1-31）</span><DraftInput type="number" min="1" value={item.paymentDueDay} onCommit={value => update(item.id, { paymentDueDay: Math.min(31, Math.max(1, parsePositive(value, item.paymentDueDay))) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>關聯帳戶</span><select value={item.linkedAccountId || ''} onChange={event => update(item.id, { linkedAccountId: event.currentTarget.value || undefined })}><option value="">未連結</option>{creditCardAccounts.map(account => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note || ''} onCommit={value => update(item.id, { note: value || undefined })} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => { const today = localSnapshotDate(); setItems(items => [...items, { id: uid(), name: '信用卡', paymentDueDay: 15, acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(15, today) || undefined }]); }}>新增</button></div>;
 }
 
 export function runtimeAttributionMemoDependencies(input: { openingSnapshot: NetWorthSnapshot | null; closingSnapshot: NetWorthSnapshot | null; financialEventSchemaVersion: number; financialEvents: readonly FinancialEvent[]; transactions: readonly FinancialTransaction[]; accounts: readonly FinancialAccount[]; loans: readonly LoanItem[] }): readonly unknown[] {
@@ -1506,8 +1519,12 @@ function App() {
   }), [decisionSummary.triggeredDipAlerts.length, householdLiquidityForRebalance, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
   // UR-TODO-060: independent homepage block, deliberately not folded into todayDecision's
   // single-conclusion priority chain — see deriveCreditCardDueSoonReminders' own doc comment
-  // for the B1-only (manual amount, no Ambiguous Debt Gate) scope boundary.
+  // for the active-cycle/acknowledgment design (a pure reminder-display concern, never
+  // FinancialEvent/Ledger data).
   const creditCardDueSoonReminders = useMemo(() => deriveCreditCardDueSoonReminders(state.creditCards, localSnapshotDate()), [state.creditCards]);
+  const acknowledgeCreditCardReminder = (id: string, dueDate: string) => {
+    setState(s => ({ ...s, creditCards: s.creditCards.map(item => item.id === id ? sanitizeCreditCardItem({ ...item, acknowledgedCycleDueDate: dueDate, asOf: localSnapshotDate() }) : item) }));
+  };
   const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
   const homeDecision = useMemo(() => deriveHomeDecision({ riskLevel:riskMetrics.overallLevel, rebalance:rb.thresholdReached, dip:decisionSummary.triggeredDipAlerts.length>0, wealthBehind:state.wealthGoal.targetYear !== undefined && wealthProjection.targetYearValue !== null && wealthProjection.targetYearValue < state.wealthGoal.targetAmount, quotesMissing:quoteSummaryText !== '報價正常', targetInvalid:Boolean(targetWarning), dataCompleteness: householdLiquidityForRebalance.dataCompleteness, safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall, investableCash: householdLiquidityForRebalance.investableCash }), [riskMetrics.overallLevel, rb.thresholdReached, decisionSummary.triggeredDipAlerts.length, state.wealthGoal, wealthProjection, quoteSummaryText, targetWarning, householdLiquidityForRebalance]);
   const targetCheck = useMemo(() => {
@@ -1960,7 +1977,7 @@ function App() {
         opportunities: investmentOpportunities,
         todayConclusion: todayDecision.conclusion,
         creditCardDueSoonReminders,
-      }} />}
+      }} onAcknowledgeCreditCardReminder={acknowledgeCreditCardReminder} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
