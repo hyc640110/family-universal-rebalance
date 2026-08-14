@@ -63,6 +63,8 @@
 
 **後果**：Production／Preview 兩份 build bundle 因 producer 現為真正 runtime 呼叫路徑（`isFxOpaqueProducerEnabled()` 的判斷發生在 runtime，Vite 無法對此做 build-time tree-shaking），**確認皆含**producer 相關程式碼——這與 ADR-010／ADR-011（F1D／F2B 零 caller、bundle 天然排除）的驗證方式不同，本 ADR 明確記錄此差異：未來任何驗證「gate 是否真正生效」都必須看 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 常數本身與 runtime 行為（例如本輪已完成的隔離 dev server 實機驗證：展開交易區塊後畫面不出現 Producer 表單），不能再用「bundle 是否包含相關字串」作為 Production OFF 的證據。**Producer 程式碼與測試的存在，不代表 capability 已啟用**：`FX_OPAQUE_PRODUCER_SOURCE_GATE` 本輪維持 `false` 全程未觸碰；即使未來翻轉為 `true`，依 ADR-010 既有設計也只會讓 Preview 具備 capability、Production 恆為 OFF，且翻轉本身仍須是另一個獨立、明確授權、單獨審查的 PR。本 ADR 不授權 `fxConversionAttribution`、`FinancialEvent` FX 接線、reconciliation `candidate`／`matched`、或任何形式的 Preview／Production capability 啟用。
 
+**執行更新（UR-TODO-046 FX-F2C-3，2026-08-14）**：本段第 3 點與「後果」預告的翻轉已依使用者明確授權執行——`FX_OPAQUE_PRODUCER_SOURCE_GATE` 改為 `true`，本 ADR 描述的雙層 gate 設計與 AND 邏輯本身**未修改**，執行方式與本 ADR 原始設計完全一致：Preview 因此首次具備 producer capability，Production 依 environment guard 繼續恆為 OFF。這不是新的架構決策，故不另立 ADR；仍是 **risk reduction，非 absolute legacy compatibility guarantee**（沿用 ADR-010 結論）——pre-F1A／stale client 的 retroactive 保護問題並未因此被解決或重新嘗試。Production unlock、`fxConversionAttribution`、`FinancialEvent` FX 接線、reconciliation `candidate`／`matched` 仍未授權，正式 Preview 環境驗收 PASS 是後續任何一項的必要 Gate。
+
 ---
 
 ## ADR-012：FX conversion principal legs 沿用既有 `expense`／`income` type，搭配 additive `fxConversionLeg` metadata 作為最小 consumer safety boundary；Producer 不得先於 Consumer Guard 上線

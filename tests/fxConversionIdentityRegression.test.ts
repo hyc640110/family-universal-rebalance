@@ -80,12 +80,8 @@ test('UR-TODO-046 FX-F2B: financialEvents.ts is not imported by, and does not im
   assert.doesNotMatch(identity, /from ['"]\.\/financialEvents['"]/);
 });
 
-// --- F1D gate remains OFF ---
-
-test('UR-TODO-046 FX-F2B: this Sprint does not touch the F1D source gate constant', () => {
-  const gate = readFileSync(new URL('../src/lib/fxOpaqueProducerGate.ts', import.meta.url), 'utf8');
-  assert.match(gate, /FX_OPAQUE_PRODUCER_SOURCE_GATE\s*=\s*false/);
-});
+// --- F1D gate: F2B/F2C-1/F2C-2 left it OFF; F2C-3 is the authorized Sprint that flips it
+// (see tests/fxOpaqueProducerGate.test.ts for the current-phase value assertions) ---
 
 test('UR-TODO-046 FX-F2B: the identity foundation module has no write path — it never imports the F1D gate and never writes to localStorage/AppState', () => {
   const identity = readFileSync(new URL('../src/lib/fxConversionIdentity.ts', import.meta.url), 'utf8');
@@ -106,7 +102,9 @@ test('UR-TODO-046 FX-F2C-2: App.tsx wires the ordinary-delete linkage guard and 
   assert.match(app, /isFxOpaqueProducerEnabled/, 'the write path must resolve the F1D gate itself, not only hide the UI');
 });
 
-test('UR-TODO-046 FX-F2C-2: the F1D source gate constant is untouched by the producer Sprint', () => {
-  const gate = readFileSync(new URL('../src/lib/fxOpaqueProducerGate.ts', import.meta.url), 'utf8');
-  assert.match(gate, /FX_OPAQUE_PRODUCER_SOURCE_GATE\s*=\s*false/, 'Production/Preview must both remain OFF after F2C-2');
+test('UR-TODO-046 FX-F2C-3: App.tsx\'s producer wiring is unchanged by the gate-enable Sprint — only the source gate constant moved, not the write-path call sites', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /buildFxConversionCreation/, 'F2C-3 must not touch the F2C-2 producer wiring, only the gate constant');
+  assert.match(app, /buildFxConversionDeletion/, 'F2C-3 must not touch the F2C-2 atomic delete wiring, only the gate constant');
+  assert.match(app, /isFxOpaqueProducerEnabled\(DEPLOYMENT_ENVIRONMENT\)/, 'F2C-3 must not change how the write path resolves the gate');
 });
