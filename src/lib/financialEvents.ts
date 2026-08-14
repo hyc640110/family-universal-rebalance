@@ -1,4 +1,5 @@
 import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
+import { normalizeFxConversionLink, type FinancialEventFxConversionLink } from './fxConversionIdentity';
 import { normalizeGenericSplitAllocationLink, resolveActiveGenericSplitAllocationGroups, type GenericSplitAllocationLink } from './genericSplitAllocation';
 import { validateLoanAttributionContract } from './loanAttributionContract';
 import type { FinancialTransaction } from './transactions';
@@ -28,7 +29,8 @@ export type FinancialEventType =
   | 'loan-interest-payment'
   | 'loan-fee'
   | 'loan-penalty'
-  | 'adjustment';
+  | 'adjustment'
+  | 'fx-conversion';
 
 export type FinancialEventStatus = 'pending' | 'posted' | 'void';
 /**
@@ -72,6 +74,8 @@ export type FinancialEvent = {
   componentLink?: FinancialEventComponentLink;
   /** v3 generic, domain-neutral atomic allocation component. */
   splitAllocationLink?: GenericSplitAllocationLink;
+  /** UR-TODO-046 FX-F2D: links a single `fx-conversion` event to its two-leg opaque conversion. */
+  fxConversionLink?: FinancialEventFxConversionLink;
   /** Only present on a source: 'void' event — the id of the event it voids. Forward-only: the voided event itself is never mutated. */
   voidedEventId?: string;
   note: string;
@@ -150,7 +154,8 @@ const EVENT_TYPES = new Set<FinancialEventType>([
   'loan-interest-payment',
   'loan-fee',
   'loan-penalty',
-  'adjustment'
+  'adjustment',
+  'fx-conversion'
 ]);
 const EVENT_STATUSES = new Set<FinancialEventStatus>(['pending', 'posted', 'void']);
 const EVENT_SOURCES = new Set<FinancialEventSource>(['manual', 'linked-transaction', 'attribution-confirmation', 'void']);
@@ -185,7 +190,7 @@ function normalizeIsoTimestamp(value: unknown): string | undefined {
 
 function omitOptionalKnownFields(event: FinancialEvent): FinancialEvent {
   const mutable = event as Record<string, unknown>;
-  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'componentLink', 'splitAllocationLink', 'voidedEventId']) {
+  for (const key of ['occurredAt', 'counterpartyAccountId', 'assetSymbol', 'loanId', 'transactionId', 'componentLink', 'splitAllocationLink', 'fxConversionLink', 'voidedEventId']) {
     if (mutable[key] === undefined) delete mutable[key];
   }
   return event;
@@ -227,7 +232,8 @@ export function linkedTransactionReason(
   transaction: FinancialTransaction,
   componentLink?: FinancialEventComponentLink,
   loanId?: string,
-  splitAllocationLink?: GenericSplitAllocationLink
+  splitAllocationLink?: GenericSplitAllocationLink,
+  fxConversionLink?: FinancialEventFxConversionLink
 ): string | undefined {
   if (transaction.status !== status) return 'linked transaction status 必須與事件一致';
   if (transaction.excluded) return 'linked transaction 不得是 excluded';
@@ -276,6 +282,11 @@ export function linkedTransactionReason(
   }
   if (type === 'dividend') return transaction.type === 'income' && transaction.categoryId === 'income-dividend' ? undefined : 'dividend 只可連結 income-dividend transaction';
   if (type === 'adjustment') return transaction.type === 'adjustment' ? undefined : 'adjustment 只可連結 adjustment transaction';
+  if (type === 'fx-conversion') {
+    return fxConversionLink && transaction.fxConversionLeg?.conversionId === fxConversionLink.conversionId
+      ? undefined
+      : 'fx-conversion 必須連結對應換匯記錄的 leg transaction';
+  }
   if (LOAN_EVENT_TYPES.has(type)) {
     const loan = transaction.loanAttribution;
     if (type === 'loan-disbursement') {
@@ -443,13 +454,19 @@ function normalizeEvent(
   if (record.componentLink !== undefined && !componentLink) return skip(skipped, index, 'componentLink 必須是完整 loan-payment linkage');
   const splitAllocationLink = record.splitAllocationLink === undefined ? undefined : normalizeGenericSplitAllocationLink(record.splitAllocationLink);
   if (record.splitAllocationLink !== undefined && !splitAllocationLink) return skip(skipped, index, 'splitAllocationLink 必須是完整 generic split allocation linkage');
+  const fxConversionLink = record.fxConversionLink === undefined ? undefined : normalizeFxConversionLink(record.fxConversionLink);
+  if (record.fxConversionLink !== undefined && !fxConversionLink) return skip(skipped, index, 'fxConversionLink 必須是完整換匯連結');
   const isLoanComponent = LOAN_EVENT_TYPES.has(type as FinancialEventType) && type !== 'loan-disbursement';
   if (schemaVersion === 1 && componentLink) return skip(skipped, index, 'v1 Ledger 不支援 componentLink');
   if (schemaVersion < 3 && splitAllocationLink) return skip(skipped, index, `v${schemaVersion} Ledger 不支援 splitAllocationLink`);
+  if (schemaVersion < 3 && fxConversionLink) return skip(skipped, index, `v${schemaVersion} Ledger 不支援 fxConversionLink`);
   if (schemaVersion >= 2 && isLoanComponent && !componentLink) return skip(skipped, index, `${type} 在 v${schemaVersion} 必須有 componentLink`);
   if (componentLink && (!isLoanComponent || !loanId || !TRANSACTION_LINKED_SOURCES.has(source as FinancialEventSource))) return skip(skipped, index, 'componentLink 只能用於 transaction-linked Loan component event');
   if (componentLink && splitAllocationLink) return skip(skipped, index, 'componentLink 與 splitAllocationLink 不得同時存在');
   if (splitAllocationLink && (LOAN_EVENT_TYPES.has(type as FinancialEventType) || source !== 'attribution-confirmation' || status !== 'posted')) return skip(skipped, index, 'splitAllocationLink 只能用於 posted attribution-confirmation 的非 Loan event');
+  if (fxConversionLink && (componentLink || splitAllocationLink)) return skip(skipped, index, 'fxConversionLink 不得與 componentLink／splitAllocationLink 同時存在');
+  if (fxConversionLink && (type !== 'fx-conversion' || source !== 'attribution-confirmation' || status !== 'posted')) return skip(skipped, index, 'fxConversionLink 只能用於 posted attribution-confirmation 的 fx-conversion event');
+  if (type === 'fx-conversion' && !fxConversionLink) return skip(skipped, index, 'fx-conversion 必須有 fxConversionLink');
 
   const transactionId = optionalText(record.transactionId);
   if (source === 'manual' && transactionId) return skip(skipped, index, 'manual event 不得設定 transactionId');
@@ -457,7 +474,7 @@ function normalizeEvent(
     if (!transactionId || !context.transactionIds.has(transactionId)) return skip(skipped, index, `${source} 必須連結既有 transactionId`);
     const transaction = context.transactionsById.get(transactionId);
     if (!transaction) return skip(skipped, index, `${source} 缺少可驗證的 transaction 資料`);
-    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction, componentLink, loanId, splitAllocationLink);
+    const reason = linkedTransactionReason(type as FinancialEventType, status as FinancialEventStatus, amount, currency, accountId, counterpartyAccountId, effectiveDate, transaction, componentLink, loanId, splitAllocationLink, fxConversionLink);
     if (reason) return skip(skipped, index, reason);
     if (type === 'investment-fee') {
       const costReason = linkedInvestmentCostReason(transaction, context.transactionsById);
@@ -499,6 +516,7 @@ function normalizeEvent(
     ...(transactionId ? { transactionId } : {}),
     ...(componentLink ? { componentLink } : {}),
     ...(splitAllocationLink ? { splitAllocationLink } : {}),
+    ...(fxConversionLink ? { fxConversionLink } : {}),
     ...(voidedEventId ? { voidedEventId } : {}),
     note,
     createdAt,

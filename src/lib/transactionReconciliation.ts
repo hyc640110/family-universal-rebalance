@@ -1,8 +1,9 @@
 import { canonicalCalendarDay } from './calendarDay';
 import type { FinancialAccount } from './financialAccounts';
+import { resolveActiveFxConversionGroups, resolveFxConversionEnvelope } from './fxConversionIdentity';
 import { resolveActiveGenericSplitAllocationGroups } from './genericSplitAllocation';
 import type { FinancialEvent, FinancialEventType } from './financialEvents';
-import type { FinancialTransaction } from './transactions';
+import type { FinancialTransaction, OpaqueFinancialTransactionEnvelope } from './transactions';
 import { validateLoanAttribution } from './loanAttribution';
 
 export type TransactionReconciliationStatus = 'matched' | 'candidate' | 'unsupported' | 'ambiguous' | 'duplicate' | 'invalid';
@@ -24,6 +25,8 @@ export type TransactionReconciliationReason =
   | 'loan-contract-unsupported'
   | 'linked-loan-cash-movement'
   | 'safe-taxonomy-candidate'
+  | 'fx-conversion-contract-candidate'
+  | 'linked-fx-conversion'
   | 'not-posted'
   | 'excluded'
   | 'unsupported-taxonomy'
@@ -51,6 +54,8 @@ export type TransactionReconciliationInput = {
   ledgerEvents: readonly FinancialEvent[];
   /** Optional for backward compatibility; without actual Loan identities, Loan contracts remain fail-safe. */
   loanIds?: ReadonlySet<string>;
+  /** UR-TODO-046 FX-F2D: optional for backward compatibility; without opaque envelopes, FX conversions remain fail-safe unsupported. */
+  opaqueTransactions?: readonly OpaqueFinancialTransactionEnvelope[];
 };
 
 type Candidate = { eventType: TransactionReconciliationEventType } | { reason: TransactionReconciliationReason };
@@ -163,9 +168,10 @@ function isSimilarManualEvent(event: FinancialEvent, transaction: FinancialTrans
  */
 export function reconcileTransactions(input: TransactionReconciliationInput): TransactionReconciliationResult[] {
   const accountById = new Map(input.accounts.map(account => [account.id, account]));
-  const genericSplitResolution = resolveActiveGenericSplitAllocationGroups(input.ledgerEvents, {
-    transactionsById: new Map(input.transactions.map(transaction => [transaction.id, transaction]))
-  });
+  const transactionsById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
+  const genericSplitResolution = resolveActiveGenericSplitAllocationGroups(input.ledgerEvents, { transactionsById });
+  const opaqueTransactionsById = new Map((input.opaqueTransactions || []).map(envelope => [envelope.id, envelope]));
+  const fxConversionResolution = resolveActiveFxConversionGroups(input.ledgerEvents, transactionsById, opaqueTransactionsById);
   const tradeIdentityCounts = new Map<string, number>();
   const costIdentityCounts = new Map<string, number>();
   const tradeTransactionsByCashMovementId = new Map<string, FinancialTransaction[]>();
@@ -200,7 +206,15 @@ export function reconcileTransactions(input: TransactionReconciliationInput): Tr
      * it takes unconditional priority.
      */
     if (transaction.fxConversionLeg) {
-      return { transactionId: transaction.id, status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false };
+      const envelope = opaqueTransactionsById.get(transaction.fxConversionLeg.conversionId);
+      const resolution = envelope ? resolveFxConversionEnvelope(envelope, transactionsById) : null;
+      if (!resolution || resolution.status !== 'valid') {
+        return { transactionId: transaction.id, status: 'unsupported', reason: 'fx-attribution-unsupported', completedPeriodEvidence: false };
+      }
+      if (fxConversionResolution.confirmedConversionIds.has(resolution.conversionId)) {
+        return { transactionId: transaction.id, status: 'matched', reason: 'linked-fx-conversion', completedPeriodEvidence: transaction.status === 'posted' };
+      }
+      return { transactionId: transaction.id, status: 'candidate', reason: 'fx-conversion-contract-candidate', completedPeriodEvidence: false };
     }
     const loan = transaction.loanAttribution;
     if (loan) {

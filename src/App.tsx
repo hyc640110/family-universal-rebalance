@@ -1643,7 +1643,11 @@ function App() {
   const deleteOpaqueTransaction = (id: string) => {
     const current = stateRef.current;
     const envelope = current.opaqueTransactions.find(entry => entry.id === id);
-    const fxPlan = envelope ? buildFxConversionDeletion(envelope, current.transactions) : { status: 'not-fx-conversion' as const };
+    const fxPlan = envelope ? buildFxConversionDeletion(envelope, current.transactions, current.financialEvents) : { status: 'not-fx-conversion' as const };
+    if (fxPlan.status === 'confirmed-delete-blocked') {
+      window.alert('此換匯記錄已正式確認，請先撤銷正式記帳後再刪除。');
+      return;
+    }
     if (fxPlan.status === 'success') {
       if (!window.confirm('將一併刪除此換匯記錄及其兩筆關聯交易，無法復原，除非另有備份。確定要刪除嗎？')) return;
       setState(current => ({

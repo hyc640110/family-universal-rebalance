@@ -57,13 +57,13 @@ test('UR-TODO-046 FX-F2B: ordinary known transactions are completely unaffected 
   assert.equal(transactions[0].amount, 500);
 });
 
-// --- Reconciliation must remain unchanged ---
+// --- Reconciliation: F2B/F2C left it untouched; F2D is the authorized Sprint that wires it in ---
 
-test('UR-TODO-046 FX-F2B: transactionReconciliation.ts is not imported by, and does not import, the FX conversion identity module', () => {
+test('UR-TODO-046 FX-F2D: transactionReconciliation.ts consumes fxConversionIdentity.ts (authorized by this Sprint), but the dependency remains one-directional', () => {
   const reconciliation = readFileSync(new URL('../src/lib/transactionReconciliation.ts', import.meta.url), 'utf8');
-  assert.doesNotMatch(reconciliation, /fxConversionIdentity/, 'F2B foundation existing must not make reconciliation start consuming FX conversions yet');
+  assert.match(reconciliation, /from ['"]\.\/fxConversionIdentity['"]/, 'F2D authorizes reconciliation to consume resolveActiveFxConversionGroups()/resolveFxConversionEnvelope()');
   const identity = readFileSync(new URL('../src/lib/fxConversionIdentity.ts', import.meta.url), 'utf8');
-  assert.doesNotMatch(identity, /from ['"]\.\/transactionReconciliation['"]/);
+  assert.doesNotMatch(identity, /from ['"]\.\/transactionReconciliation['"]/, 'the identity module must never import back from reconciliation — no circular dependency');
 });
 
 test('UR-TODO-046 FX-F2B: non-TWD transactions still resolve to fx-attribution-unsupported in reconciliation, unchanged by this Sprint', () => {
@@ -71,13 +71,13 @@ test('UR-TODO-046 FX-F2B: non-TWD transactions still resolve to fx-attribution-u
   assert.match(reconciliation, /fx-attribution-unsupported/);
 });
 
-// --- FinancialEvent must remain unchanged ---
+// --- FinancialEvent: F2B/F2C left it untouched; F2D is the authorized Sprint that wires it in ---
 
-test('UR-TODO-046 FX-F2B: financialEvents.ts is not imported by, and does not import, the FX conversion identity module', () => {
+test('UR-TODO-046 FX-F2D: financialEvents.ts consumes fxConversionIdentity.ts\'s normalizeFxConversionLink (authorized by this Sprint), but the dependency remains one-directional', () => {
   const events = readFileSync(new URL('../src/lib/financialEvents.ts', import.meta.url), 'utf8');
-  assert.doesNotMatch(events, /fxConversionIdentity/);
+  assert.match(events, /from ['"]\.\/fxConversionIdentity['"]/, 'F2D authorizes financialEvents.ts to normalize fxConversionLink via fxConversionIdentity.ts');
   const identity = readFileSync(new URL('../src/lib/fxConversionIdentity.ts', import.meta.url), 'utf8');
-  assert.doesNotMatch(identity, /from ['"]\.\/financialEvents['"]/);
+  assert.doesNotMatch(identity, /from ['"]\.\/financialEvents['"]/, 'the identity module must never import back from financialEvents.ts — no circular dependency');
 });
 
 // --- F1D gate: F2B/F2C-1/F2C-2 left it OFF; F2C-3 is the authorized Sprint that flips it
