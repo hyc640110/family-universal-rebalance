@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.80
+# Universal Rebalance Todo Backlog v1.81
 
 最後更新：2026-08-14
+
+2026-08-14 **治理同步：UR-TODO-054-A（Loan Confirmation UI）正式標記 CLOSED，UR-TODO-054 正式拆分為 054-A／054-B／054-C 三個子項，054-B（FX Confirmation UI）Contract Audit 判定 GO、狀態更新為「待開發」。** 054-A 已於 PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331) 正式 Merge（merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`／`0184834b5da0b618ca44981b6e231a1b230c1791`，一般 merge commit，未使用 admin override；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`），落地 Minimal Loan Repayment Producer、Loan Group Candidate Review、Confirm、Atomic Void、Reconfirm，並修正 `RuntimeAttributionProvenanceCard` 對 Loan derived component 錯誤暴露 component-level generic confirmation 按鈕的既有 UI safety 缺口；Deploy GitHub Pages run `31804595653` success，Production／Preview HTTP 200，`origin/main` 現為 `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`。開發過程中發現並修正兩項真實 Preview 阻斷 bug（confirm helper 回傳語意誤用、`canonicalCalendarDay()` 未保護呼叫的靜默失敗風險），詳見下方 UR-TODO-054-A 正式條目。**UR-TODO-054-B（FX Confirmation UI）Review Mode Contract Audit 已完成，正式判定 GO**：既有 FX confirm／void／reconfirm core contract（`confirmFxConversionAndAppend()`、`resolveActiveFxConversionGroups()`）已完整、已測試（130 個相關測試現況 0 fail），結構上比 Loan 更單純（一次確認只產生 1 筆 `fx-conversion` FinancialEvent，非多筆 component group，無需獨立 confirmationGroupId），且已確認**不需要**修改 `RuntimeAttributionProvenanceCard`（FX 沒有 Loan 式的 derived-evidence 洩漏路徑）；唯一需要開發階段特別注意的方向性差異是 `confirmFxConversionAndAppend()` 成功時 `result.events` 為**完整合併 Ledger**（與 Loan 相反，caller 須 replace 不得 append）。**Production FX Producer 維持 OFF、Preview 維持 ON，054-B 不修改 feature gate、不啟用 Production Producer**，FX Production Producer Enable 仍是獨立、需另行明確授權的 Controlled Rollout Policy 決策，不因 054-B 開發或完成而自動觸發。UR-TODO-054-C（Generic Split Confirmation UI）狀態維持「待規劃」，尚未進行 Contract Audit。詳見下方更新後的 **UR-TODO-054／054-A／054-B／054-C** 正式條目。
 
 2026-08-14 **UR-TODO-046（淨值成長來源歸因與記錄／實際落差核對）正式結案，標記為 CLOSED。** Final Audit（Review Mode，唯讀盤點）確認核心 attribution／FinancialEvent／reconciliation／persistence／safety contract 全數完成（Ledger foundation、Investment 046-I1、Loan 046-L1、Generic Split 046-L2A/L2B、FX 全序列 A1-A3／F1A-F1D／F2A-F2D），FX-F2C-3（PR #328，merge commit `e27860db566c47a3d6c57716d79712a325ac8336`）與 FX-F2D（PR #329，merge commit `6ad9f5802165f0d1b78b4dd13a151584afcbf00f`）皆已正式 Merge／Production Verified，`origin/main` 現為 `6ad9f5802165f0d1b78b4dd13a151584afcbf00f`；`npm run test:ci` 重新確認 1047 tests pass（0 fail）。Production Producer 確認仍 OFF、Preview Producer 確認 ON（已於正式部署站點以真實瀏覽器操作雙向驗證）。剩餘項目（confirmation lifecycle UI、Loan／Investment delivery mapping、FX valuation attribution 等 future enhancement）已全數轉為獨立 Todo：**UR-TODO-054**（Attribution Confirmation Lifecycle UI）、**UR-TODO-055**（Loan／Investment Delivery Mapping）、**UR-TODO-056**（FX Enhancement Bundle），不再留在本 Todo 底下。PR #322 維持 Draft／OPEN，不阻擋本次結案。詳見下方更新後的 **UR-TODO-046** 正式條目與新增的 **UR-TODO-054／055／056**。
 
@@ -939,16 +941,48 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-054 Attribution Confirmation Lifecycle UI（FX／Loan／Generic Split）
 
 - 優先級：待評估
-- 狀態：**待規劃**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出）
+- 狀態：**開發中**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發）
 - 提出日期：2026-08-14
-- 背景：UR-TODO-046 已完成 FX（F2D）、Loan（046-L1）、Generic Split（046-L2A/L2B）三個 domain 的正式 attribution contract（identity、reconciliation candidate/matched、zero-effect 或明示 contribution、duplicate prevention、void/forward-only correction），但三者的正式確認（confirm）動作目前**皆只存在於函式庫層級**：`confirmFxConversionAndAppend()`（`fxConversionAttributionConfirmation.ts`）、`confirmLoanPaymentGroupAndAppend()`（Loan）等在 `App.tsx` **零呼叫**，一般使用者無法透過畫面實際確認、撤銷（void）或重新確認（reconfirm）任何一筆這三個 domain 的正式記帳事件。既有唯一有 UI 入口的確認流程是 `RuntimeAttributionProvenanceCard` 的「確認並正式記帳」按鈕，但其 `confirmAttributionEvidence` handler 硬編碼只處理 `derivedEvidenceItems`（`safe-taxonomy-candidate` 專用），FX／Loan／Generic Split 的 candidate reason（`fx-conversion-contract-candidate`／`loan-payment-contract-candidate` 等）結構上不會進入此卡片。
-- 範圍（草案，待正式盤點與拍板）：
-  - 是否三個 domain 共用一套 confirmation UI 元件，或各自獨立
-  - candidate 列表呈現方式（例如是否延伸既有 `RuntimeAttributionProvenanceCard`，或另建專屬卡片／頁面）
-  - confirm／void／reconfirm 三個動作各自的確認文案與不可逆警示
-  - FX 特別注意：一次 conversion 的兩腿共享同一 `conversionId`，UI 必須呈現為「1 個可確認項目」，不得產生使用者對同一次換匯誤操作兩次確認的介面
+- 背景：UR-TODO-046 已完成 FX（F2D）、Loan（046-L1）、Generic Split（046-L2A/L2B）三個 domain 的正式 attribution contract（identity、reconciliation candidate/matched、zero-effect 或明示 contribution、duplicate prevention、void/forward-only correction），但三者的正式確認（confirm）動作原本**皆只存在於函式庫層級**：`confirmFxConversionAndAppend()`（`fxConversionAttributionConfirmation.ts`）、`confirmLoanPaymentGroupAndAppend()`（Loan）等在 `App.tsx` 零呼叫，一般使用者無法透過畫面實際確認、撤銷（void）或重新確認（reconfirm）任何一筆這三個 domain 的正式記帳事件。既有唯一有 UI 入口的確認流程是 `RuntimeAttributionProvenanceCard` 的「確認並正式記帳」按鈕，但其 `confirmAttributionEvidence` handler 硬編碼只處理 `derivedEvidenceItems`（`safe-taxonomy-candidate` 專用），FX／Loan／Generic Split 的 candidate reason（`fx-conversion-contract-candidate`／`loan-payment-contract-candidate` 等）結構上不會進入此卡片。**Loan（054-A）已於 2026-08-14 正式完成並 Merge，詳見下方 054-A 條目；此為三個子項中第一個落地的先例，確認「各 domain 各自獨立 UI 元件、不共用 confirmation framework」為可行且已驗證的實作模式。**
+- 三個 domain 各自獨立唯讀盤點、產品決策與明確授權後才開始開發，不因其中一項完成而自動解鎖其餘子項；子項清單與現況見下方 054-A／054-B／054-C。
 - 明確不包含：修改任何既有 attribution／reconciliation／FinancialEvent 核心邏輯（UR-TODO-046 已完成部分不得重新開放討論）；新增 domain；修改 schema／persistence
 - 依賴：UR-TODO-046（已 CLOSED，contract 基礎已具備）
+
+#### UR-TODO-054-A Loan Confirmation UI
+
+- 狀態：**CLOSED（2026-08-14）／已完成**
+- 完成內容：Minimal Loan Repayment Producer（`loanRepaymentProducer.ts`／`LoanRepaymentProducerForm.tsx`，只建立 `loan-payment-contract-candidate`，不自動確認）、Candidate Review（`loanConfirmationPresentation.ts`，group-by-`paymentId`，把 flat per-component runtime evidence 摺疊成單一還款單位）、Confirm（重用既有 `confirmLoanPaymentGroupAndAppend()`）、Atomic Void（重用既有 `voidFinancialEventAndAppend()`，對整組任一 active component event 呼叫一次即可使 `resolveActiveLoanComponentGroups()` 判定整組失效，已用真實 runtime 資料——非僅 presentation——驗證整組 `ledgerContribution` 歸零、`derivedContribution` 重新出現）、Reconfirm（重新呼叫既有 confirm helper，helper 自動建立全新 `confirmationGroupId`，新舊 component 不混接，已用真實 runtime 資料驗證兩個 confirmationGroupId 各自獨立、無交叉污染）、**修正 `RuntimeAttributionProvenanceCard` 既有 UI safety 缺口**——原本會把 Loan 的 interest／fee／penalty derived component 誤判為一般 `derivedEvidenceItems`、暴露一個結構上必然失敗的 component-level「確認並正式記帳」按鈕（`item.id` 是 `loan-payment:<paymentId>:<componentId>` 合成字串而非 transactionId），現已於 `runtimeAttributionPresentation.ts` 用穩定的 domain signal（五個 `loan-*` `FinancialEventType` 字面值 exact match）排除，Loan Group Confirmation Card 成為 Loan 確認的唯一入口。
+- Preview 驗收：**PASS**（使用者於無痕視窗完整驗證 candidate→confirm→matched→撤銷整組→待重新確認全流程，視覺與底層資料一致）。
+- Atomic Void Runtime 驗證：**PASS**（Review Mode Debug Trace 直接以 `composeRuntimeNetWorthAttribution()` 真實計算結果證明 void 後整組 `Ledger 貢獻` 歸零、`衍生貢獻` 正確恢復，reconfirm 後新舊 confirmationGroupId 互不干擾、無雙重計算）。
+- 開發過程中發現並修正一個真實 Preview 阻斷 bug：`confirmLoanPaymentGroupAndAppend()` 成功時 `result.events` 只回傳新建的那組事件、不是完整合併後的 Ledger（與 FX 對應 helper 的語意不同），App.tsx caller 原先誤用「取代」語意，已修正為「附加」；另修正 `buildLoanPaymentConfirmationGroup()` 對 `transaction.occurredAt` 的未保護 `canonicalCalendarDay()` 呼叫可能造成的靜默失敗風險（於 App.tsx caller 與 UI 元件兩層皆補上 try/catch 防禦）。
+- Merge 資訊：**PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331)**，merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`（merge 前 main）／`0184834b5da0b618ca44981b6e231a1b230c1791`（PR head），**一般 merge commit，未使用 admin override**；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`。Deploy GitHub Pages run [31804595653](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31804595653) success，headSha 與 merge commit 一致；Production／Preview 皆 `curl` 實測 HTTP 200，Production 唯讀確認新「登記還款」Producer UI 已存在、console 無錯誤，未在 Production 建立任何測試資料。
+- 明確不包含：FX（見 054-B）、Generic Split（見 054-C）、Investment（不需要——已用 runtime 證據確認 Investment 買賣本就走既有通用 `safe-taxonomy-candidate`／`RuntimeAttributionProvenanceCard` 路徑，非本次遺漏的缺口）、CSV／Import Center（見 UR-TODO-055）、schema／persistence／attribution calculator／reconciliation 核心修改。
+
+#### UR-TODO-054-B FX Confirmation UI
+
+- 狀態：**待開發**（Review Mode Contract Audit 已完成，正式判定 **GO**，尚未下達「開始開發」）
+- Contract Audit 結論（唯讀盤點，2026-08-14）：
+  1. FX Confirmation 既有 core contract 已完整：candidate（`fx-conversion-contract-candidate`）／confirm（`confirmFxConversionAndAppend()`）／matched（`linked-fx-conversion`）／void（既有通用 `voidFinancialEventAndAppend()`）／reconfirm，四個生命週期階段皆已用測試鎖定（`tests/fxConversionAttribution.test.ts` 等，本輪重新執行相關 130 個測試 0 fail）。
+  2. 一次 FX confirmation 只產生 **1 筆** `fx-conversion` `FinancialEvent`（不是 Loan 式的多筆 component group）。
+  3. `conversionId`（＝ opaque envelope id）＝經濟身分，永久不變；`FinancialEvent.id`＝確認嘗試身分，每次 confirm／reconfirm 皆全新。
+  4. **無 Loan 式 `confirmationGroupId`**——因只有 1 筆事件，不需要第二層 group identity。
+  5. Void 只需對唯一那筆 confirmation event 呼叫一次既有 void primitive，結構上不存在「部分 void、sibling 孤兒殘留」的問題（因為根本沒有 sibling）。
+  6. Reconfirm 產生新的 `FinancialEvent.id`，`conversionId` 不變，新舊事件不混接（已用測試鎖定）。
+  7. **不需要修改 `RuntimeAttributionProvenanceCard` 的 FX 排除**——與 Loan 不同，FX 沒有獨立的 derived-evidence 產生路徑（沒有 `deriveLoanRuntimeEvidence()` 的 FX 對應物），結構上 FX candidate 不可能出現在 `derivedEvidenceItems` 中，Loan 054-A 遇到的 UI safety 缺口在 FX 不存在。
+  8. **關鍵、與 Loan 相反的差異，開發時必須注意**：`confirmFxConversionAndAppend()` 成功時 `result.events` ＝**完整合併後的 Ledger**（`appendFinancialEvent()` 回傳 `[...existingEvents, newEvent]`），caller **必須直接 replace** `state.financialEvents`，**不得**像 Loan 那樣再做一次 `[...current.financialEvents, ...result.events]` 附加（會造成整個既有 Ledger 重複疊加一次）。
+  9. Preview Producer＝ON、Production Producer＝OFF（維持既有 F2C-3 狀態，本輪未變動、054-B 開發也不應變動）。
+  10. 054-B 不修改 feature gate、不啟用 Production Producer——Confirmation UI 只消費既有 candidate，與 Producer gate 完全獨立；Production 因目前無既有 FX candidate 資料，UI 上線後自然不顯示任何項目，Preview 已具備完整 candidate 建立能力可完整驗收。
+  11. FX Production Producer Enable 維持既有 ADR-010／ADR-013 **Controlled Rollout Policy** 框架，是獨立、需另行明確授權的 product deployment decision，**不因 054-B 開發或完成而自動觸發**。
+- 明確不包含：FX gain/loss attribution、其他貨幣對（JPY/EUR）擴充、自動 FX pairing、進階 fee attribution（以上四項見 UR-TODO-056）、Production Producer Enable（獨立 rollout 決策）、Generic Split（見 054-C）、Investment、Import Center／CSV／Excel、schema、migration、persistence、attribution calculator、reconciliation 核心修改。
+- 依賴：UR-TODO-046（已 CLOSED，F2D principal attribution 基礎已具備）；054-A（已 CLOSED，證明「各 domain 獨立 UI 元件」模式可行，054-B 建議沿用同一實作模式而非抽出共用 framework）。
+- 驗收條件（待正式排入開發時另訂）
+
+#### UR-TODO-054-C Generic Split Confirmation UI
+
+- 狀態：**待規劃**（尚未進行 Contract Audit）
+- 說明：Generic Split（046-L2A/L2B）的 confirm／void／reconfirm primitive 現況與 054-A 開發前的 Loan 類似——`appendGenericSplitAllocationGroup()`／`resolveActiveGenericSplitAllocationGroups()` 等已存在於函式庫層級，`App.tsx` 尚無呼叫。是否可直接沿用 054-A 的 Loan Confirmation UI 實作模式（group-by-allocation-identity 的獨立元件），或有 Generic Split 特有的差異，需另行唯讀盤點確認，本輪未評估，不預先假設。
+- 明確不包含：在 054-B（FX）Audit／開發完成前開始；修改既有 attribution 核心 contract。
+- 依賴：UR-TODO-046（已 CLOSED）
 - 驗收條件（待正式排入時另訂）
 
 ### UR-TODO-055 Loan／Investment Delivery Mapping（UI／CSV／Import Center）
