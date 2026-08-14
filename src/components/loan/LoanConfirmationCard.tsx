@@ -38,8 +38,18 @@ function GroupRow({ group, loanLabel, onConfirm, onVoid }: {
 
   const handleConfirm = () => {
     if (!window.confirm(CONFIRM_DIALOG_TEXT(loanLabel, group.settlementAmount))) return;
-    const outcome = onConfirm(group.paymentId);
-    setError(outcome.rejected ? outcome.reason : null);
+    // Defense-in-depth: App.tsx's confirmLoanRepaymentGroup() already guards its own call chain
+    // (see its own doc comment for the specific PR #331 Preview regression this closes), but a
+    // click here must never be able to produce zero visible effect regardless of what onConfirm
+    // does internally now or in the future — an uncaught throw from a click handler is invisible
+    // to the user (no Error Boundary covers event handlers), which is indistinguishable from "the
+    // button did nothing".
+    try {
+      const outcome = onConfirm(group.paymentId);
+      setError(outcome.rejected ? outcome.reason : null);
+    } catch (thrown) {
+      setError(`確認時發生未預期的錯誤，請重新整理頁面後再試一次。${thrown instanceof Error ? `（${thrown.message}）` : ''}`);
+    }
   };
 
   const handleVoid = () => {

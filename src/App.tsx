@@ -91,7 +91,7 @@ import FxConversionProducerForm from './components/fx/FxConversionProducerForm';
 // commit, exactly mirroring createFxConversion() above.
 import { buildLoanRepaymentCreation, type LoanRepaymentCreationInput } from './lib/loanRepaymentProducer';
 import { deriveLoanRepaymentGroupPresentations } from './lib/loanConfirmationPresentation';
-import { confirmLoanPaymentGroupAndAppend } from './lib/loanAttributionConfirmation';
+import { confirmLoanPaymentGroupAndAppend, type LoanPaymentConfirmationResult } from './lib/loanAttributionConfirmation';
 import LoanRepaymentProducerForm from './components/loan/LoanRepaymentProducerForm';
 import LoanConfirmationCard, { type LoanConfirmOutcome, type LoanVoidOutcome } from './components/loan/LoanConfirmationCard';
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
@@ -1720,6 +1720,16 @@ function App() {
     const current = stateRef.current;
     const transaction = current.transactions.find(candidate => candidate.loanAttribution?.kind === 'repayment' && candidate.loanAttribution.paymentId === paymentId);
     if (!transaction) return { rejected: true, reason: '找不到對應的還款候選資料，可能已被刪除或修改，請重新整理後再試一次。' };
+    // UR-TODO-054-A PR #331 Preview blocker fix: buildLoanPaymentConfirmationGroup()
+    // (loanAttributionConfirmation.ts, not modified this Sprint) calls canonicalCalendarDay()
+    // on transaction.occurredAt with no try/catch of its own — unlike the sibling
+    // confirmAttributionEvidence handler above, which pre-validates the same call, or
+    // buildVoidEvent()/financialEventVoid.ts, which wraps it in try/catch. Without an equivalent
+    // guard here, an unexpected throw from that unguarded call previously propagated out of this
+    // onClick handler uncaught: React does not route event-handler exceptions through an Error
+    // Boundary, so the click produced zero visible effect — a 100%-silent failure indistinguishable
+    // from "confirm did nothing", which is the exact symptom PR #331 Preview acceptance reported.
+    try { canonicalCalendarDay(transaction.occurredAt); } catch { return { rejected: true, reason: '這筆還款候選的交易日期無效，無法確認記帳，請重新整理後再試一次。' }; }
     const loanIds = new Set(current.loans.map(loan => loan.id));
     const context: FinancialEventReferenceContext = {
       accountIds: new Set(current.accounts.map(account => account.id)),
@@ -1727,7 +1737,14 @@ function App() {
       transactionIds: new Set(current.transactions.map(candidate => candidate.id)),
       transactionsById: new Map(current.transactions.map(candidate => [candidate.id, candidate]))
     };
-    const result = confirmLoanPaymentGroupAndAppend({ transaction, transactions: current.transactions, loanIds, now: now() }, current.financialEvents, context);
+    let result: LoanPaymentConfirmationResult;
+    try {
+      result = confirmLoanPaymentGroupAndAppend({ transaction, transactions: current.transactions, loanIds, now: now() }, current.financialEvents, context);
+    } catch (error) {
+      // Defense-in-depth: any other unforeseen throw anywhere in the confirmation chain must
+      // still surface as a visible rejection, never a silent no-op.
+      return { rejected: true, reason: `確認時發生未預期的錯誤，未寫入任何記帳資料，請重新整理頁面後再試一次。${error instanceof Error ? `（${error.message}）` : ''}` };
+    }
     if (result.rejected) return result;
     // Unlike confirmAttributionEvidenceAndAppend/confirmFxConversionAndAppend, a successful
     // LoanPaymentConfirmationResult's `events` is only the newly-built component group itself

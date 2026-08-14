@@ -101,3 +101,33 @@ test('rejection reason from onConfirm is surfaced verbatim as feedback, not a ge
   assert.match(container.innerHTML, /這筆還款候選資料與正式 contract 不一致，無法確認。/);
   assert.doesNotMatch(container.innerHTML, /發生錯誤/);
 });
+
+test('UR-TODO-054-A PR #331 Preview blocker regression: an onConfirm that throws (instead of returning a rejected outcome) must still surface a visible message, never a silent no-op click', async () => {
+  const dom = await import('jsdom');
+  const { JSDOM } = dom;
+  const browser = new JSDOM('<!doctype html><html><body></body></html>', { pretendToBeVisual: true });
+  (globalThis as unknown as { window: typeof browser.window }).window = browser.window;
+  (globalThis as unknown as { document: Document }).document = browser.window.document;
+  Object.defineProperty(globalThis, 'navigator', { value: browser.window.navigator, configurable: true });
+  (globalThis as unknown as { HTMLElement: typeof browser.window.HTMLElement }).HTMLElement = browser.window.HTMLElement;
+  (globalThis as unknown as { Event: typeof browser.window.Event }).Event = browser.window.Event;
+  (globalThis as unknown as { MouseEvent: typeof browser.window.MouseEvent }).MouseEvent = browser.window.MouseEvent;
+  (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  browser.window.confirm = () => true;
+  const { act } = React;
+  const { createRoot } = await import('react-dom/client');
+  const container = browser.window.document.createElement('div');
+  browser.window.document.body.appendChild(container);
+  const root = createRoot(container);
+  await act(async () => {
+    root.render(createElement(LoanConfirmationCard, {
+      groups: [candidateGroup], loans,
+      onConfirm: () => { throw new RangeError('Invalid calendar-day input'); },
+      onVoid: () => ({ rejected: false })
+    }));
+  });
+  const button = [...container.querySelectorAll('button')].find(candidate => candidate.textContent === '確認正式記帳') as HTMLButtonElement;
+  await act(async () => { button.dispatchEvent(new browser.window.MouseEvent('click', { bubbles: true })); });
+  assert.match(container.innerHTML, /確認時發生未預期的錯誤/, 'a thrown onConfirm must still produce a visible message — this is what silently failed before the PR #331 Preview fix');
+  assert.match(container.innerHTML, /Invalid calendar-day input/);
+});

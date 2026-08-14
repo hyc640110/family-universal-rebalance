@@ -26,6 +26,17 @@ test('UR-TODO-054-A caller contract: confirmLoanPaymentGroupAndAppend() 成功�
   assert.ok(!result.events.some(event => event.id === 'unrelated-event'), 'the pre-existing event must not be echoed back in result.events');
 });
 
+test('UR-TODO-054-A PR #331 Preview blocker regression: buildLoanPaymentConfirmationGroup() throws (not rejects) on a malformed transaction.occurredAt — its canonicalCalendarDay() call is unguarded, so any caller MUST wrap it in try/catch or the confirm click silently produces zero visible effect', () => {
+  const malformedDateTransaction: FinancialTransaction = { ...transaction, occurredAt: 'not-a-date' };
+  assert.throws(
+    () => buildLoanPaymentConfirmationGroup({ transaction: malformedDateTransaction, transactions: [malformedDateTransaction], loanIds: new Set(['loan-a']), now: audit.createdAt }),
+    RangeError,
+    'this documents the real risk App.tsx\'s confirmLoanRepaymentGroup() now guards against with try/catch — see the "確認時發生未預期的錯誤" fallback in App.tsx'
+  );
+  // App.tsx never calls buildLoanPaymentConfirmationGroup() directly, only confirmLoanPaymentGroupAndAppend() — same unguarded call path.
+  assert.throws(() => confirmLoanPaymentGroupAndAppend({ transaction: malformedDateTransaction, transactions: [malformedDateTransaction], loanIds: new Set(['loan-a']), now: audit.createdAt }, [], { ...context, transactionsById: new Map([['payment', malformedDateTransaction]]) }), RangeError);
+});
+
 test('不完整或不合法 contract 拒絕確認，既有 Ledger 不會被局部寫入', () => {
   const invalid = { ...transaction, loanAttribution: { ...transaction.loanAttribution!, components: [{ componentId: 'principal', type: 'principal' as const, amount: 1 }] } };
   const result = confirmLoanPaymentGroupAndAppend({ transaction: invalid, transactions: [invalid], loanIds: new Set(['loan-a']) }, [], { ...context, transactionsById: new Map([['payment', invalid]]) });
