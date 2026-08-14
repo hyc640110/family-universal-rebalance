@@ -66,7 +66,7 @@ import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, norm
 import { normalizeFxRateHistory, type FxRateRecord } from './lib/fxValuation';
 import { deriveCanonicalNetWorthTotals } from './lib/canonicalNetWorthTotals';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
-import { FINANCIAL_EVENT_SCHEMA_VERSION, isFinancialEventLedgerSchemaSupported, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent } from './lib/financialEvents';
+import { FINANCIAL_EVENT_SCHEMA_VERSION, isFinancialEventLedgerSchemaSupported, normalizeFinancialEventLedger, serializeFinancialEventLedgerEvents, type FinancialEvent, type FinancialEventReferenceContext } from './lib/financialEvents';
 import { composeRuntimeNetWorthAttribution } from './lib/runtimeAttributionComposition';
 import { deriveRuntimeAttributionPresentation, type RuntimeAttributionEvidenceItem } from './lib/runtimeAttributionPresentation';
 import { confirmAttributionEvidenceAndAppend } from './lib/runtimeAttributionConfirmation';
@@ -86,6 +86,14 @@ import { findLinkedFxConversionId } from './lib/fxConversionIdentity';
 import { buildFxConversionCreation, buildFxConversionDeletion, type FxConversionCreationInput } from './lib/fxConversionProducer';
 import { isFxOpaqueProducerEnabled } from './lib/fxOpaqueProducerGate';
 import FxConversionProducerForm from './components/fx/FxConversionProducerForm';
+// UR-TODO-054-A: Minimal Loan Repayment Producer — pure builder only creates a reconciliation
+// candidate (never calls confirmLoanPaymentGroupAndAppend()); this file owns the single setState()
+// commit, exactly mirroring createFxConversion() above.
+import { buildLoanRepaymentCreation, type LoanRepaymentCreationInput } from './lib/loanRepaymentProducer';
+import { deriveLoanRepaymentGroupPresentations } from './lib/loanConfirmationPresentation';
+import { confirmLoanPaymentGroupAndAppend, type LoanPaymentConfirmationResult } from './lib/loanAttributionConfirmation';
+import LoanRepaymentProducerForm from './components/loan/LoanRepaymentProducerForm';
+import LoanConfirmationCard, { type LoanConfirmOutcome, type LoanVoidOutcome } from './components/loan/LoanConfirmationCard';
 import { IMPORT_SCHEMA_VERSION, evaluateRollbackImport, importedBySession, normalizeMappingPresets, type ImportPreset, type ImportSession, type RollbackOutcome } from './lib/importCenter';
 import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type GmailOAuthState } from './lib/gmailOAuth';
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
@@ -1355,6 +1363,15 @@ function App() {
     setState(current => ({ ...current, financialEvents: result.events }));
     return { rejected: false };
   };
+  // UR-TODO-054-A: read-only presentation only; groups the flat per-component Loan runtime
+  // evidence into one row per paymentId for LoanConfirmationCard. Reuses the same
+  // state.transactions/state.financialEvents/state.loans/state.accounts already computed above.
+  const loanRepaymentGroupPresentations = useMemo(() => deriveLoanRepaymentGroupPresentations({
+    transactions: state.transactions,
+    loanIds: new Set(state.loans.map(loan => loan.id)),
+    ledgerEvents: state.financialEvents,
+    accountIds: new Set(state.accounts.map(account => account.id))
+  }), [state.transactions, state.financialEvents, state.loans, state.accounts]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1678,6 +1695,75 @@ function App() {
     }
     return result;
   };
+  // UR-TODO-054-A: thin App-layer commit for the pure `buildLoanRepaymentCreation()` builder —
+  // a single `setState()` on success, no state change on any failure. This only ever produces a
+  // reconciliation candidate (`loan-payment-contract-candidate`); it deliberately never calls
+  // `confirmLoanPaymentGroupAndAppend()` (see confirmLoanRepaymentGroup below, a separate,
+  // explicit, later user action).
+  const createLoanRepayment = (input: LoanRepaymentCreationInput) => {
+    const current = stateRef.current;
+    const result = buildLoanRepaymentCreation(input, {
+      accounts: current.accounts,
+      loanIds: new Set(current.loans.map(loan => loan.id))
+    });
+    if (result.status === 'success') {
+      setState(current => ({ ...current, transactions: [...current.transactions, result.transaction] }));
+    }
+    return result;
+  };
+  // UR-TODO-054-A: the sole write path from the Loan Group Confirmation UI to
+  // state.financialEvents for a repayment group. Reuses the existing, unmodified
+  // confirmLoanPaymentGroupAndAppend() contract wholesale — this handler only resolves the
+  // transaction for the given paymentId and builds the reference context; it never re-implements
+  // any part of the confirmation contract itself.
+  const confirmLoanRepaymentGroup = (paymentId: string): LoanConfirmOutcome => {
+    const current = stateRef.current;
+    const transaction = current.transactions.find(candidate => candidate.loanAttribution?.kind === 'repayment' && candidate.loanAttribution.paymentId === paymentId);
+    if (!transaction) return { rejected: true, reason: '找不到對應的還款候選資料，可能已被刪除或修改，請重新整理後再試一次。' };
+    // UR-TODO-054-A PR #331 Preview blocker fix: buildLoanPaymentConfirmationGroup()
+    // (loanAttributionConfirmation.ts, not modified this Sprint) calls canonicalCalendarDay()
+    // on transaction.occurredAt with no try/catch of its own — unlike the sibling
+    // confirmAttributionEvidence handler above, which pre-validates the same call, or
+    // buildVoidEvent()/financialEventVoid.ts, which wraps it in try/catch. Without an equivalent
+    // guard here, an unexpected throw from that unguarded call previously propagated out of this
+    // onClick handler uncaught: React does not route event-handler exceptions through an Error
+    // Boundary, so the click produced zero visible effect — a 100%-silent failure indistinguishable
+    // from "confirm did nothing", which is the exact symptom PR #331 Preview acceptance reported.
+    try { canonicalCalendarDay(transaction.occurredAt); } catch { return { rejected: true, reason: '這筆還款候選的交易日期無效，無法確認記帳，請重新整理後再試一次。' }; }
+    const loanIds = new Set(current.loans.map(loan => loan.id));
+    const context: FinancialEventReferenceContext = {
+      accountIds: new Set(current.accounts.map(account => account.id)),
+      loanIds,
+      transactionIds: new Set(current.transactions.map(candidate => candidate.id)),
+      transactionsById: new Map(current.transactions.map(candidate => [candidate.id, candidate]))
+    };
+    let result: LoanPaymentConfirmationResult;
+    try {
+      result = confirmLoanPaymentGroupAndAppend({ transaction, transactions: current.transactions, loanIds, now: now() }, current.financialEvents, context);
+    } catch (error) {
+      // Defense-in-depth: any other unforeseen throw anywhere in the confirmation chain must
+      // still surface as a visible rejection, never a silent no-op.
+      return { rejected: true, reason: `確認時發生未預期的錯誤，未寫入任何記帳資料，請重新整理頁面後再試一次。${error instanceof Error ? `（${error.message}）` : ''}` };
+    }
+    if (result.rejected) return result;
+    // Unlike confirmAttributionEvidenceAndAppend/confirmFxConversionAndAppend, a successful
+    // LoanPaymentConfirmationResult's `events` is only the newly-built component group itself
+    // (see loanAttributionConfirmation.ts: it returns `built`, not `appended`, on success) — it
+    // must be appended to the existing Ledger here, never used to replace it wholesale.
+    setState(current => ({ ...current, financialEvents: [...current.financialEvents, ...result.events] }));
+    return { rejected: false };
+  };
+  // UR-TODO-054-A: void for a Loan repayment group reuses the existing, unmodified
+  // voidFinancialEventAndAppend() primitive verbatim — voiding any single active component event
+  // in the group is sufficient for resolveActiveLoanComponentGroups() to invalidate the whole
+  // group (see loanConfirmationPresentation.ts's deterministic single-target selection). There is
+  // no group-void contract here, by design.
+  const voidLoanRepaymentGroup = (eventId: string): LoanVoidOutcome => {
+    const result = voidFinancialEventAndAppend(stateRef.current.financialEvents, { eventId, now: now() });
+    if (result.rejected) return result;
+    setState(current => ({ ...current, financialEvents: result.events }));
+    return { rejected: false };
+  };
   const updateTransaction = (id: string, patch: Partial<FinancialTransaction>) => setState(current => { try { return { ...current, transactions: current.transactions.map(transaction => transaction.id === id ? updateTransactionRecord(transaction, patch, current.accounts) : transaction) }; } catch { return current; } });
   const commitImport = (session: ImportSession, imported: FinancialTransaction[]) => setState(current => ({ ...current, transactions: [...current.transactions, ...imported], importSessions: [...current.importSessions, session].slice(-50) }));
   const rollbackImport = (sessionId: string): RollbackOutcome => {
@@ -1968,6 +2054,8 @@ function App() {
           <div className="loan-summary"><Stat label="總借款" value={money(m.debt)} /><Stat label="每月還款" value={money(m.monthlyPayment)} /><Stat label="平均剩餘期數" value={m.averageRemainingMonths === undefined ? '—' : `${m.averageRemainingMonths.toFixed(1)} 期`} /><Stat label="還款安全存量" value={getRepaymentSafetyText(m.repaymentSafetyMonths, m.repaymentSafetyDays, m.monthlyPayment)} tone={getRepaymentSafetyTone(m.repaymentSafetyMonths, m.monthlyPayment)} /><Stat label="累積利息成本" value={money(m.totalLoanInterestPaid)} tone="hold" /><Stat label="扣利息後真實淨利" value={signedMoney(m.trueNetPnlAfterInterest)} tone={tone(m.trueNetPnlAfterInterest)} /></div>
           <p className="note loan-interest-note" style={{ marginTop: '4px', marginBottom: '12px', wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>* 真實淨利為依目前借款資料估算，已扣除信貸至今累計利息成本；若缺少原始本金欄位，利息成本可能為保守估算。</p>
           <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
+          <LoanRepaymentProducerForm loans={state.loans} accounts={state.accounts} onSubmit={createLoanRepayment} />
+          <LoanConfirmationCard groups={loanRepaymentGroupPresentations} loans={state.loans} onConfirm={confirmLoanRepaymentGroup} onVoid={voidLoanRepaymentGroup} />
         </SectionCard>
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
