@@ -71,7 +71,8 @@ const ZERO_EFFECT_EVENT_TYPES = new Set<FinancialEventType>([
   'investment-buy',
   'investment-sell',
   'loan-disbursement',
-  'loan-principal-payment'
+  'loan-principal-payment',
+  'fx-conversion'
 ]);
 
 function validNetWorth(snapshot: NetWorthSnapshot | null | undefined): snapshot is NetWorthSnapshot {

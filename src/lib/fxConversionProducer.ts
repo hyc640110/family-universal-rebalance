@@ -1,6 +1,7 @@
 import { isCanonicalCalendarDay } from './calendarDay';
+import type { FinancialEvent } from './financialEvents';
 import {
-  FX_CONVERSION_PAYLOAD_KIND, FX_CONVERSION_PAYLOAD_VERSION, isFxConversionPayloadCandidate, resolveFxConversionEnvelope, resolveFxConversions,
+  FX_CONVERSION_PAYLOAD_KIND, FX_CONVERSION_PAYLOAD_VERSION, isFxConversionPayloadCandidate, resolveActiveFxConversionGroups, resolveFxConversionEnvelope, resolveFxConversions,
   type FxConversionCurrency, type FxConversionFeeTreatment, type FxConversionOpaquePayloadV1, type FxConversionResolutionFailureReason
 } from './fxConversionIdentity';
 import {
@@ -164,7 +165,8 @@ export function buildFxConversionCreation(input: FxConversionCreationInput, cont
 export type FxConversionDeletionPlan =
   | { status: 'success'; conversionId: string; sourceTransactionId: string; destinationTransactionId: string }
   | { status: 'not-fx-conversion' }
-  | { status: 'not-active'; reason: string };
+  | { status: 'not-active'; reason: string }
+  | { status: 'confirmed-delete-blocked'; conversionId: string };
 
 /**
  * Pure plan for atomically deleting an FX conversion (envelope + both legs). Only an envelope
@@ -173,11 +175,23 @@ export type FxConversionDeletionPlan =
  * payload at all, or a malformed/inconsistent one) must fall back to the existing generic
  * F1A opaque delete, because this plan cannot safely identify which two transactions, if any,
  * are genuinely its legs.
+ *
+ * UR-TODO-046 FX-F2D: once a conversion has an active confirmed `fx-conversion` FinancialEvent,
+ * raw hard delete is blocked — the Ledger is forward-only (no update/delete counterpart), so
+ * deleting the raw legs/envelope out from under an already-confirmed event would leave that
+ * event's `fxConversionLink` pointing at nothing. The caller must void the Ledger event first
+ * (freeing the conversion back to unconfirmed), then delete. `financialEvents` defaults to `[]`
+ * so existing callers/tests that never pass it keep their prior (unconfirmed) behavior unchanged.
  */
-export function buildFxConversionDeletion(envelope: OpaqueFinancialTransactionEnvelope, transactions: readonly FinancialTransaction[]): FxConversionDeletionPlan {
+export function buildFxConversionDeletion(envelope: OpaqueFinancialTransactionEnvelope, transactions: readonly FinancialTransaction[], financialEvents: readonly FinancialEvent[] = []): FxConversionDeletionPlan {
   if (!isFxConversionPayloadCandidate(envelope.payload)) return { status: 'not-fx-conversion' };
   const transactionsById = new Map(transactions.map(transaction => [transaction.id, transaction]));
   const resolution = resolveFxConversionEnvelope(envelope, transactionsById);
   if (!resolution || resolution.status !== 'valid') return { status: 'not-active', reason: resolution?.reason ?? 'unresolved' };
+  const opaqueTransactionsById = new Map([[envelope.id, envelope]]);
+  const groupResolution = resolveActiveFxConversionGroups(financialEvents, transactionsById, opaqueTransactionsById);
+  if (groupResolution.confirmedConversionIds.has(resolution.conversionId)) {
+    return { status: 'confirmed-delete-blocked', conversionId: resolution.conversionId };
+  }
   return { status: 'success', conversionId: resolution.conversionId, sourceTransactionId: resolution.sourceTransactionId, destinationTransactionId: resolution.destinationTransactionId };
 }

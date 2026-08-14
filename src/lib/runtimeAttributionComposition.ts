@@ -2,6 +2,7 @@ import { canonicalCalendarDay, isCanonicalCalendarDay } from './calendarDay';
 import { deriveRuntimeDerivedAttributionEvidence } from './derivedAttributionEvidence';
 import type { FinancialAccount } from './financialAccounts';
 import { collectVoidedEventIds, isFinancialEventLedgerSchemaSupported, linkedTransactionReason, resolveActiveLoanComponentGroups, type FinancialEvent } from './financialEvents';
+import { resolveActiveFxConversionGroups } from './fxConversionIdentity';
 import { resolveActiveGenericSplitAllocationGroups } from './genericSplitAllocation';
 import { deriveLoanRuntimeEvidence } from './loanAttribution';
 import {
@@ -12,7 +13,7 @@ import {
 } from './netWorthAttribution';
 import type { NetWorthSnapshot } from './netWorthHistory';
 import { reconcileTransactions, type TransactionReconciliationResult } from './transactionReconciliation';
-import type { FinancialTransaction } from './transactions';
+import type { FinancialTransaction, OpaqueFinancialTransactionEnvelope } from './transactions';
 
 export type RuntimeAttributionCompositionDiagnostic = NetWorthAttributionDiagnostic | {
   code:
@@ -37,6 +38,8 @@ export type RuntimeAttributionCompositionInput = {
   accounts: readonly FinancialAccount[];
   /** Optional keeps non-Loan consumers and legacy call sites backward-compatible. Absence is fail-safe for Loan attribution. */
   loans?: readonly { id: string }[];
+  /** UR-TODO-046 FX-F2D: optional keeps legacy call sites backward-compatible. Absence is fail-safe for FX conversion attribution. */
+  opaqueTransactions?: readonly OpaqueFinancialTransactionEnvelope[];
   absoluteTolerance?: number;
 };
 
@@ -137,7 +140,8 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
       transaction,
       event.componentLink,
       event.loanId,
-      event.splitAllocationLink
+      event.splitAllocationLink,
+      event.fxConversionLink
     );
   });
   const loanGroupResolution = resolveActiveLoanComponentGroups(sanctionedLedgerEvents, {
@@ -149,11 +153,14 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
   const genericSplitResolution = resolveActiveGenericSplitAllocationGroups(sanctionedLedgerEvents, {
     transactionsById: transactionById
   });
+  const opaqueTransactionsById = new Map((input.opaqueTransactions || []).map(envelope => [envelope.id, envelope]));
+  const fxConversionResolution = resolveActiveFxConversionGroups(sanctionedLedgerEvents, transactionById, opaqueTransactionsById);
 
   const diagnostics: RuntimeAttributionCompositionDiagnostic[] = [];
   const ledgerEvidence: NetWorthAttributionEvidence[] = sanctionedLedgerEvents.flatMap(event => {
     if (event.componentLink && !loanGroupResolution.validEventIds.has(event.id)) return [];
     if (event.splitAllocationLink && !genericSplitResolution.validEventIds.has(event.id)) return [];
+    if (event.fxConversionLink && !fxConversionResolution.validEventIds.has(event.id)) return [];
     if (!inPeriod(event.effectiveDate, period)) {
       diagnostics.push({ code: 'ledger-event-outside-period-excluded', eventId: event.id });
       return [];
@@ -169,7 +176,8 @@ export function composeRuntimeNetWorthAttribution(input: RuntimeAttributionCompo
     transactions: input.transactions,
     accounts: input.accounts,
     ledgerEvents: sanctionedLedgerEvents,
-    loanIds: new Set((input.loans || []).map(loan => loan.id))
+    loanIds: new Set((input.loans || []).map(loan => loan.id)),
+    opaqueTransactions: input.opaqueTransactions || []
   });
   const reconciliationResults = rawReconciliationResults.map(result => {
     const transaction = transactionById.get(result.transactionId);

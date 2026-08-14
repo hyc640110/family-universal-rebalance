@@ -270,3 +270,96 @@ export function findLinkedFxConversionId(transactionId: string, transactions: re
   }
   return undefined;
 }
+
+/**
+ * UR-TODO-046 FX-F2D: the FinancialEvent-side link for a confirmed FX conversion. `conversionId`
+ * is the same canonical identity as the opaque envelope id (FX-F2B ADR-011 §1) — not a second,
+ * independently-issued id. `sourceTransactionId`/`destinationTransactionId` are pinned linkage
+ * evidence copied from the resolved envelope at confirmation time (so a later structural change
+ * to the envelope's own payload cannot silently reinterpret an already-confirmed event); they are
+ * never a second canonical identity, only a cross-check against the live resolver result.
+ *
+ * Unlike Loan's componentLink or Generic Split's splitAllocationLink (both N-components-of-one-
+ * transaction groups), an FX conversion is the opposite shape — two distinct transactions folded
+ * into exactly one economic event — so it needs exactly one FinancialEvent, not a multi-event
+ * group. `FinancialEvent.amount`/`currency`/`accountId`/`transactionId` for that one event are
+ * always the TWD leg's (see buildFxConversionAttributionConfirmation in
+ * fxConversionAttributionConfirmation.ts) — every existing consumer (linkedTransactionReason's
+ * amount/currency cross-check, runtimeAttributionComposition's TWD-only ledger evidence filter)
+ * keeps working unmodified because the event genuinely is TWD-denominated.
+ */
+export type FinancialEventFxConversionLink = {
+  conversionId: string;
+  sourceTransactionId: string;
+  destinationTransactionId: string;
+};
+
+function fxLinkText(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+export function normalizeFxConversionLink(value: unknown): FinancialEventFxConversionLink | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const conversionId = fxLinkText(record.conversionId);
+  const sourceTransactionId = fxLinkText(record.sourceTransactionId);
+  const destinationTransactionId = fxLinkText(record.destinationTransactionId);
+  return conversionId && sourceTransactionId && destinationTransactionId && sourceTransactionId !== destinationTransactionId
+    ? { conversionId, sourceTransactionId, destinationTransactionId }
+    : undefined;
+}
+
+/** Minimal duck-typed shape this resolver needs — mirrors genericSplitAllocation.ts's SplitAllocationEvent, not a FinancialEvent import, to avoid a circular dependency with financialEvents.ts (which imports this module). */
+type FxConversionLinkedEvent = {
+  id: string;
+  status: string;
+  source: string;
+  fxConversionLink?: FinancialEventFxConversionLink;
+};
+
+export type FxConversionGroupResolution = {
+  validEventIds: ReadonlySet<string>;
+  confirmedConversionIds: ReadonlySet<string>;
+};
+
+/**
+ * Validates every active (non-void, posted, attribution-confirmation) fx-conversion event as an
+ * all-or-nothing single-event economic event: the linked envelope must still resolve `valid` and
+ * its two leg transaction ids must still match the event's own pinned copies, and no other active
+ * event may claim the same `conversionId` (duplicate confirmation — both are rejected, matching
+ * resolveActiveLoanComponentGroups()'s paymentCounts!==1 fail-safe). Invalid/duplicate records
+ * remain persisted (forward-only) but are never consumed as attribution evidence.
+ */
+export function resolveActiveFxConversionGroups(
+  events: readonly FxConversionLinkedEvent[],
+  transactionsById: ReadonlyMap<string, FinancialTransaction>,
+  opaqueTransactionsById: ReadonlyMap<string, OpaqueFinancialTransactionEnvelope>
+): FxConversionGroupResolution {
+  const voidedEventIds = new Set<string>();
+  for (const event of events) {
+    const record = event as unknown as Record<string, unknown>;
+    if (record.source === 'void' && typeof record.voidedEventId === 'string' && record.voidedEventId.trim()) voidedEventIds.add(record.voidedEventId.trim());
+  }
+  const byConversionId = new Map<string, FxConversionLinkedEvent[]>();
+  for (const event of events) {
+    if (!event.fxConversionLink || event.source !== 'attribution-confirmation' || event.status !== 'posted' || voidedEventIds.has(event.id)) continue;
+    const group = byConversionId.get(event.fxConversionLink.conversionId) || [];
+    group.push(event);
+    byConversionId.set(event.fxConversionLink.conversionId, group);
+  }
+  const validEventIds = new Set<string>();
+  const confirmedConversionIds = new Set<string>();
+  for (const [conversionId, group] of byConversionId) {
+    if (group.length !== 1) continue;
+    const event = group[0]!;
+    const link = event.fxConversionLink!;
+    const envelope = opaqueTransactionsById.get(conversionId);
+    if (!envelope) continue;
+    const resolution = resolveFxConversionEnvelope(envelope, transactionsById);
+    if (!resolution || resolution.status !== 'valid') continue;
+    if (resolution.sourceTransactionId !== link.sourceTransactionId || resolution.destinationTransactionId !== link.destinationTransactionId) continue;
+    validEventIds.add(event.id);
+    confirmedConversionIds.add(conversionId);
+  }
+  return { validEventIds, confirmedConversionIds };
+}

@@ -43,6 +43,24 @@
 | ADR-011 | FX conversion pairing identity 採 envelope-id-as-identity、pinned-leg-amounts、derived-not-persisted executed rate 與 fee 四態 contract；Foundation／Producer／Attribution 三層明確分離 | 已採用 |
 | ADR-012 | FX conversion principal legs 沿用既有 `expense`／`income` type，搭配 additive `fxConversionLeg` metadata 作為最小 consumer safety boundary；Producer 不得先於 Consumer Guard 上線 | 已採用 |
 | ADR-013 | Manual FX Conversion Producer 採純函式 build-then-commit atomicity、submit-time identity creation 與雙層（UI＋write path）gate；Producer 程式碼存在 ≠ capability 啟用 | 已採用 |
+| ADR-014 | FX conversion attribution 以單一 `FinancialEvent` 代表兩筆 leg transaction，不重用 Loan／Generic Split 的 group-write primitive | 已採用 |
+
+---
+
+## ADR-014：FX conversion attribution 以單一 `FinancialEvent` 代表兩筆 leg transaction，不重用 Loan／Generic Split 的 group-write primitive
+
+**狀態**：已採用
+
+**背景**：UR-TODO-046 FX-F2D 需要讓已建立的 FX conversion（一組 source leg／destination leg／opaque envelope 三件組）能被正式確認（confirm）進入 attribution／reconciliation／`FinancialEvent` pipeline。既有兩個「多筆記錄合併為一個 attribution 單位」的先例——Loan repayment 的 `componentLink`／`resolveActiveLoanComponentGroups()` 與 Generic Split 的 `splitAllocationLink`／`resolveActiveGenericSplitAllocationGroups()`——都是「**一筆**交易拆成 N 個 component/event」的形狀，且各自的 group-write primitive（`appendFinancialEventGroup()`／`appendGenericSplitAllocationGroup()`）在寫入路徑上明確要求 `transactionIds.size === 1`。FX conversion 的形狀正好相反：**兩筆不同的交易**（source leg、destination leg）合併為**一個** attribution 事件，不符合既有 primitive 的前提，若強行套用需要先放寬其單一交易的假設，牽動 Loan／Generic Split 既有已驗證的不變量。Repository Contract Audit（Review Mode）階段已確認此架構落差為既有事實，並判定可在 Single F2D Sprint 內以新建輕量 resolver 解決，不需拆分為 F2D-1／F2D-2、不需修改既有 group primitive。
+**決策**：
+
+1. **FX conversion 的 attribution 確認，產生「單一」`FinancialEvent`，不是 event group**：新增 `fx-conversion` 這個 `FinancialEventType`，一次確認只 `appendFinancialEvent()` 寫入一筆 event（重用既有單筆寫入 primitive），不新建、不重用任何 group-write primitive。event 新增 `fxConversionLink: { conversionId, sourceTransactionId, destinationTransactionId }` 欄位獨立攜帶兩腿的完整關聯，`event.transactionId`（既有通用欄位，語意上是單數）固定指向兩腿中的 TWD 腿——F2B 既有契約保證 TWD↔USD 換匯必有一腿為 TWD，因此既有 `TRANSACTION_LINKED_SOURCES` 通用驗證管線（`linkedTransactionReason()` 等）完全不需要改成支援多筆 transactionId 就能沿用。
+2. **新建 `resolveActiveFxConversionGroups()`，鏡射既有 resolver 邏輯骨架但移除單一交易假設**：此 resolver（`fxConversionIdentity.ts`）比照 `resolveActiveLoanComponentGroups()`／`resolveActiveGenericSplitAllocationGroups()` 的「找出 posted、未被 void、且對應 envelope 目前仍可 valid-resolve」邏輯，但不檢查 `transactionIds.size === 1`，改為檢查 event 內 pinned 的 `sourceTransactionId`／`destinationTransactionId` 是否與 envelope 當下 `resolveFxConversionEnvelope()` 的 resolve 結果一致（防止 envelope 被竄改後 event 仍誤判為對應原始換匯）。
+3. **TWD-only 的 attribution ledger 貨幣過濾器不需要修改**：因為單一 event 永遠以 TWD 腿的金額／幣別呈現（見決策 1），既有 `runtimeAttributionComposition.ts` 對 ledger 的 TWD 過濾邏輯天然相容，不需要新增「處理雙幣別 event」的分支。
+4. **zero-effect 貢獻，不新增 formula 分支**：`fx-conversion` 加入既有 `ZERO_EFFECT_EVENT_TYPES` 常數集合（`netWorthAttribution.ts`），沿用既有 zero-effect 處理管線，不修改 `deriveNetWorthAttributionFromEvidence()` 本身的計算邏輯。
+5. **已確認的換匯不得被原始交易的 ordinary delete 路徑直接刪除**：`buildFxConversionDeletion()` 新增檢查 `resolveActiveFxConversionGroups()` 的 `confirmedConversionIds`，若換匯已被正式確認，回傳新的 `confirmed-delete-blocked` 狀態並由 UI 攔截提示，要求使用者先 void 正式記帳再刪除——避免正式 ledger 上有 event 引用、但底層 transaction／envelope 已被移除的孤兒參照。
+
+**後果**：FX 的 attribution 接線與 Loan／Generic Split 完全平行但物理上獨立（各自的 resolver、各自的 link 欄位、各自的 confirm 模組），三者互不修改彼此程式碼，降低本 Sprint 對既有已驗證領域造成回歸的風險，但也代表未來若出現第三種「N 筆交易→1 個 event」或「1 筆交易→N 個 event」以外的新形狀，仍須逐案判斷是否該再新建一個平行 resolver，或是這時才值得回頭抽象出共用的 group-resolution primitive——本 ADR 不預先做這個抽象。fee／valuation 呈現邏輯明確不在本 ADR 範圍內，仍待後續獨立待辦；`FX_OPAQUE_PRODUCER_SOURCE_GATE`（ADR-010／ADR-013）本身未被本 ADR 修改，Production Producer 依既有 environment guard 仍恆為 OFF。
 
 ---
 
