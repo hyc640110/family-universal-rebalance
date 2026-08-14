@@ -1015,6 +1015,48 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
 
+### UR-TODO-057 波段最高價自動更新
+
+- 優先級：P2／待評估
+- 狀態：待規劃
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：持股資產管理的「波段最高價」目前為手動輸入的逢低加碼參考高價，長期未更新會使回撤／逢低加碼訊號失真。使用者曾明確表示「先記下來，以後有空再討論是否改成市場創新高時自動更新」。
+- 範圍（草案，待正式盤點）：是否改為市場創新高時自動更新；若改自動，需確認資料來源與更新頻率，並確認不破壞既有「使用者可自行設定跌幅門檻」的既有邏輯。
+- 明確不包含：任何自動下單或自動調整持股邏輯。
+- 依賴：無明確前置，待正式盤點時確認是否與逢低加碼（dip alert）既有機制相關 Todo 有關聯。
+- 驗收條件：待正式排入開發時另訂。
+
+### UR-TODO-058 Excel 資產配置／再平衡算法導入 CLEC
+
+- 優先級：P1／待評估（使用者要求拉高優先）
+- 狀態：**待補件**——Project Knowledge 與 Repository 目前皆無此檔案內容，需使用者重新提供檔案後，才能由 Claude Home 正式盤點範圍與驗收條件。
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡-G1_2_5_865B_再修改.xlsx，其計算方式需正式導入本專案 CLEC 策略中心。
+- 明確不包含：在補件與正式盤點完成前，不得自行臆測或實作任何演算法。
+- 依賴：待補件後確認與既有 CLEC drift 規則引擎（`src/lib/clecStrategyRules.ts`）及 `src/lib/allocationPresets.ts` 靜態樣板權重表的關聯程度。
+- 驗收條件：待補件並正式盤點後另訂。
+
+### UR-TODO-059 首頁 30 秒決策中心接上真實金額
+
+- 優先級：P0
+- 狀態：**待開發**（下一 Sprint 候選）
+- 提出日期：2026-08-15（Repository Explore 唯讀盤點確認缺口日）
+- 背景：既有唯讀盤點（Repository Explore，2026-08-15）已確認 `investableCash`（`src/lib/householdLiquidity.ts`）、逐檔 `recommendedAmount`（`src/lib/rebalanceRecommendation.ts`）等運算能力已存在且已測試，僅未接上首頁 `DashboardDecisionPage.tsx` 呈現層。
+- 與 UR-TODO-030 的關係：UR-TODO-030（首頁「重要提醒」重複性盤點，含 2026-07-26／2026-07-29 首頁改版方向討論記錄）已於 2026-08-07 正式 CLOSED（PR #268），處理的是首頁區塊搬移與版面精簡；本項是在 030 已完成的「30 秒決策中心」結構基礎上，新增「把既有已測試運算結果接上金額呈現」這個結構未涵蓋的新缺口，範圍不同，**不合併入已結案的 030，另立新編號**，僅在此標註關聯與依賴。
+- 範圍（草案）：首頁新增「可投入現金」「建議投入金額」「最偏離的 1-2 檔資產」三個數字區塊，連結指向 `/tools/rebalance-recommendation`。
+- 明確不包含：不新增任何新演算法，不碰 schema／persistence／Financial Event Ledger。
+- 依賴：UR-TODO-030（已 CLOSED，首頁「30 秒決策中心」結構基礎已具備）；既有已測試 calculator `householdLiquidity.ts`／`rebalanceRecommendation.ts`（無需修改，僅消費既有輸出）。
+- 驗收條件：待正式排入開發時另訂。
+
+### UR-TODO-060 信用卡每月繳費提醒
+
+- 優先級：P3／待評估
+- 狀態：待規劃，範圍未定案，非股票再平衡核心，優先序排在最後。
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：使用者提出希望有信用卡每月繳費提醒功能，尚未決定是僅提醒繳費日期，或需一併管理當月應繳金額。
+- 明確不包含：範圍未定案前不預設實作方式。
+- 驗收條件：待正式盤點與拍板範圍後另訂。
+
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
 - 狀態：**已完成**

@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-14T14:51:45.727233+00:00
+Generated UTC: 2026-08-14T16:28:35.902658+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-14T14:51:45.727233+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `fdb246d770a21dae14a9ccb523efab00772a096863c6c995ebeeb60eceda43cb`
+- `003_CURRENT_STATUS.md` — SHA-256 `fd8a7c55e40d234c5939133105d28b0d9fd6ea8d8cbbce06cedc4086314af08e`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `dc78b210e7d89efdde83e569876f5d1ad399efcd665733d2624ea4ee7223a888`
+- `008_TODO_BACKLOG.md` — SHA-256 `02f0ab2f6a79960623e81b971cc28c80f50bd63ff715f82bc5d724a3cec4ff22`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -696,6 +696,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 **UR-TODO-046 FX-A2 CBC USD/TWD Provider Adapter 已完成／Merge／Production Worker Deployed／Production Verified。** PR [#318](https://github.com/hyc640110/family-universal-rebalance/pull/318) 已正常 Merge，merge commit `3341dfd81e7c1e57fe5d325e85c6303bc5d3b358`；PR CI Verification／`verify` run `31615645452` success，Merge 後 Deploy GitHub Pages run `31616344290` success，head 與 merge commit 一致。唯一 provider 為 CBC 官方 `FTDOpenData_Day`：Market Data Worker `GET /fx-rates/usd-twd` 逐列驗證 `日期`／`NTD_USD`，拒絕 malformed、same-day conflict、空資料與 provider failure，只輸出正規化 `available`／`unavailable` contract；前端可呼叫 adapter 重用 FX-A1 的 3 calendar days stale policy，將有效資料以 deterministic `cbc-ftd-usd-twd-reference-close-YYYY-MM-DD` 追加到 `fxRateHistory`，同日同值 idempotent、不同值保留既有歷史並回報 conflict。Production Worker `family-universal-rebalance-market-data-production` 已於 `2026-08-12T16:17:13.176Z` 部署 version `7d4221c1-691f-42e4-b1ae-0a48e40603ba`；`/health` 為 HTTP 200、`environment=production`，`/fx-rates/usd-twd?refresh=1` 為 HTTP 200、`status=available`、USD→TWD、`rateDate=2026-08-12`、`quotePerBase=32.246`，與 CBC 官方資料一致，回應不含 raw CBC rows 且為 `cache-control: no-store`。Preview Worker version `b83bc7f0-3f7d-4bb3-9093-93a0b256ba44` 維持 `environment=preview`；Production／Preview Pages 均 HTTP 200，環境 metadata 與 assets 隔離正常。未接 UI、startup auto-fetch、foreign-cash totals、snapshot producer、FX attribution、Financial Event／Ledger、conversion、realized FX、foreign investment／loan、AI Decision、Rebalance 或 Household Liquidity；無 schema／Backup version bump、migration 或 legacy rewrite。UR-TODO-046 整體仍 OPEN；FX-A3 尚未開始。
 
 **UR-TODO-001 Firebase Retirement 已正式完成／CLOSED，採 Archived Retirement／封存保留。** 正式 `origin/main` 為 PR [#314](https://github.com/hyc640110/family-universal-rebalance/pull/314) merge commit `54bd6794c0ac8ec1704c979cdb7e56e81818de32`。P3-B2-A～P3-B3-C 已全數完成並 Merge；現行 App 的 Firebase Auth、RTDB GET／PUT、token refresh、upload/download UI、remote Ledger merge、Firebase SDK dependency 與 active Firebase environment naming 均為 0。canonical `AppState` 無 Firebase config；新 JSON Backup 不輸出 Firebase config；legacy Firebase input 僅 tolerant-read／accept-and-discard。localStorage 是唯一 canonical device persistence，JSON Backup 是正式人工備份／裝置搬移，Financial Event Ledger 與 `mergeFinancialEventLedgers()` 均維持 KEEP，Preview／Production isolation 不變。P4 已完成受控 archive/hash evidence、RTDB deny-all Rules 與 Anonymous Auth disabled 的封存驗證；Production 實機證實不依賴 RTDB／Anonymous Auth。Firebase Project、RTDB historical data、19 個歷史 anonymous users 與 Web App registration 均保留為 archived retired resource；不存在 REQUIRED-DELETE blocker。未來任何破壞性清理均為 optional housekeeping，須重新唯讀盤點與明確授權。
+
+**補充澄清（2026-08-15，Claude Code Review Mode 查證）：** `mergeFinancialEventLedgers()`（`financialEvents.ts`）是 UR-TODO-046 階段預留的 union-merge 純函式能力，目前 `src/` 全域零呼叫者，未接上任何 UI 觸發路徑，非現行使用中功能。若未來要重新啟用 Firebase 傳輸層，需另立獨立 Sprint 補上 UI wiring 與觸發流程，比照 UR-TODO-054 Loan／FX confirmation UI 的既有模式處理，不可假設此函式已可用。
 
 > 下段為 PR #304 Merge 前的 P2-A Draft 歷史快照；僅供歷史脈絡，不代表現行狀態。現行狀態以本段與 GitHub `main` 為準。
 
@@ -3972,6 +3974,48 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 驗收條件（待正式排入時另訂）
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
+
+### UR-TODO-057 波段最高價自動更新
+
+- 優先級：P2／待評估
+- 狀態：待規劃
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：持股資產管理的「波段最高價」目前為手動輸入的逢低加碼參考高價，長期未更新會使回撤／逢低加碼訊號失真。使用者曾明確表示「先記下來，以後有空再討論是否改成市場創新高時自動更新」。
+- 範圍（草案，待正式盤點）：是否改為市場創新高時自動更新；若改自動，需確認資料來源與更新頻率，並確認不破壞既有「使用者可自行設定跌幅門檻」的既有邏輯。
+- 明確不包含：任何自動下單或自動調整持股邏輯。
+- 依賴：無明確前置，待正式盤點時確認是否與逢低加碼（dip alert）既有機制相關 Todo 有關聯。
+- 驗收條件：待正式排入開發時另訂。
+
+### UR-TODO-058 Excel 資產配置／再平衡算法導入 CLEC
+
+- 優先級：P1／待評估（使用者要求拉高優先）
+- 狀態：**待補件**——Project Knowledge 與 Repository 目前皆無此檔案內容，需使用者重新提供檔案後，才能由 Claude Home 正式盤點範圍與驗收條件。
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡-G1_2_5_865B_再修改.xlsx，其計算方式需正式導入本專案 CLEC 策略中心。
+- 明確不包含：在補件與正式盤點完成前，不得自行臆測或實作任何演算法。
+- 依賴：待補件後確認與既有 CLEC drift 規則引擎（`src/lib/clecStrategyRules.ts`）及 `src/lib/allocationPresets.ts` 靜態樣板權重表的關聯程度。
+- 驗收條件：待補件並正式盤點後另訂。
+
+### UR-TODO-059 首頁 30 秒決策中心接上真實金額
+
+- 優先級：P0
+- 狀態：**待開發**（下一 Sprint 候選）
+- 提出日期：2026-08-15（Repository Explore 唯讀盤點確認缺口日）
+- 背景：既有唯讀盤點（Repository Explore，2026-08-15）已確認 `investableCash`（`src/lib/householdLiquidity.ts`）、逐檔 `recommendedAmount`（`src/lib/rebalanceRecommendation.ts`）等運算能力已存在且已測試，僅未接上首頁 `DashboardDecisionPage.tsx` 呈現層。
+- 與 UR-TODO-030 的關係：UR-TODO-030（首頁「重要提醒」重複性盤點，含 2026-07-26／2026-07-29 首頁改版方向討論記錄）已於 2026-08-07 正式 CLOSED（PR #268），處理的是首頁區塊搬移與版面精簡；本項是在 030 已完成的「30 秒決策中心」結構基礎上，新增「把既有已測試運算結果接上金額呈現」這個結構未涵蓋的新缺口，範圍不同，**不合併入已結案的 030，另立新編號**，僅在此標註關聯與依賴。
+- 範圍（草案）：首頁新增「可投入現金」「建議投入金額」「最偏離的 1-2 檔資產」三個數字區塊，連結指向 `/tools/rebalance-recommendation`。
+- 明確不包含：不新增任何新演算法，不碰 schema／persistence／Financial Event Ledger。
+- 依賴：UR-TODO-030（已 CLOSED，首頁「30 秒決策中心」結構基礎已具備）；既有已測試 calculator `householdLiquidity.ts`／`rebalanceRecommendation.ts`（無需修改，僅消費既有輸出）。
+- 驗收條件：待正式排入開發時另訂。
+
+### UR-TODO-060 信用卡每月繳費提醒
+
+- 優先級：P3／待評估
+- 狀態：待規劃，範圍未定案，非股票再平衡核心，優先序排在最後。
+- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
+- 背景：使用者提出希望有信用卡每月繳費提醒功能，尚未決定是僅提醒繳費日期，或需一併管理當月應繳金額。
+- 明確不包含：範圍未定案前不預設實作方式。
+- 驗收條件：待正式盤點與拍板範圍後另訂。
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
