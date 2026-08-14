@@ -8,7 +8,17 @@
 
 ---
 
-## 最新交接快照：UR-TODO-046 Final Audit / Closeout（正式 CLOSED，2026-08-14）
+## 最新交接快照：UR-TODO-054-A Closed／UR-TODO-054-B Audit GO（2026-08-14）
+
+- 任務背景：UR-TODO-046 Final Audit／Closeout（見下方歷史交接快照）拆出 UR-TODO-054（Attribution Confirmation Lifecycle UI），本輪正式完成第一個子項 054-A（Loan Confirmation UI）的開發／Preview 驗收／Merge，並完成第二個子項 054-B（FX Confirmation UI）的 Review Mode Contract Audit。
+- **UR-TODO-054-A（Loan Confirmation UI）狀態：CLOSED（已完成）**。PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331) 已正式 Merge，merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`（merge 前 main）／`0184834b5da0b618ca44981b6e231a1b230c1791`（PR head），一般 merge commit，未使用 admin override；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`。落地 Minimal Loan Repayment Producer、Loan Group Candidate Review、Confirm、Atomic Void、Reconfirm，並修正 `RuntimeAttributionProvenanceCard` 對 Loan derived component 錯誤暴露 component-level generic confirmation 按鈕的既有 UI safety 缺口。Deploy GitHub Pages run `31804595653` success，headSha 與 merge commit 一致；Production／Preview 皆 HTTP 200，Production 唯讀確認新 UI 已存在、console 無錯誤。使用者已於無痕視窗完整驗收 Preview 全流程，Atomic Void／Reconfirm 底層資料層行為已用 `composeRuntimeNetWorthAttribution()` 真實計算結果驗證（非僅 presentation 層）。開發過程中發現並修正兩項真實 Preview 阻斷 bug：(1) `confirmLoanPaymentGroupAndAppend()` 成功時 `result.events` 只回傳新建的那組事件、不是完整合併 Ledger，App.tsx caller 原先誤用「取代」語意，已修正為「附加」；(2) `buildLoanPaymentConfirmationGroup()` 對 `transaction.occurredAt` 的未保護 `canonicalCalendarDay()` 呼叫具有靜默失敗風險，已於 App.tsx caller 與 UI 元件兩層補上 try/catch 防禦。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A 正式條目。
+- **UR-TODO-054-B（FX Confirmation UI）Review Mode Contract Audit 已完成，正式判定 GO**，尚未下達「開始開發」。既有 FX confirm／void／reconfirm core contract（`confirmFxConversionAndAppend()`、`resolveActiveFxConversionGroups()`）已完整、已測試（本輪重新執行相關 130 個測試 0 fail）；結構上比 Loan 更單純（一次確認僅 1 筆 `fx-conversion` FinancialEvent，無需獨立 confirmationGroupId，void 不存在「部分 void 留下孤兒 sibling」問題）；已確認**不需要**修改 `RuntimeAttributionProvenanceCard`（FX 沒有 Loan 式的 derived-evidence 洩漏路徑）。**開發時務必注意與 Loan 相反的方向性差異**：`confirmFxConversionAndAppend()` 成功時 `result.events` 是**完整合併 Ledger**，App.tsx caller 必須直接 replace `state.financialEvents`，不得像 Loan 一樣再 append 一次（會造成整個 Ledger 重複疊加）。**Production FX Producer gate 維持 OFF、Preview 維持 ON，054-B 不修改 feature gate、不啟用 Production Producer**——FX Production Producer Enable 仍是獨立、需另行明確授權的 ADR-010／ADR-013 Controlled Rollout Policy 決策，不因 054-B 開發或完成而自動觸發。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-B 正式條目。
+- **UR-TODO-054-C（Generic Split Confirmation UI）狀態：待規劃**，尚未進行 Contract Audit，本輪未評估。
+- 下一位 AI 的直接起點：**開始開發 UR-TODO-054-B 前，先依最新 `origin/main` 完成 Development 初始化**（`git fetch --prune origin`、重新確認 head SHA、working tree、stash／untracked baseline，不得沿用本文件或聊天記錄中的舊 SHA）；054-B 的 Contract Audit 結論已記錄於 `008_TODO_BACKLOG.md`，可直接作為開發起點依據，但仍須依標準流程完成唯讀初始化與最新 main 基線確認後才能建立新 Branch 開始開發。UR-TODO-054-C（Generic Split）尚未進行 Contract Audit，若要接續開發需先另行唯讀盤點。PR #322（Loan payment atomic contract 稽核，NO-GO development 結論）仍為獨立 Draft／OPEN，本輪未處理，不影響上述任何項目。本輪為**純治理文件同步**（`AI_CONTEXT/**/*.md`、`AI_CONTEXT/EXPORTS/*`），零 production code、零 schema、零 persistence、零測試檔修改，PR 仍待使用者驗收與 Merge 決策，AI 未自行 Merge。
+
+---
+
+## 歷史交接快照：UR-TODO-046 Final Audit / Closeout（正式 CLOSED，2026-08-14）
 
 - 任務背景：UR-TODO-046（淨值成長來源歸因與記錄／實際落差核對）自 2026-07-30 提出以來，歷經 Ledger foundation、Investment（046-I1）、Loan（046-L1）、Generic Split（046-L2A/L2B）、FX 全序列（FX-A1/A2/A3、F1A-F1D、F2A-F2D）逐階段開發。本輪為 Review Mode Final Audit，逐一比對 Repository 實證（git history、程式碼、測試、正式部署站點，非採信聊天記錄或任何文件描述），確認核心 attribution／FinancialEvent／reconciliation／persistence／safety contract 已全數完成，**正式判定 CLOSE B（production code 已完成，僅需一次治理文件同步）**，本輪即為該同步動作。
 - **最新 `origin/main`＝`6ad9f5802165f0d1b78b4dd13a151584afcbf00f`**（PR #329 merge commit，重新 `git fetch --prune origin` 確認）。
