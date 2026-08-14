@@ -86,6 +86,12 @@ import { findLinkedFxConversionId } from './lib/fxConversionIdentity';
 import { buildFxConversionCreation, buildFxConversionDeletion, type FxConversionCreationInput } from './lib/fxConversionProducer';
 import { isFxOpaqueProducerEnabled } from './lib/fxOpaqueProducerGate';
 import FxConversionProducerForm from './components/fx/FxConversionProducerForm';
+// UR-TODO-054-B: FX Confirmation UI. confirmFxConversionAndAppend() is reused verbatim — this
+// file only resolves the envelope for the given conversionId and owns the single setState()
+// commit (see confirmFxConversionGroup below for its critical replace-not-append semantics).
+import { confirmFxConversionAndAppend, type ConfirmFxConversionResult } from './lib/fxConversionAttributionConfirmation';
+import { deriveFxConfirmationGroupPresentations } from './lib/fxConfirmationPresentation';
+import FxConfirmationCard, { type FxConfirmOutcome, type FxVoidOutcome } from './components/fx/FxConfirmationCard';
 // UR-TODO-054-A: Minimal Loan Repayment Producer — pure builder only creates a reconciliation
 // candidate (never calls confirmLoanPaymentGroupAndAppend()); this file owns the single setState()
 // commit, exactly mirroring createFxConversion() above.
@@ -1372,6 +1378,13 @@ function App() {
     ledgerEvents: state.financialEvents,
     accountIds: new Set(state.accounts.map(account => account.id))
   }), [state.transactions, state.financialEvents, state.loans, state.accounts]);
+  // UR-TODO-054-B: read-only presentation only; groups the FX conversion candidate/matched state
+  // into one row per conversionId for FxConfirmationCard.
+  const fxConfirmationGroupPresentations = useMemo(() => deriveFxConfirmationGroupPresentations({
+    transactions: state.transactions,
+    opaqueTransactions: state.opaqueTransactions,
+    ledgerEvents: state.financialEvents
+  }), [state.transactions, state.opaqueTransactions, state.financialEvents]);
   const orderHelper = useMemo(() => getOrderSuggestions(state, quotes, m, householdLiquidityForRebalance.investableCash), [state, quotes, m, householdLiquidityForRebalance]);
   const health = useMemo(() => deriveInvestmentHealth({
     totalAssets: m.totalAssets, growthTargetPct: m.growthTargetPct, growth: m.growth, cash: m.cash,
@@ -1695,6 +1708,41 @@ function App() {
     }
     return result;
   };
+  // UR-TODO-054-B: the sole write path from the FX Confirmation UI to state.financialEvents for
+  // one conversion. Reuses the existing, unmodified confirmFxConversionAndAppend() contract
+  // wholesale — this handler only resolves the envelope for the given conversionId.
+  const confirmFxConversionGroup = (conversionId: string): FxConfirmOutcome => {
+    const current = stateRef.current;
+    const envelope = current.opaqueTransactions.find(entry => entry.id === conversionId);
+    if (!envelope) return { rejected: true, reason: '找不到對應的換匯候選資料，可能已被刪除或修改，請重新整理後再試一次。' };
+    const opaqueTransactionsById = new Map(current.opaqueTransactions.map(entry => [entry.id, entry]));
+    let result: ConfirmFxConversionResult;
+    try {
+      result = confirmFxConversionAndAppend({ envelope, transactions: current.transactions, now: now() }, current.financialEvents, opaqueTransactionsById);
+    } catch (error) {
+      // Defense-in-depth: the 054-B Contract Audit confirmed this specific call chain has no
+      // unguarded throw risk (unlike Loan's pre-054-A canonicalCalendarDay() gap), but a click
+      // must never be able to produce zero visible effect regardless of future changes here.
+      return { rejected: true, reason: `確認時發生未預期的錯誤，未寫入任何記帳資料，請重新整理頁面後再試一次。${error instanceof Error ? `（${error.message}）` : ''}` };
+    }
+    if (result.rejected) return result;
+    // UR-TODO-054-B Audit finding, opposite of Loan: a successful ConfirmFxConversionResult's
+    // `events` IS the complete merged Ledger (appendFinancialEvent() returns
+    // [...existingEvents, event]) — this must REPLACE state.financialEvents, never be appended
+    // to it again (that would duplicate every existing Ledger event).
+    setState(current => ({ ...current, financialEvents: result.events }));
+    return { rejected: false };
+  };
+  // UR-TODO-054-B: void for an FX conversion reuses the existing, unmodified
+  // voidFinancialEventAndAppend() primitive verbatim — there is only ever one active
+  // confirmation FinancialEvent per conversionId (FX has no Loan-style component group), so a
+  // single void call is both necessary and sufficient; there is no group-void contract here.
+  const voidFxConversionGroup = (eventId: string): FxVoidOutcome => {
+    const result = voidFinancialEventAndAppend(stateRef.current.financialEvents, { eventId, now: now() });
+    if (result.rejected) return result;
+    setState(current => ({ ...current, financialEvents: result.events }));
+    return { rejected: false };
+  };
   // UR-TODO-054-A: thin App-layer commit for the pure `buildLoanRepaymentCreation()` builder —
   // a single `setState()` on success, no state change on any failure. This only ever produces a
   // reconciliation candidate (`loan-payment-contract-candidate`); it deliberately never calls
@@ -1988,7 +2036,7 @@ function App() {
           {accountWarning && <p className="warning-message">{accountWarning}</p>}
           <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
         </SectionCard>
-        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><FxConversionProducerForm enabled={isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)} accounts={state.accounts} transactions={state.transactions} onSubmit={createFxConversion} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
+        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><FxConversionProducerForm enabled={isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)} accounts={state.accounts} transactions={state.transactions} onSubmit={createFxConversion} /><FxConfirmationCard groups={fxConfirmationGroupPresentations} accounts={state.accounts} onConfirm={confirmFxConversionGroup} onVoid={voidFxConversionGroup} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
         <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>

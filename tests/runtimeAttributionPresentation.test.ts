@@ -152,6 +152,24 @@ test('UR-TODO-054-A: Loan derived-transaction rows (interest/fee/penalty) are ex
   assert.ok(!result.derivedEvidenceItems.some(item => typeof item.type === 'string' && item.type.startsWith('loan-')));
 });
 
+test('UR-TODO-054-B: an fx-conversion classification (always zero-effect/excluded, per netWorthAttribution.ts\'s ZERO_EFFECT_EVENT_TYPES) never surfaces as a generic derivedEvidenceItems row — confirms the 054-B Audit finding that FX has no Loan-style generic confirmation exposure, so RuntimeAttributionProvenanceCard needed no FX-specific exclusion logic', () => {
+  const result = deriveRuntimeAttributionPresentation({
+    composition: baseComposition({
+      eventClassifications: [
+        { id: 'fx-conversion-event-1', type: 'fx-conversion', provenance: 'ledger', disposition: 'excluded', contribution: 0 },
+        { id: 'fx-conversion-event-2', type: 'fx-conversion', provenance: 'derived-transaction', disposition: 'excluded', contribution: 0 },
+        // A genuine non-FX safe-taxonomy candidate must still surface normally alongside the excluded FX rows.
+        { id: 'derived-income-1', type: 'external-income', provenance: 'derived-transaction', disposition: 'contributing', contribution: 15_000 }
+      ]
+    }),
+    openingSnapshot: snapshot('2026-08-01'),
+    closingSnapshot: snapshot('2026-08-05')
+  });
+  assert.deepEqual(result.derivedEvidenceItems.map(item => item.id), ['derived-income-1']);
+  assert.ok(!result.derivedEvidenceItems.some(item => item.type === 'fx-conversion'));
+  assert.ok(!result.zeroContributionItems.some(item => item.type === 'fx-conversion'), 'fx-conversion is a distinct type from adjustment/internal-transfer, so it is correctly invisible everywhere in this card, not just derivedEvidenceItems');
+});
+
 test('currency-unsupported diagnostics translate into a human-readable FX exclusion reason, not raw codes', () => {
   const result = deriveRuntimeAttributionPresentation({
     composition: baseComposition({

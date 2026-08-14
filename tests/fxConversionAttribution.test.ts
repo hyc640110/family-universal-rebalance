@@ -121,6 +121,21 @@ test('a second confirmation for the same conversionId is rejected (duplicate act
   assert.equal(resolution.validEventIds.size, 1, 'confirmFxConversionAndAppend must reject the second write, leaving only the first persisted');
 });
 
+test('UR-TODO-054-B caller contract: confirmFxConversionAndAppend() success returns the COMPLETE merged Ledger (existingEvents + new event) — the opposite of Loan\'s confirmLoanPaymentGroupAndAppend(), which returns only the new group. App.tsx callers must replace state.financialEvents with result.events, never append it again.', () => {
+  const { sourceLeg, destinationLeg, envelope } = buildValidConversion();
+  const unrelatedExistingEvent: FinancialEvent = { id: 'unrelated-event', type: 'adjustment', status: 'posted', source: 'manual', effectiveDate: '2026-08-01', amount: 1, currency: 'TWD', accountId: 'acc-twd', note: '', ...audit };
+  const opaqueTransactionsById = new Map([[envelope.id, envelope]]);
+  const result = confirmFxConversionAndAppend({ envelope, transactions: [sourceLeg, destinationLeg] }, [unrelatedExistingEvent], opaqueTransactionsById);
+  assert.equal(result.rejected, false);
+  if (result.rejected) return;
+  assert.equal(result.events.length, 2, 'events must be existingEvents + the one new fx-conversion event, not just the new event');
+  assert.ok(result.events.some(event => event.id === 'unrelated-event'), 'the pre-existing event must be echoed back — this is the complete merged Ledger, not a delta');
+  assert.ok(result.events.some(event => event.id === result.event.id));
+  // Simulating the correct App.tsx caller behavior: a single setState replace, never [...current.financialEvents, ...result.events].
+  const nextFinancialEvents = result.events;
+  assert.equal(nextFinancialEvents.filter(event => event.id === 'unrelated-event').length, 1, 'replace semantics must never duplicate a pre-existing Ledger event');
+});
+
 // --- Reconciliation: candidate / matched ---
 
 test('reconcileTransactions: valid unconfirmed conversion legs are candidate, sharing the conversionId reason', () => {
