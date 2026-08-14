@@ -15,8 +15,8 @@ test('UR-TODO-046 FX-F1D: current phase — Preview only has capability when the
   assert.equal(deriveFxOpaqueProducerCapability(true, 'preview'), true);
 });
 
-test('UR-TODO-046 FX-F1D: current phase — this Sprint\'s wired source gate is OFF, so Preview is currently OFF too', () => {
-  assert.equal(isFxOpaqueProducerEnabled('preview'), false);
+test('UR-TODO-046 FX-F2C-3: current phase — the wired source gate is now ON, so Preview has producer capability while Production stays OFF', () => {
+  assert.equal(isFxOpaqueProducerEnabled('preview'), true);
   assert.equal(isFxOpaqueProducerEnabled('production'), false);
 });
 
@@ -49,9 +49,27 @@ test('UR-TODO-046 FX-F1D: long-lived contract — the gate never reads localStor
   assert.doesNotMatch(gate, /:\s*AppState/, 'must not accept AppState as an input');
 });
 
-test('UR-TODO-046 FX-F1D: long-lived contract — producer capability is opt-in (false by default), not opt-out', () => {
+test('UR-TODO-046 FX-F2C-3: current phase — the source gate has been explicitly flipped to true in this Sprint\'s own reviewable diff', () => {
   const gate = readFileSync(new URL('../src/lib/fxOpaqueProducerGate.ts', import.meta.url), 'utf8');
-  assert.match(gate, /FX_OPAQUE_PRODUCER_SOURCE_GATE\s*=\s*false/);
+  assert.match(gate, /FX_OPAQUE_PRODUCER_SOURCE_GATE\s*=\s*true/);
+});
+
+// --- F2C-3 Preview Producer Enable (UR-TODO-046) ---
+// This Sprint's only production code change is the source gate constant above. These tests
+// lock the resulting capability state and prove the AND-logic in deriveFxOpaqueProducerCapability
+// itself was not touched to get there.
+
+test('UR-TODO-046 FX-F2C-3: Preview producer capability is ON', () => {
+  assert.equal(isFxOpaqueProducerEnabled('preview'), true);
+});
+
+test('UR-TODO-046 FX-F2C-3: Production producer capability remains OFF even though the source gate is now true — the environment guard, not the source gate, is what protects Production', () => {
+  assert.equal(isFxOpaqueProducerEnabled('production'), false);
+});
+
+test('UR-TODO-046 FX-F2C-3: the environment AND-logic contract itself is unmodified by this Sprint — flipping the source gate did not touch deriveFxOpaqueProducerCapability', () => {
+  const gate = readFileSync(new URL('../src/lib/fxOpaqueProducerGate.ts', import.meta.url), 'utf8');
+  assert.match(gate, /return sourceGateEnabled && deploymentEnvironment === 'preview';/, 'the two-argument AND contract must be byte-for-byte unchanged');
 });
 
 // --- F1A preservation regression (gate must never touch preservation) ---

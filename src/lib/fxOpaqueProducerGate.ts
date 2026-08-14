@@ -24,9 +24,12 @@ import type { DeploymentEnvironment } from './environmentBoundary';
  * before a human has explicitly authorized it — not an absolute compatibility guarantee.
  */
 
-/** Current phase value. Intentionally `false` for this Sprint (UR-TODO-046 FX-F1D). Flipping
- * this to `true` — even for Preview — is a distinct future decision requiring its own PR. */
-const FX_OPAQUE_PRODUCER_SOURCE_GATE = false;
+/** Current phase value. Flipped to `true` in UR-TODO-046 FX-F2C-3 (its own, explicitly
+ * authorized PR) — this is the controlled-rollout gate ON decision. Combined with the
+ * environment guard below, this unlocks the producer in Preview only; Production remains OFF
+ * regardless of this value. Unlocking Production is a distinct future decision requiring its
+ * own PR. */
+const FX_OPAQUE_PRODUCER_SOURCE_GATE = true;
 
 /**
  * Pure two-argument contract: producer capability requires both the source gate and a
