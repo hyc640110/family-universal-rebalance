@@ -25,6 +25,28 @@ function financialEventTypeLabel(type: FinancialEventType): string {
   return FINANCIAL_EVENT_TYPE_LABEL[type] ?? type;
 }
 
+/**
+ * UR-TODO-054-A: Loan's `deriveLoanRuntimeEvidence()` (loanAttribution.ts) feeds
+ * `provenance: 'derived-transaction'` rows into the same `eventClassifications` array as the
+ * generic `safe-taxonomy-candidate` path — the only thing that structurally distinguishes a Loan
+ * row is its `type` being one of these five values, which no other derived-evidence source ever
+ * emits (deriveRuntimeDerivedAttributionEvidence() only emits TransactionReconciliationEventType,
+ * whose Extract<> deliberately excludes every loan-* FinancialEventType). This is the stable
+ * domain signal used below to exclude Loan rows from the generic card: Loan is an atomic
+ * component-group economic unit (see loanAttributionContract.ts), and this card's `item.id`
+ * being a bare transactionId (not a paymentId/componentId pair) makes it structurally unable to
+ * represent or safely confirm a Loan group — see LoanConfirmationCard.tsx for the dedicated,
+ * group-aware replacement UI. Matching on these exact type literals (not a string prefix) keeps
+ * this filter correct even if a future FinancialEventType happens to start with "loan".
+ */
+const LOAN_DERIVED_EVENT_TYPES = new Set<FinancialEventType>([
+  'loan-disbursement',
+  'loan-principal-payment',
+  'loan-interest-payment',
+  'loan-fee',
+  'loan-penalty'
+]);
+
 export type RuntimeAttributionPresentationValue = {
   status: 'known' | 'unavailable';
   value: number | null;
@@ -94,6 +116,7 @@ export function deriveRuntimeAttributionPresentation(input: {
 
   const derivedEvidenceItems: RuntimeAttributionEvidenceItem[] = composition.eventClassifications.flatMap(item => {
     if (item.provenance !== 'derived-transaction' || item.disposition !== 'contributing') return [];
+    if (LOAN_DERIVED_EVENT_TYPES.has(item.type)) return [];
     return [{ id: item.id, type: item.type, provenance: item.provenance, contribution: item.contribution, note: financialEventTypeLabel(item.type) }];
   });
 

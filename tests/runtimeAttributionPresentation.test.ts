@@ -131,6 +131,27 @@ test('derivedEvidenceItems only includes contributing derived-transaction rows, 
   assert.equal(income.note, '外部收入');
 });
 
+test('UR-TODO-054-A: Loan derived-transaction rows (interest/fee/penalty) are excluded from derivedEvidenceItems — the generic card must never expose a component-level confirm button for a Loan repayment', () => {
+  const result = deriveRuntimeAttributionPresentation({
+    composition: baseComposition({
+      eventClassifications: [
+        { id: 'loan-payment:payment-1:principal', type: 'loan-principal-payment', provenance: 'derived-transaction', disposition: 'excluded', contribution: 0 },
+        { id: 'loan-payment:payment-1:interest', type: 'loan-interest-payment', provenance: 'derived-transaction', disposition: 'contributing', contribution: -5_000 },
+        { id: 'loan-payment:payment-1:fee', type: 'loan-fee', provenance: 'derived-transaction', disposition: 'contributing', contribution: -100 },
+        { id: 'loan-payment:payment-1:penalty', type: 'loan-penalty', provenance: 'derived-transaction', disposition: 'contributing', contribution: -200 },
+        { id: 'loan-draw:payment-2', type: 'loan-disbursement', provenance: 'derived-transaction', disposition: 'excluded', contribution: 0 },
+        // A genuine non-Loan safe-taxonomy candidate must still surface normally alongside the excluded Loan rows.
+        { id: 'derived-income-1', type: 'external-income', provenance: 'derived-transaction', disposition: 'contributing', contribution: 15_000 }
+      ]
+    }),
+    openingSnapshot: snapshot('2026-08-01'),
+    closingSnapshot: snapshot('2026-08-05')
+  });
+  assert.deepEqual(result.derivedEvidenceItems.map(item => item.id), ['derived-income-1']);
+  assert.ok(!result.derivedEvidenceItems.some(item => item.id.startsWith('loan-payment:') || item.id.startsWith('loan-draw:')));
+  assert.ok(!result.derivedEvidenceItems.some(item => typeof item.type === 'string' && item.type.startsWith('loan-')));
+});
+
 test('currency-unsupported diagnostics translate into a human-readable FX exclusion reason, not raw codes', () => {
   const result = deriveRuntimeAttributionPresentation({
     composition: baseComposition({
