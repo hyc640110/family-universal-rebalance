@@ -4,6 +4,8 @@ import PageFrame from './PageFrame';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
 import type { InvestmentOpportunity } from '../lib/investmentOpportunities';
 import { INVESTMENT_DECISION_ROUTES } from '../lib/toolNavigation';
+import type { CreditCardDueSoonReminder } from '../lib/creditCardReminders';
+import CreditCardDueSoonCard from '../components/CreditCardDueSoonCard';
 
 type DashboardData = {
   total: number; net: number;
@@ -13,6 +15,7 @@ type DashboardData = {
   intelligence: ReturnType<typeof deriveInvestmentIntelligence>;
   opportunities: InvestmentOpportunity[];
   todayConclusion: string;
+  creditCardDueSoonReminders: readonly CreditCardDueSoonReminder[];
 };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
@@ -33,6 +36,8 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
       <p className="intelligence-summary">{intelligence.summary}</p>
       <div className="daily-decision-conclusion"><div><p className="eyebrow">今日建議結論</p><h3>{data.todayConclusion}</h3></div></div>
     </section>
+
+    <CreditCardDueSoonCard reminders={data.creditCardDueSoonReminders} />
 
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">今日投資摘要</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
