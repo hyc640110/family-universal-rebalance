@@ -33,7 +33,7 @@ const stock = (symbol: string, price: number, quoteName = symbol): OrderHelperRo
   marketValue: price
 });
 
-const setting = (overrides: Partial<DipAlertSetting> = {}): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: -10, ...overrides });
+const setting = (overrides: Partial<DipAlertSetting> = {}): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: -10, highWaterMark: null, triggeredLevel: null, ...overrides });
 
 const HAPPY_PATH_LIQUIDITY: DipAlertLiquidityContext = { investableCash: 1_000_000, dataCompleteness: 'complete', safetyCashShortfall: 0 };
 
@@ -138,7 +138,10 @@ test('missing setting for a symbol falls back to defaultDipAlertSetting (disable
   const rows = [stock('AAA', 50)];
   const quotes = { AAA: rows[0].quote };
   const [row] = run(rows, quotes, {});
-  assert.deepEqual(row.setting, { enabled: false, referencePrice: 0, thresholdPct: -10 });
+  // UR-TODO-057 sub-PR 2: defaultDipAlertSetting() additively grew two fields (highWaterMark/
+  // triggeredLevel); this assertion is updated to match, not a behavior change to enabled/
+  // referencePrice/thresholdPct themselves (still asserted identical below in the same test).
+  assert.deepEqual(row.setting, { enabled: false, referencePrice: 0, thresholdPct: -10, highWaterMark: null, triggeredLevel: null });
   assert.equal(row.status, '未啟用');
   assert.equal(row.triggered, false);
   assert.equal(row.fundingStatus, 'no-signal');

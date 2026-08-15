@@ -1,6 +1,8 @@
 import type { Quote } from '../App';
 import { SYMBOL_NAMES, normalizeSymbol, safeNumber, type OrderHelperRow, type SymbolCode } from './rebalanceOrderHelper';
 import type { HouseholdLiquidityOutput } from './householdLiquidity';
+import { deriveDipLadderUpdate, type DipLadderState } from './dipLadderEngine';
+import { quoteDateStatus } from './quoteMath';
 
 // V7.0B sub-PR 5a (UR-TODO-008): dipAlertRows (逢低加碼觀察清單的價格判斷邏輯) moved out of App.tsx verbatim,
 // mirroring the sub-PR 4a relocation of getOrderSuggestions, so tests/dipAlertRows.test.ts can import and exercise
@@ -17,20 +19,80 @@ import type { HouseholdLiquidityOutput } from './householdLiquidity';
 // the dip-alert domain and using a categorical funding classification rather than a money basis, since a dip alert
 // has no per-symbol requested amount of its own to reduce.
 
-export type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number };
+// UR-TODO-057 sub-PR 2: highWaterMark/triggeredLevel are the automatic-tracking counterpart to
+// the pre-existing manual referencePrice/thresholdPct fields above — the two mechanisms are
+// deliberately independent and coexist (see dipLadderEngine.ts's own doc comment: the ladder
+// never reuses referencePrice as its baseline). Both new fields are additive: existing
+// localStorage/JSON Backup records without them normalize to `null` (see
+// normalizeDipAlertSetting() below), which is exactly "tracking not yet initialized" — the next
+// accepted quote becomes the baseline, never a resurrected old manual value.
+export type DipAlertSetting = { enabled: boolean; referencePrice: number; thresholdPct: number; highWaterMark: number | null; triggeredLevel: number | null };
 export type DipFundingStatus = 'no-signal' | 'data-insufficient' | 'safety-cash-priority' | 'observe-only' | 'executable';
 export type DipAlertRow = { symbol: SymbolCode; name: string; price: number; setting: DipAlertSetting; drawdownPct: number | null; status: string; triggered: boolean; fundingStatus: DipFundingStatus };
 export type DipAlertLiquidityContext = Pick<HouseholdLiquidityOutput, 'investableCash' | 'dataCompleteness' | 'safetyCashShortfall'>;
 
 export const DEFAULT_DIP_ALERT_THRESHOLD = -10;
 
-export const defaultDipAlertSetting = (): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: DEFAULT_DIP_ALERT_THRESHOLD });
+export const defaultDipAlertSetting = (): DipAlertSetting => ({ enabled: false, referencePrice: 0, thresholdPct: DEFAULT_DIP_ALERT_THRESHOLD, highWaterMark: null, triggeredLevel: null });
+
+const normalizeHighWaterMark = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined) return null;
+  const value = safeNumber(raw);
+  return Number.isFinite(value) && value > 0 ? value : null;
+};
+
+const normalizeTriggeredLevel = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined) return null;
+  const value = safeNumber(raw);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : null;
+};
 
 export function normalizeDipAlertSetting(raw: unknown): DipAlertSetting {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
   const rawThreshold = r.thresholdPct;
   const threshold = rawThreshold === undefined || rawThreshold === null || rawThreshold === '' ? DEFAULT_DIP_ALERT_THRESHOLD : safeNumber(rawThreshold);
-  return { enabled: Boolean(r.enabled), referencePrice: Math.max(0, safeNumber(r.referencePrice)), thresholdPct: threshold };
+  return {
+    enabled: Boolean(r.enabled),
+    referencePrice: Math.max(0, safeNumber(r.referencePrice)),
+    thresholdPct: threshold,
+    highWaterMark: normalizeHighWaterMark(r.highWaterMark),
+    triggeredLevel: normalizeTriggeredLevel(r.triggeredLevel)
+  };
+}
+
+/**
+ * UR-TODO-057 sub-PR 2 (Strangler Pattern 串接階段): the bridge between a freshly-written
+ * `quotes` map and `AppState.dipAlerts`. Runs `deriveDipLadderUpdate()` (sub-PR 1, dipLadderEngine.ts,
+ * untouched by this function) for every symbol whose dip alert is enabled and has a quote
+ * available. Returns the *same* `dipAlerts` reference, unchanged, when nothing actually advanced
+ * — callers must skip writing state entirely in that case (normalizeState() always rebuilds a
+ * fresh dipAlerts object regardless of content, so the caller cannot rely on downstream reference
+ * equality to avoid marking state dirty; the check has to happen here, before any setState call).
+ */
+export function deriveDipAlertsAfterQuoteUpdate(
+  dipAlerts: Record<SymbolCode, DipAlertSetting>,
+  quotes: Record<SymbolCode, Quote>,
+  now = new Date()
+): Record<SymbolCode, DipAlertSetting> {
+  let changed = false;
+  const next: Record<SymbolCode, DipAlertSetting> = { ...dipAlerts };
+  for (const symbol of Object.keys(dipAlerts)) {
+    const setting = dipAlerts[symbol];
+    if (!setting.enabled) continue;
+    const quote = quotes[symbol];
+    if (!quote) continue;
+    const current: DipLadderState = { highWaterMark: setting.highWaterMark, triggeredLevel: setting.triggeredLevel };
+    const result = deriveDipLadderUpdate(current, {
+      price: quote.price,
+      quoteStatus: quoteDateStatus(quote.quoteDate, quote.quoteTime, now),
+      quoteSource: quote.source
+    });
+    if (result.ignored) continue;
+    if (result.state.highWaterMark === setting.highWaterMark && result.state.triggeredLevel === setting.triggeredLevel) continue;
+    next[symbol] = { ...setting, highWaterMark: result.state.highWaterMark, triggeredLevel: result.state.triggeredLevel };
+    changed = true;
+  }
+  return changed ? next : dipAlerts;
 }
 
 // 013 §14.2 五列狀態矩陣：無訊號一律 no-signal；有訊號時再依資料完整度／安全存量／可投資現金分流。

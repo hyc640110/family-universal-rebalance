@@ -102,7 +102,7 @@ import { shouldWriteInitialHydration } from './lib/legacyFirebasePersistence';
 import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
-import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
+import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, deriveDipAlertsAfterQuoteUpdate, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
 import { deriveTodayDecision } from './lib/todayDecision';
 import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentHealth';
 import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
@@ -110,6 +110,7 @@ import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidi
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
 import { deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from './lib/creditCardReminders';
 import { deriveHomeFocusedAssetCard, HOME_FOCUSED_ASSET_SYMBOL } from './lib/homeFocusedAssetCard';
+import { deriveHomeFocusedAssetLadder } from './lib/homeFocusedAssetLadderCard';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1170,6 +1171,19 @@ function App() {
     setStateValue(normalized);
   };
   const [quotes, setQuotes] = useState<Record<SymbolCode, Quote>>(defaultQuotes);
+  // UR-TODO-057 sub-PR 2: bridges every write to `quotes` (mount-time load, manual "更新股價"
+  // button, pull-to-refresh gesture — all three share the same quoteRefreshController.ts write
+  // path, see the sub-PR 2 read-only assessment) into AppState.dipAlerts's automatic high-water-
+  // mark/ladder tracking. Only calls setState when deriveDipAlertsAfterQuoteUpdate() actually
+  // advanced something — normalizeState() unconditionally rebuilds a fresh dipAlerts object on
+  // every setState call regardless of content, so skipping the call entirely (not just relying on
+  // a reference-equality bail-out downstream) is what actually avoids marking state dirty on every
+  // ordinary quote refresh.
+  useEffect(() => {
+    const current = stateRef.current;
+    const nextDipAlerts = deriveDipAlertsAfterQuoteUpdate(current.dipAlerts, quotes);
+    if (nextDipAlerts !== current.dipAlerts) setState({ ...current, dipAlerts: nextDipAlerts });
+  }, [quotes]);
   const [hasUpdatedQuotes, setHasUpdatedQuotes] = useState(false);
   const m = useMemo(() => calculateMetrics(state, quotes), [state, quotes]);
   const currentNetWorthSnapshot = useMemo(() => netWorthSnapshotFromTotals({
@@ -1485,6 +1499,22 @@ function App() {
     thresholdReached: rebalanceRecommendationView.thresholdReached,
     row: rebalanceRecommendationView.rows.find(row => row.symbol === HOME_FOCUSED_ASSET_SYMBOL)
   }), [householdLiquidityForRebalance.investableCash, rebalanceRecommendationView]);
+  // UR-TODO-057 sub-PR 2: reuses the existing single "逢低提醒" enabled toggle (dip-alert-engine's
+  // pre-existing DipAlertSetting.enabled, edited via the holding editor's checkbox) as the on/off
+  // switch for the new automatic ladder too, rather than introducing a second toggle — deliberate
+  // minimal-scope choice, not an accidental coupling. currentPrice reads the raw quotes[] entry
+  // (not the avgCost-fallback-adjusted m.rows price) so the displayed 現價 always matches exactly
+  // what deriveDipAlertsAfterQuoteUpdate() actually compared against the high-water mark.
+  const homeFocusedAssetLadder = useMemo(() => {
+    const setting = normalizeDipAlertSetting(state.dipAlerts?.[HOME_FOCUSED_ASSET_SYMBOL] ?? defaultDipAlertSetting());
+    const focusedQuote = quotes[HOME_FOCUSED_ASSET_SYMBOL];
+    const currentPrice = focusedQuote && Number.isFinite(focusedQuote.price) && focusedQuote.price > 0 ? focusedQuote.price : null;
+    return deriveHomeFocusedAssetLadder({
+      enabled: setting.enabled, highWaterMark: setting.highWaterMark, triggeredLevel: setting.triggeredLevel, currentPrice,
+      liquidity: { investableCash: householdLiquidityForRebalance.investableCash, dataCompleteness: householdLiquidityForRebalance.dataCompleteness, safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall },
+      executableBudget: householdLiquidityForRebalance.executableBudget, externalFundingRequired: householdLiquidityForRebalance.externalFundingRequired
+    });
+  }, [state.dipAlerts, quotes, householdLiquidityForRebalance]);
   const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: {} },
@@ -1998,6 +2028,7 @@ function App() {
         todayConclusion: todayDecision.conclusion,
         creditCardDueSoonReminders,
         focusedAssetCard: homeFocusedAssetCard,
+        focusedAssetLadder: homeFocusedAssetLadder,
       }} onAcknowledgeCreditCardReminder={acknowledgeCreditCardReminder} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
