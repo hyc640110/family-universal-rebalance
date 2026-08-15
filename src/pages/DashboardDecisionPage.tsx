@@ -4,6 +4,8 @@ import PageFrame from './PageFrame';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
 import type { InvestmentOpportunity } from '../lib/investmentOpportunities';
 import { INVESTMENT_DECISION_ROUTES } from '../lib/toolNavigation';
+import type { CreditCardDueSoonReminder } from '../lib/creditCardReminders';
+import CreditCardDueSoonCard from '../components/CreditCardDueSoonCard';
 
 type DashboardData = {
   total: number; net: number;
@@ -13,7 +15,10 @@ type DashboardData = {
   intelligence: ReturnType<typeof deriveInvestmentIntelligence>;
   opportunities: InvestmentOpportunity[];
   todayConclusion: string;
+  creditCardDueSoonReminders: readonly CreditCardDueSoonReminder[];
 };
+
+type DashboardDecisionPageProps = { data: DashboardData; onAcknowledgeCreditCardReminder: (id: string, dueDate: string) => void };
 
 const finite = (value: number | null | undefined) => value !== null && value !== undefined && Number.isFinite(value) ? value : null;
 const money = (value: number | null | undefined, signed = false) => {
@@ -25,7 +30,7 @@ const pct = (value: number | null | undefined, signed = false) => { const amount
 const tone = (value: number | null | undefined) => { const amount = finite(value); return amount === null || amount === 0 ? 'hold' : amount > 0 ? 'up' : 'down'; };
 const quoteTime = (value: string | null) => value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'short', timeStyle: 'short', hour12: false }).format(new Date(value)) : '—';
 
-export default function DashboardDecisionPage({ data }: { data: DashboardData }) {
+export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardReminder }: DashboardDecisionPageProps) {
   const intelligence = data.intelligence;
   return <PageFrame page="home" title="投資決策首頁" description="30 秒掌握今日投資表現、配置與下一步。">
     <section className={`investment-intelligence-card ${intelligence.overallTone}`} aria-labelledby="investment-intelligence-title">
@@ -33,6 +38,8 @@ export default function DashboardDecisionPage({ data }: { data: DashboardData })
       <p className="intelligence-summary">{intelligence.summary}</p>
       <div className="daily-decision-conclusion"><div><p className="eyebrow">今日建議結論</p><h3>{data.todayConclusion}</h3></div></div>
     </section>
+
+    <CreditCardDueSoonCard reminders={data.creditCardDueSoonReminders} onAcknowledge={onAcknowledgeCreditCardReminder} />
 
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">今日投資摘要</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>

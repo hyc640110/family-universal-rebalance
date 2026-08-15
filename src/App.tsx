@@ -108,6 +108,7 @@ import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentH
 import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
 import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
+import { deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from './lib/creditCardReminders';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -115,15 +116,19 @@ type AssetClass = 'growth' | 'defensive';
 export type Holding = { symbol: SymbolCode; name?: string; shares: number; avgCost: number; targetWeight?: number; assetClass: AssetClass; isArchived?: boolean; isPreviewFixture?: boolean };
 type CashItem = { id: string; name: string; amount: number; note: string };
 type LoanItem = { id: string; name: string; principal: number; annualRate: number; monthlyPayment: number; startDate: string; totalMonths?: number; asOf?: string };
+// UR-TODO-060: B1 scope only — reminder date + manually entered amount, no transaction linkage,
+// no attribution/taxonomy type (unlike LoanItem's repayment attribution counterpart). `amount` is
+// the user-entered "this cycle's payment", independent of the linked account's actual balance.
+type CreditCardItem = { id: string; name: string; paymentDueDay: number; linkedAccountId?: string; note?: string; acknowledgedCycleDueDate?: string; asOf?: string };
 type LegacyFirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; opaqueTransactions: OpaqueFinancialTransactionEnvelope[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: unknown; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number } };
+export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; opaqueTransactions: OpaqueFinancialTransactionEnvelope[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: unknown; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number } };
 type LegacySyncSettings = { refreshSec?: number; autoSync?: boolean; autoSyncSec?: number; workerUrl?: string; firebase?: LegacyFirebaseConfig; firebaseConfigured?: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
 type MobileDisplayMode = 'compact' | 'full';
-type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'transactions' | 'loans' | 'debug' | 'dipAnalysis' | 'analyticsDetails' | 'quoteSources' | 'targetCheck';
+type SectionKey = 'overview' | 'today' | 'ai' | 'holdings' | 'orders' | 'allocation' | 'assetClass' | 'rebalance' | 'cash' | 'transactions' | 'loans' | 'creditCards' | 'debug' | 'dipAnalysis' | 'analyticsDetails' | 'quoteSources' | 'targetCheck';
 type UiState = { displayMode: MobileDisplayMode; sections: Partial<Record<SectionKey, boolean>> };
 const marketGroupLabel = (group: string) => ({ taiwan: '台股主要指標', global: '全球主要指數', treasury: '美國公債殖利率', event: '重要經濟事件' })[group] || group;
 const PREVIEW_ARCHIVED_FIXTURE_SYMBOL = import.meta.env.VITE_DEPLOYMENT_ENVIRONMENT === 'preview' ? (import.meta.env.VITE_PREVIEW_ARCHIVED_FIXTURE || '') : '';
@@ -143,8 +148,8 @@ const DEFAULT_REBALANCE_THRESHOLD = 5;
 const DEFAULT_BUY_ONLY_BUDGET = 100000;
 const MAX_REBALANCE_THRESHOLD = 20;
 const UI_STATE_KEY = `${STORAGE_KEY}-ui-v21`;
-const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, transactions: false, loans: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, targetCheck: false } };
-const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, transactions: true, loans: true, debug: false, dipAnalysis: true, analyticsDetails: true, quoteSources: true, targetCheck: true };
+const DEFAULT_UI_STATE: UiState = { displayMode: 'compact', sections: { overview: true, today: true, ai: false, holdings: true, orders: true, allocation: false, assetClass: false, rebalance: false, cash: false, transactions: false, loans: false, creditCards: false, debug: false, dipAnalysis: false, analyticsDetails: false, quoteSources: false, targetCheck: false } };
+const FULL_UI_SECTIONS: Partial<Record<SectionKey, boolean>> = { overview: true, today: true, ai: true, holdings: true, orders: true, allocation: true, assetClass: true, rebalance: true, cash: true, transactions: true, loans: true, creditCards: true, debug: false, dipAnalysis: true, analyticsDetails: true, quoteSources: true, targetCheck: true };
 const defaultSyncMeta = (): SyncMeta => ({ dirty: true, source: '本機資料' });
 const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
@@ -292,6 +297,7 @@ const defaultState: AppState = {
   financialEvents: [],
   gmailOAuth: disconnectedGmailOAuth(),
   loans: [{ id: uid(), name: '信貸', principal: 0, annualRate: 6.5, monthlyPayment: 10000, startDate: new Date().toISOString().slice(0, 10), totalMonths: 84 }],
+  creditCards: [],
   refreshSec: 60,
   workerUrl: DEFAULT_WORKER_URL,
   autoSync: false,
@@ -346,6 +352,21 @@ function sanitizeLoanItem(l: LoanItem): LoanItem {
   const asOf = isCanonicalCalendarDay(l.asOf) ? l.asOf : localSnapshotDate();
   return { id: l.id || uid(), name: l.name || '借款', principal: Math.max(0, num(Number(l.principal))), annualRate: Math.max(0, num(Number(l.annualRate))), monthlyPayment: Math.max(0, num(Number(l.monthlyPayment))), startDate: l.startDate || new Date().toISOString().slice(0, 10), totalMonths, asOf };
 }
+// UR-TODO-060: additive sibling to sanitizeLoanItem — paymentDueDay clamped to a valid
+// day-of-month (1-31). `acknowledgedCycleDueDate` is reminder-display state only (mirrors
+// Loan's confirmationGroupId concept: one identifier per cycle, never touches
+// FinancialEvent/Ledger) — malformed values are dropped rather than guessed at, exactly like
+// `asOf`. `name` is intentionally NOT forced to a non-empty default here (scheme B): an empty
+// `name` is a valid, meaningful state — "no manual name typed, relying on linkedAccountId
+// instead" — and forcing a placeholder here would resurface as a stale default once the user
+// unlinks the account. The "no name and no account" fallback is a display-only concern, handled
+// by resolveCreditCardDisplayName() at render time, never by mutating the stored value.
+function sanitizeCreditCardItem(c: CreditCardItem): CreditCardItem {
+  const rawDay = Math.round(num(Number(c.paymentDueDay)));
+  const paymentDueDay = Math.min(31, Math.max(1, rawDay || 15));
+  const asOf = isCanonicalCalendarDay(c.asOf) ? c.asOf : localSnapshotDate();
+  return { id: c.id || uid(), name: typeof c.name === 'string' ? c.name : '', paymentDueDay, ...(c.linkedAccountId ? { linkedAccountId: c.linkedAccountId } : {}), ...(c.note ? { note: c.note } : {}), ...(isCanonicalCalendarDay(c.acknowledgedCycleDueDate) ? { acknowledgedCycleDueDate: c.acknowledgedCycleDueDate } : {}), asOf };
+}
 function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
   const source: SyncSource = r.source === '已從雲端下載' || r.source === '已從備份匯入' ? r.source : '本機資料';
@@ -397,6 +418,7 @@ export function normalizeState(raw: unknown): AppState {
   const normalizedHoldings = normalizeHoldingTargets(hasHoldingsData ? holdings : []);
   const cash = (Array.isArray(r.cash) ? r.cash : []).map(c => sanitizeCashItem(c as CashItem)).filter(Boolean) as CashItem[];
   const loans = (Array.isArray(r.loans) ? r.loans : []).map(l => sanitizeLoanItem(l as LoanItem));
+  const creditCards = (Array.isArray(r.creditCards) ? r.creditCards : []).map(c => sanitizeCreditCardItem(c as CreditCardItem));
   const accountState = normalizeAccountState(r.accounts, cash);
   // UR-TODO-046 FX-F1A: `r` may be either wire-shaped (opaque records still mixed into a single
   // `transactions` array) or an already-normalized AppState (already split into `transactions` +
@@ -415,7 +437,7 @@ export function normalizeState(raw: unknown): AppState {
   });
   const importSessions = Array.isArray(r.importSessions) ? r.importSessions.filter(value => value && typeof value === 'object').slice(-50) as ImportSession[] : [];
   const importPresets = normalizeMappingPresets(r.importPresets);
-  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, opaqueTransactions: transactionState.opaqueTransactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, opaqueTransactions: transactionState.opaqueTransactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, creditCards, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   const fxRateHistory = normalizeFxRateHistory(r.fxRateHistory).records;
@@ -467,7 +489,7 @@ export function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>
     const { previousCloseDate: _previousCloseDate, previousCloseSource: _previousCloseSource, previousCloseTrusted: _previousCloseTrusted, previousCloseReason: _previousCloseReason, ...legacyQuote } = quote;
     return [symbol, legacyQuote];
   })) as Record<SymbolCode, Quote>;
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: serializeTransactionCollection(normalized.transactions, normalized.opaqueTransactions), transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), fxRateHistory: normalized.fxRateHistory, syncMeta: withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(withoutSyncBaseline(normalized.syncMeta))), syncSettings: { refreshSec: normalized.refreshSec } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: serializeTransactionCollection(normalized.transactions, normalized.opaqueTransactions), transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, creditCards: normalized.creditCards, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), fxRateHistory: normalized.fxRateHistory, syncMeta: withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(withoutSyncBaseline(normalized.syncMeta))), syncSettings: { refreshSec: normalized.refreshSec } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -488,7 +510,7 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, fxRateHistory: r.fxRateHistory, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }) };
+  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], creditCards: Array.isArray(r.creditCards) ? r.creditCards : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, fxRateHistory: r.fxRateHistory, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }) };
   const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(raw);
   if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed: true };
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
@@ -1064,6 +1086,37 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
   return <div className="list loan-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>}{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '借款'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label style={labelStyle}><span style={labelSpanStyle}>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="依起始日與今天日期自動計算">{isMobile ? <span>已繳期數</span> : null}<span>{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span></div><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="總期數減已繳期數">{isMobile ? <span>剩餘期數</span> : null}<span>{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span></div>{!isMobile && deleteButton(item)}</div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
+// UR-TODO-060 scheme B: `linkedAccountId` is the primary identifier, moved to the first field.
+// When a card is linked to an account, the manual `name` field is hidden entirely (not just
+// disabled) — the account's own name is the display name (resolveCreditCardDisplayName()),
+// and the underlying `name` value is deliberately never auto-filled with the account name, so
+// switching back to "不指定" always reveals whatever the user actually typed (or empty, never
+// a stale account-name leftover).
+function CreditCardList({ items, setItems, accounts, isMobile }: { items: CreditCardItem[]; setItems: (items: SetStateAction<CreditCardItem[]>) => void; accounts: FinancialAccount[]; isMobile: boolean }) {
+  const displayName = (item: CreditCardItem) => resolveCreditCardDisplayName(item, accounts);
+  // UR-TODO-060: changing paymentDueDay redefines the billing cycle itself, so the previous
+  // acknowledgment (tied to the old day-of-month) is no longer meaningful — reseed it to the
+  // new day's most recent past occurrence. This is also what keeps a brand-new card from
+  // immediately reading as "overdue" for a cycle that predates its own creation (see the
+  // 新增 button below, which seeds the same way).
+  const update = (id: string, patch: Partial<CreditCardItem>) => {
+    setItems(items => items.map(item => {
+      if (item.id !== id) return item;
+      const today = localSnapshotDate();
+      const dueDayChanged = 'paymentDueDay' in patch && patch.paymentDueDay !== item.paymentDueDay;
+      return sanitizeCreditCardItem({ ...item, ...patch, asOf: today, ...(dueDayChanged ? { acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(patch.paymentDueDay as number, today) || undefined } : {}) });
+    }));
+  };
+  const remove = (item: CreditCardItem) => {
+    if (window.confirm(`確定要刪除信用卡提醒「${displayName(item)}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
+  };
+  const deleteButton = (item: CreditCardItem) => <button className="danger small compact-row-delete" type="button" aria-label={`刪除信用卡提醒 ${displayName(item)}`} onClick={() => remove(item)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>;
+  const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
+  const labelStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', marginBottom: '0.75rem', boxSizing: 'border-box' } : {};
+  const labelSpanStyle: CSSProperties = isMobile ? { fontSize: '0.9rem', color: '#888', marginBottom: '0.35rem', textAlign: 'left', display: 'block' } : {};
+  return <div className="list credit-card-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>繳費日前 3 天會自動顯示於首頁提醒；未按「完成」會持續顯示為已逾期，直到確認或下個週期到期日再次進入提醒範圍。選擇關聯帳戶後會直接使用該帳戶名稱，不需另外輸入名稱。</p>{!isMobile && <div className="list-row list-head"><span>關聯帳戶</span><span>名稱</span><span>繳費日</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{displayName(item)}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>關聯帳戶</span><select value={item.linkedAccountId || ''} onChange={event => update(item.id, { linkedAccountId: event.currentTarget.value || undefined })}>{deriveCreditCardAccountOptions(item, accounts).map(option => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>{(!isMobile || !item.linkedAccountId) && <label style={labelStyle}>{!item.linkedAccountId && <><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></>}</label>}<label style={labelStyle}><span style={labelSpanStyle}>繳費日（1-31）</span><DraftInput type="number" min="1" value={item.paymentDueDay} onCommit={value => update(item.id, { paymentDueDay: Math.min(31, Math.max(1, parsePositive(value, item.paymentDueDay))) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note || ''} onCommit={value => update(item.id, { note: value || undefined })} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => { const today = localSnapshotDate(); setItems(items => [...items, { id: uid(), name: '', paymentDueDay: 15, acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(15, today) || undefined }]); }}>新增</button></div>;
+}
+
 export function runtimeAttributionMemoDependencies(input: { openingSnapshot: NetWorthSnapshot | null; closingSnapshot: NetWorthSnapshot | null; financialEventSchemaVersion: number; financialEvents: readonly FinancialEvent[]; transactions: readonly FinancialTransaction[]; accounts: readonly FinancialAccount[]; loans: readonly LoanItem[] }): readonly unknown[] {
   return [input.openingSnapshot, input.closingSnapshot, input.financialEventSchemaVersion, input.financialEvents, input.transactions, input.accounts, input.loans];
 }
@@ -1470,6 +1523,21 @@ function App() {
     thresholdReached: rb.thresholdReached, triggeredDipAlertCount: decisionSummary.triggeredDipAlerts.length,
     defensiveReminderStatus: orderHelper.defensiveReminder.status, totalBuyAmount: orderHelper.totalBuyAmount
   }), [decisionSummary.triggeredDipAlerts.length, householdLiquidityForRebalance, rb.thresholdReached, orderHelper.defensiveReminder.status, orderHelper.totalBuyAmount]);
+  // UR-TODO-060: independent homepage block, deliberately not folded into todayDecision's
+  // single-conclusion priority chain — see deriveCreditCardDueSoonReminders' own doc comment
+  // for the active-cycle/acknowledgment design (a pure reminder-display concern, never
+  // FinancialEvent/Ledger data).
+  // UR-TODO-060 scheme B: display-name resolution (linkedAccountId -> account name, else
+  // manual name, else an explicit fallback) happens here, before handing off to
+  // deriveCreditCardDueSoonReminders() — that function's own due-date/threshold/acknowledgment
+  // logic is untouched, it only ever sees an already-resolved display name.
+  const creditCardDueSoonReminders = useMemo(() => deriveCreditCardDueSoonReminders(
+    state.creditCards.map(item => ({ id: item.id, name: resolveCreditCardDisplayName(item, state.accounts), paymentDueDay: item.paymentDueDay, acknowledgedCycleDueDate: item.acknowledgedCycleDueDate })),
+    localSnapshotDate()
+  ), [state.creditCards, state.accounts]);
+  const acknowledgeCreditCardReminder = (id: string, dueDate: string) => {
+    setState(s => ({ ...s, creditCards: s.creditCards.map(item => item.id === id ? sanitizeCreditCardItem({ ...item, acknowledgedCycleDueDate: dueDate, asOf: localSnapshotDate() }) : item) }));
+  };
   const targetWarning = isTargetOverLimit(state) ? '持股目標比例合計已超過 100%，請調整配置' : '';
   const homeDecision = useMemo(() => deriveHomeDecision({ riskLevel:riskMetrics.overallLevel, rebalance:rb.thresholdReached, dip:decisionSummary.triggeredDipAlerts.length>0, wealthBehind:state.wealthGoal.targetYear !== undefined && wealthProjection.targetYearValue !== null && wealthProjection.targetYearValue < state.wealthGoal.targetAmount, quotesMissing:quoteSummaryText !== '報價正常', targetInvalid:Boolean(targetWarning), dataCompleteness: householdLiquidityForRebalance.dataCompleteness, safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall, investableCash: householdLiquidityForRebalance.investableCash }), [riskMetrics.overallLevel, rb.thresholdReached, decisionSummary.triggeredDipAlerts.length, state.wealthGoal, wealthProjection, quoteSummaryText, targetWarning, householdLiquidityForRebalance]);
   const targetCheck = useMemo(() => {
@@ -1921,7 +1989,8 @@ function App() {
         intelligence: investmentIntelligence,
         opportunities: investmentOpportunities,
         todayConclusion: todayDecision.conclusion,
-      }} />}
+        creditCardDueSoonReminders,
+      }} onAcknowledgeCreditCardReminder={acknowledgeCreditCardReminder} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
@@ -2056,6 +2125,10 @@ function App() {
           <LoanList items={state.loans} setItems={items => setState(s => ({ ...s, loans: typeof items === 'function' ? items(s.loans) : items }))} isMobile={isMobile} />
           <LoanRepaymentProducerForm loans={state.loans} accounts={state.accounts} onSubmit={createLoanRepayment} />
           <LoanConfirmationCard groups={loanRepaymentGroupPresentations} loans={state.loans} onConfirm={confirmLoanRepaymentGroup} onVoid={voidLoanRepaymentGroup} />
+        </SectionCard>
+        <SectionCard className="page-card for-assets" id="credit-card-section" title="信用卡繳費提醒" isMobile={isMobile} collapsible open={sectionOpen('creditCards')} onToggle={() => toggleSection('creditCards')} summary={`${state.creditCards.length} 張信用卡｜${creditCardDueSoonReminders.length} 筆即將到期`}>
+          <p className="note">僅提醒繳費日期與手動輸入金額，不會自動加總信用卡消費；繳費日前 3 天會顯示於首頁。</p>
+          <CreditCardList items={state.creditCards} setItems={items => setState(s => ({ ...s, creditCards: typeof items === 'function' ? items(s.creditCards) : items }))} accounts={state.accounts} isMobile={isMobile} />
         </SectionCard>
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
