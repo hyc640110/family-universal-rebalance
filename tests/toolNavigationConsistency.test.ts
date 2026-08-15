@@ -5,6 +5,7 @@ import test from 'node:test';
 const source = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const toolPages = [
+  'src/pages/RebalanceStrategyComparisonPage.tsx',
   'src/pages/InvestmentActionCenterPage.tsx',
   'src/pages/DividendCenterPage.tsx',
   'src/pages/AiDecisionCenterPage.tsx',

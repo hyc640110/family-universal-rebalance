@@ -34,7 +34,7 @@ export function isTransactionToolsTarget(pathname: string, hash: string) {
 // Rendering from this data keeps the visible name, icon, route and link metadata aligned.
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   { id: 'etf-xray', name: 'ETF X-Ray', description: '檢視 ETF 組成與曝險。', icon: PieChart },
-  { id: 'investment-backtest', name: '投資回測', description: '比較策略在歷史期間的表現。', icon: ChartNoAxesCombined },
+  { id: 'investment-backtest', name: '三策略再平衡模擬比較', description: '純比較、不推薦、不代表建議：依你輸入的假設情境，並列比較聰明再平衡／無腦再平衡／比率再平衡三種策略的理論計算結果。', icon: ChartNoAxesCombined, to: '/tools/investment-backtest', actionLabel: '開始比較' },
   { id: 'monte-carlo', name: '蒙地卡羅模擬', description: '評估多種市場路徑下的資產結果。', icon: Crosshair },
   { id: 'investment-action-center', name: '投資行動中心', description: '集中查看既有每日投資判斷、待查看事項與對應工具，不產生買賣指令。', icon: ListChecks, to: INVESTMENT_DECISION_ROUTES.investmentActionCenter, actionLabel: '查看行動' },
   { id: 'import-transactions', name: '交易匯入（Import Transactions）', description: '前往既有交易基礎的 Import Center，從 CSV 或 XLSX 建立匯入預覽。', icon: ListChecks, to: '/assets#transactions-section', actionLabel: '前往匯入' },

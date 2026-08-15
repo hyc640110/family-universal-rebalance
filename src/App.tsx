@@ -17,6 +17,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
 import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
+import RebalanceStrategyComparisonPage from './pages/RebalanceStrategyComparisonPage';
 import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
 import DashboardDecisionPage from './pages/DashboardDecisionPage';
@@ -1114,6 +1115,7 @@ function App() {
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
   const showTransactionTools = isTransactionToolsTarget(routeLocation.pathname, routeLocation.hash);
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
+  const isRebalanceStrategyComparison = routeLocation.pathname === '/tools/investment-backtest';
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
   const isCashFlowCenter = routeLocation.pathname === '/tools/cash-flow';
@@ -1962,7 +1964,7 @@ function App() {
   };
   const validPages = ['home', 'assets', 'analytics', 'market', 'tools', 'settings'];
   if (routeLocation.pathname === '/') return <Navigate to="/home" replace />;
-    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter && !isClecStrategyCenter && !isInvestmentActionCenter) return <Navigate to="/home" replace />;
+    if (!validPages.includes(currentPage) && !isAllocationSimulator && !isRebalanceStrategyComparison && !isRiskCenter && !isWealthGoal && !isCashFlowCenter && !isNetWorthHistory && !isDividendCenter && !isAiDecisionCenter && !isPortfolioRiskCenter && !isRebalanceRecommendationCenter && !isClecStrategyCenter && !isInvestmentActionCenter) return <Navigate to="/home" replace />;
   const DashboardPage = currentPage === 'assets' ? AssetsPage : currentPage === 'analytics' ? AnalyticsPage : HomePage;
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
@@ -2131,6 +2133,7 @@ function App() {
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} fundingInput={{ totalLiquidCash: householdLiquidityForRebalance.totalLiquidCash, protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash, externalContribution: state.cashFlowProfile?.externalContribution, plannedWithdrawal: state.cashFlowProfile?.plannedWithdrawal }} />}
+      {isRebalanceStrategyComparison && <RebalanceStrategyComparisonPage />}
       {isRiskCenter && <RiskCenterPage input={riskInput} diagnostics={householdLiquidityDiagnosticPresentation} today={localSnapshotDate()} onConfirmLoanFresh={confirmLoanDataFresh} />}
       {isWealthGoal && <WealthGoalPage settings={state.wealthGoal} totalAssets={m.totalAssets} debt={m.debt} onSave={wealthGoal => setState(s => ({ ...s, wealthGoal }))} />}
       {isCashFlowCenter && <CashFlowPage profile={state.cashFlowProfile} currentCash={state.cash.length ? m.cash : null} loans={state.loans.map(({ id, name }) => ({ id, name }))} onSave={cashFlowProfile => setState(s => ({ ...s, cashFlowProfile }))} />}
