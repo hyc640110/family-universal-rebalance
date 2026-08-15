@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, SetStateAction } from 'react';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { APP_BUILD_TIME, APP_GIT_COMMIT, APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
+import { APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
 import ImportCenter from './components/import/ImportCenter';
 import AllocationContextNotice from './components/AllocationContextNotice';
 import DefensiveConfigurationStatusCard from './components/DefensiveConfigurationStatusCard';
 import RuntimeAttributionProvenanceCard from './components/RuntimeAttributionProvenanceCard';
+import ToolQuickNavigation from './components/ToolQuickNavigation';
 import TargetValuePair from './components/TargetValuePair';
 import CollapseEyeIcon from './components/CollapseEyeIcon';
 import HomePage from './pages/HomePage';
@@ -15,7 +16,6 @@ import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
-import GmailOAuthSettings from './components/GmailOAuthSettings';
 import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
 import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
@@ -36,6 +36,7 @@ import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, ma
 import { createQuoteRefreshController, type QuoteRefreshRequestOptions } from './lib/quoteRefreshController';
 import { describeQuotePresentation } from './lib/quotePresentation';
 import { createAssetsPullToRefresh } from './lib/assetsPullToRefresh';
+import { isTransactionToolsTarget } from './lib/toolNavigation';
 import { DEFAULT_WEALTH_GOAL, normalizeWealthGoalSettings, type WealthGoalSettings } from './lib/wealthGoal';
 import { deriveWealthGoalProjection } from './lib/wealthGoal';
 import { deriveRiskMetrics } from './lib/riskMetrics';
@@ -99,7 +100,6 @@ import { assertNoOAuthSecrets, disconnectedGmailOAuth, normalizeGmailOAuth, type
 import { calculateDailyProfitLoss, deriveTrustedDailyChange, isTodayQuote, quoteDateStatus } from './lib/quoteMath';
 import { sanitizeSyncFieldFingerprints, withoutRetiredCloudSyncMetadata, withoutRuntimeSyncStatus, withoutSyncBaseline, type SyncMeta, type SyncSource } from './lib/syncState';
 import { shouldWriteInitialHydration } from './lib/legacyFirebasePersistence';
-import { describeMarketRuntime, quoteProvenanceText } from './lib/runtimeProvenance';
 import { DEFAULT_REBALANCE_MODE, SYMBOL_NAMES, getDefensiveStockTargetTotal, getEffectiveTargetPercent, getOrderSuggestions, isDefensiveHolding, normalizeBuyOnlyBudget, normalizeRebalanceMode, normalizeSymbol, num, rawTargetOf, rebalanceModeLabel, safeHoldings, safeNumber, type DefensiveReminder, type OrderHelper, type OrderSuggestion } from './lib/rebalanceOrderHelper';
 import { isTaiwanSymbol, quoteNameFields, resolveSymbolName } from './lib/holdingNameResolution';
 import { DEFAULT_DIP_ALERT_THRESHOLD, defaultDipAlertSetting, deriveDipAlertsAfterQuoteUpdate, getDipAlertRows, normalizeDipAlertSetting, type DipAlertRow, type DipAlertSetting, type DipFundingStatus } from './lib/dipAlertEngine';
@@ -183,32 +183,6 @@ function downloadTextFile(filename: string, text: string, type = 'text/plain;cha
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-}
-async function copyTextWithFallback(text: string) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // Fall through to textarea copy for Safari or restricted clipboard contexts.
-    }
-  }
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.top = '0';
-  textarea.style.left = '0';
-  textarea.style.width = '1px';
-  textarea.style.height = '1px';
-  textarea.style.opacity = '0.01';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, text.length);
-  const ok = document.execCommand('copy');
-  textarea.remove();
-  if (!ok) throw new Error('copy command failed');
 }
 const clampTarget = (value: number) => Math.min(MAX_GROWTH_TARGET, Math.max(MIN_GROWTH_TARGET, Number.isFinite(value) ? value : 0));
 const normalizeAssetClass = (value: unknown, symbol?: SymbolCode): AssetClass => {
@@ -1128,7 +1102,7 @@ function App() {
   const navigate = useNavigate();
   const previewFixtureMode = DEPLOYMENT_ENVIRONMENT === 'preview' ? new URLSearchParams(typeof window === 'undefined' ? routeLocation.search : window.location.search).get('previewFixture') : null;
   const currentPage = routeLocation.pathname.replace(/^\//, '') || 'home';
-  const isTransactionImportTarget = routeLocation.pathname === '/assets' && routeLocation.hash === '#transactions-section';
+  const showTransactionTools = isTransactionToolsTarget(routeLocation.pathname, routeLocation.hash);
   const isAllocationSimulator = routeLocation.pathname === '/tools/allocation-simulator';
   const isRiskCenter = routeLocation.pathname === '/tools/risk-center';
   const isWealthGoal = routeLocation.pathname === '/tools/wealth-goal';
@@ -1241,8 +1215,6 @@ function App() {
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
   const [editingHoldingSymbol, setEditingHoldingSymbol] = useState<SymbolCode | null>(null);
-  const [debugCopyStatus, setDebugCopyStatus] = useState('複製除錯資訊');
-  const [debugInfoText, setDebugInfoText] = useState('');
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
   /** UR-TODO: backup/export/import/reset feedback is deliberately independent of runtime sync status. */
   const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
@@ -1265,9 +1237,9 @@ function App() {
     return { ...current, sections: { ...current.sections, [key]: !(current.sections[key] ?? defaults[key]) } };
   });
   useEffect(() => {
-    if (!isTransactionImportTarget) return;
+    if (!showTransactionTools) return;
     document.getElementById('transactions-section')?.scrollIntoView({ block: 'start' });
-  }, [isTransactionImportTarget]);
+  }, [showTransactionTools]);
   const applyDisplayMode = (displayMode: MobileDisplayMode) => setUiState({
     displayMode,
     sections: displayMode === 'full' ? FULL_UI_SECTIONS : DEFAULT_UI_STATE.sections
@@ -1632,52 +1604,6 @@ function App() {
   const investmentOpportunities = useMemo(() => deriveInvestmentOpportunities(dailyDecisionWorkflow), [dailyDecisionWorkflow]);
   const investmentActionCenter = useMemo(() => deriveInvestmentActionCenter(dailyDecisionWorkflow, investmentOpportunities), [dailyDecisionWorkflow, investmentOpportunities]);
   const investmentActionExplanations = useMemo(() => deriveInvestmentActionExplanations(investmentActionCenter), [investmentActionCenter]);
-  const marketRuntime = describeMarketRuntime(marketWorkerUrl, marketSnapshot.cacheControl);
-  const quoteProvenance = quoteProvenanceText(m.rows.map(row => row.quote));
-  const generateDebugInfo = () => [
-    'family-universal-rebalance debug info',
-    `Version: ${APP_VERSION}`,
-    `BuildTime: ${APP_BUILD_TIME}`,
-    `GitCommit: ${APP_GIT_COMMIT}`,
-    `URL: ${typeof location !== 'undefined' ? location.href : ''}`,
-    `UserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
-    `StorageKey: ${STORAGE_KEY}`,
-    `WorkerURL: ${DEFAULT_WORKER_URL}`,
-    `MarketWorkerURL: ${marketRuntime.endpoint}`,
-    `MarketCacheControl: ${marketRuntime.cache}`,
-    `MarketSnapshot: ${marketSnapshot.status} / ${marketSnapshot.fetchedAt || '尚未取得'}`,
-    `QuoteRequestCache: no-store`,
-    `HoldingsCount: ${safeHoldings(state.holdings).length}`,
-    `CashAccountsCount: ${state.cash.length}`,
-    `DipAlertSettingsCount: ${Object.values(state.dipAlerts || {}).filter(setting => setting.enabled).length}`,
-    `GrowthTargetTotal: ${pct(targetCheck.growthTotal)}`,
-    `DefensiveStockTargetTotal: ${pct(targetCheck.defensiveStockTotal)}`,
-    `CashTarget: ${pct(targetCheck.cashTarget)}`,
-    `LastPriceUpdate: ${latestQuoteTime ? tw(latestQuoteTime) : '尚未更新'}`,
-    `LastLocalSave: ${tw(lastSavedAt)}`,
-    `TotalAssets: ${money(m.totalAssets)}`,
-    `GrowthCurrentRatio: ${pct(rb.stockRow.currentWeight)}`,
-    `GrowthTargetPercent: ${pct(rb.growthTargetPercent)}`,
-    `RebalanceDeviation: ${rebalanceDeviationText}`,
-    `DefensiveCurrentRatio: ${pct(rb.defensiveRow.currentWeight)}`,
-    `QuoteStatus: ${quoteStatus}`,
-    `HoldingNames: ${m.rows.map(row => `${row.symbol}:${row.quote.name}`).join(' / ')}`,
-    `QuoteSources: ${m.rows.map(row => `${row.symbol}=${row.quote.source}${row.quote.error ? ` (${row.quote.error})` : ''}`).join(' / ')}`,
-    'QuoteProvenance:',
-    ...quoteProvenance.map(value => `  ${value}`)
-  ].join('\n');
-  const copyDebugInfo = async () => {
-    const text = generateDebugInfo();
-    setDebugInfoText(text);
-    try {
-      await copyTextWithFallback(text);
-      setDebugCopyStatus('已複製除錯資訊');
-      setTimeout(() => setDebugCopyStatus('複製除錯資訊'), 2500);
-    } catch {
-      setDebugCopyStatus('複製失敗，請手動截圖或回報');
-    }
-  };
-
   const [copyStatus, setCopyStatus] = useState('📋 複製摘要');
   const generateRebalanceSummaryText = () => {
     const quoteTime = latestQuoteTime;
@@ -2004,11 +1930,6 @@ function App() {
   const showOn = (...pages: string[]) => pages.includes(currentPage);
   return (
     <AppLayout>
-      {currentPage === 'home' && <header id="overview-section" className="hero hero-compact">
-        <div className="hero-actions" aria-label="首頁快速操作">
-          <button className="hero-refresh" onClick={() => { void refreshQuotes(true); }} disabled={isRefreshingQuotes}><RefreshCw size={16} aria-hidden="true" className={isRefreshingQuotes ? 'is-spinning' : ''} /><span>{isRefreshingQuotes ? '更新中…' : '更新股價'}</span></button>
-        </div>
-      </header>}
       {startupWarning && <Card title="啟動資料安全檢查">
         <p className="warning-message">localStorage 資料解析失敗，系統已改用安全預設資料，避免整頁空白。請先匯出原始損壞資料後再決定是否重設。</p>
         <p className="note">{startupWarning.message}</p>
@@ -2096,7 +2017,7 @@ function App() {
           {accountWarning && <p className="warning-message">{accountWarning}</p>}
           <FinancialAccountList accounts={state.accounts} isMobile={isMobile} onCreate={createAccount} onUpdate={updateAccount} onDeactivate={deactivateAccount} onRestore={restoreAccount} onDelete={deleteAccount} />
         </SectionCard>
-        <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open={isTransactionImportTarget || sectionOpen('transactions')} onToggle={() => toggleSection('transactions')} summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><FxConversionProducerForm enabled={isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)} accounts={state.accounts} transactions={state.transactions} onSubmit={createFxConversion} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>
+        {showTransactionTools && <SectionCard className="page-card for-assets" id="transactions-section" title="交易基礎" isMobile={isMobile} collapsible open summary={`${state.transactions.length} 筆交易`}><TransactionList accounts={state.accounts} transactions={state.transactions} opaqueTransactions={state.opaqueTransactions} onCreate={createTransaction} onDelete={deleteTransaction} onUpdate={updateTransaction} onDeleteOpaque={deleteOpaqueTransaction} /><FxConversionProducerForm enabled={isFxOpaqueProducerEnabled(DEPLOYMENT_ENVIRONMENT)} accounts={state.accounts} transactions={state.transactions} onSubmit={createFxConversion} /><ImportCenter accounts={state.accounts} transactions={state.transactions} sessions={state.importSessions} presets={state.importPresets} onCommit={commitImport} onRollback={rollbackImport} onPresets={importPresets => setState(current => ({ ...current, importPresets }))} /></SectionCard>}
         <Card className={`page-card for-analytics ${analyticsView === 'risk' ? '' : 'performance-risk-hidden'}`} title="資產配置分析"><AllocationAnalysis m={m} rb={rb} /></Card>
         <SectionCard className="page-card for-home" id="order-section" title="交易建議清單" isMobile={isMobile} collapsible open={sectionOpen('orders')} onToggle={() => toggleSection('orders')} summary={`建議加碼 ${formatCurrency(orderHelper.totalBuyAmount)}`}>
           <p className="mode-description"><strong>{orderHelper.modeLabel}</strong>：{rebalanceModeDescription(orderHelper.mode)}</p>
@@ -2169,6 +2090,7 @@ function App() {
           <p className="note">僅提醒繳費日期與手動輸入金額，不會自動加總信用卡消費；繳費日前 3 天會顯示於首頁。</p>
           <CreditCardList items={state.creditCards} setItems={items => setState(s => ({ ...s, creditCards: typeof items === 'function' ? items(s.creditCards) : items }))} accounts={state.accounts} isMobile={isMobile} />
         </SectionCard>
+        <section className="page-card for-assets" aria-label="快速導覽"><h2>快速導覽</h2><ToolQuickNavigation /></section>
       </DashboardPage>}
       {currentPage === 'tools' && <ToolsPage />}
       {isAllocationSimulator && <AllocationSimulatorPage rows={m.rows} totalAssets={m.totalAssets} cash={m.cash} fundingInput={{ totalLiquidCash: householdLiquidityForRebalance.totalLiquidCash, protectedSafetyCash: householdLiquidityForRebalance.protectedSafetyCash, externalContribution: state.cashFlowProfile?.externalContribution, plannedWithdrawal: state.cashFlowProfile?.plannedWithdrawal }} />}
@@ -2198,7 +2120,6 @@ function App() {
           </div>
           <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
         </Card>
-        <GmailOAuthSettings value={state.gmailOAuth} onChange={gmailOAuth => setState(s => ({ ...s, gmailOAuth }))} />
         <Card title="備份 / 還原">
           <p className="note">JSON 備份可用於人工備份、跨裝置資料搬移與災難復原。</p>
           <div className="actions">
@@ -2258,111 +2179,6 @@ function App() {
           </div>
           {targetCheckHasError && <p className="warning-message">持股目標比例合計已超過 100%，請調整配置。</p>}
         </SectionCard>
-      <footer className="app-footer">
-        <section className="card footer-debug-card">
-          <details className="debug-details footer-debug-details">
-            <summary><span>版本與除錯</span><small>點開查看產品版本、commit、Build time 與除錯資訊</small></summary>
-            <div className="status-grid">
-              <p><span>產品版本</span><strong>{APP_VERSION}</strong></p>
-              <p><span>Build time</span><strong>{APP_BUILD_TIME}</strong></p>
-              <p><span>Git commit</span><strong>{APP_GIT_COMMIT}</strong></p>
-              <p><span>localStorage key</span><strong>{STORAGE_KEY}</strong></p>
-              <p><span>Worker URL</span><strong>{DEFAULT_WORKER_URL}</strong></p>
-            </div>
-            <section className="runtime-provenance" aria-label="執行環境與資料來源診斷">
-              <h3>執行環境與資料來源</h3>
-              <p className="note">僅顯示本機當下已取得的資訊；不會自動同步、清除快取、重設資料或覆寫任何裝置資料。</p>
-              <div className="status-grid">
-                <p><span>目前 URL</span><strong>{typeof location !== 'undefined' ? location.href : '—'}</strong></p>
-                <p><span>Market Worker</span><strong>{marketRuntime.endpoint}</strong></p>
-                <p><span>Market response cache</span><strong>{marketRuntime.cache}</strong></p>
-                <p><span>Market snapshot</span><strong>{marketSnapshot.status}｜{marketSnapshot.fetchedAt ? tw(marketSnapshot.fetchedAt) : '尚未取得'}</strong></p>
-                <p><span>Quote request cache</span><strong>no-store（每次更新直接請求 Price Worker）</strong></p>
-              </div>
-              <div className="runtime-quote-list">
-                <h4>本機 Quote 來源與時間</h4>
-                {quoteProvenance.length ? quoteProvenance.map(value => <p key={value}>{value}</p>) : <p>尚無持股 Quote。</p>}
-              </div>
-            </section>
-            <div className="actions">
-              <button onClick={copyDebugInfo}>{debugCopyStatus}</button>
-            </div>
-            {debugInfoText && <details className="debug-details" open={debugCopyStatus.startsWith('複製失敗')}>
-              <summary>查看除錯資訊文字</summary>
-              <textarea className="debug-textarea" readOnly value={debugInfoText} onFocus={e => e.currentTarget.select()} />
-            </details>}
-            <p className="note">除錯資訊會包含版本、Build、commit、網址、裝置資訊、Market／Quote 來源與資產摘要；不包含交易值、密碼、token 或 API key。</p>
-          </details>
-        </section>
-        <Card title="更新紀錄">
-          <details className="release-notes">
-            <summary>查看更新紀錄</summary>
-            <div className="release-group">
-              <h3>V3.1 Navigation Foundation</h3>
-              <ul>
-                <li>新增首頁、資產、分析、工具與設定五個主要頁面。</li>
-                <li>手機使用固定底部導航，桌機使用固定左側 Sidebar。</li>
-                <li>採用 Hash 路由，確保 GitHub Pages 重新整理不會出現 404。</li>
-                <li>既有持股、同步與投資計算仍共用同一份狀態。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>UI 2.1</h3>
-              <ul>
-                <li>手機版改用乾淨 DOM 順序，讓 AI 分析後方直接接持股配置。</li>
-                <li>新增今日決策卡片、手機簡潔 / 完整模式與可收合區塊。</li>
-                <li>持股新增成長 / 防守資產分類，分類改由使用者設定，不再由代號強制判斷。</li>
-                <li>舊資料首次載入會補上 assetClass；已設定分類的資料不會被覆蓋。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.3.1</h3>
-              <ul>
-                <li>新增逢低加碼提醒，可為每檔持股設定波段最高價與跌幅門檻。</li>
-                <li>新增手機底部快捷導覽，快速跳到總覽、再平衡、下單、借款與同步。</li>
-                <li>手機底部快捷列與版本／除錯資訊已調整為更精簡的操作方式。</li>
-                <li>統一逢低提醒欄位為波段最高價，並放大桌機右側快捷列。</li>
-                <li>逢低提醒僅提供觀察訊號，不會自動買賣、扣現金或同步雲端。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.2.0</h3>
-              <ul>
-                <li>新增交易建議清單，將再平衡差額換算為金額、股數與張數。</li>
-                <li>新增建議加碼 / 減碼順序與現金檢查。</li>
-                <li>將版本與除錯、更新紀錄移至頁面最下方。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.1.1</h3>
-              <ul>
-                <li>新增版本號與 Build 資訊。</li>
-                <li>新增一鍵複製除錯資訊。</li>
-                <li>新增 Error Boundary，避免整頁空白。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.1.0</h3>
-              <ul>
-                <li>新增 JSON 備份匯出 / 匯入。</li>
-                <li>新增同步狀態提示。</li>
-                <li>新增危險操作確認。</li>
-                <li>新增目標比例檢查。</li>
-              </ul>
-            </div>
-            <div className="release-group">
-              <h3>v1.0.x</h3>
-              <ul>
-                <li>修正成長 / 防守資產分類。</li>
-                <li>防守資產目標比例曾改為自動計算。</li>
-                <li>預設資產可刪除。</li>
-                <li>修正 00670L 名稱為富邦NASDAQ正2。</li>
-                <li>優化手機版防守資產表格。</li>
-              </ul>
-            </div>
-          </details>
-        </Card>
-      </footer>
       </SettingsPage>}
     </AppLayout>
   );

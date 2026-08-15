@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getToolQuickLinks, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
+import { getToolQuickLinks, isTransactionToolsTarget, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
 import { readFileSync } from 'node:fs';
 
 const expectedQuickOrder = [
@@ -36,4 +36,10 @@ test('quick links retain the full Tool Center order when the current page is out
 test('the Performance analytics route uses the same quick navigation component', () => {
   const analyticsPage = readFileSync(new URL('../src/pages/AnalyticsPage.tsx', import.meta.url), 'utf8');
   assert.match(analyticsPage, /<ToolQuickNavigation \/>/);
+});
+
+test('交易匯入深連結仍是交易工具的唯一受控開啟條件', () => {
+  assert.equal(isTransactionToolsTarget('/assets', '#transactions-section'), true);
+  assert.equal(isTransactionToolsTarget('/assets', ''), false);
+  assert.equal(isTransactionToolsTarget('/tools', '#transactions-section'), false);
 });

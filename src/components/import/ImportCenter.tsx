@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import readXlsxFile from 'read-excel-file/browser';
-import ToolQuickNavigation from '../ToolQuickNavigation';
 import type { FinancialAccount } from '../../lib/financialAccounts';
 import type { FinancialTransaction } from '../../lib/transactions';
 import {
@@ -180,6 +179,5 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <FeedbackLine feedback={commitFeedback} />
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => rollback(session.id)}>撤銷</button>}</p>)}
     <FeedbackLine feedback={rollbackFeedback} />
-    <ToolQuickNavigation current="import-transactions" showAssetsReturn />
   </div>;
 }

@@ -16,8 +16,7 @@ const toolPages = [
   'src/pages/NetWorthHistoryPage.tsx',
   'src/pages/AllocationSimulatorPage.tsx',
   'src/pages/RiskCenterPage.tsx',
-  'src/pages/AnalyticsPage.tsx',
-  'src/components/import/ImportCenter.tsx'
+  'src/pages/AnalyticsPage.tsx'
 ];
 
 test('all existing tool surfaces use the shared navigation component', () => {

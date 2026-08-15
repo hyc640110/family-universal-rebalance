@@ -26,6 +26,10 @@ export const INVESTMENT_DECISION_ROUTES = {
   investmentActionCenter: '/tools/investment-action-center'
 } as const;
 
+export function isTransactionToolsTarget(pathname: string, hash: string) {
+  return pathname === '/assets' && hash === '#transactions-section';
+}
+
 // This is the sole product-order source for Tool Center and tool-page quick links.
 // Rendering from this data keeps the visible name, icon, route and link metadata aligned.
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
