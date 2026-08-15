@@ -1,8 +1,15 @@
-# Universal Rebalance Current Status v4.15
+# Universal Rebalance Current Status v4.16
 
 最後更新：2026-08-15
 
-**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `98c96c160bd15a563fd958ce389df1bf7d56d73b`。** PR [#355](https://github.com/hyc640110/family-universal-rebalance/pull/355)（新增治理文件最終一致性規則於 `007_GIT_WORKFLOW.md` §8.2）已正式 Merge，merge commit `98c96c160bd15a563fd958ce389df1bf7d56d73b`，一般 merge commit，未使用 admin override。此為該規則自身承認的結構性限制：任何治理同步 PR 都無法在其內容裡宣告自己的 merge commit SHA（該值只有 GitHub 合併當下才會產生），導致 Bundle 內容必然落後自身一個 commit；依規則第 3 條，於下一次治理同步時立即追平此落差。
+**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `fc9684ef955fca5c9d4194ea670b719e32c58727`。** 本次治理同步一併追平自上次基線陳述（PR #355／`98c96c1`）以來被跳過的兩筆 Merge：
+
+- **PR [#356](https://github.com/hyc640110/family-universal-rebalance/pull/356)**（`docs: catch up baseline to PR #355's merge commit`），merge commit `c49594a06586889b31314d353c1a67288bb5e161`，一般 merge commit，未使用 admin override。純治理文件同步（依 §8.1 既有政策自動 Merge），追平 PR #355 自身無法宣告自己 merge commit 的結構性落差。
+- **PR [#357](https://github.com/hyc640110/family-universal-rebalance/pull/357)**（`feat: FX Conversion Confirmation UI (UR-TODO-054-B)`），merge commit `fc9684ef955fca5c9d4194ea670b719e32c58727`，一般 merge commit，未使用 admin override。UR-TODO-054-B 正式完成並 Merge，詳見下方獨立條目。
+
+---
+
+**UR-TODO-054-B（FX Confirmation UI）正式完成並 Merge，`origin/main` 正式基線更新為 `fc9684ef955fca5c9d4194ea670b719e32c58727`。** PR [#357](https://github.com/hyc640110/family-universal-rebalance/pull/357) 已正式 Merge（merge commit `fc9684ef955fca5c9d4194ea670b719e32c58727`，一般 merge commit，未使用 admin override），承接同日稍早的 Review Mode Contract Audit（GO 判定），架構比照已完成的 054-A（Loan Confirmation UI）成功模式：新增 `src/lib/fxConversionPresentation.ts`（`deriveFxConversionPresentations()`，依 `conversionId` 把兩腿合併為單一 presentation 項目）、`src/components/fx/FxConfirmationCard.tsx`（確認／撤銷 UI），`App.tsx` 新增 `confirmFxConversion()`／`voidFxConversion()`，重用既有、未修改的 `confirmFxConversionAndAppend()`／`voidFinancialEventAndAppend()` contract。**關鍵風險點已正確處理並有 CRITICAL regression test 明確鎖定**：`confirmFxConversionAndAppend()` 的 `result.events` 是完整合併後的 Ledger（與 Loan 方向相反，必須整份取代而非疊加），本機 Preview 已端到端實機驗證 create→confirm→void→reconfirm 全流程 `financialEvents.length` 正確為 0→1→2→3。開發過程中發現並處理另一個過時的重複 Draft PR [#333](https://github.com/hyc640110/family-universal-rebalance/pull/333)（來自無關的較早 session，基於嚴重過時的 main，若 Merge 會刪除大量已上線功能），已 Close without merge，並把其中有保留價值的內容（跨 envelope 重複認領防呆、`handleVoid` 對稱防護、測試韌性缺口）整合進 PR #357。Deploy GitHub Pages run [31895761055](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31895761055) success，headSha 與 merge commit 一致；Production 已唯讀確認 FX Producer 表單與 `FxConfirmationCard` 皆正確不顯示（Producer gate 維持 OFF，本次 Merge 未觸碰此常數）、既有功能不受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-054-B 正式條目。
 
 ---
 
