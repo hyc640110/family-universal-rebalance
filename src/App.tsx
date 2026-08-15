@@ -109,6 +109,7 @@ import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigu
 import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
 import { deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from './lib/creditCardReminders';
+import { deriveHomeFocusedAssetCard, HOME_FOCUSED_ASSET_SYMBOL } from './lib/homeFocusedAssetCard';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -1478,6 +1479,12 @@ function App() {
       allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
     });
   }, [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView, householdLiquidityForRebalance]);
+  const homeFocusedAssetCard = useMemo(() => deriveHomeFocusedAssetCard({
+    investableCash: householdLiquidityForRebalance.investableCash,
+    canRecommend: rebalanceRecommendationView.canRecommend,
+    thresholdReached: rebalanceRecommendationView.thresholdReached,
+    row: rebalanceRecommendationView.rows.find(row => row.symbol === HOME_FOCUSED_ASSET_SYMBOL)
+  }), [householdLiquidityForRebalance.investableCash, rebalanceRecommendationView]);
   const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: {} },
@@ -1990,6 +1997,7 @@ function App() {
         opportunities: investmentOpportunities,
         todayConclusion: todayDecision.conclusion,
         creditCardDueSoonReminders,
+        focusedAssetCard: homeFocusedAssetCard,
       }} onAcknowledgeCreditCardReminder={acknowledgeCreditCardReminder} />}
       {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
