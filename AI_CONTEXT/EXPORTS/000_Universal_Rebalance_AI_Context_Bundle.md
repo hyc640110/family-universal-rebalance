@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T09:23:31.266882+00:00
+Generated UTC: 2026-08-15T10:54:21.541161+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T09:23:31.266882+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `ce9be54af59193dbcf82275a68c8cbc7ab5c93a06b8684bdbd98059ebc2992d1`
+- `003_CURRENT_STATUS.md` — SHA-256 `418d83987c5f4d32bab195c9945fd987da947120ee4809b3307a64644e068096`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `0f9c7498ad253cc3a4b77bda39dd50e516c7de274a1faa4fc36bcc0ce3c05066`
+- `008_TODO_BACKLOG.md` — SHA-256 `a7ab0d0b585c8a65a90cf9c45ca7f9edf2d8c7b26bf0e05c9fbdaccda3258e05`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.08
+# Universal Rebalance Current Status v4.09
 
 最後更新：2026-08-15
+
+**UR-TODO-058（Excel 三策略再平衡模擬比較）正式完成並 Merge，`origin/main` 正式基線更新為 `234fe137c017adef3536b892ac025afe1d445890`。** PR [#345](https://github.com/hyc640110/family-universal-rebalance/pull/345) 已正式 Merge（merge commit `234fe137c017adef3536b892ac025afe1d445890`，一般 merge commit，未使用 admin override），落地獨立新頁面 `/tools/investment-backtest`（啟用既有 `toolNavigation.ts` 原本待規劃的佔位項目）：純模擬／比較工具，不接進 `clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts` 等正式決策引擎，不寫入任何正式持久化資料。資料來源為使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡 Excel，經完整解析後落地三套純函式策略：聰明再平衡（依期間漲跌動態調整，Excel 作者不推薦但使用者要求保留供比對）、無腦再平衡（Excel 作者推薦，僅在 00631L／00865B 間互換）、比率再平衡（三檔全面向目標權重收斂）；另有 Beta 曝險 session-only 模擬（不重用或修改既有正式 Beta 指標）。開發後應使用者要求，假設情境輸入與結果顯示統一改為萬元（重用既有 `yuanToWan()`／`wanToYuan()` 慣例）。Deploy GitHub Pages run [31880137982](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31880137982) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/investment-backtest` 正確顯示三策略模擬比較，既有功能未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-058 正式條目（含最初「導入 CLEC」定位與最終「純模擬比較工具」定位的範圍差異記錄）。
+
+---
 
 **UR-TODO-061（首頁重點標的可自訂）正式完成並 Merge，`origin/main` 正式基線更新為 `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`。** PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343) 已正式 Merge（merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，未使用 admin override），將首頁「重點標的」卡片（UR-TODO-059）從寫死 00631L 改為使用者可自訂：新增 additive 欄位 `AppState.focusedSymbols: string[]`（陣列型別為未來多檔顯示預留彈性，UI 邏輯仍限制最多 1 檔）；資產頁個股「詳細」展開區塊新增「設為重點標的」切換開關，選新標的自動取消舊選擇；新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray()` 判斷欄位是否首次存在，對既有使用者一次性遷移初始化為 `['00631L']`，之後使用者主動清空選擇則原樣尊重、不再覆蓋；與逢低加碼追蹤（UR-TODO-057）完全獨立，切換重點標的不影響任何標的已累積的 `highWaterMark`／`triggeredLevel`（已實機驗證）；取消唯一重點標的時首頁卡片完全不渲染，比照既有 `CreditCardDueSoonCard` 慣例。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁正確顯示 00631L（既有使用者遷移邏輯），既有卡片未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-061 正式條目。
 
@@ -4016,15 +4020,30 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 依賴：UR-TODO-059（已 CLOSED，首頁「重點標的」卡片結構基礎已具備）；既有 `dipAlertEngine.ts`／`householdLiquidity.ts`（`deriveDipFundingStatus()`／`executableBudget` 皆直接重用，未修改）。
 - 驗收條件（已達成）：使用者於 Preview 環境完整驗收（自動追蹤、階梯觸發、新高重置、首頁呈現、封存流程無關聯問題排除），Production 唯讀確認功能與既有首頁區塊皆正常。
 
-### UR-TODO-058 Excel 資產配置／再平衡算法導入 CLEC
+### UR-TODO-058 Excel 三策略再平衡模擬比較
 
-- 優先級：P1／待評估（使用者要求拉高優先）
-- 狀態：**待補件**——Project Knowledge 與 Repository 目前皆無此檔案內容，需使用者重新提供檔案後，才能由 Claude Home 正式盤點範圍與驗收條件。
-- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
-- 背景：使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡-G1_2_5_865B_再修改.xlsx，其計算方式需正式導入本專案 CLEC 策略中心。
-- 明確不包含：在補件與正式盤點完成前，不得自行臆測或實作任何演算法。
-- 依賴：待補件後確認與既有 CLEC drift 規則引擎（`src/lib/clecStrategyRules.ts`）及 `src/lib/allocationPresets.ts` 靜態樣板權重表的關聯程度。
-- 驗收條件：待補件並正式盤點後另訂。
+- 優先級：P1／待評估（使用者要求拉高優先） → 開發時正式排入
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#345](https://github.com/hyc640110/family-universal-rebalance/pull/345)**，merge commit `234fe137c017adef3536b892ac025afe1d445890`，一般 merge commit，**未使用 admin override**。Deploy GitHub Pages run [31880137982](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31880137982) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/investment-backtest` 正確顯示三策略模擬比較（萬元單位），既有功能未受影響，console 無錯誤。
+- 提出日期：使用者原始提出時間不明，2026-08-15 由 Claude Home Review 後正式登錄，同日補件、唯讀盤點、範圍修正並完成開發。
+- **資料來源**：使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡-G1_2_5_865B_再修改.xlsx，經 Claude Home 完整解析核心邏輯後，由使用者確認轉換為正式規格。
+- **與最初條目的範圍差異（明確記錄，避免未來誤讀）**：最初登錄時標題為「導入 CLEC」，隱含要把 Excel 演算法接進正式 CLEC 策略引擎（`clecStrategyRules.ts`）的假設。開發前使用者明確修正定位：**這是純粹的模擬／比較工具，不寫入或影響使用者實際的資產配置、目標權重，也不接進任何會影響「是否可執行」判斷的正式 CLEC 引擎（`clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts`）**，性質上更接近既有 `AllocationSimulatorPage.tsx`（假設情境模擬器），而非正式決策引擎的延伸。條目標題與範圍已依此修正版定位重新定案。
+- **最終落地範圍**：
+  1. **獨立新頁面**：`/tools/investment-backtest`，啟用既有 `toolNavigation.ts` 內原本待規劃的 `investment-backtest` 佔位項目（補上路由與正式描述文字），未另立新 tool id。
+  2. **三套純函式**（`src/lib/rebalanceStrategyComparison.ts`）：
+     - **聰明再平衡**：依「期間漲跌 = 目前市值(00631L) − 期初市值 − 期間買進金額」動態決定調整金額，賺錢時賣出 00631L（期間漲跌 × 上漲平衡%，預設 30%）轉入 00865B，賠錢或持平時用固定下跌平衡金從 00865B 轉入 00631L，0050 不受影響。**Excel 作者本人不推薦此策略，但使用者明確要求三套都要並列顯示（含此策略），供自行比對，不做任何排序或推薦標示。**
+     - **無腦再平衡**（Excel 作者推薦）：只在 00631L／00865B 之間，依兩者目標權重「彼此之間」的比例（renormalized）互換，0050 不受影響。
+     - **比率再平衡**：三檔資產全部依目標權重（× 總市值 − 目前市值）收斂。
+  3. **Beta 曝險**：session-only 狀態，使用者為每檔資產輸入槓桿倍數假設值（例如 0050→1、00631L→2、00865B→0），純顯示「目前 Beta vs 目標 Beta」，**不重用或修改 `App.tsx` 既有寫死的正式 `m.beta` 指標**（`calculateMetrics()` 內單獨判斷 00631L 的既有硬編碼公式，本次完全未觸碰）。
+  4. **金額單位**：假設情境輸入欄位與結果顯示統一為萬元，重用既有 `src/lib/cashFlow.ts` 的 `yuanToWan()`（顯示）／比照 `wanToYuan()` 的 ×10000 換算慣例（輸入，但刻意保留負數不被吃成 `null`，確保驗證訊息仍能觸發），不另外發明新的單位轉換邏輯。
+  5. **純模擬工具治理**：所有時間序列輸入（期初市值、期間開始／結束日期、期間買進金額）一律為使用者手動輸入的假設值，不從 `netWorthHistory`／交易紀錄自動帶出（唯讀盤點階段已確認技術上也有資料缺口——不存在單一 symbol 的逐日市值歷史）。
+  6. **UI 明確標示模擬性質**：三策略並列呈現時不用顏色標示「最佳」、不排序成第一名／第二名；不出現 `ClecRuleSummaryCard`／`rebalance-eligibility` 那類正式決策用語與徽章樣式；每張策略卡片皆有「比較用，非系統推薦」字樣。
+  7. **輸入防呆**：市值／期初市值／期間買進金額／下跌平衡金為負、上漲平衡% 超出 0～100、日期區間顛倒皆會阻擋結果顯示並提示具體錯誤訊息。
+- **技術落地**：新增 `src/lib/rebalanceStrategyComparison.ts`（三套公式＋Beta 計算＋驗證函式，18 個 characterization test）、`src/pages/RebalanceStrategyComparisonPage.tsx`（獨立頁面，完全不讀取 `AppState`／`Holding`／quotes）；既有 `tests/toolNavigation.test.ts`／`tests/toolNavigationConsistency.test.ts` 因 `investment-backtest` 從佔位項目轉為正式路由，同步更新硬編碼順序清單與一致性檢查涵蓋範圍。
+- 明確不包含：模式 4、5（新資金分配邏輯）；`clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts`／`rebalanceRecommendation.ts` 任何修改；`App.tsx` 既有正式 Beta 指標修改；從 `netWorthHistory`／交易紀錄自動帶出真實歷史資料；`AllocationSimulatorPage.tsx` 本身邏輯修改（僅重用其 CSS／視覺慣例，未修改該檔案）。
+- 依賴：無（純模擬工具，與既有 CLEC／Household Liquidity／正式持股體系完全獨立）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收，含萬元單位調整後的重新驗收——確認三套策略在有偏離的假設情境下正確顯示不同買賣建議（無腦再平衡僅動 00631L／00865B、比率再平衡三檔皆動、聰明再平衡依期間漲跌動態計算），Production 唯讀確認功能與既有頁面皆正常。
 
 ### UR-TODO-059 首頁 30 秒決策中心接上真實金額（鎖定 00631L）
 

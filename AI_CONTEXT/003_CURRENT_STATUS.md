@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.08
+# Universal Rebalance Current Status v4.09
 
 最後更新：2026-08-15
+
+**UR-TODO-058（Excel 三策略再平衡模擬比較）正式完成並 Merge，`origin/main` 正式基線更新為 `234fe137c017adef3536b892ac025afe1d445890`。** PR [#345](https://github.com/hyc640110/family-universal-rebalance/pull/345) 已正式 Merge（merge commit `234fe137c017adef3536b892ac025afe1d445890`，一般 merge commit，未使用 admin override），落地獨立新頁面 `/tools/investment-backtest`（啟用既有 `toolNavigation.ts` 原本待規劃的佔位項目）：純模擬／比較工具，不接進 `clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts` 等正式決策引擎，不寫入任何正式持久化資料。資料來源為使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡 Excel，經完整解析後落地三套純函式策略：聰明再平衡（依期間漲跌動態調整，Excel 作者不推薦但使用者要求保留供比對）、無腦再平衡（Excel 作者推薦，僅在 00631L／00865B 間互換）、比率再平衡（三檔全面向目標權重收斂）；另有 Beta 曝險 session-only 模擬（不重用或修改既有正式 Beta 指標）。開發後應使用者要求，假設情境輸入與結果顯示統一改為萬元（重用既有 `yuanToWan()`／`wanToYuan()` 慣例）。Deploy GitHub Pages run [31880137982](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31880137982) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/investment-backtest` 正確顯示三策略模擬比較，既有功能未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-058 正式條目（含最初「導入 CLEC」定位與最終「純模擬比較工具」定位的範圍差異記錄）。
+
+---
 
 **UR-TODO-061（首頁重點標的可自訂）正式完成並 Merge，`origin/main` 正式基線更新為 `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`。** PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343) 已正式 Merge（merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，未使用 admin override），將首頁「重點標的」卡片（UR-TODO-059）從寫死 00631L 改為使用者可自訂：新增 additive 欄位 `AppState.focusedSymbols: string[]`（陣列型別為未來多檔顯示預留彈性，UI 邏輯仍限制最多 1 檔）；資產頁個股「詳細」展開區塊新增「設為重點標的」切換開關，選新標的自動取消舊選擇；新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray()` 判斷欄位是否首次存在，對既有使用者一次性遷移初始化為 `['00631L']`，之後使用者主動清空選擇則原樣尊重、不再覆蓋；與逢低加碼追蹤（UR-TODO-057）完全獨立，切換重點標的不影響任何標的已累積的 `highWaterMark`／`triggeredLevel`（已實機驗證）；取消唯一重點標的時首頁卡片完全不渲染，比照既有 `CreditCardDueSoonCard` 慣例。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁正確顯示 00631L（既有使用者遷移邏輯），既有卡片未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-061 正式條目。
 
