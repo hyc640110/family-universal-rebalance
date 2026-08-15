@@ -1015,16 +1015,30 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
 
-### UR-TODO-057 波段最高價自動更新
+### UR-TODO-057 00631L 自動高點追蹤＋每跌 10% 階梯式加碼提醒
 
-- 優先級：P2／待評估
-- 狀態：待規劃
-- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
-- 背景：持股資產管理的「波段最高價」目前為手動輸入的逢低加碼參考高價，長期未更新會使回撤／逢低加碼訊號失真。使用者曾明確表示「先記下來，以後有空再討論是否改成市場創新高時自動更新」。
-- 範圍（草案，待正式盤點）：是否改為市場創新高時自動更新；若改自動，需確認資料來源與更新頻率，並確認不破壞既有「使用者可自行設定跌幅門檻」的既有邏輯。
-- 明確不包含：任何自動下單或自動調整持股邏輯。
-- 依賴：無明確前置，待正式盤點時確認是否與逢低加碼（dip alert）既有機制相關 Todo 有關聯。
-- 驗收條件：待正式排入開發時另訂。
+- 優先級：P2／待評估 → 開發時提升為使用者明確排入
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：採 Strangler Pattern 兩階段（比照 ADR-001）：
+  - **子 PR 1（抽出階段）**：PR [#339](https://github.com/hyc640110/family-universal-rebalance/pull/339)，merge commit `2248453da13e2cc8a0d61326ab512df98162abaf`，一般 merge commit，**未使用 admin override**。新增完全獨立的純函式 `src/lib/dipLadderEngine.ts`（`deriveDipLadderUpdate()`），本階段不含任何 `AppState`／UI／quote 接線。
+  - **子 PR 2（串接階段）**：PR [#340](https://github.com/hyc640110/family-universal-rebalance/pull/340)，merge commit `7704cf8f0610b003414b2ea664e0b9515f947df4`，一般 merge commit，**未使用 admin override**（此 PR 原疊在子 PR 1 分支上，子 PR 1 Merge 後因分支未刪除、GitHub 未自動轉換 base，已手動將 base 改回 `main` 後再 Merge）。
+  - Deploy GitHub Pages run [31872010383](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31872010383) success，headSha 與最終 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示 00631L 的「逢低加碼自動追蹤」區塊（高點／現價／回撤／觸發級別），既有卡片未受影響，console 無錯誤。
+- 提出日期：使用者原始提出時間不明，2026-08-15 由 Claude Home Review 後正式登錄，同日重新定義範圍、唯讀盤點、定案開發並完成。
+- **與最初草案的差異（明確記錄）**：最初草案僅為「波段最高價手動欄位改為市場創新高時自動更新」的單純欄位自動化構想。開發前使用者將需求正式重新定義為**完整的階梯式加碼機制**：不只是高點自動追蹤，還包含依回撤深度分級（每跌 10% 一級）、防重複觸發、新高重置整個週期、首頁呈現建議加碼金額（受資金資格限制）——範圍遠大於原始草案，因此沿用同一編號但整份規格重新定義，非草案的直接實作。
+- **最終落地範圍**：
+  1. **自動高點追蹤**：不沿用既有手動輸入的 `referencePrice` 欄位，改為獨立新欄位 `highWaterMark`（`number | null`）。啟用當下的第一筆合格報價即為初始高點基準（並非啟用當下就讀取任何舊資料），之後每筆合格報價 `price > 已記錄高點` 才更新，`price ≤ 已記錄高點` 高點維持不變。
+  2. **回撤階梯**：跌幅門檻固定寫死每 10% 一級（不提供使用者自訂步階大小），新增獨立欄位 `triggeredLevel`（`number | null`）記錄這一輪高點週期已觸發到第幾級，只有級別前進才算新觸發，同級反覆震盪或局部反彈（未創新高）都不會重複觸發或倒退。
+  3. **新高重置**：一旦（合格報價）創新高，`highWaterMark` 更新為新值，`triggeredLevel` 一併歸零，舊回撤週期正式結束。
+  4. **報價品質過濾**：只接受 `quoteStatus` 為 `today` 或 `recent-trading-day`、非備援來源（`成交均價`／`備援`／`離線`字樣）、且為有限正數的報價才參與比對；不合格報價一律忽略、完全不更新任何狀態，比照既有 `rebalanceRecommendation.ts` 的保守處理慣例。
+  5. **quote 更新橋接**：唯讀盤點確認 Repository 內**不存在自動輪詢機制**（無 `setInterval`），股價只在「頁面載入一次」與「使用者主動觸發（按鈕／下拉手勢）」時更新，三者共用同一套 `quoteRefreshController.ts` 寫入路徑；階梯比對掛在這個共用寫入路徑上（`App.tsx` 新增 `useEffect` 監聽 `quotes` 變化），涵蓋全部三個觸發時機，不特別排除任何一個。
+  6. **首頁呈現**：合併進既有 UR-TODO-059「重點標的」卡片（`HomeFocusedAssetCard.tsx`）新增第二區塊，而非另開新卡片；顯示目前高點、現價、即時回撤；觸發時顯示第幾級與建議加碼金額（比照既有 013 §14.3 訊號與資金資格分開顯示原則，直接重用既有 `deriveDipFundingStatus()`／`householdLiquidityForRebalance.executableBudget`，未新增任何新金額公式）；未觸發時顯示距下一級門檻的百分比距離；`highWaterMark` 為 `null`（尚無合格報價）時顯示明確等待文案，不出現壞掉的畫面。
+  7. **持久化 additive 相容性**：`DipAlertSetting` 新增 `highWaterMark`／`triggeredLevel` 兩個必要欄位（值可為 `null`），`normalizeDipAlertSetting()` 白名單同步擴充；既有 localStorage／JSON Backup 資料缺這兩個欄位時正規化為 `null`（視為「尚未啟用追蹤」，絕不會復活舊的手動 `referencePrice` 當作高點）。
+- **技術落地**：新增 `src/lib/dipLadderEngine.ts`（純函式核心，19 個 characterization test，含開發中主動發現並修正的浮點數邊界 bug——剛好整數門檻的跌幅計算會因 JS 浮點誤差少算一級，已修正為四捨五入到小數點後 6 位再計算）；`src/lib/dipAlertEngine.ts` 新增橋接函式 `deriveDipAlertsAfterQuoteUpdate()`（9 個測試）；新增 `src/lib/homeFocusedAssetLadderCard.ts`（呈現邏輯純函式，11 個測試）；`HomeFocusedAssetCard.tsx`／`DashboardDecisionPage.tsx`／`App.tsx` 接線；既有 `tests/dipAlertRows.test.ts`／`tests/homeFocusedAssetCardUi.test.ts` 因型別 additive 擴充同步更新斷言（無行為變更）。
+- **邊界情況實測驗證**：於 Preview 環境直接操作 localStorage 驗證——啟用追蹤＋報價更新正確初始化並持久化高點；00631L 從 `holdings` 陣列完全移除後 reload，既有 `normalizeDipAlerts()` 的 holdings-存在性過濾機制正確清空整筆 `dipAlerts` 記錄（含新欄位），首頁正確顯示防呆文案，無 undefined 或壞掉畫面。另有一則使用者回報「封存 00631L 無反應」的問題，經 Debug Trace（唯讀，未修改任何程式碼）逐層確認 execution path 完全正常、無例外、UI 正確更新，判定與本輪新增邏輯無關，為瀏覽器 `window.confirm()` 連續觸發防護機制的巧合（使用者重新整理後單獨測試 00631L 確認恢復正常，已排除）。
+- 明確不包含：使用者可自訂步階大小；修復既有 `DipAlertCard`／`thresholdPct` 手動編輯入口缺口（已確認本次不需要）；任何自動下單或自動調整持股邏輯；Firebase（已退役，無需考慮）。
+- 依賴：UR-TODO-059（已 CLOSED，首頁「重點標的」卡片結構基礎已具備）；既有 `dipAlertEngine.ts`／`householdLiquidity.ts`（`deriveDipFundingStatus()`／`executableBudget` 皆直接重用，未修改）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（自動追蹤、階梯觸發、新高重置、首頁呈現、封存流程無關聯問題排除），Production 唯讀確認功能與既有首頁區塊皆正常。
 
 ### UR-TODO-058 Excel 資產配置／再平衡算法導入 CLEC
 
