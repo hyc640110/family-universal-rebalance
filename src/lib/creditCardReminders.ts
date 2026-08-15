@@ -42,6 +42,30 @@ export function resolveCreditCardDisplayName(
   return item.name || '未命名信用卡提醒';
 }
 
+export type CreditCardAccountOption = { value: string; label: string };
+
+/**
+ * UR-TODO-060 scheme B follow-up: computes the <select> option list for a card's account
+ * picker, including a synthetic entry when `item.linkedAccountId` no longer resolves to any
+ * account in `accounts` (deleted). Without this, a native <select> silently falls back to
+ * showing "不指定" for an unmatched bound value — a purely visual artifact that does NOT
+ * clear the underlying data, but does make the screen lie about what's actually linked. The
+ * synthetic option keeps the dropdown honest: it stays visibly selected until the user makes a
+ * real, deliberate choice (a genuine onChange), so an edit to some other field can never be
+ * mistaken for — or accidentally trigger — clearing the link.
+ */
+export function deriveCreditCardAccountOptions(
+  item: { linkedAccountId?: string },
+  accounts: readonly CreditCardDisplayNameAccountRef[]
+): CreditCardAccountOption[] {
+  const options: CreditCardAccountOption[] = [{ value: '', label: '不指定' }];
+  if (item.linkedAccountId && !accounts.some(account => account.id === item.linkedAccountId)) {
+    options.push({ value: item.linkedAccountId, label: '已刪除的帳戶（原連結）' });
+  }
+  for (const account of accounts) options.push({ value: account.id, label: account.name });
+  return options;
+}
+
 export type CreditCardReminderStatus = 'due-soon' | 'overdue';
 
 export type CreditCardDueSoonReminder = {

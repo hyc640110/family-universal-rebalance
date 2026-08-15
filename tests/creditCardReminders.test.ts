@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CREDIT_CARD_DUE_SOON_THRESHOLD_DAYS, deriveCreditCardDueSoonReminders, nextCreditCardPaymentDueDate, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from '../src/lib/creditCardReminders';
+import { CREDIT_CARD_DUE_SOON_THRESHOLD_DAYS, deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, nextCreditCardPaymentDueDate, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from '../src/lib/creditCardReminders';
 
 // --- resolveCreditCardDisplayName (UR-TODO-060 scheme B: linkedAccountId is primary) ---
 
@@ -28,6 +28,45 @@ test('a linkedAccountId that no longer resolves (the account was deleted) falls 
 
 test('an empty accounts list never crashes resolution, even for a linked card', () => {
   assert.equal(resolveCreditCardDisplayName({ name: '', linkedAccountId: 'acc-1' }, []), '已刪除的帳戶');
+});
+
+// --- deriveCreditCardAccountOptions (UR-TODO-060 scheme B follow-up: honest <select> options) ---
+
+test('no linked account: only 不指定 plus the real account list, no synthetic option', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }, { id: 'acc-2', name: '其他帳戶' }];
+  const options = deriveCreditCardAccountOptions({}, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-1', label: '國泰銀行信用卡' },
+    { value: 'acc-2', label: '其他帳戶' }
+  ]);
+});
+
+test('linked to an account that still exists: no synthetic option needed, the real account already covers it', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }];
+  const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-1' }, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-1', label: '國泰銀行信用卡' }
+  ]);
+});
+
+test('linked to an account that no longer exists: a synthetic "deleted account" option is inserted with the original id as its value, so the <select> can still show it as selected', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }];
+  const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-missing' }, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-missing', label: '已刪除的帳戶（原連結）' },
+    { value: 'acc-1', label: '國泰銀行信用卡' }
+  ]);
+});
+
+test('linked to a deleted account with an empty accounts list: synthetic option still appears, never crashes', () => {
+  const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-missing' }, []);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-missing', label: '已刪除的帳戶（原連結）' }
+  ]);
 });
 
 // --- nextCreditCardPaymentDueDate ---
