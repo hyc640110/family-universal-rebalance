@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { RotateCcw } from 'lucide-react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
@@ -132,7 +133,7 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
   const context = getAllocationContext('simulation');
   return <PageFrame page="tools" title={context.name} description={context.description}>
     <AllocationContextNotice context="simulation" showCta />
-    <section className="card simulator-notice"><strong>不會自動套用</strong><span>以下結果不會修改正式持股、現金、借款、localStorage、Firebase 或同步資料。</span></section>
+    <section className="card simulator-notice"><strong>不會自動套用</strong><span>以下結果不會修改正式持股、現金、借款、localStorage、Firebase 或同步資料。想看真實再平衡建議，請至<Link to="/tools/rebalance-recommendation">再平衡建議中心</Link>。</span></section>
     <section className="card">
       <h2>模擬資金來源</h2>
       <p className="note">使用正式 Household Liquidity 與 Cash Flow 資料；受保護安全現金預設不納入模擬。</p>

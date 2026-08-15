@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import { SYMBOL_NAMES } from '../lib/rebalanceOrderHelper';
@@ -75,7 +76,7 @@ export default function RebalanceStrategyComparisonPage() {
   const beta = canShowResults ? deriveBetaExposure(assets) : null;
 
   return <PageFrame page="tools" title="三策略再平衡模擬比較" description="純比較工具，不是投資建議。依使用者提供的假設情境，並列比較三種再平衡策略的理論計算結果，供自行比對參考。">
-    <section className="card simulator-notice"><strong>純模擬比較</strong><span>以下所有數字皆為你手動輸入的假設值，不讀取正式持股或帳戶資料；結果不會自動套用，不會修改正式持股、目標配置，也不會影響「再平衡建議中心」的任何輸出。</span></section>
+    <section className="card simulator-notice"><strong>純模擬比較</strong><span>以下所有數字皆為你手動輸入的假設值，不讀取正式持股或帳戶資料；結果不會自動套用，不會修改正式持股、目標配置，也不會影響「再平衡建議中心」的任何輸出。想看真實再平衡建議，請至<Link to="/tools/rebalance-recommendation">再平衡建議中心</Link>。</span></section>
 
     <section className="card">
       <h2>假設情境：目前市值與目標權重</h2>
