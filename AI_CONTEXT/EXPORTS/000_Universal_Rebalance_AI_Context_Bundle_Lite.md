@@ -3,14 +3,14 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T15:02:04.144354+00:00
+Generated UTC: 2026-08-15T15:12:53.270487+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `60d88b80324d93bb7b00588624c85113e383312f320f7edee7b7836fc4a28162`
+- `003_CURRENT_STATUS.md` — SHA-256 `c126d216d3963e798e4f5eccbce0111621a46383a0f974a6800f0614c65d672e`
 - `008_TODO_BACKLOG.md` — SHA-256 `bc0b895731009ffdb07cb65d549bc63c32f6b981917da6eae42bca8c803e4168`
 - `012_AI_HANDOVER.md` — SHA-256 `372727711f35964c41aeba864ec89902709d9799657a3cb972d57bb7c9d29745`
 
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.14
+# Universal Rebalance Current Status v4.15
 
 最後更新：2026-08-15
+
+**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `98c96c160bd15a563fd958ce389df1bf7d56d73b`。** PR [#355](https://github.com/hyc640110/family-universal-rebalance/pull/355)（新增治理文件最終一致性規則於 `007_GIT_WORKFLOW.md` §8.2）已正式 Merge，merge commit `98c96c160bd15a563fd958ce389df1bf7d56d73b`，一般 merge commit，未使用 admin override。此為該規則自身承認的結構性限制：任何治理同步 PR 都無法在其內容裡宣告自己的 merge commit SHA（該值只有 GitHub 合併當下才會產生），導致 Bundle 內容必然落後自身一個 commit；依規則第 3 條，於下一次治理同步時立即追平此落差。
+
+---
 
 **`007_GIT_WORKFLOW.md` §8.2 新增「六、治理文件最終一致性」規則。** 承接同日稍早的治理文件基線落差修正事件（PR #354）：使用者與 Claude Home 討論後定案，不要求每次低風險自動 Merge PR 都強制同步 `003_CURRENT_STATUS.md`，但明訂「治理文件的基線陳述句式視為單一事實來源」——任何造成 `origin/main` HEAD 變化的 Merge 若當下未同步治理文件，必須在下一次治理文件同步時一併追平期間所有累積落差（逐一列出被跳過的每個 PR，不得只更新最新一筆），並明確治理文件同步執行者的責任歸屬。純新增規則文字，未修改任何既有 §8.1／§8.2 條件或既有規則語意。**本條目本身依此新規則刻意不自我宣告基線 SHA**（此 PR 自身的 merge commit 只有 Merge 後才會產生，屬於規則允許的「暫時落後」情境，下次治理同步時會依規則追平），實際最新 `origin/main` HEAD 請以 `git log -1 origin/main` 或下一次治理同步條目為準。
 
