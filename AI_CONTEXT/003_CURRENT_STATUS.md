@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.10
+# Universal Rebalance Current Status v4.11
 
 最後更新：2026-08-15
+
+**UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）正式完成並 Merge，`origin/main` 正式基線更新為 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`。** PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為使用者與 ChatGPT 討論後同日臨時發起、經 Repository 唯讀盤點確認並拍板的首頁精簡調整：移除「投資健康度」（`dashboard-health-card`）整個首頁區塊（其內容 `riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached` 已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩頁面本身未修改）；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard` 既有「無項目回傳 `null`」慣例，無異常時整個區塊（最後股價更新時間列、提醒清單、投資機會連結）完全不渲染，有異常才顯示，底層 `investmentDashboard.ts` reminders 計算邏輯未修改。唯讀盤點確認「狀態確認」原有四項檢查皆非唯一顯示入口，移除首頁呈現不影響使用者察覺異常的管道。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認在目前資料狀態下正確完整顯示、其餘既有區塊（重點標的、今日投資狀態、今日投資摘要、信用卡繳費提醒）不受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-063 正式條目。
+
+---
 
 **UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）正式完成並 Merge，`origin/main` 正式基線更新為 `b4aec0a1761817dd68fff79479cf56d9156af72b`。** PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為使用者於驗收 UR-TODO-058 過程中同日臨時發起的產品調整：`ToolDefinition`（`src/lib/toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，標記再平衡建議中心／CLEC 再平衡策略中心為「真實建議」、配置模擬器／三策略再平衡模擬比較為「假設模擬」，其餘既有工具維持原樣；`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，避免暗示優劣）；`AllocationSimulatorPage.tsx`／`RebalanceStrategyComparisonPage.tsx` 既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。未修改任何核心計算模組（`rebalanceRecommendation.ts`／`clecStrategyRules.ts`／`rebalanceStrategyComparison.ts`／`allocationSimulatorFunding.ts` 皆未觸碰）。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張工具卡片正確顯示對應徽章、其餘工具卡片不受影響、既有頁面 console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-062 正式條目（含同一輪對話中核心再平衡公式重複性唯讀盤點的附帶記錄）。
 
