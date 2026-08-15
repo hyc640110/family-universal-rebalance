@@ -53,8 +53,13 @@ function ConversionRow({ item, onConfirm, onVoid }: {
   const handleVoid = () => {
     if (!item.voidTargetEventId) { setError('目前找不到可撤銷的記帳事件，請重新整理後再試一次。'); return; }
     if (!window.confirm(VOID_DIALOG_TEXT(label))) return;
-    const outcome = onVoid(item.voidTargetEventId);
-    setError(outcome.rejected ? outcome.reason : null);
+    // Defense-in-depth, symmetric with handleConfirm above.
+    try {
+      const outcome = onVoid(item.voidTargetEventId);
+      setError(outcome.rejected ? outcome.reason : null);
+    } catch (thrown) {
+      setError(`撤銷時發生未預期的錯誤，請重新整理頁面後再試一次。${thrown instanceof Error ? `（${thrown.message}）` : ''}`);
+    }
   };
 
   const statusLabel = item.status === 'matched' ? '已正式記帳' : item.everConfirmed ? '待重新確認' : '待確認';

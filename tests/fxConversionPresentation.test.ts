@@ -183,3 +183,26 @@ test('an envelope whose payload is not an FX conversion at all is silently ignor
   const rows = deriveFxConversionPresentations({ opaqueTransactions: [notFxEnvelope], transactions: [], ledgerEvents: [] });
   assert.equal(rows.length, 0);
 });
+
+// UR-TODO-054-B, carried forward from the closed PR #333 Closeout Audit: this selector uses
+// resolveFxConversions() (cross-envelope duplicate-claim detection), not the single-envelope
+// resolveFxConversionEnvelope() — otherwise two envelopes claiming the same leg transaction would
+// each independently resolve 'valid' and both render as separately-confirmable candidates for the
+// same underlying transactions.
+test('two envelopes claiming the same leg transaction are both excluded (duplicate), never shown twice or at all', () => {
+  const first = buildValidConversion();
+  const second = buildFxConversionCreation(baseInput(), baseContext({ transactions: [first.sourceLeg, first.destinationLeg] }));
+  assert.equal(second.status, 'success');
+  if (second.status !== 'success') return;
+  // Force a duplicate claim by re-pointing the second envelope's payload at the first conversion's source leg.
+  const duplicateEnvelope: OpaqueFinancialTransactionEnvelope = {
+    ...second.envelope,
+    payload: { ...(second.envelope.payload as Record<string, unknown>), sourceTransactionId: first.sourceLeg.id }
+  };
+  const rows = deriveFxConversionPresentations({
+    transactions: [first.sourceLeg, first.destinationLeg, second.sourceLeg, second.destinationLeg],
+    opaqueTransactions: [first.envelope, duplicateEnvelope],
+    ledgerEvents: []
+  });
+  assert.equal(rows.length, 0, 'both envelopes claim first.sourceLeg.id, so both must resolve duplicate and neither renders');
+});

@@ -1,5 +1,5 @@
 import type { FinancialEvent } from './financialEvents';
-import { resolveActiveFxConversionGroups, resolveFxConversionEnvelope, type FxConversionCurrency } from './fxConversionIdentity';
+import { resolveActiveFxConversionGroups, resolveFxConversions, type FxConversionCurrency } from './fxConversionIdentity';
 import type { FinancialTransaction, OpaqueFinancialTransactionEnvelope } from './transactions';
 
 /**
@@ -16,7 +16,11 @@ import type { FinancialTransaction, OpaqueFinancialTransactionEnvelope } from '.
  * A conversion whose envelope does not resolve to `valid` (missing/mismatched leg transaction,
  * malformed payload, non-positive amount, etc.) is skipped entirely — never shown as a partial or
  * broken row — exactly mirroring how deriveLoanRepaymentGroupPresentations() skips any
- * transaction whose `validateLoanAttribution()` result isn't `valid`.
+ * transaction whose `validateLoanAttribution()` result isn't `valid`. Uses `resolveFxConversions()`
+ * (not the single-envelope `resolveFxConversionEnvelope()`) specifically so that two envelopes
+ * claiming the same leg transaction — a data-integrity edge case, not a normal user flow — both
+ * resolve `duplicate` and neither renders, rather than each independently resolving `valid` and
+ * showing up as two separately-confirmable candidates for the same underlying transactions.
  */
 
 export type FxConversionPresentationStatus = 'candidate' | 'matched';
@@ -45,19 +49,20 @@ export type FxConversionPresentationInput = {
 
 /**
  * Builds one presentation row per distinct, `valid`-resolved conversion found across
- * `opaqueTransactions`. Only envelopes whose linked legs currently satisfy the full
- * `resolveFxConversionEnvelope()` contract are included — malformed or incomplete conversions
- * never reach this UI, exactly mirroring how they never reach `derivedEvidenceItems` today.
+ * `opaqueTransactions`. Only conversions whose linked legs currently satisfy the full
+ * `resolveFxConversions()` contract (including its cross-envelope duplicate-claim check) are
+ * included — malformed, incomplete, or duplicate-claiming conversions never reach this UI,
+ * exactly mirroring how they never reach `derivedEvidenceItems` today.
  */
 export function deriveFxConversionPresentations(input: FxConversionPresentationInput): FxConversionPresentation[] {
   const transactionsById = new Map(input.transactions.map(transaction => [transaction.id, transaction]));
   const opaqueTransactionsById = new Map(input.opaqueTransactions.map(envelope => [envelope.id, envelope]));
   const groupResolution = resolveActiveFxConversionGroups(input.ledgerEvents, transactionsById, opaqueTransactionsById);
+  const resolutions = resolveFxConversions(input.opaqueTransactions, input.transactions);
 
   const results: FxConversionPresentation[] = [];
-  for (const envelope of input.opaqueTransactions) {
-    const resolution = resolveFxConversionEnvelope(envelope, transactionsById);
-    if (!resolution || resolution.status !== 'valid') continue;
+  for (const resolution of resolutions) {
+    if (resolution.status !== 'valid') continue;
 
     const isMatched = groupResolution.confirmedConversionIds.has(resolution.conversionId);
     const everConfirmed = input.ledgerEvents.some(event => event.fxConversionLink?.conversionId === resolution.conversionId && event.source === 'attribution-confirmation');
