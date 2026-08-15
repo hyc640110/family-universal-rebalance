@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T12:04:01.072603+00:00
+Generated UTC: 2026-08-15T12:34:54.522998+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T12:04:01.072603+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `22bc8f9ae2d48f18d6957a0b3c614f2a9bf7b4f901800b7dc2d41994c6a6755f`
+- `003_CURRENT_STATUS.md` — SHA-256 `4bfcfd1280ee510b24c7f7a13748960950a8c2b0412d5f11064dbc0bc1f5f472`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `1f1c88320f4f3061f6cf7b8e29326fd043e61d9775a8bbeb610933a14f7f8a22`
+- `008_TODO_BACKLOG.md` — SHA-256 `1b53aada0eb303e633411391112a81d8099e623849bf945640d1fef19526a09f`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.10
+# Universal Rebalance Current Status v4.11
 
 最後更新：2026-08-15
+
+**UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）正式完成並 Merge，`origin/main` 正式基線更新為 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`。** PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為使用者與 ChatGPT 討論後同日臨時發起、經 Repository 唯讀盤點確認並拍板的首頁精簡調整：移除「投資健康度」（`dashboard-health-card`）整個首頁區塊（其內容 `riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached` 已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩頁面本身未修改）；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard` 既有「無項目回傳 `null`」慣例，無異常時整個區塊（最後股價更新時間列、提醒清單、投資機會連結）完全不渲染，有異常才顯示，底層 `investmentDashboard.ts` reminders 計算邏輯未修改。唯讀盤點確認「狀態確認」原有四項檢查皆非唯一顯示入口，移除首頁呈現不影響使用者察覺異常的管道。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認在目前資料狀態下正確完整顯示、其餘既有區塊（重點標的、今日投資狀態、今日投資摘要、信用卡繳費提醒）不受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-063 正式條目。
+
+---
 
 **UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）正式完成並 Merge，`origin/main` 正式基線更新為 `b4aec0a1761817dd68fff79479cf56d9156af72b`。** PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為使用者於驗收 UR-TODO-058 過程中同日臨時發起的產品調整：`ToolDefinition`（`src/lib/toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，標記再平衡建議中心／CLEC 再平衡策略中心為「真實建議」、配置模擬器／三策略再平衡模擬比較為「假設模擬」，其餘既有工具維持原樣；`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，避免暗示優劣）；`AllocationSimulatorPage.tsx`／`RebalanceStrategyComparisonPage.tsx` 既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。未修改任何核心計算模組（`rebalanceRecommendation.ts`／`clecStrategyRules.ts`／`rebalanceStrategyComparison.ts`／`allocationSimulatorFunding.ts` 皆未觸碰）。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張工具卡片正確顯示對應徽章、其餘工具卡片不受影響、既有頁面 console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-062 正式條目（含同一輪對話中核心再平衡公式重複性唯讀盤點的附帶記錄）。
 
@@ -2982,9 +2986,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.82
+# Universal Rebalance Todo Backlog v1.83
 
 最後更新：2026-08-15
+
+2026-08-15 **新增並正式標記 CLOSED：UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）。** 使用者與 ChatGPT 討論後認為首頁「投資健康度」「狀態確認」與其他頁面資訊重疊過高，違反「30 秒決策中心」產品原則，同日臨時發起、經 Repository 唯讀盤點確認並拍板執行。PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。移除「投資健康度」（`dashboard-health-card`）整個首頁區塊——其內容（`riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached`）已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩個頁面本身未修改；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard`（UR-TODO-060）既有「無項目回傳 `null`」慣例，無異常時整個區塊（時間列＋提醒清單＋投資機會連結）完全不渲染，有異常才顯示，`investmentDashboard.ts` 底層 reminders 計算邏輯未修改。唯讀盤點附帶確認：「狀態確認」原有四項檢查皆非唯一顯示入口，Repository 其他頁面皆有對應或更完整顯示，移除首頁呈現不影響使用者察覺能力；使用者原本擔心的「借款資料過期」「reconciliation 異常」經查證從未在首頁「狀態確認」出現過，與本次調整無關。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認正確運作、其餘既有區塊不受影響，console 無錯誤。詳見下方 **UR-TODO-063** 正式條目。
 
 2026-08-15 **新增並正式標記 CLOSED：UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）。** 使用者於驗收 UR-TODO-058（三策略再平衡模擬比較）過程中，發現 4 個再平衡相關工具頁面（再平衡建議中心、CLEC 策略中心、配置模擬器、三策略模擬比較）混在同一工具導覽層級、未區分「真實建議」與「假設模擬」性質，同日臨時發起、盤點並完成開發。PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`ToolDefinition`（`toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，不暗示優劣），兩個模擬類頁面既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張卡片正確顯示徽章、其餘工具不受影響，console 無錯誤。**同一輪對話中另以 Review Mode 唯讀盤點確認**：「權重差額 × 總市值」基礎公式（`target=total×weight%; diff=target−current`）目前於 Repository 內共被獨立實作 3 次（`rebalanceRecommendation.ts`／`rebalanceStrategyComparison.ts`／`AllocationSimulatorPage.tsx`），評估為低風險、已知技術債，暫不整合，此結論已記錄於 UR-TODO-062 正式條目附帶記錄段落，非獨立待辦。詳見下方 **UR-TODO-062** 正式條目。
 
@@ -4083,6 +4089,22 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-063 首頁瘦身——移除投資健康度、狀態確認改為異常才顯示
+
+- 優先級：P2（使用者於驗收過程中直接發起，同日盤點、定案並完成開發）
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349)**，merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，required check 通過後直接合併，未觸發任何 branch protection 阻擋）。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/home` 首頁「投資健康度」區塊完全消失、「狀態確認」區塊於目前資料狀態下（含尚無持股／股價需確認／配置已偏離目標三項提醒）正確完整顯示，其餘既有區塊（重點標的、今日投資狀態、今日投資摘要、信用卡繳費提醒）不受影響，console 無錯誤。
+- 提出日期：2026-08-15（使用者與 ChatGPT 討論後，同日於對話中提出首頁精簡構想並直接排入盤點與開發）
+- 背景：使用者與 ChatGPT 討論後，認為首頁「投資健康度」與 `/tools/risk-center`、`/tools/portfolio-risk` 內容高度重複，「狀態確認」的四項檢查也都在其他頁面有對應顯示入口，違反既有「30 秒決策中心」只回答「今天要不要做事」的產品原則。經 Repository 唯讀盤點確認以下事實後，使用者拍板執行首頁瘦身：(1) 「投資健康度」顯示的 `riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached` 在 `/tools/risk-center`、`/tools/portfolio-risk` 皆有幾乎逐字重複、且更完整的呈現；(2) 「狀態確認」原有四項檢查（尚無持股資料、股價資料需確認、目標比例需調整、配置已偏離目標）**皆非唯一顯示入口**，Repository 內其他頁面（尤其 `/tools/portfolio-risk` 的「資料品質」清單）都有對應或更細緻的顯示，移除首頁呈現不會造成使用者失去察覺異常的管道；(3) 使用者原本擔心「狀態確認」可能承載「借款資料過期」「reconciliation 異常」等唯一入口的警示，經查證證實這兩項從未出現在首頁「狀態確認」，分別只存在於 `/tools/risk-center`（借款資料過期）與資產頁交易基礎區塊（reconciliation，與首頁無關），與本次調整無關聯。
+- **最終落地範圍**：
+  1. **移除「投資健康度」（`dashboard-health-card`）整個首頁區塊**：`src/pages/DashboardDecisionPage.tsx` 移除該 section；`DashboardData` 型別同步移除不再使用的 `riskLabel`／`allocationDeviation`／`rebalanceThreshold`／`thresholdReached` 欄位；`src/App.tsx` 同步移除傳入的對應死 prop；`src/styles.css` 的 `.dashboard-health-card` 已確認只有這一個檔案引用、未被其他頁面重用，隨區塊一起從共用選擇器中移除。底層計算邏輯（`riskMetrics.ts`／`portfolioRisk.ts` 等）與 `/tools/risk-center`、`/tools/portfolio-risk` 兩個頁面本身皆**未修改**。
+  2. **「狀態確認」（`dashboard-reminders-card`）改為條件渲染**：比照 `CreditCardDueSoonCard.tsx`（UR-TODO-060）既有「無項目回傳 `null`」慣例，取代原本「container 恆常顯示＋空狀態文字」的舊慣例。`reminders` 陣列為空時，整個區塊（最後股價更新時間列、提醒清單、投資機會連結三者一起）完全不渲染；有任何一項異常時才整個顯示。`investmentDashboard.ts` 的 `deriveInvestmentDashboard()`／`reminders` 計算邏輯本身**未修改**，純粹是消費端的渲染條件調整。
+- 技術落地：新增 `tests/dashboardHealthReminderConditional.test.ts`（5 項，採真實 `jsdom`＋`react-dom/client` 渲染，非僅原始碼字串比對，比照 `tests/importCenterCheckboxRealClick.test.ts` 既有 `MemoryRouter` 渲染慣例）：涵蓋「health card 在任何 reminders 狀態下皆不渲染」「狀態確認有異常時完整顯示（時間列＋清單＋投資機會連結）」「狀態確認無異常時整個區塊完全不在 DOM 中（非僅清單消失）」「首頁其他既有區塊（今日投資狀態、今日投資摘要、重點標的、信用卡提醒）不受影響」「原始碼確認死 prop 已移除」。`scripts/stability-check.mjs` 既有斷言同步更新（移除已不存在的 `投資健康度`／`tools/risk-center` 文字比對），新增一項明確鎖定「health card 完全移除＋reminders 條件渲染語法存在」的斷言。`npx tsc -b`、`npm run test:ci`、`node scripts/stability-check.mjs`、`npm run build`、`npm run build:preview` 皆成功；本機 Preview 與 Production 皆已實機驗證（見上方 Merge 資訊）。
+- 明確不包含：`riskMetrics`／`allocationDeviation`／`thresholdReached` 等底層計算邏輯修改；`/tools/risk-center`、`/tools/portfolio-risk` 頁面修改；「今日投資狀態」（`investment-intelligence-card`）、「今日投資摘要」（`investment-summary-card`）、「重點標的」（`HomeFocusedAssetCard`）、信用卡繳費提醒卡片修改；任何新資料流或計算函式；schema／persistence／Ledger／attribution／Firebase。
+- 依賴：UR-TODO-060（已 CLOSED，`CreditCardDueSoonCard` 的「無項目回傳 `null`」慣例，本次「狀態確認」條件渲染直接沿用的既有 pattern）；UR-TODO-030（已 CLOSED，首頁精簡的既有先例，本次調整性質與範圍與其相近）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（投資健康度完全消失、狀態確認在有異常與無異常兩種情境下皆正確運作、其他首頁區塊不受影響、手機版排版正常），Production 唯讀確認功能與既有頁面皆正常。
 
 ### UR-TODO-062 工具導覽「真實建議／假設模擬」分組標籤
 
