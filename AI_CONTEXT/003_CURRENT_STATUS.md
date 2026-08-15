@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.09
+# Universal Rebalance Current Status v4.10
 
 最後更新：2026-08-15
+
+**UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）正式完成並 Merge，`origin/main` 正式基線更新為 `b4aec0a1761817dd68fff79479cf56d9156af72b`。** PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為使用者於驗收 UR-TODO-058 過程中同日臨時發起的產品調整：`ToolDefinition`（`src/lib/toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，標記再平衡建議中心／CLEC 再平衡策略中心為「真實建議」、配置模擬器／三策略再平衡模擬比較為「假設模擬」，其餘既有工具維持原樣；`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，避免暗示優劣）；`AllocationSimulatorPage.tsx`／`RebalanceStrategyComparisonPage.tsx` 既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。未修改任何核心計算模組（`rebalanceRecommendation.ts`／`clecStrategyRules.ts`／`rebalanceStrategyComparison.ts`／`allocationSimulatorFunding.ts` 皆未觸碰）。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張工具卡片正確顯示對應徽章、其餘工具卡片不受影響、既有頁面 console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-062 正式條目（含同一輪對話中核心再平衡公式重複性唯讀盤點的附帶記錄）。
+
+---
 
 **UR-TODO-058（Excel 三策略再平衡模擬比較）正式完成並 Merge，`origin/main` 正式基線更新為 `234fe137c017adef3536b892ac025afe1d445890`。** PR [#345](https://github.com/hyc640110/family-universal-rebalance/pull/345) 已正式 Merge（merge commit `234fe137c017adef3536b892ac025afe1d445890`，一般 merge commit，未使用 admin override），落地獨立新頁面 `/tools/investment-backtest`（啟用既有 `toolNavigation.ts` 原本待規劃的佔位項目）：純模擬／比較工具，不接進 `clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts` 等正式決策引擎，不寫入任何正式持久化資料。資料來源為使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡 Excel，經完整解析後落地三套純函式策略：聰明再平衡（依期間漲跌動態調整，Excel 作者不推薦但使用者要求保留供比對）、無腦再平衡（Excel 作者推薦，僅在 00631L／00865B 間互換）、比率再平衡（三檔全面向目標權重收斂）；另有 Beta 曝險 session-only 模擬（不重用或修改既有正式 Beta 指標）。開發後應使用者要求，假設情境輸入與結果顯示統一改為萬元（重用既有 `yuanToWan()`／`wanToYuan()` 慣例）。Deploy GitHub Pages run [31880137982](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31880137982) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/investment-backtest` 正確顯示三策略模擬比較，既有功能未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-058 正式條目（含最初「導入 CLEC」定位與最終「純模擬比較工具」定位的範圍差異記錄）。
 
