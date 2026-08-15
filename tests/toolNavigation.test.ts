@@ -3,8 +3,11 @@ import test from 'node:test';
 import { getToolQuickLinks, isTransactionToolsTarget, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
 import { readFileSync } from 'node:fs';
 
+// UR-TODO-058: 'investment-backtest' gained a route (activated the previously-placeholder Tool
+// Center entry as the "三策略再平衡模擬比較" comparison tool), so it now joins this list — first,
+// matching its position in TOOL_DEFINITIONS (etf-xray and monte-carlo still have no route).
 const expectedQuickOrder = [
-  'investment-action-center', 'import-transactions', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
+  'investment-backtest', 'investment-action-center', 'import-transactions', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
   'wealth-goal', 'cash-flow', 'net-worth-history', 'allocation-simulator', 'risk-center'
 ];
 
