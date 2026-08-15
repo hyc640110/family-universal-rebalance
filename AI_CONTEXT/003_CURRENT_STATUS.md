@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.11
+# Universal Rebalance Current Status v4.12
 
 最後更新：2026-08-15
+
+**治理記錄落差修正：UR-TODO-041（負債資料過期警示）正式標記 CLOSED（本次治理同步為純文件變更，不改變 `origin/main` 功能基線）。** Review Mode Closeout Audit 發現：功能本身早於 2026-08-05 已透過 PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)（merge commit `e11da75a476c4d426fedefabcc629b01f305a181`）完整實作、測試並上線 Production，`origin/main` 早已包含此功能，只是 `008_TODO_BACKLOG.md` 條目狀態自 2026-07-26 建立後從未同步更新為 CLOSED。`/tools/risk-center`「借款安全分析」卡片的負債資料過期提醒＋「我已確認這筆資料仍正確」按鈕（`loanDataFreshness.ts`：30 天門檻、完全獨立於 `blockingReasons`／`dataCompleteness` 路徑，不影響任何買賣建議）已穩定運行超過一週，本次僅補齊治理文件記錄，詳見 `008_TODO_BACKLOG.md` UR-TODO-041 正式條目。
+
+---
 
 **UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）正式完成並 Merge，`origin/main` 正式基線更新為 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`。** PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為使用者與 ChatGPT 討論後同日臨時發起、經 Repository 唯讀盤點確認並拍板的首頁精簡調整：移除「投資健康度」（`dashboard-health-card`）整個首頁區塊（其內容 `riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached` 已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩頁面本身未修改）；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard` 既有「無項目回傳 `null`」慣例，無異常時整個區塊（最後股價更新時間列、提醒清單、投資機會連結）完全不渲染，有異常才顯示，底層 `investmentDashboard.ts` reminders 計算邏輯未修改。唯讀盤點確認「狀態確認」原有四項檢查皆非唯一顯示入口，移除首頁呈現不影響使用者察覺異常的管道。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認在目前資料狀態下正確完整顯示、其餘既有區塊（重點標的、今日投資狀態、今日投資摘要、信用卡繳費提醒）不受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-063 正式條目。
 

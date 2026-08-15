@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T12:34:54.522998+00:00
+Generated UTC: 2026-08-15T13:15:43.798155+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T12:34:54.522998+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `4bfcfd1280ee510b24c7f7a13748960950a8c2b0412d5f11064dbc0bc1f5f472`
+- `003_CURRENT_STATUS.md` — SHA-256 `c4b47d857536d4ac3cd875355070c7c61abf049be81dd67c9a7ecb34038e6e7e`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `1b53aada0eb303e633411391112a81d8099e623849bf945640d1fef19526a09f`
+- `008_TODO_BACKLOG.md` — SHA-256 `bc0b895731009ffdb07cb65d549bc63c32f6b981917da6eae42bca8c803e4168`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.11
+# Universal Rebalance Current Status v4.12
 
 最後更新：2026-08-15
+
+**治理記錄落差修正：UR-TODO-041（負債資料過期警示）正式標記 CLOSED（本次治理同步為純文件變更，不改變 `origin/main` 功能基線）。** Review Mode Closeout Audit 發現：功能本身早於 2026-08-05 已透過 PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)（merge commit `e11da75a476c4d426fedefabcc629b01f305a181`）完整實作、測試並上線 Production，`origin/main` 早已包含此功能，只是 `008_TODO_BACKLOG.md` 條目狀態自 2026-07-26 建立後從未同步更新為 CLOSED。`/tools/risk-center`「借款安全分析」卡片的負債資料過期提醒＋「我已確認這筆資料仍正確」按鈕（`loanDataFreshness.ts`：30 天門檻、完全獨立於 `blockingReasons`／`dataCompleteness` 路徑，不影響任何買賣建議）已穩定運行超過一週，本次僅補齊治理文件記錄，詳見 `008_TODO_BACKLOG.md` UR-TODO-041 正式條目。
+
+---
 
 **UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）正式完成並 Merge，`origin/main` 正式基線更新為 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`。** PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為使用者與 ChatGPT 討論後同日臨時發起、經 Repository 唯讀盤點確認並拍板的首頁精簡調整：移除「投資健康度」（`dashboard-health-card`）整個首頁區塊（其內容 `riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached` 已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩頁面本身未修改）；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard` 既有「無項目回傳 `null`」慣例，無異常時整個區塊（最後股價更新時間列、提醒清單、投資機會連結）完全不渲染，有異常才顯示，底層 `investmentDashboard.ts` reminders 計算邏輯未修改。唯讀盤點確認「狀態確認」原有四項檢查皆非唯一顯示入口，移除首頁呈現不影響使用者察覺異常的管道。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認在目前資料狀態下正確完整顯示、其餘既有區塊（重點標的、今日投資狀態、今日投資摘要、信用卡繳費提醒）不受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-063 正式條目。
 
@@ -2986,9 +2990,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.83
+# Universal Rebalance Todo Backlog v1.84
 
 最後更新：2026-08-15
+
+2026-08-15 **治理記錄落差修正：UR-TODO-041（負債資料過期警示）正式標記 CLOSED。** Review Mode Closeout Audit 發現此條目自 2026-07-26 建立後從未更新（狀態長期停留「待盤點」），但功能實際已於 2026-08-05 透過 PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)（merge commit `e11da75a476c4d426fedefabcc629b01f305a181`，一般使用者手動 Merge，未使用 admin override）完整實作、測試並上線 Production，只是治理文件從未同步。開發前唯讀盤點發現原始「驗收條件」預期路徑（擴充 `HouseholdLoan` 核心契約＋新增 blocking reason code）會連帶觸發 `dipAlertEngine.ts`／`aiDecision.ts` 既有保守化機制，使用者於開發當下重新拍板改採完全獨立、不進 `blockingReasons`／`dataCompleteness` 路徑的過期指標（`loanDataFreshness.ts`：`LOAN_DATA_STALE_THRESHOLD_DAYS = 30`、`isLoanDataStale()`、`deriveLoanDataFreshness()`；`LoanItem` 新增 `asOf` 欄位，金額欄位編輯自動同步；UI 於 `/tools/risk-center`「借款安全分析」卡片顯示過期提醒與「我已確認這筆資料仍正確」按鈕）。11 項相關測試（含 `householdLiquidityInputAdapter.test.ts` 第 24 項明文鎖定「軟警告不影響任何下游輸出」）已於原始 PR 建立，本次治理稽核重新執行 10 項確認 **10/10 pass**。詳見下方更新後的 **UR-TODO-041** 正式條目。
 
 2026-08-15 **新增並正式標記 CLOSED：UR-TODO-063（首頁瘦身——移除投資健康度、狀態確認改為異常才顯示）。** 使用者與 ChatGPT 討論後認為首頁「投資健康度」「狀態確認」與其他頁面資訊重疊過高，違反「30 秒決策中心」產品原則，同日臨時發起、經 Repository 唯讀盤點確認並拍板執行。PR [#349](https://github.com/hyc640110/family-universal-rebalance/pull/349) 已正式 Merge（merge commit `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。移除「投資健康度」（`dashboard-health-card`）整個首頁區塊——其內容（`riskMetrics.overallLabel`／`allocationDeviation`／`thresholdReached`）已由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現，零資訊流失，兩個頁面本身未修改；「狀態確認」（`dashboard-reminders-card`）改為比照 `CreditCardDueSoonCard`（UR-TODO-060）既有「無項目回傳 `null`」慣例，無異常時整個區塊（時間列＋提醒清單＋投資機會連結）完全不渲染，有異常才顯示，`investmentDashboard.ts` 底層 reminders 計算邏輯未修改。唯讀盤點附帶確認：「狀態確認」原有四項檢查皆非唯一顯示入口，Repository 其他頁面皆有對應或更完整顯示，移除首頁呈現不影響使用者察覺能力；使用者原本擔心的「借款資料過期」「reconciliation 異常」經查證從未在首頁「狀態確認」出現過，與本次調整無關。Deploy GitHub Pages run [31884737628](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31884737628) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁投資健康度已消失、狀態確認正確運作、其餘既有區塊不受影響，console 無錯誤。詳見下方 **UR-TODO-063** 正式條目。
 
@@ -3712,19 +3718,21 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ### UR-TODO-041 負債資料過期警示
 
-- 優先級：**待評估**（2026-07-26 由 P1 調整；優先級待正式盤點完成後再評定，避免提前膨脹）
-- 狀態：**待盤點**
+- 優先級：待評估（2026-07-26 由 P1 調整）
+- 狀態：**CLOSED（2026-08-05）／已完成**——**治理記錄落差修正**：功能已於 2026-08-05 完整實作、測試、Merge 並上線 Production，僅本條目狀態長期未同步更新，2026-08-15 唯讀盤點（Review Mode Closeout Audit）發現此落差後補正
+- 完成日期：2026-08-05
+- Merge 資訊：**PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)**（`feat: UR-TODO-041 loan data staleness warning (Plan A, standalone indicator)`），merge commit `e11da75a476c4d426fedefabcc629b01f305a181`，`mergedAt: 2026-08-05T12:29:58Z`。因涉及 schema 新增（`LoanItem` 新欄位）與 Risk Center 呈現邏輯變更，依 `007_GIT_WORKFLOW.md` §8.2 明文列為「不得自行 Merge 的重大事件」，由使用者於 Preview 驗證後親自手動 Merge，**未使用 admin override**。
 - 提出日期：2026-07-26
-- 提出依據：UR-TODO-009（Risk & Decision Workflow Integration，Sprint 4）唯讀盤點過程中發現，對照 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（v4.0）§22 Risk Center 規格要求時比對出的缺口項目
-- 需求：§22 明列 Risk Center 必須新增或統一的八項目中包含「負債資料過期警示」，目前完全缺失，且**底層核心模型本身也未定義**這個概念——`HouseholdLoan` 型別（`src/lib/householdLiquidity.ts`）只有 `{ loanId, monthlyPayment }`，無任何 `asOf`／更新時間欄位；現行 23 個 blocking reason code（`HouseholdLiquidityReasonCode`）中沒有「過期」相關 code。
-- 明確標註：本項目**需擴充 013 §6 核心輸入契約**（`HouseholdLoan` 新增 `asOf` 欄位＋新增對應 blocking reason code），非單純消費端接線可解決；**本次 Sprint 4（UR-TODO-009）不處理**，已由使用者於 2026-07-26 拍板延後（決策二，理由：一次只做一件事、避免核心契約隨手擴充，牽動核心模型的變更需獨立評估），不納入 UR-TODO-009 子 PR 4（Risk Center 呈現）範圍。
-- 依賴：
-  - UR-TODO-009（Risk & Decision Workflow Integration，子 PR 4 明確排除本項目，兩者共用同一組 Risk Center UI，未來若啟動需確認與子 PR 4 呈現層的整合順序）
-  - UR-TODO-006（Household Liquidity Core Model Foundation，本項目需擴充其核心輸出契約）
-- 驗收條件（待正式排入時另訂）：
-  - `HouseholdLoan` 輸入契約新增 `asOf`（或等義欄位）並完成 migration／向下相容評估。
-  - 新增對應 blocking reason code，並更新 23 個既有 code 清單與 `013` §9 完整性／信賴度規則。
-  - Risk Center（`RiskCenterPage.tsx`／`PortfolioRiskPage.tsx`）依新契約顯示負債資料過期警示。
+- 提出依據：UR-TODO-009（Risk & Decision Workflow Integration，Sprint 4）唯讀盤點過程中發現，對照 `013_HOUSEHOLD_LIQUIDITY_SPEC.md`（v4.0）§22 Risk Center 規格要求時比對出的缺口項目——當時 §22 明列 Risk Center 必須新增或統一的八項目中包含「負債資料過期警示」，目前完全缺失，且底層核心模型本身也未定義這個概念（`HouseholdLoan` 型別只有 `{ loanId, monthlyPayment }`，無任何 `asOf`／更新時間欄位；現行 23 個 blocking reason code 中沒有「過期」相關 code）。2026-07-26 已由使用者拍板延後（決策二：一次只做一件事、避免核心契約隨手擴充，牽動核心模型的變更需獨立評估），不納入 UR-TODO-009 子 PR 4（Risk Center 呈現）範圍，正式排入時再獨立評估。
+- **實際落地範圍**：開發前唯讀盤點發現原始「驗收條件」文字假設的路徑（擴充 `HouseholdLoan` 核心契約＋新增 blocking reason code）會產生非預期連帶效果——`householdLiquidity.ts` 的 `canExecuteBuy` 由 `blockingReasons.length === 0` 直接控制，`dipAlertEngine.ts`／`aiDecision.ts` 皆以 `dataCompleteness !== 'complete'` 觸發既有保守化行為（後者直接替換整張 AI Decision 現金卡片文案），任何新增到 `blockingReasons` 的 code 都會連帶觸發這些既有保守化機制，與「不得阻擋或保守化任何買賣建議、AI Decision 輸出」的設計原則直接衝突。**使用者於開發當下重新拍板，改採完全獨立、不進 `blockingReasons`／`dataCompleteness` 路徑的過期指標（Plan A）**：
+  1. 新增 `src/lib/loanDataFreshness.ts`：`LOAN_DATA_STALE_THRESHOLD_DAYS = 30`（固定 30 天門檻）；`isLoanDataStale(asOf, today)` 沿用既有 UR-TODO-043-B 確立的 Asia/Taipei canonical calendar-day 契約；`deriveLoanDataFreshness(loans, today)` 純函式，逐筆獨立回傳 `{ loanId, asOf, isStale }`。
+  2. `LoanItem`（`src/App.tsx`，實際持久化型別）新增 `asOf?: string`（可選，向下相容）；`RiskLoan`（`src/lib/riskMetrics.ts`）新增 `asOf?: string`（純 passthrough，`deriveRiskMetrics()` 計算邏輯完全未讀取）。**明確未改動** `HouseholdLoan`（`householdLiquidity.ts`）、`HouseholdLiquidityLoanSource`、23 個既有 `HouseholdLiquidityReasonCode`——**未新增任何 blocking reason code**，與原始「驗收條件」文字的預期路徑不同，是開發當下重新拍板的更安全方案。
+  3. Migration：`sanitizeLoanItem()`（`normalizeState()` 既有單一正規化入口，涵蓋 localStorage／Firebase／JSON Backup 三路）新增邏輯——`asOf` 若已是有效 canonical calendar-day 則原樣保留、缺失或無效才一次性預設為今天；編輯 `principal`／`annualRate`／`monthlyPayment`／`startDate`／`totalMonths` 任一金額相關欄位會自動同步更新 `asOf`（僅編輯 `name` 不會）。
+  4. UI：`/tools/risk-center`（`RiskCenterPage.tsx`）既有「借款安全分析」卡片逐筆借款區塊，過期時顯示「負債資料過期提醒：上次確認於 {asOf}，已超過 30 天。這不會影響任何買賣建議或安全存量計算，僅提醒您確認資料是否仍正確。」＋「我已確認這筆資料仍正確」按鈕（只更新該筆 `asOf` 為今天，不觸碰其他欄位），樣式 `.risk-loan-stale-warning`（琥珀色警示，與同頁「資料可信度」指標視覺區隔）。
+- 技術落地：新增 `tests/loanDataFreshness.test.ts`（5 項）、`tests/loanDataStalenessMigration.test.ts`（5 項，Vite SSR 載入 `normalizeState`／`stateFromBackup`／`stateFromFirebasePayload` 驗證三路 persistence）；`tests/householdLiquidityInputAdapter.test.ts` 新增第 24 項（明文標題「a stray `asOf` on a loan source (Plan A staleness data) never reaches HouseholdLoan or changes deriveHouseholdLiquidity output」，直接證明過期指標不影響 `dataCompleteness`／`canExecuteBuy`／可投資現金／AI Decision 現金卡片文案等任何下游輸出，鎖定「軟警告」設計保證）。2026-08-15 治理稽核重新執行前 10 項（`loanDataFreshness.test.ts`＋`loanDataStalenessMigration.test.ts`）確認 **10/10 pass**；`npx tsc -b`、`npm run test:ci`、`npm run build`、`npm run build:preview` 於原始 PR #254 皆已成功。隔離本機 dev server 實機驗證（原始 PR）：migration 後既有負債不顯示過期警示；手動將 `asOf` 設為 40 天前並重新整理，警示正確出現；點擊「我已確認」後 `asOf` 立即更新、警示立即消失；Plan A 零連帶效果逐項比對（過期前後其餘資料完全相同：資料可信度、可投資現金、安全存量缺口、AI Decision 現金卡片文案皆不變）；390px 無橫向溢出。
+- 明確不包含：`dataCompleteness` 降級為 `insufficient`；新增任何 blocking reason code、修改 23 個既有 code 清單；阻擋或保守化任何買賣建議、AI Decision、Rebalance 輸出；`monthlyPayment` 之外任何欄位語意修改；負債資料其他缺口（新增負債類型、利率等）。
+- 依賴：UR-TODO-009（子 PR 4 明確排除本項目，共用同一組 Risk Center UI）；UR-TODO-006（本項目原評估需擴充其核心輸出契約，實際落地已確認不需要）。
+- 驗收條件對照原始文字的差異：原條目要求「`HouseholdLoan` 輸入契約新增 `asOf`、新增對應 blocking reason code」，實際落地**未採用**此路徑（理由見上方「實際落地範圍」），改以完全獨立指標達成同等使用者可見效果（過期提醒＋確認按鈕），且風險更低——**此差異已於本次治理補記中明確記錄，非驗收條件未達成**。
 
 ### UR-TODO-042 PortfolioRiskPage「槓桿暴露」卡片 React 重複 key console error
 
