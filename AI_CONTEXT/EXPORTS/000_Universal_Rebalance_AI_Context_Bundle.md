@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T05:25:27.757823+00:00
+Generated UTC: 2026-08-15T06:10:01.530000+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T05:25:27.757823+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `8e33099847d5d9079e22a76a3a0b5287e6a3b0b5dbfbf7e3d2f2063aacd74793`
+- `003_CURRENT_STATUS.md` — SHA-256 `c560c20619d1b09de33742e10879fce36545690cfc8a756a3d2b8d1dfcbf9b73`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `d728a670138432080e3bbe43870781290bf7a89eb998eeda996f3720d9b7dd9e`
+- `008_TODO_BACKLOG.md` — SHA-256 `25eaf79ac61085343f32a8da73f3846eca1868058da9a9c31d6fc9c27274fd49`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.05
+# Universal Rebalance Current Status v4.06
 
 最後更新：2026-08-15
+
+**UR-TODO-059（首頁決策卡片，範圍調整為鎖定 00631L）正式完成並 Merge，`origin/main` 正式基線更新為 `f1434a5b4b69a5242ff4680f4f1de6313b15f8bd`。** PR [#337](https://github.com/hyc640110/family-universal-rebalance/pull/337) 已正式 Merge（merge commit `f1434a5b4b69a5242ff4680f4f1de6313b15f8bd`，一般 merge commit，未使用 admin override），落地首頁最上方「重點標的」卡片：固定顯示 00631L 的可投入現金、目前配置比例 vs 目標比例偏離幅度，觸發再平衡門檻時顯示來自 `rebalanceRecommendation.ts`／`getOrderSuggestions()` 的建議投入／賣出金額，未觸發門檻則顯示「目前配置正常，不需操作」。Deploy GitHub Pages run [31868249584](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31868249584) success，headSha 與 merge commit 一致；Production 已唯讀確認新卡片正常顯示於既有 4 張首頁卡片之前，既有卡片未受影響，console 無錯誤，未建立任何測試資料。開發前使用者已明確確認目前僅投入 00631L，原候選 #1「顯示最偏離的 1-2 檔資產」通用排序邏輯範圍調整為單一標的鎖定顯示，純消費既有 `investableCash`／`rebalanceRecommendation` 輸出，未新增任何演算法，`todayDecision.ts` 既有結論邏輯未變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-059 正式條目。
+
+---
 
 **UR-TODO-060（信用卡每月繳費提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `c5c15689b1cc69d1f0898de0667880e99f3faf1b`。** PR [#335](https://github.com/hyc640110/family-universal-rebalance/pull/335) 已正式 Merge（merge commit `c5c15689b1cc69d1f0898de0667880e99f3faf1b`，一般 merge commit，未使用 admin override），落地信用卡繳費日提醒（繳費日前 3 天出現、未確認持續顯示為已逾期、下期自動重置的每期獨立狀態機）與關聯帳戶方案 B（銀行／信用卡類型帳戶可選，優先於手動名稱，含已刪除帳戶防呆選單）。Deploy GitHub Pages run [31866637716](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31866637716) success，headSha 與 merge commit 一致；Production 已唯讀確認「信用卡繳費提醒」區塊正常顯示，console 無錯誤，未建立任何測試資料。開發過程歷經多輪範圍調整（原始 B1 草案含金額欄位 → 應要求移除金額 → 新增完成確認機制 → 關聯帳戶從隱藏改為方案 B 主要識別 → 可選帳戶類型由僅信用卡放寬為銀行＋信用卡），最終落地範圍與最初草案不同，詳見 `008_TODO_BACKLOG.md` UR-TODO-060 正式條目。本次治理同步為**純文件變更**，零 production code、零 schema、零 persistence、零測試檔修改。
 
@@ -4000,17 +4004,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 依賴：待補件後確認與既有 CLEC drift 規則引擎（`src/lib/clecStrategyRules.ts`）及 `src/lib/allocationPresets.ts` 靜態樣板權重表的關聯程度。
 - 驗收條件：待補件並正式盤點後另訂。
 
-### UR-TODO-059 首頁 30 秒決策中心接上真實金額
+### UR-TODO-059 首頁 30 秒決策中心接上真實金額（鎖定 00631L）
 
 - 優先級：P0
-- 狀態：**待開發**（下一 Sprint 候選）
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#337](https://github.com/hyc640110/family-universal-rebalance/pull/337)**，merge commit `f1434a5b4b69a5242ff4680f4f1de6313b15f8bd`，一般 merge commit，**未使用 admin override**。Deploy GitHub Pages run [31868249584](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31868249584) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁最上方「重點標的」卡片正常顯示、既有 4 張既有首頁卡片未受影響，console 無錯誤，未在 Production 建立任何測試資料。
 - 提出日期：2026-08-15（Repository Explore 唯讀盤點確認缺口日）
 - 背景：既有唯讀盤點（Repository Explore，2026-08-15）已確認 `investableCash`（`src/lib/householdLiquidity.ts`）、逐檔 `recommendedAmount`（`src/lib/rebalanceRecommendation.ts`）等運算能力已存在且已測試，僅未接上首頁 `DashboardDecisionPage.tsx` 呈現層。
-- 與 UR-TODO-030 的關係：UR-TODO-030（首頁「重要提醒」重複性盤點，含 2026-07-26／2026-07-29 首頁改版方向討論記錄）已於 2026-08-07 正式 CLOSED（PR #268），處理的是首頁區塊搬移與版面精簡；本項是在 030 已完成的「30 秒決策中心」結構基礎上，新增「把既有已測試運算結果接上金額呈現」這個結構未涵蓋的新缺口，範圍不同，**不合併入已結案的 030，另立新編號**，僅在此標註關聯與依賴。
-- 範圍（草案）：首頁新增「可投入現金」「建議投入金額」「最偏離的 1-2 檔資產」三個數字區塊，連結指向 `/tools/rebalance-recommendation`。
-- 明確不包含：不新增任何新演算法，不碰 schema／persistence／Financial Event Ledger。
+- 與 UR-TODO-030 的關係：UR-TODO-030（首頁「重要提醒」重複性盤點，含 2026-07-26／2026-07-29 首頁改版方向討論記錄）已於 2026-08-07 正式 CLOSED（PR #268），處理的是首頁區塊搬移與版面精簡；本項是在 030 已完成的「30 秒決策中心」結構基礎上，新增「把既有已測試運算結果接上金額呈現」這個結構未涵蓋的新缺口，範圍不同，**不合併入已結案的 030，另立新編號**。
+- **最終落地範圍（與原始候選 #1 草案的差異，明確記錄）**：開發前使用者明確確認目前僅投入 00631L（不會買其他股票），原候選 #1「顯示最偏離的 1-2 檔資產」的通用排序邏輯不適用於此情境，**範圍正式調整為單一標的鎖定顯示**——首頁最上方新增「重點標的」區塊，固定顯示 00631L 的：可投入現金（`householdLiquidity.ts`）、目前配置比例 vs 目標比例（偏離幅度）、觸發再平衡門檻時來自 `rebalanceRecommendation.ts`／`getOrderSuggestions()` 的建議投入／賣出金額；未觸發門檻則顯示「目前配置正常，不需操作」，不顯示金額。點擊可導向 `/tools/rebalance-recommendation`。若使用者未來將 00631L 從目標配置中移除，有明確防呆訊息，不出現壞掉的 UI 或 undefined。
+- 技術落地：新增 `src/lib/homeFocusedAssetCard.ts`（純函式 `deriveHomeFocusedAssetCard()`，只選取／格式化既有 `rebalanceRecommendation.ts`／`householdLiquidity.ts` 輸出，**未新增任何再平衡演算法**）與 `src/components/HomeFocusedAssetCard.tsx`；`DashboardDecisionPage.tsx` 的 `DashboardData` 型別新增 `focusedAssetCard` 欄位（僅新增，未修改既有欄位語意）；`todayDecision.ts` 既有單一結論字串邏輯完全未觸碰。新增 13 個測試（`tests/homeFocusedAssetCard.test.ts` 8 項純函式 characterization：偏離有建議金額、未達門檻正常文字、`investableCash` 為 0／`null` 邊界、00631L 從配置移除的防呆；`tests/homeFocusedAssetCardUi.test.ts` 5 項元件渲染驗證）。
+- 明確不包含：多檔排序／「最偏離的 1-2 檔資產」通用邏輯（範圍已鎖定 00631L）；任何新演算法；schema／persistence／Financial Event Ledger／attribution／Firebase 修改；`todayDecision.ts` 既有結論邏輯修改。
 - 依賴：UR-TODO-030（已 CLOSED，首頁「30 秒決策中心」結構基礎已具備）；既有已測試 calculator `householdLiquidity.ts`／`rebalanceRecommendation.ts`（無需修改，僅消費既有輸出）。
-- 驗收條件：待正式排入開發時另訂。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（00631L 卡片位置、數字正確性、連結導向、既有 4 張卡片未受影響、手機版排版正常），Production 唯讀確認功能與既有首頁區塊皆正常。
 
 ### UR-TODO-060 信用卡每月繳費提醒
 
