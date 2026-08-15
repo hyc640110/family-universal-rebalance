@@ -24,9 +24,21 @@ const baseLadder: HomeFocusedAssetLadderData = {
   message: '距下一級門檻還差 5.0%。',
 };
 
-function renderCard(data: HomeFocusedAssetCardData, ladder: HomeFocusedAssetLadderData = baseLadder) {
+function renderCard(data: HomeFocusedAssetCardData | null, ladder: HomeFocusedAssetLadderData | null = baseLadder) {
   return renderToStaticMarkup(createElement(MemoryRouter, null, createElement(HomeFocusedAssetCard, { data, ladder })));
 }
+
+// UR-TODO-061: no focused symbol selected (AppState.focusedSymbols is empty) — mirrors
+// CreditCardDueSoonCard's "no items → render nothing" convention, no empty-state shell.
+test('no data (nothing focused): renders nothing at all', () => {
+  const html = renderCard(null, null);
+  assert.equal(html, '', 'must not render any placeholder/empty-state chrome');
+});
+
+test('data present but ladder null (should not happen in practice, but defensive): still renders nothing', () => {
+  const html = renderCard(baseData, null);
+  assert.equal(html, '');
+});
 
 test('action-needed with a buy recommendation: shows the recommended amount, not the generic message', () => {
   const html = renderCard(baseData);

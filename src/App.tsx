@@ -109,8 +109,9 @@ import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigu
 import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
 import { deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from './lib/creditCardReminders';
-import { deriveHomeFocusedAssetCard, HOME_FOCUSED_ASSET_SYMBOL } from './lib/homeFocusedAssetCard';
+import { deriveHomeFocusedAssetCard } from './lib/homeFocusedAssetCard';
 import { deriveHomeFocusedAssetLadder } from './lib/homeFocusedAssetLadderCard';
+import { normalizeFocusedSymbols, toggleFocusedSymbol as toggleFocusedSymbolInList } from './lib/focusedSymbols';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -124,8 +125,8 @@ type LoanItem = { id: string; name: string; principal: number; annualRate: numbe
 type CreditCardItem = { id: string; name: string; paymentDueDay: number; linkedAccountId?: string; note?: string; acknowledgedCycleDueDate?: string; asOf?: string };
 type LegacyFirebaseConfig = { databaseURL: string; secretPath: string };
 type RebalanceMode = 'standard' | 'buy-only';
-export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; opaqueTransactions: OpaqueFinancialTransactionEnvelope[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta };
-type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: unknown; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number } };
+export type AppState = { holdings: Holding[]; cash: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: FinancialTransaction[]; opaqueTransactions: OpaqueFinancialTransactionEnvelope[]; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: FinancialEvent[]; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; refreshSec: number; workerUrl: string; autoSync: boolean; autoSyncSec: number; allocationPreset: AllocationPreset; rebalanceMode: RebalanceMode; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; focusedSymbols: SymbolCode[]; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta };
+type BackupPayload = { version: string; exportedAt: string; holdings: Holding[]; cashAccounts: CashItem[]; accounts: FinancialAccount[]; accountSchemaVersion: number; cashAccountMigrationVersion: number; transactions: unknown; transactionSchemaVersion: number; financialEventSchemaVersion: number; financialEvents: unknown; financialEventAttributionStartDate?: string; importSessions: ImportSession[]; importPresets: ImportPreset[]; importSchemaVersion: number; gmailOAuth: GmailOAuthState; loans: LoanItem[]; creditCards: CreditCardItem[]; quotes: Record<SymbolCode, Quote>; targetRatio: number; allocationPreset: AllocationPreset; rebalanceMode: string; rebalanceThreshold: number; buyOnlyBudget: number; dipAlerts: Record<SymbolCode, DipAlertSetting>; focusedSymbols: SymbolCode[]; wealthGoal: WealthGoalSettings; cashFlowProfile?: CashFlowProfile; netWorthHistory?: NetWorthSnapshot[]; fxRateHistory: FxRateRecord[]; syncMeta: SyncMeta; syncSettings: { refreshSec: number } };
 type LegacySyncSettings = { refreshSec?: number; autoSync?: boolean; autoSyncSec?: number; workerUrl?: string; firebase?: LegacyFirebaseConfig; firebaseConfigured?: boolean };
 type TradeAction = '買入' | '賣出' | '不需處理';
 type TradeStep = { action: TradeAction; symbol: SymbolCode; name: string; amount: number; price: number; shares: number | null; conversionText: string; order: number; projectedWeight: number; note: string };
@@ -283,6 +284,12 @@ const defaultState: AppState = {
   rebalanceThreshold: DEFAULT_REBALANCE_THRESHOLD,
   buyOnlyBudget: DEFAULT_BUY_ONLY_BUDGET,
   dipAlerts: {},
+  // UR-TODO-061: the homepage "重點標的" card has always shown 00631L (hardcoded pre-061), so
+  // this is the correct initial value for a genuinely brand-new install too (this literal only
+  // matters for readStateWithSnapshotView()'s "no localStorage at all" early-return path, which
+  // bypasses normalizeState()/normalizeFocusedSymbols() entirely) — see normalizeFocusedSymbols()
+  // for the one-time migration that covers existing users' persisted state.
+  focusedSymbols: ['00631L'],
   wealthGoal: DEFAULT_WEALTH_GOAL,
   syncMeta: defaultSyncMeta()
 };
@@ -413,7 +420,7 @@ export function normalizeState(raw: unknown): AppState {
   });
   const importSessions = Array.isArray(r.importSessions) ? r.importSessions.filter(value => value && typeof value === 'object').slice(-50) as ImportSession[] : [];
   const importPresets = normalizeMappingPresets(r.importPresets);
-  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, opaqueTransactions: transactionState.opaqueTransactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, creditCards, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings) };
+  const normalizedCore = { holdings: normalizedHoldings, cash, accounts: accountState.accounts, accountSchemaVersion: FINANCIAL_ACCOUNT_SCHEMA_VERSION, cashAccountMigrationVersion: CASH_ACCOUNT_MIGRATION_VERSION, transactions: transactionState.transactions, opaqueTransactions: transactionState.opaqueTransactions, transactionSchemaVersion: TRANSACTION_SCHEMA_VERSION, financialEventSchemaVersion: financialEventLedger.schemaVersion, financialEvents: financialEventLedger.events, ...(financialEventLedger.attributionStartDate ? { financialEventAttributionStartDate: financialEventLedger.attributionStartDate } : {}), importSessions, importPresets, importSchemaVersion: IMPORT_SCHEMA_VERSION, gmailOAuth: normalizeGmailOAuth(r.gmailOAuth), loans, creditCards, workerUrl: DEFAULT_WORKER_URL, refreshSec: Math.max(15, num(Number(s.refreshSec || 60))), autoSync: Boolean(s.autoSync), autoSyncSec: Math.max(10, num(Number(s.autoSyncSec || 60))), allocationPreset: coerceAllocationPresetToCustom(), rebalanceMode: normalizeRebalanceMode(s.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(s.rebalanceThreshold ?? DEFAULT_REBALANCE_THRESHOLD)), buyOnlyBudget: normalizeBuyOnlyBudget(s.buyOnlyBudget ?? DEFAULT_BUY_ONLY_BUDGET), dipAlerts: normalizeDipAlerts(s.dipAlerts, normalizedHoldings), focusedSymbols: normalizeFocusedSymbols(r.focusedSymbols, normalizedHoldings) };
   const cashFlowProfile = r.cashFlowProfile === undefined ? undefined : normalizeCashFlowProfile(r.cashFlowProfile);
   const netWorthHistory = r.netWorthHistory === undefined ? undefined : normalizeNetWorthHistory(r.netWorthHistory);
   const fxRateHistory = normalizeFxRateHistory(r.fxRateHistory).records;
@@ -465,7 +472,7 @@ export function backupPayload(state: AppState, quotes: Record<SymbolCode, Quote>
     const { previousCloseDate: _previousCloseDate, previousCloseSource: _previousCloseSource, previousCloseTrusted: _previousCloseTrusted, previousCloseReason: _previousCloseReason, ...legacyQuote } = quote;
     return [symbol, legacyQuote];
   })) as Record<SymbolCode, Quote>;
-  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: serializeTransactionCollection(normalized.transactions, normalized.opaqueTransactions), transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, creditCards: normalized.creditCards, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), fxRateHistory: normalized.fxRateHistory, syncMeta: withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(withoutSyncBaseline(normalized.syncMeta))), syncSettings: { refreshSec: normalized.refreshSec } }; assertNoOAuthSecrets(payload); return payload;
+  const payload = { version: APP_VERSION, exportedAt: now(), holdings: normalized.holdings, cashAccounts: normalized.cash, accounts: normalized.accounts, accountSchemaVersion: normalized.accountSchemaVersion, cashAccountMigrationVersion: normalized.cashAccountMigrationVersion, transactions: serializeTransactionCollection(normalized.transactions, normalized.opaqueTransactions), transactionSchemaVersion: normalized.transactionSchemaVersion, financialEventSchemaVersion: normalized.financialEventSchemaVersion, financialEvents: serializeFinancialEventLedgerEvents(normalized.financialEventSchemaVersion, normalized.financialEvents), ...(normalized.financialEventAttributionStartDate ? { financialEventAttributionStartDate: normalized.financialEventAttributionStartDate } : {}), importSessions: normalized.importSessions, importPresets: normalized.importPresets, importSchemaVersion: normalized.importSchemaVersion, gmailOAuth: normalized.gmailOAuth, loans: normalized.loans, creditCards: normalized.creditCards, quotes: backupQuotes, targetRatio: growthTargetOf(normalized), allocationPreset: normalized.allocationPreset, rebalanceMode: normalized.rebalanceMode, rebalanceThreshold: normalized.rebalanceThreshold, buyOnlyBudget: normalized.buyOnlyBudget, dipAlerts: normalized.dipAlerts, focusedSymbols: normalized.focusedSymbols, wealthGoal: normalized.wealthGoal, ...(normalized.cashFlowProfile ? { cashFlowProfile: normalized.cashFlowProfile } : {}), ...(normalized.netWorthHistory ? { netWorthHistory: normalized.netWorthHistory } : {}), fxRateHistory: normalized.fxRateHistory, syncMeta: withoutRetiredCloudSyncMetadata(withoutRuntimeSyncStatus(withoutSyncBaseline(normalized.syncMeta))), syncSettings: { refreshSec: normalized.refreshSec } }; assertNoOAuthSecrets(payload); return payload;
 }
 function backupHasRemovedStrategy(raw: unknown) {
   const r = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
@@ -486,7 +493,7 @@ export function stateFromBackup(raw: unknown, current: AppState): AppReadState {
     const quote = (quoteNames as Record<SymbolCode, Quote>)[symbol];
     return { ...holding, name: resolveSymbolName(symbol, holding?.name, quote?.name) };
   });
-  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], creditCards: Array.isArray(r.creditCards) ? r.creditCards : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, wealthGoal: r.wealthGoal ?? current.wealthGoal, fxRateHistory: r.fxRateHistory, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }) };
+  const backupState = { ...current, holdings, cash: Array.isArray(r.cashAccounts) ? r.cashAccounts : Array.isArray(r.cash) ? r.cash : [], transactions: Array.isArray(r.transactions) ? r.transactions : [], financialEventSchemaVersion: r.financialEventSchemaVersion, financialEvents: r.financialEvents, financialEventAttributionStartDate: r.financialEventAttributionStartDate, importSessions: Array.isArray(r.importSessions) ? r.importSessions : [], importPresets: Array.isArray(r.importPresets) ? r.importPresets : [], gmailOAuth: disconnectedGmailOAuth(), loans: Array.isArray(r.loans) ? r.loans : [], creditCards: Array.isArray(r.creditCards) ? r.creditCards : [], refreshSec: syncSettings.refreshSec ?? current.refreshSec, autoSync: Boolean(syncSettings.autoSync ?? current.autoSync), autoSyncSec: syncSettings.autoSyncSec ?? current.autoSyncSec, allocationPreset: normalizeAllocationPreset(r.allocationPreset ?? current.allocationPreset), rebalanceMode: normalizeRebalanceMode(r.rebalanceMode ?? current.rebalanceMode), rebalanceThreshold: clampRebalanceThreshold(Number(r.rebalanceThreshold ?? current.rebalanceThreshold)), buyOnlyBudget: normalizeBuyOnlyBudget(r.buyOnlyBudget ?? current.buyOnlyBudget), dipAlerts: r.dipAlerts ?? current.dipAlerts, focusedSymbols: r.focusedSymbols ?? current.focusedSymbols, wealthGoal: r.wealthGoal ?? current.wealthGoal, fxRateHistory: r.fxRateHistory, ...(r.cashFlowProfile === undefined ? {} : { cashFlowProfile: r.cashFlowProfile }), ...(r.netWorthHistory === undefined ? {} : { netWorthHistory: r.netWorthHistory }) };
   const netWorthSnapshotReadTimeView = createNetWorthSnapshotReadTimeViewFromState(raw);
   if (Array.isArray(r.accounts)) return { state: normalizeState({ ...backupState, accounts: r.accounts }), netWorthSnapshotReadTimeView, initialPersistenceWriteAllowed: true };
   // Remove current accounts so a legacy Backup's CashItem list can migrate once instead of being shadowed by the live state.
@@ -728,14 +735,16 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
-function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onRemove }: {
+function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove }: {
   row: ReturnType<typeof calculateMetrics>['rows'][number];
   totalAssets: number;
   dipSetting: DipAlertSetting;
+  isFocused: boolean;
   isEditing: boolean;
   onToggleEdit: () => void;
   onUpdate: (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => void;
   onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
+  onToggleFocused: (symbol: SymbolCode) => void;
   onRemove: (symbol: SymbolCode) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
@@ -769,6 +778,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isEditing, onToggleE
         <label>資產分類<select value={row.assetClass} onChange={event => { const value = event.currentTarget.value; onUpdate(row.symbol, 'assetClass', normalizeAssetClass(value)); }}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
         <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
         <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
+        <label className="holding-focus-toggle"><span>重點標的</span><input type="checkbox" checked={isFocused} onChange={() => onToggleFocused(row.symbol)} /> 設為首頁重點標的</label>
       </div>
       <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button>
     </div>}
@@ -1465,28 +1475,41 @@ function App() {
       allocation: { growth: { currentValue: m.growth, targetWeight: getGrowthTargetTotal(state.holdings) }, defensive: { currentValue: m.defensiveHoldingsValue, targetWeight: getDefensiveStockTargetTotal(state.holdings) }, cash: { currentValue: m.cash } }
     });
   }, [m, state.buyOnlyBudget, state.rebalanceMode, state.holdings, rb, portfolioRiskView, householdLiquidityForRebalance]);
-  const homeFocusedAssetCard = useMemo(() => deriveHomeFocusedAssetCard({
-    investableCash: householdLiquidityForRebalance.investableCash,
-    canRecommend: rebalanceRecommendationView.canRecommend,
-    thresholdReached: rebalanceRecommendationView.thresholdReached,
-    row: rebalanceRecommendationView.rows.find(row => row.symbol === HOME_FOCUSED_ASSET_SYMBOL)
-  }), [householdLiquidityForRebalance.investableCash, rebalanceRecommendationView]);
+  // UR-TODO-061: focusedSymbols is normalize-time filtered to at most one symbol that still
+  // exists in holdings (see normalizeFocusedSymbols()), so `[0]` is either that one symbol or
+  // undefined — never a stale/removed symbol. When undefined, both memos below return null and
+  // HomeFocusedAssetCard.tsx renders nothing (mirrors CreditCardDueSoonCard's convention).
+  const focusedSymbol = state.focusedSymbols[0];
+  const homeFocusedAssetCard = useMemo(() => {
+    if (!focusedSymbol) return null;
+    return deriveHomeFocusedAssetCard({
+      symbol: focusedSymbol,
+      investableCash: householdLiquidityForRebalance.investableCash,
+      canRecommend: rebalanceRecommendationView.canRecommend,
+      thresholdReached: rebalanceRecommendationView.thresholdReached,
+      row: rebalanceRecommendationView.rows.find(row => row.symbol === focusedSymbol)
+    });
+  }, [focusedSymbol, householdLiquidityForRebalance.investableCash, rebalanceRecommendationView]);
   // UR-TODO-057 sub-PR 2: reuses the existing single "逢低提醒" enabled toggle (dip-alert-engine's
   // pre-existing DipAlertSetting.enabled, edited via the holding editor's checkbox) as the on/off
   // switch for the new automatic ladder too, rather than introducing a second toggle — deliberate
   // minimal-scope choice, not an accidental coupling. currentPrice reads the raw quotes[] entry
   // (not the avgCost-fallback-adjusted m.rows price) so the displayed 現價 always matches exactly
   // what deriveDipAlertsAfterQuoteUpdate() actually compared against the high-water mark.
+  // UR-TODO-061: dip-ladder tracking is deliberately NOT re-keyed by focusedSymbols — it stays
+  // keyed by whichever symbol this memo is currently asked about, so switching the focused symbol
+  // never moves, clears, or otherwise touches any symbol's accumulated highWaterMark/triggeredLevel.
   const homeFocusedAssetLadder = useMemo(() => {
-    const setting = normalizeDipAlertSetting(state.dipAlerts?.[HOME_FOCUSED_ASSET_SYMBOL] ?? defaultDipAlertSetting());
-    const focusedQuote = quotes[HOME_FOCUSED_ASSET_SYMBOL];
+    if (!focusedSymbol) return null;
+    const setting = normalizeDipAlertSetting(state.dipAlerts?.[focusedSymbol] ?? defaultDipAlertSetting());
+    const focusedQuote = quotes[focusedSymbol];
     const currentPrice = focusedQuote && Number.isFinite(focusedQuote.price) && focusedQuote.price > 0 ? focusedQuote.price : null;
     return deriveHomeFocusedAssetLadder({
       enabled: setting.enabled, highWaterMark: setting.highWaterMark, triggeredLevel: setting.triggeredLevel, currentPrice,
       liquidity: { investableCash: householdLiquidityForRebalance.investableCash, dataCompleteness: householdLiquidityForRebalance.dataCompleteness, safetyCashShortfall: householdLiquidityForRebalance.safetyCashShortfall },
       executableBudget: householdLiquidityForRebalance.executableBudget, externalFundingRequired: householdLiquidityForRebalance.externalFundingRequired
     });
-  }, [state.dipAlerts, quotes, householdLiquidityForRebalance]);
+  }, [focusedSymbol, state.dipAlerts, quotes, householdLiquidityForRebalance]);
   const recommendationModels = useMemo(() => createRecommendationModels({ rebalance: rebalanceRecommendationView, portfolioRisk: portfolioRiskView }), [rebalanceRecommendationView, portfolioRiskView]);
   const clecStrategyCenterView = useMemo(() => deriveClecStrategyCenter({
     allocation: { preset: state.allocationPreset, holdings: state.holdings.map(holding => ({ symbol: holding.symbol, name: holding.name || holding.symbol, targetWeight: getEffectiveTargetPercent(holding, state.holdings) })), roleBySymbol: {} },
@@ -1815,6 +1838,15 @@ function App() {
       }, s.holdings)
     }));
   };
+  // UR-TODO-061: array-shaped for future multi-symbol flexibility, but the UI invariant is "at
+  // most one" — selecting a symbol replaces whatever was selected before (no separate "clear the
+  // old one first" step), and re-selecting the currently-focused symbol clears it. Deliberately
+  // independent of dip-ladder tracking (DipAlertSetting.enabled/highWaterMark/triggeredLevel are
+  // untouched here) — switching the focused symbol never enables/disables or moves any symbol's
+  // accumulated dip-ladder data.
+  const toggleFocusedSymbol = (symbol: SymbolCode) => {
+    setState(s => ({ ...s, focusedSymbols: toggleFocusedSymbolInList(s.focusedSymbols, symbol) }));
+  };
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
     const holdings = safeHoldings(s.holdings);
     const normalizedSymbol = normalizeSymbol(symbol);
@@ -1841,7 +1873,12 @@ function App() {
   };
   const removeHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
-    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: true, targetWeight: 0 } : h), dipAlerts }; });
+    // UR-TODO-061: an archived holding stays present in `holdings` (isArchived flag only, never
+    // actually removed from the array) so normalizeFocusedSymbols()'s holdings-presence filter
+    // alone would NOT clear it — explicitly drop it here so archiving the focused symbol makes
+    // the homepage card disappear immediately, rather than continuing to show a now-archived
+    // holding (0% target weight) until the user separately clears the toggle.
+    setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: true, targetWeight: 0 } : h), dipAlerts, focusedSymbols: s.focusedSymbols.filter(sym => sym !== normalizedSymbol) }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
     setEditingHoldingSymbol(current => current === normalizedSymbol ? null : current);
     setAssetMessage(`${normalizedSymbol} 已封存為已清倉資產；不會納入投資計算或股價更新，股息中心仍可選取。`);
@@ -2009,7 +2046,7 @@ function App() {
           {(quoteSummaryText === '部分標的非今日報價' || quoteSummaryText === '部分標的報價日期不明') && <p className="note holding-stale-notice">{quoteSummaryText}；今日漲跌僅供參考。</p>}
           <section className="asset-quote-provenance" aria-label="持股報價來源與新鮮度"><p><strong>更新狀態：</strong>{quoteStatus}</p><ul>{quotePresentation.map(quote => <li key={quote.symbol}><b>{quote.symbol}</b><span>{quote.statusLabel}</span><span>市場時間：{quote.marketTimestamp || '—'}</span><span>來源：{quote.source}</span><span>系統取得：{quote.receiptTimestamp || '—'}</span></li>)}</ul></section>
           <div className="holdings">
-            {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onRemove={confirmRemoveHoldingAsset} />)}
+            {m.rows.map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(row.symbol)} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={confirmRemoveHoldingAsset} />)}
           </div>
         </SectionCard>
         </div>

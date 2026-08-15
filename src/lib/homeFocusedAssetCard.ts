@@ -1,20 +1,24 @@
 import type { RebalanceRecommendationRow } from './rebalanceRecommendation';
 
-// UR-TODO-059 (scope-adjusted): the user has confirmed only one symbol is actually held/targeted
-// (00631L), so the homepage's top block is a direct "how is this one asset doing" readout rather
-// than a general "rank every asset by deviation" engine — that generic ranking was the original
-// candidate design and is explicitly out of scope. This module adds no new financial computation;
-// it only selects and formats the already-computed rebalanceRecommendation.ts row for this symbol,
-// mirroring todayDecision.ts's existing "pure presentation selection over already-derived inputs"
-// pattern.
-export const HOME_FOCUSED_ASSET_SYMBOL = '00631L';
-
+// UR-TODO-059 (scope-adjusted): the homepage's top block is a direct "how is this one asset
+// doing" readout rather than a general "rank every asset by deviation" engine — that generic
+// ranking was the original candidate design and is explicitly out of scope. This module adds no
+// new financial computation; it only selects and formats the already-computed
+// rebalanceRecommendation.ts row for the caller-supplied symbol, mirroring todayDecision.ts's
+// existing "pure presentation selection over already-derived inputs" pattern.
+//
+// UR-TODO-061: the symbol itself is no longer hardcoded — it's whichever single symbol the user
+// has chosen via AppState.focusedSymbols (see App.tsx). The caller is responsible for not calling
+// this at all when no symbol is selected (the homepage card renders nothing in that case, mirroring
+// CreditCardDueSoonCard's "no items → render nothing" convention) — this module has no opinion on
+// that decision, it only ever formats a single given symbol's data.
 export type HomeFocusedAssetCardInput = {
+  symbol: string;
   investableCash: number | null;
   canRecommend: boolean;
   thresholdReached: boolean;
-  /** The rebalanceRecommendation.ts row for HOME_FOCUSED_ASSET_SYMBOL, or undefined if that
-   *  symbol is no longer present in the user's holdings/target allocation. */
+  /** The rebalanceRecommendation.ts row for `symbol`, or undefined if that symbol is no longer
+   *  present in the user's holdings/target allocation. */
   row: RebalanceRecommendationRow | undefined;
 };
 
@@ -37,10 +41,10 @@ export function deriveHomeFocusedAssetCard(input: HomeFocusedAssetCardInput): Ho
   const { row } = input;
   if (!row) {
     return {
-      symbol: HOME_FOCUSED_ASSET_SYMBOL, name: null, investableCash: input.investableCash,
+      symbol: input.symbol, name: null, investableCash: input.investableCash,
       currentWeight: null, targetWeight: null, deviation: null,
       status: 'unavailable', action: null, recommendedAmount: null,
-      message: `${HOME_FOCUSED_ASSET_SYMBOL} 目前不在配置中，請先於資產配置頁面設定目標比例。`
+      message: `${input.symbol} 目前不在配置中，請先於資產配置頁面設定目標比例。`
     };
   }
   const deviation = row.currentWeight - row.targetWeight;

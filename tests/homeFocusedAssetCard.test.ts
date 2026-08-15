@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deriveHomeFocusedAssetCard, HOME_FOCUSED_ASSET_SYMBOL, type HomeFocusedAssetCardInput } from '../src/lib/homeFocusedAssetCard';
+import { deriveHomeFocusedAssetCard, type HomeFocusedAssetCardInput } from '../src/lib/homeFocusedAssetCard';
 import type { RebalanceRecommendationRow } from '../src/lib/rebalanceRecommendation';
 
+// UR-TODO-061: the symbol is now caller-supplied (AppState.focusedSymbols[0]), not hardcoded in
+// the module — this fixture symbol is just this test file's own choice of example.
+const FOCUSED_SYMBOL = '00631L';
+
 const baseRow = (overrides: Partial<RebalanceRecommendationRow> = {}): RebalanceRecommendationRow => ({
-  symbol: HOME_FOCUSED_ASSET_SYMBOL, name: '元大台灣50正2', assetClass: 'growth',
+  symbol: FOCUSED_SYMBOL, name: '元大台灣50正2', assetClass: 'growth',
   currentValue: 100_000, currentWeight: 5, targetWeight: 10,
   targetValue: 200_000, difference: 100_000,
   action: 'buy', recommendedAmount: 50_000, unresolvedAmount: 0, reason: '依低配缺口由大到小分配可投入預算。', priority: 1,
@@ -12,7 +16,7 @@ const baseRow = (overrides: Partial<RebalanceRecommendationRow> = {}): Rebalance
 });
 
 const baseInput = (overrides: Partial<HomeFocusedAssetCardInput> = {}): HomeFocusedAssetCardInput => ({
-  investableCash: 50_000, canRecommend: true, thresholdReached: true, row: baseRow(),
+  symbol: FOCUSED_SYMBOL, investableCash: 50_000, canRecommend: true, thresholdReached: true, row: baseRow(),
   ...overrides,
 });
 
@@ -22,7 +26,16 @@ test('threshold reached and canRecommend: surfaces the recommended buy amount fr
   assert.equal(result.action, 'buy');
   assert.equal(result.recommendedAmount, 50_000);
   assert.equal(result.deviation, -5);
-  assert.equal(result.symbol, HOME_FOCUSED_ASSET_SYMBOL);
+  assert.equal(result.symbol, FOCUSED_SYMBOL);
+});
+
+test('is symbol-agnostic: works identically for a different focused symbol, no hardcoding', () => {
+  const result = deriveHomeFocusedAssetCard(baseInput({
+    symbol: '00685L', row: baseRow({ symbol: '00685L', name: '國泰台灣加權正2' })
+  }));
+  assert.equal(result.symbol, '00685L');
+  assert.equal(result.name, '國泰台灣加權正2');
+  assert.equal(result.status, 'action-needed');
 });
 
 test('threshold reached with a sell row: surfaces the recommended sell amount', () => {
@@ -70,8 +83,8 @@ test('00631L removed from the user\'s holdings/target allocation (no matching ro
   assert.equal(result.deviation, null);
   assert.equal(result.action, null);
   assert.equal(result.recommendedAmount, null);
-  assert.match(result.message, new RegExp(HOME_FOCUSED_ASSET_SYMBOL));
-  assert.equal(result.symbol, HOME_FOCUSED_ASSET_SYMBOL);
+  assert.match(result.message, new RegExp(FOCUSED_SYMBOL));
+  assert.equal(result.symbol, FOCUSED_SYMBOL);
 });
 
 test('hold row at threshold-reached (deviation within amount floor): no amount shown, reason passed through', () => {
