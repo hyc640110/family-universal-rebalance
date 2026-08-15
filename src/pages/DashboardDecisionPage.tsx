@@ -7,6 +7,7 @@ import { INVESTMENT_DECISION_ROUTES } from '../lib/toolNavigation';
 import type { CreditCardDueSoonReminder } from '../lib/creditCardReminders';
 import CreditCardDueSoonCard from '../components/CreditCardDueSoonCard';
 import type { HomeFocusedAssetCardData } from '../lib/homeFocusedAssetCard';
+import type { HomeFocusedAssetLadderData } from '../lib/homeFocusedAssetLadderCard';
 import HomeFocusedAssetCard from '../components/HomeFocusedAssetCard';
 
 type DashboardData = {
@@ -19,6 +20,7 @@ type DashboardData = {
   todayConclusion: string;
   creditCardDueSoonReminders: readonly CreditCardDueSoonReminder[];
   focusedAssetCard: HomeFocusedAssetCardData;
+  focusedAssetLadder: HomeFocusedAssetLadderData;
 };
 
 type DashboardDecisionPageProps = { data: DashboardData; onAcknowledgeCreditCardReminder: (id: string, dueDate: string) => void };
@@ -36,7 +38,7 @@ const quoteTime = (value: string | null) => value ? new Intl.DateTimeFormat('zh-
 export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardReminder }: DashboardDecisionPageProps) {
   const intelligence = data.intelligence;
   return <PageFrame page="home" title="投資決策首頁" description="30 秒掌握今日投資表現、配置與下一步。">
-    <HomeFocusedAssetCard data={data.focusedAssetCard} />
+    <HomeFocusedAssetCard data={data.focusedAssetCard} ladder={data.focusedAssetLadder} />
 
     <section className={`investment-intelligence-card ${intelligence.overallTone}`} aria-labelledby="investment-intelligence-title">
       <header className="intelligence-heading"><div><p className="eyebrow">今日投資狀態</p><h2 id="investment-intelligence-title">{intelligence.overallStatus}</h2><p>{intelligence.title}</p></div><span className={`intelligence-status ${intelligence.overallTone}`}>{intelligence.overallStatus}</span></header>
