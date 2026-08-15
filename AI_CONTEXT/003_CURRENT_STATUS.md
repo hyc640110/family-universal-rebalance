@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.13
+# Universal Rebalance Current Status v4.14
 
 最後更新：2026-08-15
+
+**`007_GIT_WORKFLOW.md` §8.2 新增「六、治理文件最終一致性」規則。** 承接同日稍早的治理文件基線落差修正事件（PR #354）：使用者與 Claude Home 討論後定案，不要求每次低風險自動 Merge PR 都強制同步 `003_CURRENT_STATUS.md`，但明訂「治理文件的基線陳述句式視為單一事實來源」——任何造成 `origin/main` HEAD 變化的 Merge 若當下未同步治理文件，必須在下一次治理文件同步時一併追平期間所有累積落差（逐一列出被跳過的每個 PR，不得只更新最新一筆），並明確治理文件同步執行者的責任歸屬。純新增規則文字，未修改任何既有 §8.1／§8.2 條件或既有規則語意。**本條目本身依此新規則刻意不自我宣告基線 SHA**（此 PR 自身的 merge commit 只有 Merge 後才會產生，屬於規則允許的「暫時落後」情境，下次治理同步時會依規則追平），實際最新 `origin/main` HEAD 請以 `git log -1 origin/main` 或下一次治理同步條目為準。
+
+---
 
 **治理文件基線落差修正：`origin/main` 正式基線更新為 `90cf75f725d9ecb2fca63e2f081d64d49907d179`。** 唯讀確認（Review Mode）發現本文件最上方條目過去未依全文件既有慣例明確陳述新基線 SHA，導致讀者（含 ChatGPT 透過 Full／Lite Bundle）實際抓取到的是落後多個 commit 的舊值 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`（UR-TODO-063／PR #349）。本次補齊自 PR #349 之後、先前未反映在本文件的兩次 Merge，並修正措辭統一句式，避免未來再次出現同類落差：
 
