@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T14:57:46.262046+00:00
+Generated UTC: 2026-08-15T15:02:04.144354+00:00
 
 ## Manifest
 
@@ -11,11 +11,11 @@ Generated UTC: 2026-08-15T14:57:46.262046+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `1e3142f5cf372e48e43f2d5a81d7111bdfab3a5d354e77ae74d40d52c28bb76d`
+- `003_CURRENT_STATUS.md` — SHA-256 `60d88b80324d93bb7b00588624c85113e383312f320f7edee7b7836fc4a28162`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
-- `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
+- `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
 - `008_TODO_BACKLOG.md` — SHA-256 `bc0b895731009ffdb07cb65d549bc63c32f6b981917da6eae42bca8c803e4168`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.13
+# Universal Rebalance Current Status v4.14
 
 最後更新：2026-08-15
+
+**`007_GIT_WORKFLOW.md` §8.2 新增「六、治理文件最終一致性」規則。** 承接同日稍早的治理文件基線落差修正事件（PR #354）：使用者與 Claude Home 討論後定案，不要求每次低風險自動 Merge PR 都強制同步 `003_CURRENT_STATUS.md`，但明訂「治理文件的基線陳述句式視為單一事實來源」——任何造成 `origin/main` HEAD 變化的 Merge 若當下未同步治理文件，必須在下一次治理文件同步時一併追平期間所有累積落差（逐一列出被跳過的每個 PR，不得只更新最新一筆），並明確治理文件同步執行者的責任歸屬。純新增規則文字，未修改任何既有 §8.1／§8.2 條件或既有規則語意。**本條目本身依此新規則刻意不自我宣告基線 SHA**（此 PR 自身的 merge commit 只有 Merge 後才會產生，屬於規則允許的「暫時落後」情境，下次治理同步時會依規則追平），實際最新 `origin/main` HEAD 請以 `git log -1 origin/main` 或下一次治理同步條目為準。
+
+---
 
 **治理文件基線落差修正：`origin/main` 正式基線更新為 `90cf75f725d9ecb2fca63e2f081d64d49907d179`。** 唯讀確認（Review Mode）發現本文件最上方條目過去未依全文件既有慣例明確陳述新基線 SHA，導致讀者（含 ChatGPT 透過 Full／Lite Bundle）實際抓取到的是落後多個 commit 的舊值 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`（UR-TODO-063／PR #349）。本次補齊自 PR #349 之後、先前未反映在本文件的兩次 Merge，並修正措辭統一句式，避免未來再次出現同類落差：
 
@@ -2948,6 +2952,17 @@ Sprint：（對應的產品版本／Sprint 名稱，例如「V7.0B 子 PR 5b／5
 - 判定為低風險的具體依據：符合上方「一、可自行 Merge 的低風險變更」四類中的哪一類、如何逐項確認符合「二、自動 Merge 前必要條件」。
 
 不得靜默執行、不得省略此段說明。
+
+**六、治理文件最終一致性（2026-08-15 起）**
+
+**背景**：2026-08-15 發現 `003_CURRENT_STATUS.md` 最上方基線陳述落後 `origin/main` 實際 HEAD 兩個 commit（PR #351、#353）——兩者皆依本節規則自動 Merge，因任務範圍本身不涉及 `AI_CONTEXT/`，未同步更新治理文件，導致依「正式基線更新為 X」句式讀取基線的讀者（含 ChatGPT 透過 Full／Lite Bundle）實際拿到的是更舊的值。此為治理記錄落差事件，非程式碼缺陷；詳見 `003_CURRENT_STATUS.md` 2026-08-15 治理文件基線落差修正條目。
+
+**規則**：
+
+1. 依本節自動 Merge 完成的 PR（不論是否觸碰 `AI_CONTEXT/`），**不強制每次立即同步** `003_CURRENT_STATUS.md`／Bundle，允許暫時落後於 `origin/main` 實際 HEAD——這不是缺陷，是刻意允許的低風險 PR 執行效率安排。
+2. 但**治理文件的基線陳述句式視為單一事實來源**：任何 AI（Claude Home／Claude Code／ChatGPT）依既有「正式基線更新為 X」句式讀取基線時，該陳述必須是可信的，不得長期落後而不自知。
+3. 因此：任何造成 `origin/main` HEAD 變化的 Merge，若當下未同步更新 `003_CURRENT_STATUS.md`，**必須在下一次治理文件同步時一併追平期間所有累積落差**——逐一列出被跳過的每個 PR 及其各自的基線變化，不得只更新最新一筆、遺漏中間被跳過的部分。這正是 2026-08-15 UR-TODO-041 治理修正時實際採用的做法（PR #354 一次補齊 PR #351、#353 兩筆）。
+4. 每次 Merge 完成後的回報，依既有 §8.2 五「透明度要求」本來就必須列出新 `origin/main` HEAD SHA，此規則本身不變——問題不在「沒有回報」，而在「回報了但未寫回文件」。**治理文件同步的執行者（不論何時執行）需負責回頭核對是否有遺漏的 Merge 記錄**，不得只處理觸發本次同步的那一個 PR。
 
 ---
 

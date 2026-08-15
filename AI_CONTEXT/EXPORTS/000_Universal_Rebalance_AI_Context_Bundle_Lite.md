@@ -3,14 +3,14 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T14:57:46.262046+00:00
+Generated UTC: 2026-08-15T15:02:04.144354+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `1e3142f5cf372e48e43f2d5a81d7111bdfab3a5d354e77ae74d40d52c28bb76d`
+- `003_CURRENT_STATUS.md` — SHA-256 `60d88b80324d93bb7b00588624c85113e383312f320f7edee7b7836fc4a28162`
 - `008_TODO_BACKLOG.md` — SHA-256 `bc0b895731009ffdb07cb65d549bc63c32f6b981917da6eae42bca8c803e4168`
 - `012_AI_HANDOVER.md` — SHA-256 `372727711f35964c41aeba864ec89902709d9799657a3cb972d57bb7c9d29745`
 
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.13
+# Universal Rebalance Current Status v4.14
 
 最後更新：2026-08-15
+
+**`007_GIT_WORKFLOW.md` §8.2 新增「六、治理文件最終一致性」規則。** 承接同日稍早的治理文件基線落差修正事件（PR #354）：使用者與 Claude Home 討論後定案，不要求每次低風險自動 Merge PR 都強制同步 `003_CURRENT_STATUS.md`，但明訂「治理文件的基線陳述句式視為單一事實來源」——任何造成 `origin/main` HEAD 變化的 Merge 若當下未同步治理文件，必須在下一次治理文件同步時一併追平期間所有累積落差（逐一列出被跳過的每個 PR，不得只更新最新一筆），並明確治理文件同步執行者的責任歸屬。純新增規則文字，未修改任何既有 §8.1／§8.2 條件或既有規則語意。**本條目本身依此新規則刻意不自我宣告基線 SHA**（此 PR 自身的 merge commit 只有 Merge 後才會產生，屬於規則允許的「暫時落後」情境，下次治理同步時會依規則追平），實際最新 `origin/main` HEAD 請以 `git log -1 origin/main` 或下一次治理同步條目為準。
+
+---
 
 **治理文件基線落差修正：`origin/main` 正式基線更新為 `90cf75f725d9ecb2fca63e2f081d64d49907d179`。** 唯讀確認（Review Mode）發現本文件最上方條目過去未依全文件既有慣例明確陳述新基線 SHA，導致讀者（含 ChatGPT 透過 Full／Lite Bundle）實際抓取到的是落後多個 commit 的舊值 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`（UR-TODO-063／PR #349）。本次補齊自 PR #349 之後、先前未反映在本文件的兩次 Merge，並修正措辭統一句式，避免未來再次出現同類落差：
 
