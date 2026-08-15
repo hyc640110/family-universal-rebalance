@@ -1083,6 +1083,27 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
 
+### UR-TODO-061 首頁重點標的可自訂
+
+- 優先級：P2（使用者提出後直接排入開發）
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343)**，merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，**未使用 admin override**。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示 00631L（既有使用者一次性遷移初始化），既有卡片未受影響，console 無錯誤。
+- 提出日期：2026-08-15（使用者於 UR-TODO-057／059 完成後直接提出，同日盤點、定案並完成開發）
+- 背景：首頁「重點標的」卡片（UR-TODO-059）原寫死顯示 00631L，使用者希望能自行選擇要顯示哪一檔（例如未來想從 00631L 換成 00685L）。
+- **最終落地範圍**：
+  1. **資料結構**：`AppState` 新增 additive 欄位 `focusedSymbols: string[]`。**設計原則：即使目前 UI 邏輯限制最多只能有 1 檔，資料結構仍採陣列型別**，為未來可能的多檔同時顯示需求預留彈性，避免日後若要支援多檔時需要重新做一次型別遷移。
+  2. **一次性遷移**：新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray(raw)` 判斷該欄位「這次持久化資料裡是否真的存在過」——非陣列（欄位不存在／首次升級）一次性預設為 `['00631L']`，符合所有使用者（不論新舊）升級前一直看到的寫死行為；已是陣列（即使是空陣列）則原樣尊重使用者的選擇，不再被覆蓋，避免使用者主動清空選擇後被靜默復原。
+  3. **選擇介面**：資產頁個股「詳細」展開區塊內新增「設為重點標的」切換開關（比照既有「逢低提醒」開關的位置與操作方式）。UI 邏輯限制一次最多 1 檔：選擇新標的會自動取消舊選擇（不需先手動取消），再次點選目前唯一的重點標的則清空選擇。
+  4. **與逢低加碼追蹤（UR-TODO-057）完全獨立**：`highWaterMark`／`triggeredLevel` 邏輯完全不與 `focusedSymbols` 綁定——切換重點標的不會搬動、清空或觸碰任何標的已累積的追蹤資料；新標的若之前未啟用逢低追蹤，需使用者自行到該標的另外啟用。已於本機 dev server 實機驗證：啟用 00631L 逢低追蹤並取得 `highWaterMark` → 切換重點標的到 00685L → `dipAlerts['00631L']` 完全未變 → 切回 00631L → 首頁正確顯示原本累積的 `highWaterMark`。
+  5. **邊界防呆**：重點標的指向的 symbol 若已被使用者從 `holdings` 移除，重用既有 `dipAlerts` 的 holdings-存在性過濾機制（同一套機制，無需獨立實作），該次 normalize 時自動清空；封存持股（`isArchived: true`，`holdings` 陣列中仍保留）額外於 `removeHoldingAsset()` 主動清空 `focusedSymbols`，讓封存動作立即反映在首頁，不等到下次移除才生效。
+  6. **取消唯一重點標的**：`focusedSymbols` 變空陣列時，首頁「重點標的」卡片（`HomeFocusedAssetCard.tsx`）完全不渲染，比照既有 `CreditCardDueSoonCard`「無項目則不渲染」慣例，不顯示空狀態外殼。
+  7. `normalizeState()`／`backupPayload()`／`stateFromBackup()` 皆已同步接線，additive 相容，不破壞既有 localStorage／JSON Backup。
+- 技術落地：新增 `src/lib/focusedSymbols.ts`（`normalizeFocusedSymbols()`／`toggleFocusedSymbol()`，15 項 characterization test，含明確鎖定「切換重點標的絕不觸碰逢低追蹤資料」的獨立測試）；`homeFocusedAssetCard.ts`／`HomeFocusedAssetCard.tsx`／`DashboardDecisionPage.tsx` 改為接受動態 `symbol` 與可為 `null` 的資料（無重點標的時不渲染）；既有 `tests/homeFocusedAssetCard.test.ts`／`tests/homeFocusedAssetCardUi.test.ts` 因型別擴充同步更新，並新增 symbol-agnostic／render-nothing 測試。
+- 明確不包含：同時顯示多檔重點標的的 UI（資料結構預留彈性，UI 邏輯仍限制最多 1 檔）；`dipLadderEngine.ts` 核心邏輯修改；`todayDecision.ts` 既有單一結論字串邏輯修改。
+- 依賴：UR-TODO-059（已 CLOSED，首頁「重點標的」卡片結構基礎）；UR-TODO-057（已 CLOSED，逢低加碼追蹤機制，本次確認完全獨立、未修改）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（既有使用者遷移、手動切換重點標的、舊標的逢低追蹤資料不受影響、單一標的限制、取消後卡片完全消失、持久化保留、手機版排版正常），Production 唯讀確認功能與既有首頁區塊皆正常。
+
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1
 - 狀態：**已完成**
