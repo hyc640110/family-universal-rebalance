@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T07:32:41.493328+00:00
+Generated UTC: 2026-08-15T09:23:31.266882+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T07:32:41.493328+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `7e1d653ecca48464e6fe2679e9e21ca3b63c9b1368971fe57d602861ee1ffba0`
+- `003_CURRENT_STATUS.md` — SHA-256 `ce9be54af59193dbcf82275a68c8cbc7ab5c93a06b8684bdbd98059ebc2992d1`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `abbb6a85ad0d7795a1c271d69eb12b2705f2747b9579596ffe2a692878d43e7c`
+- `008_TODO_BACKLOG.md` — SHA-256 `0f9c7498ad253cc3a4b77bda39dd50e516c7de274a1faa4fc36bcc0ce3c05066`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.07
+# Universal Rebalance Current Status v4.08
 
 最後更新：2026-08-15
+
+**UR-TODO-061（首頁重點標的可自訂）正式完成並 Merge，`origin/main` 正式基線更新為 `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`。** PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343) 已正式 Merge（merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，未使用 admin override），將首頁「重點標的」卡片（UR-TODO-059）從寫死 00631L 改為使用者可自訂：新增 additive 欄位 `AppState.focusedSymbols: string[]`（陣列型別為未來多檔顯示預留彈性，UI 邏輯仍限制最多 1 檔）；資產頁個股「詳細」展開區塊新增「設為重點標的」切換開關，選新標的自動取消舊選擇；新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray()` 判斷欄位是否首次存在，對既有使用者一次性遷移初始化為 `['00631L']`，之後使用者主動清空選擇則原樣尊重、不再覆蓋；與逢低加碼追蹤（UR-TODO-057）完全獨立，切換重點標的不影響任何標的已累積的 `highWaterMark`／`triggeredLevel`（已實機驗證）；取消唯一重點標的時首頁卡片完全不渲染，比照既有 `CreditCardDueSoonCard` 慣例。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁正確顯示 00631L（既有使用者遷移邏輯），既有卡片未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-061 正式條目。
+
+---
 
 **UR-TODO-057（00631L 自動高點追蹤＋每跌 10% 階梯式加碼提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `7704cf8f0610b003414b2ea664e0b9515f947df4`。** 採 Strangler Pattern 兩階段（比照 ADR-001）：子 PR 1 [#339](https://github.com/hyc640110/family-universal-rebalance/pull/339)（merge commit `2248453da13e2cc8a0d61326ab512df98162abaf`，純函式 `dipLadderEngine.ts` 抽出階段）、子 PR 2 [#340](https://github.com/hyc640110/family-universal-rebalance/pull/340)（merge commit `7704cf8f0610b003414b2ea664e0b9515f947df4`，quote 更新橋接＋首頁「重點標的」卡片串接階段），皆一般 merge commit，**未使用 admin override**。落地自動高點追蹤（`highWaterMark`／`triggeredLevel` 為獨立新欄位，不沿用舊手動 `referencePrice`，啟用當下的第一筆合格報價為初始基準）、每跌 10% 一級的回撤階梯（防重複觸發、新高重置整週期）、報價品質過濾（stale／unknown／unavailable／備援報價一律忽略）、於既有 quote 更新共用路徑（頁面載入／手動按鈕／下拉手勢，Repository 確認無自動輪詢機制）統一橋接。Deploy GitHub Pages run [31872010383](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31872010383) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示「逢低加碼自動追蹤」區塊，既有卡片未受影響，console 無錯誤。開發前使用者將最初「波段最高價自動更新」草案正式重新定義為完整階梯式加碼機制，範圍遠大於原始草案；開發中一則使用者回報的「封存 00631L 無反應」問題經唯讀 Debug Trace 確認與本輪新增邏輯無關（瀏覽器 `window.confirm()` 連續觸發防護機制的巧合），詳見 `008_TODO_BACKLOG.md` UR-TODO-057 正式條目。
 
@@ -4054,6 +4058,27 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-061 首頁重點標的可自訂
+
+- 優先級：P2（使用者提出後直接排入開發）
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343)**，merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，**未使用 admin override**。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示 00631L（既有使用者一次性遷移初始化），既有卡片未受影響，console 無錯誤。
+- 提出日期：2026-08-15（使用者於 UR-TODO-057／059 完成後直接提出，同日盤點、定案並完成開發）
+- 背景：首頁「重點標的」卡片（UR-TODO-059）原寫死顯示 00631L，使用者希望能自行選擇要顯示哪一檔（例如未來想從 00631L 換成 00685L）。
+- **最終落地範圍**：
+  1. **資料結構**：`AppState` 新增 additive 欄位 `focusedSymbols: string[]`。**設計原則：即使目前 UI 邏輯限制最多只能有 1 檔，資料結構仍採陣列型別**，為未來可能的多檔同時顯示需求預留彈性，避免日後若要支援多檔時需要重新做一次型別遷移。
+  2. **一次性遷移**：新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray(raw)` 判斷該欄位「這次持久化資料裡是否真的存在過」——非陣列（欄位不存在／首次升級）一次性預設為 `['00631L']`，符合所有使用者（不論新舊）升級前一直看到的寫死行為；已是陣列（即使是空陣列）則原樣尊重使用者的選擇，不再被覆蓋，避免使用者主動清空選擇後被靜默復原。
+  3. **選擇介面**：資產頁個股「詳細」展開區塊內新增「設為重點標的」切換開關（比照既有「逢低提醒」開關的位置與操作方式）。UI 邏輯限制一次最多 1 檔：選擇新標的會自動取消舊選擇（不需先手動取消），再次點選目前唯一的重點標的則清空選擇。
+  4. **與逢低加碼追蹤（UR-TODO-057）完全獨立**：`highWaterMark`／`triggeredLevel` 邏輯完全不與 `focusedSymbols` 綁定——切換重點標的不會搬動、清空或觸碰任何標的已累積的追蹤資料；新標的若之前未啟用逢低追蹤，需使用者自行到該標的另外啟用。已於本機 dev server 實機驗證：啟用 00631L 逢低追蹤並取得 `highWaterMark` → 切換重點標的到 00685L → `dipAlerts['00631L']` 完全未變 → 切回 00631L → 首頁正確顯示原本累積的 `highWaterMark`。
+  5. **邊界防呆**：重點標的指向的 symbol 若已被使用者從 `holdings` 移除，重用既有 `dipAlerts` 的 holdings-存在性過濾機制（同一套機制，無需獨立實作），該次 normalize 時自動清空；封存持股（`isArchived: true`，`holdings` 陣列中仍保留）額外於 `removeHoldingAsset()` 主動清空 `focusedSymbols`，讓封存動作立即反映在首頁，不等到下次移除才生效。
+  6. **取消唯一重點標的**：`focusedSymbols` 變空陣列時，首頁「重點標的」卡片（`HomeFocusedAssetCard.tsx`）完全不渲染，比照既有 `CreditCardDueSoonCard`「無項目則不渲染」慣例，不顯示空狀態外殼。
+  7. `normalizeState()`／`backupPayload()`／`stateFromBackup()` 皆已同步接線，additive 相容，不破壞既有 localStorage／JSON Backup。
+- 技術落地：新增 `src/lib/focusedSymbols.ts`（`normalizeFocusedSymbols()`／`toggleFocusedSymbol()`，15 項 characterization test，含明確鎖定「切換重點標的絕不觸碰逢低追蹤資料」的獨立測試）；`homeFocusedAssetCard.ts`／`HomeFocusedAssetCard.tsx`／`DashboardDecisionPage.tsx` 改為接受動態 `symbol` 與可為 `null` 的資料（無重點標的時不渲染）；既有 `tests/homeFocusedAssetCard.test.ts`／`tests/homeFocusedAssetCardUi.test.ts` 因型別擴充同步更新，並新增 symbol-agnostic／render-nothing 測試。
+- 明確不包含：同時顯示多檔重點標的的 UI（資料結構預留彈性，UI 邏輯仍限制最多 1 檔）；`dipLadderEngine.ts` 核心邏輯修改；`todayDecision.ts` 既有單一結論字串邏輯修改。
+- 依賴：UR-TODO-059（已 CLOSED，首頁「重點標的」卡片結構基礎）；UR-TODO-057（已 CLOSED，逢低加碼追蹤機制，本次確認完全獨立、未修改）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（既有使用者遷移、手動切換重點標的、舊標的逢低追蹤資料不受影響、單一標的限制、取消後卡片完全消失、持久化保留、手機版排版正常），Production 唯讀確認功能與既有首頁區塊皆正常。
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1

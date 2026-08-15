@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.07
+# Universal Rebalance Current Status v4.08
 
 最後更新：2026-08-15
+
+**UR-TODO-061（首頁重點標的可自訂）正式完成並 Merge，`origin/main` 正式基線更新為 `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`。** PR [#343](https://github.com/hyc640110/family-universal-rebalance/pull/343) 已正式 Merge（merge commit `6fb75cfc6bb38b950a62d50af6851aa19f94ecf6`，一般 merge commit，未使用 admin override），將首頁「重點標的」卡片（UR-TODO-059）從寫死 00631L 改為使用者可自訂：新增 additive 欄位 `AppState.focusedSymbols: string[]`（陣列型別為未來多檔顯示預留彈性，UI 邏輯仍限制最多 1 檔）；資產頁個股「詳細」展開區塊新增「設為重點標的」切換開關，選新標的自動取消舊選擇；新增純函式 `normalizeFocusedSymbols()`（`src/lib/focusedSymbols.ts`）以 `Array.isArray()` 判斷欄位是否首次存在，對既有使用者一次性遷移初始化為 `['00631L']`，之後使用者主動清空選擇則原樣尊重、不再覆蓋；與逢低加碼追蹤（UR-TODO-057）完全獨立，切換重點標的不影響任何標的已累積的 `highWaterMark`／`triggeredLevel`（已實機驗證）；取消唯一重點標的時首頁卡片完全不渲染，比照既有 `CreditCardDueSoonCard` 慣例。Deploy GitHub Pages run [31876678153](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31876678153) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁正確顯示 00631L（既有使用者遷移邏輯），既有卡片未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-061 正式條目。
+
+---
 
 **UR-TODO-057（00631L 自動高點追蹤＋每跌 10% 階梯式加碼提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `7704cf8f0610b003414b2ea664e0b9515f947df4`。** 採 Strangler Pattern 兩階段（比照 ADR-001）：子 PR 1 [#339](https://github.com/hyc640110/family-universal-rebalance/pull/339)（merge commit `2248453da13e2cc8a0d61326ab512df98162abaf`，純函式 `dipLadderEngine.ts` 抽出階段）、子 PR 2 [#340](https://github.com/hyc640110/family-universal-rebalance/pull/340)（merge commit `7704cf8f0610b003414b2ea664e0b9515f947df4`，quote 更新橋接＋首頁「重點標的」卡片串接階段），皆一般 merge commit，**未使用 admin override**。落地自動高點追蹤（`highWaterMark`／`triggeredLevel` 為獨立新欄位，不沿用舊手動 `referencePrice`，啟用當下的第一筆合格報價為初始基準）、每跌 10% 一級的回撤階梯（防重複觸發、新高重置整週期）、報價品質過濾（stale／unknown／unavailable／備援報價一律忽略）、於既有 quote 更新共用路徑（頁面載入／手動按鈕／下拉手勢，Repository 確認無自動輪詢機制）統一橋接。Deploy GitHub Pages run [31872010383](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31872010383) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示「逢低加碼自動追蹤」區塊，既有卡片未受影響，console 無錯誤。開發前使用者將最初「波段最高價自動更新」草案正式重新定義為完整階梯式加碼機制，範圍遠大於原始草案；開發中一則使用者回報的「封存 00631L 無反應」問題經唯讀 Debug Trace 確認與本輪新增邏輯無關（瀏覽器 `window.confirm()` 連續觸發防護機制的巧合），詳見 `008_TODO_BACKLOG.md` UR-TODO-057 正式條目。
 
