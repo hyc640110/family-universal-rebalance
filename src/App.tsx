@@ -1981,8 +1981,7 @@ function App() {
       {currentPage === 'home' && <DashboardDecisionPage data={{
         total: m.totalAssets, net: m.netWorth,
         dayPnl: investmentDashboard.dayPnl, dayPnlRate: investmentDashboard.dayPnlRate, lastQuoteAt: investmentDashboard.lastQuoteAt,
-        allocationDeviation: investmentDashboard.allocationDeviation, rebalanceThreshold: rb.threshold, thresholdReached: rb.thresholdReached,
-        riskLabel: riskMetrics.overallLabel, reminders: investmentDashboard.reminders,
+        reminders: investmentDashboard.reminders,
         intelligence: investmentIntelligence,
         opportunities: investmentOpportunities,
         todayConclusion: todayDecision.conclusion,
