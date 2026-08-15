@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.06
+# Universal Rebalance Current Status v4.07
 
 最後更新：2026-08-15
+
+**UR-TODO-057（00631L 自動高點追蹤＋每跌 10% 階梯式加碼提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `7704cf8f0610b003414b2ea664e0b9515f947df4`。** 採 Strangler Pattern 兩階段（比照 ADR-001）：子 PR 1 [#339](https://github.com/hyc640110/family-universal-rebalance/pull/339)（merge commit `2248453da13e2cc8a0d61326ab512df98162abaf`，純函式 `dipLadderEngine.ts` 抽出階段）、子 PR 2 [#340](https://github.com/hyc640110/family-universal-rebalance/pull/340)（merge commit `7704cf8f0610b003414b2ea664e0b9515f947df4`，quote 更新橋接＋首頁「重點標的」卡片串接階段），皆一般 merge commit，**未使用 admin override**。落地自動高點追蹤（`highWaterMark`／`triggeredLevel` 為獨立新欄位，不沿用舊手動 `referencePrice`，啟用當下的第一筆合格報價為初始基準）、每跌 10% 一級的回撤階梯（防重複觸發、新高重置整週期）、報價品質過濾（stale／unknown／unavailable／備援報價一律忽略）、於既有 quote 更新共用路徑（頁面載入／手動按鈕／下拉手勢，Repository 確認無自動輪詢機制）統一橋接。Deploy GitHub Pages run [31872010383](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31872010383) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「重點標的」卡片正確顯示「逢低加碼自動追蹤」區塊，既有卡片未受影響，console 無錯誤。開發前使用者將最初「波段最高價自動更新」草案正式重新定義為完整階梯式加碼機制，範圍遠大於原始草案；開發中一則使用者回報的「封存 00631L 無反應」問題經唯讀 Debug Trace 確認與本輪新增邏輯無關（瀏覽器 `window.confirm()` 連續觸發防護機制的巧合），詳見 `008_TODO_BACKLOG.md` UR-TODO-057 正式條目。
+
+---
 
 **UR-TODO-059（首頁決策卡片，範圍調整為鎖定 00631L）正式完成並 Merge，`origin/main` 正式基線更新為 `f1434a5b4b69a5242ff4680f4f1de6313b15f8bd`。** PR [#337](https://github.com/hyc640110/family-universal-rebalance/pull/337) 已正式 Merge（merge commit `f1434a5b4b69a5242ff4680f4f1de6313b15f8bd`，一般 merge commit，未使用 admin override），落地首頁最上方「重點標的」卡片：固定顯示 00631L 的可投入現金、目前配置比例 vs 目標比例偏離幅度，觸發再平衡門檻時顯示來自 `rebalanceRecommendation.ts`／`getOrderSuggestions()` 的建議投入／賣出金額，未觸發門檻則顯示「目前配置正常，不需操作」。Deploy GitHub Pages run [31868249584](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31868249584) success，headSha 與 merge commit 一致；Production 已唯讀確認新卡片正常顯示於既有 4 張首頁卡片之前，既有卡片未受影響，console 無錯誤，未建立任何測試資料。開發前使用者已明確確認目前僅投入 00631L，原候選 #1「顯示最偏離的 1-2 檔資產」通用排序邏輯範圍調整為單一標的鎖定顯示，純消費既有 `investableCash`／`rebalanceRecommendation` 輸出，未新增任何演算法，`todayDecision.ts` 既有結論邏輯未變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-059 正式條目。
 
