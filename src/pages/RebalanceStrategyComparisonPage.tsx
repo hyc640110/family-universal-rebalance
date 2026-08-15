@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import { SYMBOL_NAMES } from '../lib/rebalanceOrderHelper';
+import { yuanToWan } from '../lib/cashFlow';
 import {
   deriveSmartRebalance, deriveDumbRebalance, deriveRatioRebalance, deriveBetaExposure,
   validateStrategyComparisonInput, VALIDATION_ERROR_MESSAGES, DEFAULT_UP_BALANCE_PCT, DEFAULT_DOWN_BALANCE_AMOUNT,
@@ -16,6 +17,12 @@ import {
 // strategies are never ranked or color-coded as "best" — this is a comparison, not a recommendation.
 
 const safeNumber = (value: unknown) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; };
+// UR-TODO-058 follow-up: reuses cashFlow.ts's ×10000 convention (same as wanToYuan) for the
+// input-side conversion, but — unlike wanToYuan, which coerces a negative typed value straight to
+// null — lets a negative number survive the parse so this page's own validateStrategyComparisonInput()
+// can flag it with its specific message, instead of the value silently vanishing to null/blank.
+// The display side reuses cashFlow.ts's yuanToWan() directly, unmodified.
+const wanInputToYuan = (value: string) => safeNumber(value) * 10000;
 const money = (value: number) => `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
 const signedMoney = (value: number) => `${value > 0 ? '+' : value < 0 ? '-' : ''}${money(value)}`;
 const actionLabel = (action: StrategyAdjustment['action']) => action === 'buy' ? '理論買進' : action === 'sell' ? '理論賣出' : '不需操作';
@@ -53,7 +60,12 @@ export default function RebalanceStrategyComparisonPage() {
   const updateAsset = (symbol: StrategyAssetSymbol, key: keyof StrategyComparisonAssets[StrategyAssetSymbol], value: string) => {
     setAssets(current => ({ ...current, [symbol]: { ...current[symbol], [key]: safeNumber(value) } }));
   };
+  const updateAssetMoney = (symbol: StrategyAssetSymbol, value: string) => {
+    setAssets(current => ({ ...current, [symbol]: { ...current[symbol], currentValue: wanInputToYuan(value) } }));
+  };
   const updateSmart = (key: keyof SmartRebalanceInput, value: string) => setSmart(current => ({ ...current, [key]: safeNumber(value) }));
+  const updateSmartMoney = (key: 'initialValue00631L' | 'periodContribution00631L' | 'downBalanceAmount', value: string) =>
+    setSmart(current => ({ ...current, [key]: wanInputToYuan(value) }));
 
   const errors = validateStrategyComparisonInput({ assets, smart, periodStartDate: periodStartDate || undefined, periodEndDate: periodEndDate || undefined });
   const canShowResults = errors.length === 0;
@@ -70,7 +82,7 @@ export default function RebalanceStrategyComparisonPage() {
       <p className="note">請輸入每檔資產的假設市值、目標權重（%）與 Beta 曝險用槓桿倍數假設值（例如 0050→1、00631L→2、00865B→0）。</p>
       <div className="sim-editor-list">{STRATEGY_ASSET_SYMBOLS.map(symbol => <article key={symbol} className="sim-editor-row strategy-comparison-input-row">
         <div><strong>{symbol}</strong><span>{SYMBOL_NAMES[symbol] || symbol}</span></div>
-        <label>目前市值<input type="number" min="0" step="1000" inputMode="decimal" aria-label={`${symbol} 目前市值`} value={assets[symbol].currentValue} onChange={event => updateAsset(symbol, 'currentValue', event.currentTarget.value)} /></label>
+        <label>目前市值（萬元）<input type="number" min="0" step="0.1" inputMode="decimal" aria-label={`${symbol} 目前市值（萬元）`} value={yuanToWan(assets[symbol].currentValue)} onChange={event => updateAssetMoney(symbol, event.currentTarget.value)} /></label>
         <label>目標權重 %<input type="number" min="0" step="0.1" inputMode="decimal" aria-label={`${symbol} 目標權重`} value={assets[symbol].targetWeightPct} onChange={event => updateAsset(symbol, 'targetWeightPct', event.currentTarget.value)} /></label>
         <label>槓桿倍數（Beta 用）<input type="number" step="0.1" inputMode="decimal" aria-label={`${symbol} 槓桿倍數`} value={assets[symbol].leverageMultiplier} onChange={event => updateAsset(symbol, 'leverageMultiplier', event.currentTarget.value)} /></label>
       </article>)}</div>
@@ -80,10 +92,10 @@ export default function RebalanceStrategyComparisonPage() {
       <h2>假設情境：聰明再平衡專用輸入（僅影響 00631L／00865B）</h2>
       <p className="note">期間漲跌 = 目前市值(00631L) − 期初市值 − 期間買進金額；期間開始／結束日期僅供你自己標記情境，不參與計算。</p>
       <div className="strategy-comparison-smart-inputs">
-        <label>00631L 期初市值<input type="number" min="0" step="1000" inputMode="decimal" value={smart.initialValue00631L} onChange={event => updateSmart('initialValue00631L', event.currentTarget.value)} /></label>
-        <label>00631L 期間買進金額<input type="number" min="0" step="1000" inputMode="decimal" value={smart.periodContribution00631L} onChange={event => updateSmart('periodContribution00631L', event.currentTarget.value)} /></label>
+        <label>00631L 期初市值（萬元）<input type="number" min="0" step="0.1" inputMode="decimal" value={yuanToWan(smart.initialValue00631L)} onChange={event => updateSmartMoney('initialValue00631L', event.currentTarget.value)} /></label>
+        <label>00631L 期間買進金額（萬元）<input type="number" min="0" step="0.1" inputMode="decimal" value={yuanToWan(smart.periodContribution00631L)} onChange={event => updateSmartMoney('periodContribution00631L', event.currentTarget.value)} /></label>
         <label>上漲平衡 %<input type="number" min="0" max="100" step="1" inputMode="decimal" value={smart.upBalancePct} onChange={event => updateSmart('upBalancePct', event.currentTarget.value)} /></label>
-        <label>下跌平衡金<input type="number" min="0" step="1000" inputMode="decimal" value={smart.downBalanceAmount} onChange={event => updateSmart('downBalanceAmount', event.currentTarget.value)} /><small>示意值，非正式建議金額，請依你的情境調整。</small></label>
+        <label>下跌平衡金（萬元）<input type="number" min="0" step="0.1" inputMode="decimal" value={yuanToWan(smart.downBalanceAmount)} onChange={event => updateSmartMoney('downBalanceAmount', event.currentTarget.value)} /><small>示意值，非正式建議金額，請依你的情境調整。</small></label>
         <label>期間開始日期（選填）<input type="date" value={periodStartDate} onChange={event => setPeriodStartDate(event.currentTarget.value)} /></label>
         <label>期間結束日期（選填）<input type="date" value={periodEndDate} onChange={event => setPeriodEndDate(event.currentTarget.value)} /></label>
       </div>
