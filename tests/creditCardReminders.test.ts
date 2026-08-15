@@ -1,6 +1,34 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CREDIT_CARD_DUE_SOON_THRESHOLD_DAYS, deriveCreditCardDueSoonReminders, nextCreditCardPaymentDueDate, previousCreditCardPaymentDueDate } from '../src/lib/creditCardReminders';
+import { CREDIT_CARD_DUE_SOON_THRESHOLD_DAYS, deriveCreditCardDueSoonReminders, nextCreditCardPaymentDueDate, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from '../src/lib/creditCardReminders';
+
+// --- resolveCreditCardDisplayName (UR-TODO-060 scheme B: linkedAccountId is primary) ---
+
+test('a card linked to an existing account resolves to that account\'s name — the account name IS the display name, name field is irrelevant', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }, { id: 'acc-2', name: '其他帳戶' }];
+  assert.equal(resolveCreditCardDisplayName({ name: '', linkedAccountId: 'acc-1' }, accounts), '國泰銀行信用卡');
+  // Even if a stale manual name happens to exist, the linked account name always wins.
+  assert.equal(resolveCreditCardDisplayName({ name: '舊的手動名稱', linkedAccountId: 'acc-1' }, accounts), '國泰銀行信用卡');
+});
+
+test('a card with no linked account resolves to the manually typed name', () => {
+  assert.equal(resolveCreditCardDisplayName({ name: '我的信用卡' }, []), '我的信用卡');
+  assert.equal(resolveCreditCardDisplayName({ name: '我的信用卡', linkedAccountId: undefined }, []), '我的信用卡');
+});
+
+test('no linked account and no manual name falls back to an explicit "unnamed" label, never blank/undefined', () => {
+  assert.equal(resolveCreditCardDisplayName({ name: '' }, []), '未命名信用卡提醒');
+});
+
+test('a linkedAccountId that no longer resolves (the account was deleted) falls back to an explicit "deleted account" label, never the stale manual name and never a crash', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }];
+  assert.equal(resolveCreditCardDisplayName({ name: '', linkedAccountId: 'acc-missing' }, accounts), '已刪除的帳戶');
+  assert.equal(resolveCreditCardDisplayName({ name: '舊名稱還在', linkedAccountId: 'acc-missing' }, accounts), '已刪除的帳戶', 'never silently falls back to the manual name once an account was linked');
+});
+
+test('an empty accounts list never crashes resolution, even for a linked card', () => {
+  assert.equal(resolveCreditCardDisplayName({ name: '', linkedAccountId: 'acc-1' }, []), '已刪除的帳戶');
+});
 
 // --- nextCreditCardPaymentDueDate ---
 

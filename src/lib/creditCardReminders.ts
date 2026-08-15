@@ -16,6 +16,32 @@ export type CreditCardReminderInput = {
   acknowledgedCycleDueDate?: string;
 };
 
+export type CreditCardDisplayNameAccountRef = { id: string; name: string };
+
+/**
+ * UR-TODO-060 scheme B: linkedAccountId is the primary identifier when set — the manually
+ * typed `name` is only used as a fallback for cards with no linked account. Resolution order:
+ *   1. Linked account exists → its name.
+ *   2. Linked account id set but no longer resolves (the account was deleted) → an explicit
+ *      "deleted account" label — never a blank/undefined display, and never silently falls
+ *      back to the stale manual `name` (which the UI hides once an account is linked, so it
+ *      would almost always be empty anyway).
+ *   3. No linked account → the manually typed name, or an explicit "unnamed" fallback if that
+ *      is also empty.
+ * This is purely a display-resolution helper — it never mutates or reads FinancialEvent/Ledger
+ * data, and callers decide separately which `accounts` list (e.g. all vs. active-only) to pass.
+ */
+export function resolveCreditCardDisplayName(
+  item: { name: string; linkedAccountId?: string },
+  accounts: readonly CreditCardDisplayNameAccountRef[]
+): string {
+  if (item.linkedAccountId) {
+    const account = accounts.find(candidate => candidate.id === item.linkedAccountId);
+    return account ? account.name : '已刪除的帳戶';
+  }
+  return item.name || '未命名信用卡提醒';
+}
+
 export type CreditCardReminderStatus = 'due-soon' | 'overdue';
 
 export type CreditCardDueSoonReminder = {

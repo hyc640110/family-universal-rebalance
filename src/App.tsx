@@ -108,7 +108,7 @@ import { deriveInvestmentHealth, type InvestmentHealth } from './lib/investmentH
 import { deriveDefensiveConfigurationPresentation } from './lib/defensiveConfigurationPresentation';
 import { deriveHouseholdLiquidityInputDiagnostics } from './lib/householdLiquidityInputDiagnostics';
 import { presentHouseholdLiquidityDiagnostics } from './lib/householdLiquidityDiagnosticPresentation';
-import { deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate } from './lib/creditCardReminders';
+import { deriveCreditCardDueSoonReminders, previousCreditCardPaymentDueDate, resolveCreditCardDisplayName } from './lib/creditCardReminders';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -356,12 +356,16 @@ function sanitizeLoanItem(l: LoanItem): LoanItem {
 // day-of-month (1-31). `acknowledgedCycleDueDate` is reminder-display state only (mirrors
 // Loan's confirmationGroupId concept: one identifier per cycle, never touches
 // FinancialEvent/Ledger) — malformed values are dropped rather than guessed at, exactly like
-// `asOf`.
+// `asOf`. `name` is intentionally NOT forced to a non-empty default here (scheme B): an empty
+// `name` is a valid, meaningful state — "no manual name typed, relying on linkedAccountId
+// instead" — and forcing a placeholder here would resurface as a stale default once the user
+// unlinks the account. The "no name and no account" fallback is a display-only concern, handled
+// by resolveCreditCardDisplayName() at render time, never by mutating the stored value.
 function sanitizeCreditCardItem(c: CreditCardItem): CreditCardItem {
   const rawDay = Math.round(num(Number(c.paymentDueDay)));
   const paymentDueDay = Math.min(31, Math.max(1, rawDay || 15));
   const asOf = isCanonicalCalendarDay(c.asOf) ? c.asOf : localSnapshotDate();
-  return { id: c.id || uid(), name: c.name || '信用卡', paymentDueDay, ...(c.linkedAccountId ? { linkedAccountId: c.linkedAccountId } : {}), ...(c.note ? { note: c.note } : {}), ...(isCanonicalCalendarDay(c.acknowledgedCycleDueDate) ? { acknowledgedCycleDueDate: c.acknowledgedCycleDueDate } : {}), asOf };
+  return { id: c.id || uid(), name: typeof c.name === 'string' ? c.name : '', paymentDueDay, ...(c.linkedAccountId ? { linkedAccountId: c.linkedAccountId } : {}), ...(c.note ? { note: c.note } : {}), ...(isCanonicalCalendarDay(c.acknowledgedCycleDueDate) ? { acknowledgedCycleDueDate: c.acknowledgedCycleDueDate } : {}), asOf };
 }
 function sanitizeSyncMeta(raw: unknown, state?: Partial<AppState>): SyncMeta {
   const r = raw && typeof raw === 'object' ? raw as Partial<SyncMeta> : {};
@@ -1082,13 +1086,15 @@ function LoanList({ items, setItems, isMobile }: { items: LoanItem[]; setItems: 
   return <div className="list loan-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>已繳期數依起始日與今天日期自動計算，已繳與剩餘為只讀欄位。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>本金（萬元）</span><span>利率%</span><span>月付金</span><span>起始日</span><span>總期數</span><span>已繳期數</span><span>剩餘期數</span><span>操作</span></div>}{items.map(item => { const period = loanPeriodSummary(item); return <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '借款'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>本金（萬元）</span><DraftInput type="number" value={item.principal / 10000} onCommit={value => update(item.id, { principal: parsePositive(value) * 10000 })} /></label><label style={labelStyle}><span style={labelSpanStyle}>利率%</span><DraftInput type="number" value={item.annualRate} onCommit={value => update(item.id, { annualRate: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>月付金</span><DraftInput type="number" value={item.monthlyPayment} onCommit={value => update(item.id, { monthlyPayment: parsePositive(value) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>起始日</span><DraftInput type="date" value={item.startDate} onCommit={value => update(item.id, { startDate: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>總期數</span><DraftInput type="number" value={item.totalMonths ?? ''} onCommit={value => update(item.id, { totalMonths: value.trim() === '' ? undefined : parsePositive(value) })} /></label><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="依起始日與今天日期自動計算">{isMobile ? <span>已繳期數</span> : null}<span>{period.paid === undefined ? '—' : `${period.paid.toLocaleString('zh-TW')} 期`}</span></div><div className="remaining" style={isMobile ? { display: 'flex', justifyContent: 'space-between', width: '100%', padding: '0.25rem 0', color: '#aaa', fontSize: '0.9rem' } : undefined} title="總期數減已繳期數">{isMobile ? <span>剩餘期數</span> : null}<span>{period.remaining === undefined ? '—' : `${period.remaining.toLocaleString('zh-TW')} 期`}</span></div>{!isMobile && deleteButton(item)}</div>; })}<button className="small" onClick={() => setItems(items => [...items, { id: uid(), name: '借款', principal: 0, annualRate: 0, monthlyPayment: 0, startDate: new Date().toISOString().slice(0, 10), totalMonths: undefined }])}>新增</button></div>;
 }
 
-// UR-TODO-060: B1 scope CRUD, mirrors LoanList's inline-editable-row pattern verbatim.
-// `linkedAccountId` remains on the CreditCardItem type (additive, never read by any due-date/
-// threshold/acknowledgment calculation) but its UI control is hidden per user request — it was
-// unused display/context metadata. Existing values are preserved untouched since no UI path
-// writes to it anymore; the `accounts` prop is kept (not removed) so re-enabling the field later
-// is a pure UI change, not a data-plumbing one.
-function CreditCardList({ items, setItems, isMobile }: { items: CreditCardItem[]; setItems: (items: SetStateAction<CreditCardItem[]>) => void; accounts: FinancialAccount[]; isMobile: boolean }) {
+// UR-TODO-060 scheme B: `linkedAccountId` is the primary identifier, moved to the first field.
+// When a card is linked to an account, the manual `name` field is hidden entirely (not just
+// disabled) — the account's own name is the display name (resolveCreditCardDisplayName()),
+// and the underlying `name` value is deliberately never auto-filled with the account name, so
+// switching back to "不指定" always reveals whatever the user actually typed (or empty, never
+// a stale account-name leftover).
+function CreditCardList({ items, setItems, accounts, isMobile }: { items: CreditCardItem[]; setItems: (items: SetStateAction<CreditCardItem[]>) => void; accounts: FinancialAccount[]; isMobile: boolean }) {
+  const creditCardAccounts = accounts.filter(account => account.type === 'creditCard');
+  const displayName = (item: CreditCardItem) => resolveCreditCardDisplayName(item, accounts);
   // UR-TODO-060: changing paymentDueDay redefines the billing cycle itself, so the previous
   // acknowledgment (tied to the old day-of-month) is no longer meaningful — reseed it to the
   // new day's most recent past occurrence. This is also what keeps a brand-new card from
@@ -1103,13 +1109,13 @@ function CreditCardList({ items, setItems, isMobile }: { items: CreditCardItem[]
     }));
   };
   const remove = (item: CreditCardItem) => {
-    if (window.confirm(`確定要刪除信用卡提醒「${item.name || '未命名'}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
+    if (window.confirm(`確定要刪除信用卡提醒「${displayName(item)}」嗎？`)) setItems(current => current.filter(entry => entry.id !== item.id));
   };
-  const deleteButton = (item: CreditCardItem) => <button className="danger small compact-row-delete" type="button" aria-label={`刪除信用卡提醒 ${item.name || '未命名'}`} onClick={() => remove(item)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>;
+  const deleteButton = (item: CreditCardItem) => <button className="danger small compact-row-delete" type="button" aria-label={`刪除信用卡提醒 ${displayName(item)}`} onClick={() => remove(item)}><Trash2 size={15} aria-hidden="true" /><span>刪除</span></button>;
   const rowStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', boxSizing: 'border-box' } : {};
   const labelStyle: CSSProperties = isMobile ? { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', marginBottom: '0.75rem', boxSizing: 'border-box' } : {};
   const labelSpanStyle: CSSProperties = isMobile ? { fontSize: '0.9rem', color: '#888', marginBottom: '0.35rem', textAlign: 'left', display: 'block' } : {};
-  return <div className="list credit-card-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>繳費日前 3 天會自動顯示於首頁提醒；未按「完成」會持續顯示為已逾期，直到確認或下個週期到期日再次進入提醒範圍。</p>{!isMobile && <div className="list-row list-head"><span>名稱</span><span>繳費日</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{item.name || '信用卡'}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></label><label style={labelStyle}><span style={labelSpanStyle}>繳費日（1-31）</span><DraftInput type="number" min="1" value={item.paymentDueDay} onCommit={value => update(item.id, { paymentDueDay: Math.min(31, Math.max(1, parsePositive(value, item.paymentDueDay))) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note || ''} onCommit={value => update(item.id, { note: value || undefined })} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => { const today = localSnapshotDate(); setItems(items => [...items, { id: uid(), name: '信用卡', paymentDueDay: 15, acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(15, today) || undefined }]); }}>新增</button></div>;
+  return <div className="list credit-card-list"><p className="note" style={{ wordBreak: 'break-all', whiteSpace: 'normal', overflowWrap: 'break-word' }}>繳費日前 3 天會自動顯示於首頁提醒；未按「完成」會持續顯示為已逾期，直到確認或下個週期到期日再次進入提醒範圍。選擇關聯帳戶後會直接使用該帳戶名稱，不需另外輸入名稱。</p>{!isMobile && <div className="list-row list-head"><span>關聯帳戶</span><span>名稱</span><span>繳費日</span><span>備註</span><span>操作</span></div>}{items.map(item => <div className="list-row" key={item.id} style={rowStyle}>{isMobile && <div className="mobile-row-toolbar"><strong>{displayName(item)}</strong>{deleteButton(item)}</div>}<label style={labelStyle}><span style={labelSpanStyle}>關聯帳戶</span><select value={item.linkedAccountId || ''} onChange={event => update(item.id, { linkedAccountId: event.currentTarget.value || undefined })}><option value="">不指定</option>{creditCardAccounts.map(account => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label>{(!isMobile || !item.linkedAccountId) && <label style={labelStyle}>{!item.linkedAccountId && <><span style={labelSpanStyle}>名稱</span><DraftInput value={item.name} onCommit={value => update(item.id, { name: value })} /></>}</label>}<label style={labelStyle}><span style={labelSpanStyle}>繳費日（1-31）</span><DraftInput type="number" min="1" value={item.paymentDueDay} onCommit={value => update(item.id, { paymentDueDay: Math.min(31, Math.max(1, parsePositive(value, item.paymentDueDay))) })} /></label><label style={labelStyle}><span style={labelSpanStyle}>備註</span><DraftInput value={item.note || ''} onCommit={value => update(item.id, { note: value || undefined })} /></label>{!isMobile && deleteButton(item)}</div>)}<button className="small" onClick={() => { const today = localSnapshotDate(); setItems(items => [...items, { id: uid(), name: '', paymentDueDay: 15, acknowledgedCycleDueDate: previousCreditCardPaymentDueDate(15, today) || undefined }]); }}>新增</button></div>;
 }
 
 export function runtimeAttributionMemoDependencies(input: { openingSnapshot: NetWorthSnapshot | null; closingSnapshot: NetWorthSnapshot | null; financialEventSchemaVersion: number; financialEvents: readonly FinancialEvent[]; transactions: readonly FinancialTransaction[]; accounts: readonly FinancialAccount[]; loans: readonly LoanItem[] }): readonly unknown[] {
@@ -1522,7 +1528,14 @@ function App() {
   // single-conclusion priority chain — see deriveCreditCardDueSoonReminders' own doc comment
   // for the active-cycle/acknowledgment design (a pure reminder-display concern, never
   // FinancialEvent/Ledger data).
-  const creditCardDueSoonReminders = useMemo(() => deriveCreditCardDueSoonReminders(state.creditCards, localSnapshotDate()), [state.creditCards]);
+  // UR-TODO-060 scheme B: display-name resolution (linkedAccountId -> account name, else
+  // manual name, else an explicit fallback) happens here, before handing off to
+  // deriveCreditCardDueSoonReminders() — that function's own due-date/threshold/acknowledgment
+  // logic is untouched, it only ever sees an already-resolved display name.
+  const creditCardDueSoonReminders = useMemo(() => deriveCreditCardDueSoonReminders(
+    state.creditCards.map(item => ({ id: item.id, name: resolveCreditCardDisplayName(item, state.accounts), paymentDueDay: item.paymentDueDay, acknowledgedCycleDueDate: item.acknowledgedCycleDueDate })),
+    localSnapshotDate()
+  ), [state.creditCards, state.accounts]);
   const acknowledgeCreditCardReminder = (id: string, dueDate: string) => {
     setState(s => ({ ...s, creditCards: s.creditCards.map(item => item.id === id ? sanitizeCreditCardItem({ ...item, acknowledgedCycleDueDate: dueDate, asOf: localSnapshotDate() }) : item) }));
   };
