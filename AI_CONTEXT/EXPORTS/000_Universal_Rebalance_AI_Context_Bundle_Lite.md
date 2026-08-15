@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-14T16:28:35.902658+00:00
+Generated UTC: 2026-08-15T05:25:27.757823+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `fd8a7c55e40d234c5939133105d28b0d9fd6ea8d8cbbce06cedc4086314af08e`
-- `008_TODO_BACKLOG.md` — SHA-256 `02f0ab2f6a79960623e81b971cc28c80f50bd63ff715f82bc5d724a3cec4ff22`
+- `003_CURRENT_STATUS.md` — SHA-256 `8e33099847d5d9079e22a76a3a0b5287e6a3b0b5dbfbf7e3d2f2063aacd74793`
+- `008_TODO_BACKLOG.md` — SHA-256 `d728a670138432080e3bbe43870781290bf7a89eb998eeda996f3720d9b7dd9e`
 - `012_AI_HANDOVER.md` — SHA-256 `372727711f35964c41aeba864ec89902709d9799657a3cb972d57bb7c9d29745`
 
 ---
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.04
+# Universal Rebalance Current Status v4.05
 
-最後更新：2026-08-14
+最後更新：2026-08-15
+
+**UR-TODO-060（信用卡每月繳費提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `c5c15689b1cc69d1f0898de0667880e99f3faf1b`。** PR [#335](https://github.com/hyc640110/family-universal-rebalance/pull/335) 已正式 Merge（merge commit `c5c15689b1cc69d1f0898de0667880e99f3faf1b`，一般 merge commit，未使用 admin override），落地信用卡繳費日提醒（繳費日前 3 天出現、未確認持續顯示為已逾期、下期自動重置的每期獨立狀態機）與關聯帳戶方案 B（銀行／信用卡類型帳戶可選，優先於手動名稱，含已刪除帳戶防呆選單）。Deploy GitHub Pages run [31866637716](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31866637716) success，headSha 與 merge commit 一致；Production 已唯讀確認「信用卡繳費提醒」區塊正常顯示，console 無錯誤，未建立任何測試資料。開發過程歷經多輪範圍調整（原始 B1 草案含金額欄位 → 應要求移除金額 → 新增完成確認機制 → 關聯帳戶從隱藏改為方案 B 主要識別 → 可選帳戶類型由僅信用卡放寬為銀行＋信用卡），最終落地範圍與最初草案不同，詳見 `008_TODO_BACKLOG.md` UR-TODO-060 正式條目。本次治理同步為**純文件變更**，零 production code、零 schema、零 persistence、零測試檔修改。
+
+---
 
 **UR-TODO-054-A（Loan Confirmation UI）正式完成並 Merge，`origin/main` 正式基線更新為 `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`。** PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331) 已正式 Merge（merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`／`0184834b5da0b618ca44981b6e231a1b230c1791`，一般 merge commit，未使用 admin override；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`），落地 Minimal Loan Repayment Producer、Loan Group Candidate Review、Confirm、Atomic Void、Reconfirm 四階段完整生命週期 UI，並修正 `RuntimeAttributionProvenanceCard` 對 Loan derived component 錯誤暴露 component-level generic confirmation 按鈕的既有 UI safety 缺口。Deploy GitHub Pages run `31804595653` success，headSha 與 merge commit 一致；Production／Preview 皆 `curl` 實測 HTTP 200，Production 唯讀確認新「登記還款」Producer UI 已存在、console 無錯誤，未於 Production 建立任何測試資料。使用者已於無痕視窗完整驗收 Preview 全流程，並由 Review Mode Debug Trace 以 `composeRuntimeNetWorthAttribution()` 真實計算結果驗證 Atomic Void／Reconfirm 底層資料層行為正確（非僅 presentation 層）。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A 正式條目。**下一候選為 UR-TODO-054-B（FX Confirmation UI）**：Review Mode Contract Audit 已完成，正式判定 **GO**——既有 FX confirm／void／reconfirm core contract 已完整、已測試，結構上比 Loan 更單純（一次確認僅 1 筆 `fx-conversion` FinancialEvent，無需獨立 confirmationGroupId），且已確認不需要修改 `RuntimeAttributionProvenanceCard`（FX 無 Loan 式 derived-evidence 洩漏路徑）。**Production FX Producer gate 維持 OFF、Preview 維持 ON，054-B 不因開發或完成而自動啟用 Production Producer**——此仍是獨立、需另行明確授權的 ADR-010／ADR-013 Controlled Rollout Policy 決策。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-B 正式條目；尚未下達「開始開發」指示。
 
@@ -2143,11 +2147,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-060 信用卡每月繳費提醒
 
 - 優先級：P3／待評估
-- 狀態：待規劃，範圍未定案，非股票再平衡核心，優先序排在最後。
-- 提出日期：使用者原始提出時間不明，本次由 Claude Home Review 後正式登錄，登錄日期 2026-08-15
-- 背景：使用者提出希望有信用卡每月繳費提醒功能，尚未決定是僅提醒繳費日期，或需一併管理當月應繳金額。
-- 明確不包含：範圍未定案前不預設實作方式。
-- 驗收條件：待正式盤點與拍板範圍後另訂。
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#335](https://github.com/hyc640110/family-universal-rebalance/pull/335)**，merge commit `c5c15689b1cc69d1f0898de0667880e99f3faf1b`，一般 merge commit，**未使用 admin override**。Deploy GitHub Pages run [31866637716](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31866637716) success，headSha 與 merge commit 一致；Production 已唯讀確認「信用卡繳費提醒」區塊正常顯示（`0 張信用卡｜0 筆即將到期`），未在 Production 建立任何測試資料，console 無錯誤。
+- 提出日期：使用者原始提出時間不明，2026-08-15 由 Claude Home Review 後正式登錄，同日唯讀盤點（範圍評估）、定案開發、多輪範圍調整並完成。
+- **最終落地範圍**：
+  1. **B1 提醒機制**：`CreditCardItem` 主檔 CRUD（比照既有 `LoanItem` 模式），欄位為 `id`／`name`／`paymentDueDay`／`linkedAccountId?`／`note?`／`acknowledgedCycleDueDate?`／`asOf?`。純函式 `deriveCreditCardDueSoonReminders()`（`src/lib/creditCardReminders.ts`）計算「繳費日前 3 天」的到期提醒，正確處理短月夾註（29/30/31 日）與跨年月邊界。
+  2. **每期完成／未確認狀態機**：每個繳費週期以該週期夾緊後的到期日字串為識別碼（比照 Loan `confirmationGroupId` 概念，但完全獨立於 FinancialEvent／Ledger，純提醒顯示狀態）。繳費日前 3 天出現提醒；使用者按「完成」後該週期立即消失；未按「完成」則持續顯示為「已逾期」，不會自動消失；下個月週期進入自己的 3 天視窗後自動重新出現，不受上次是否按過「完成」影響。**設計決策**：若連續多期未確認，一律只顯示「相對今天最近一次相關的週期」，不會累積成多筆逾期清單（因無金額，無「積欠幾期」概念）——已與使用者確認此設計符合預期。
+  3. **關聯帳戶（方案 B）**：「關聯帳戶」為表單第一欄位，選擇帳戶後「名稱」欄位隱藏、直接以帳戶名稱作為顯示名稱；未選擇時使用手動輸入名稱，兩者皆空時顯示「未命名信用卡提醒」防呆文字。可選帳戶類型為**銀行＋信用卡**兩種（`src/lib/creditCardReminders.ts` 的 `deriveCreditCardAccountOptions()`），因應「多張實體卡合併由銀行帳戶扣款」的實際使用情境。若 `linkedAccountId` 指向的帳戶已被刪除，選單會動態插入「已刪除的帳戶（原連結）」防呆選項（如實反映底層資料，避免瀏覽器原生 `<select>` 因值不匹配而誤顯示「不指定」造成資料誤解讀或誤清除），使用者需主動選擇「不指定」才會真正清空連結。
+- **與最初 B1 草案的差異（明確記錄，避免未來誤讀為與草案規格一致）**：
+  1. 草案原包含「本期應繳金額」欄位（手動輸入），**開發中途應使用者要求整個移除**，最終版本純粹是日期提醒，不含任何金額欄位或金額顯示。
+  2. 草案原始行為為「單次提醒、無確認機制」，**開發完成後應使用者要求新增「完成」確認機制與每期獨立狀態追蹤**（上述第 2 點），為草案沒有的全新設計。
+  3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
+- 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
+- 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
 
 ### UR-TODO-028 股息中心未指定資產編輯限制
 - 優先級：P1

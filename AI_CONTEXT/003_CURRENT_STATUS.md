@@ -1,6 +1,10 @@
-# Universal Rebalance Current Status v4.04
+# Universal Rebalance Current Status v4.05
 
-最後更新：2026-08-14
+最後更新：2026-08-15
+
+**UR-TODO-060（信用卡每月繳費提醒）正式完成並 Merge，`origin/main` 正式基線更新為 `c5c15689b1cc69d1f0898de0667880e99f3faf1b`。** PR [#335](https://github.com/hyc640110/family-universal-rebalance/pull/335) 已正式 Merge（merge commit `c5c15689b1cc69d1f0898de0667880e99f3faf1b`，一般 merge commit，未使用 admin override），落地信用卡繳費日提醒（繳費日前 3 天出現、未確認持續顯示為已逾期、下期自動重置的每期獨立狀態機）與關聯帳戶方案 B（銀行／信用卡類型帳戶可選，優先於手動名稱，含已刪除帳戶防呆選單）。Deploy GitHub Pages run [31866637716](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31866637716) success，headSha 與 merge commit 一致；Production 已唯讀確認「信用卡繳費提醒」區塊正常顯示，console 無錯誤，未建立任何測試資料。開發過程歷經多輪範圍調整（原始 B1 草案含金額欄位 → 應要求移除金額 → 新增完成確認機制 → 關聯帳戶從隱藏改為方案 B 主要識別 → 可選帳戶類型由僅信用卡放寬為銀行＋信用卡），最終落地範圍與最初草案不同，詳見 `008_TODO_BACKLOG.md` UR-TODO-060 正式條目。本次治理同步為**純文件變更**，零 production code、零 schema、零 persistence、零測試檔修改。
+
+---
 
 **UR-TODO-054-A（Loan Confirmation UI）正式完成並 Merge，`origin/main` 正式基線更新為 `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`。** PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331) 已正式 Merge（merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`／`0184834b5da0b618ca44981b6e231a1b230c1791`，一般 merge commit，未使用 admin override；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`），落地 Minimal Loan Repayment Producer、Loan Group Candidate Review、Confirm、Atomic Void、Reconfirm 四階段完整生命週期 UI，並修正 `RuntimeAttributionProvenanceCard` 對 Loan derived component 錯誤暴露 component-level generic confirmation 按鈕的既有 UI safety 缺口。Deploy GitHub Pages run `31804595653` success，headSha 與 merge commit 一致；Production／Preview 皆 `curl` 實測 HTTP 200，Production 唯讀確認新「登記還款」Producer UI 已存在、console 無錯誤，未於 Production 建立任何測試資料。使用者已於無痕視窗完整驗收 Preview 全流程，並由 Review Mode Debug Trace 以 `composeRuntimeNetWorthAttribution()` 真實計算結果驗證 Atomic Void／Reconfirm 底層資料層行為正確（非僅 presentation 層）。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A 正式條目。**下一候選為 UR-TODO-054-B（FX Confirmation UI）**：Review Mode Contract Audit 已完成，正式判定 **GO**——既有 FX confirm／void／reconfirm core contract 已完整、已測試，結構上比 Loan 更單純（一次確認僅 1 筆 `fx-conversion` FinancialEvent，無需獨立 confirmationGroupId），且已確認不需要修改 `RuntimeAttributionProvenanceCard`（FX 無 Loan 式 derived-evidence 洩漏路徑）。**Production FX Producer gate 維持 OFF、Preview 維持 ON，054-B 不因開發或完成而自動啟用 Production Producer**——此仍是獨立、需另行明確授權的 ADR-010／ADR-013 Controlled Rollout Policy 決策。詳見 `008_TODO_BACKLOG.md` UR-TODO-054-B 正式條目；尚未下達「開始開發」指示。
 
