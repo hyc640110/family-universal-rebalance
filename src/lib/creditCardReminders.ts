@@ -43,26 +43,35 @@ export function resolveCreditCardDisplayName(
 }
 
 export type CreditCardAccountOption = { value: string; label: string };
+export type CreditCardLinkableAccountRef = { id: string; name: string; type: string };
+
+// UR-TODO-060: a card's consolidated statement is commonly debited from a bank account rather
+// than a dedicated credit-card account (multiple physical cards, one bank-side deduction) — so
+// both types are offered as link targets. Deliberately narrow (not "any account type"): cash/
+// securities/loan/mortgage/eWallet/other stay excluded.
+const CREDIT_CARD_LINKABLE_ACCOUNT_TYPES = new Set(['creditCard', 'bank']);
 
 /**
  * UR-TODO-060 scheme B follow-up: computes the <select> option list for a card's account
  * picker, including a synthetic entry when `item.linkedAccountId` no longer resolves to any
- * account in `accounts` (deleted). Without this, a native <select> silently falls back to
- * showing "不指定" for an unmatched bound value — a purely visual artifact that does NOT
- * clear the underlying data, but does make the screen lie about what's actually linked. The
- * synthetic option keeps the dropdown honest: it stays visibly selected until the user makes a
- * real, deliberate choice (a genuine onChange), so an edit to some other field can never be
- * mistaken for — or accidentally trigger — clearing the link.
+ * linkable account in `accounts` (deleted, or its type no longer qualifies). Without this, a
+ * native <select> silently falls back to showing "不指定" for an unmatched bound value — a
+ * purely visual artifact that does NOT clear the underlying data, but does make the screen lie
+ * about what's actually linked. The synthetic option keeps the dropdown honest: it stays
+ * visibly selected until the user makes a real, deliberate choice (a genuine onChange), so an
+ * edit to some other field can never be mistaken for — or accidentally trigger — clearing the
+ * link. Type filtering happens here (not at the call site) so it's covered by the same tests.
  */
 export function deriveCreditCardAccountOptions(
   item: { linkedAccountId?: string },
-  accounts: readonly CreditCardDisplayNameAccountRef[]
+  accounts: readonly CreditCardLinkableAccountRef[]
 ): CreditCardAccountOption[] {
+  const linkable = accounts.filter(account => CREDIT_CARD_LINKABLE_ACCOUNT_TYPES.has(account.type));
   const options: CreditCardAccountOption[] = [{ value: '', label: '不指定' }];
-  if (item.linkedAccountId && !accounts.some(account => account.id === item.linkedAccountId)) {
+  if (item.linkedAccountId && !linkable.some(account => account.id === item.linkedAccountId)) {
     options.push({ value: item.linkedAccountId, label: '已刪除的帳戶（原連結）' });
   }
-  for (const account of accounts) options.push({ value: account.id, label: account.name });
+  for (const account of linkable) options.push({ value: account.id, label: account.name });
   return options;
 }
 

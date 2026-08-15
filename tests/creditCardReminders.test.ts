@@ -32,18 +32,18 @@ test('an empty accounts list never crashes resolution, even for a linked card', 
 
 // --- deriveCreditCardAccountOptions (UR-TODO-060 scheme B follow-up: honest <select> options) ---
 
-test('no linked account: only 不指定 plus the real account list, no synthetic option', () => {
-  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }, { id: 'acc-2', name: '其他帳戶' }];
+test('no linked account: only 不指定 plus the linkable account list, no synthetic option', () => {
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡', type: 'creditCard' }, { id: 'acc-2', name: '其他信用卡帳戶', type: 'creditCard' }];
   const options = deriveCreditCardAccountOptions({}, accounts);
   assert.deepEqual(options, [
     { value: '', label: '不指定' },
     { value: 'acc-1', label: '國泰銀行信用卡' },
-    { value: 'acc-2', label: '其他帳戶' }
+    { value: 'acc-2', label: '其他信用卡帳戶' }
   ]);
 });
 
 test('linked to an account that still exists: no synthetic option needed, the real account already covers it', () => {
-  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }];
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡', type: 'creditCard' }];
   const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-1' }, accounts);
   assert.deepEqual(options, [
     { value: '', label: '不指定' },
@@ -52,7 +52,7 @@ test('linked to an account that still exists: no synthetic option needed, the re
 });
 
 test('linked to an account that no longer exists: a synthetic "deleted account" option is inserted with the original id as its value, so the <select> can still show it as selected', () => {
-  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡' }];
+  const accounts = [{ id: 'acc-1', name: '國泰銀行信用卡', type: 'creditCard' }];
   const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-missing' }, accounts);
   assert.deepEqual(options, [
     { value: '', label: '不指定' },
@@ -66,6 +66,47 @@ test('linked to a deleted account with an empty accounts list: synthetic option 
   assert.deepEqual(options, [
     { value: '', label: '不指定' },
     { value: 'acc-missing', label: '已刪除的帳戶（原連結）' }
+  ]);
+});
+
+test('a bank-type account appears in the picker alongside creditCard-type accounts (consolidated statement paid from a bank account)', () => {
+  const accounts = [{ id: 'acc-bank', name: '國泰銀行活存', type: 'bank' }, { id: 'acc-cc', name: '國泰銀行信用卡', type: 'creditCard' }];
+  const options = deriveCreditCardAccountOptions({}, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-bank', label: '國泰銀行活存' },
+    { value: 'acc-cc', label: '國泰銀行信用卡' }
+  ]);
+});
+
+test('cash / securities / loan / mortgage / eWallet / other account types never appear in the picker', () => {
+  const accounts = [
+    { id: 'acc-cash', name: '現金', type: 'cash' },
+    { id: 'acc-sec', name: '證券戶', type: 'securities' },
+    { id: 'acc-loan', name: '信貸', type: 'loan' },
+    { id: 'acc-mortgage', name: '房貸', type: 'mortgage' },
+    { id: 'acc-ewallet', name: '電子錢包', type: 'eWallet' },
+    { id: 'acc-other', name: '其他', type: 'other' }
+  ];
+  const options = deriveCreditCardAccountOptions({}, accounts);
+  assert.deepEqual(options, [{ value: '', label: '不指定' }]);
+});
+
+test('linking to a bank-type account resolves as a normal link, not a "deleted account" fallback', () => {
+  const accounts = [{ id: 'acc-bank', name: '國泰銀行活存', type: 'bank' }];
+  const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-bank' }, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-bank', label: '國泰銀行活存' }
+  ]);
+});
+
+test('a linkedAccountId pointing at a non-linkable-type account (e.g. its type changed to cash) is treated the same as deleted, via the synthetic fallback option', () => {
+  const accounts = [{ id: 'acc-1', name: '已改為現金帳戶', type: 'cash' }];
+  const options = deriveCreditCardAccountOptions({ linkedAccountId: 'acc-1' }, accounts);
+  assert.deepEqual(options, [
+    { value: '', label: '不指定' },
+    { value: 'acc-1', label: '已刪除的帳戶（原連結）' }
   ]);
 });
 
