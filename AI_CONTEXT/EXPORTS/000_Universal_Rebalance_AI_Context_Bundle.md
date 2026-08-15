@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T13:15:43.798155+00:00
+Generated UTC: 2026-08-15T14:57:46.262046+00:00
 
 ## Manifest
 
@@ -11,7 +11,7 @@ Generated UTC: 2026-08-15T13:15:43.798155+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `c4b47d857536d4ac3cd875355070c7c61abf049be81dd67c9a7ecb34038e6e7e`
+- `003_CURRENT_STATUS.md` — SHA-256 `1e3142f5cf372e48e43f2d5a81d7111bdfab3a5d354e77ae74d40d52c28bb76d`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
@@ -655,11 +655,18 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.12
+# Universal Rebalance Current Status v4.13
 
 最後更新：2026-08-15
 
-**治理記錄落差修正：UR-TODO-041（負債資料過期警示）正式標記 CLOSED（本次治理同步為純文件變更，不改變 `origin/main` 功能基線）。** Review Mode Closeout Audit 發現：功能本身早於 2026-08-05 已透過 PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)（merge commit `e11da75a476c4d426fedefabcc629b01f305a181`）完整實作、測試並上線 Production，`origin/main` 早已包含此功能，只是 `008_TODO_BACKLOG.md` 條目狀態自 2026-07-26 建立後從未同步更新為 CLOSED。`/tools/risk-center`「借款安全分析」卡片的負債資料過期提醒＋「我已確認這筆資料仍正確」按鈕（`loanDataFreshness.ts`：30 天門檻、完全獨立於 `blockingReasons`／`dataCompleteness` 路徑，不影響任何買賣建議）已穩定運行超過一週，本次僅補齊治理文件記錄，詳見 `008_TODO_BACKLOG.md` UR-TODO-041 正式條目。
+**治理文件基線落差修正：`origin/main` 正式基線更新為 `90cf75f725d9ecb2fca63e2f081d64d49907d179`。** 唯讀確認（Review Mode）發現本文件最上方條目過去未依全文件既有慣例明確陳述新基線 SHA，導致讀者（含 ChatGPT 透過 Full／Lite Bundle）實際抓取到的是落後多個 commit 的舊值 `ed1c3e4ea3883f56df7a57f6c180f38592fc8680`（UR-TODO-063／PR #349）。本次補齊自 PR #349 之後、先前未反映在本文件的兩次 Merge，並修正措辭統一句式，避免未來再次出現同類落差：
+
+- **PR [#351](https://github.com/hyc640110/family-universal-rebalance/pull/351)**（`test: lock loan-payment duplicate-paymentId resolver fail-safe (from PR #322)`），merge commit `151945ed098f799140492e575a237819b8b3206a`，`origin/main` 正式基線更新為 `151945ed098f799140492e575a237819b8b3206a`。承接 PR #322（Loan payment atomic contract 稽核，NO-GO development 結論）Closeout Audit 的收尾：PR #322 本身已 Close（未 Merge，其稽核結論已記錄於 `009_CHANGELOG.md`／`012_AI_HANDOVER.md`），唯一有保留價值的產出——`tests/loanComponentGroup.test.ts` 新增 1 項 regression test（鎖定 `resolveActiveLoanComponentGroups()` 的 `paymentCounts !== 1` fail-safe：兩個完整、皆 `posted`、皆未 `void`、共用同一 `paymentId` 的 confirmation group 會被正確排除、不 double-count，並正確 fallback 回單筆 C3 derived evidence）——已從最新 `origin/main` 重新搬移為獨立乾淨的新 PR。**零生產程式碼變更**，僅 `tests/loanComponentGroup.test.ts` +18 行，依 `007_GIT_WORKFLOW.md` §8.2 低風險自動 Merge 規則第 3 類（小型測試補強）自動完成，**未使用 admin override**。
+- **PR [#353](https://github.com/hyc640110/family-universal-rebalance/pull/353)**（`docs: cross-reference the 3-way target-value formula duplication`），merge commit `90cf75f725d9ecb2fca63e2f081d64d49907d179`，`origin/main` 正式基線更新為 `90cf75f725d9ecb2fca63e2f081d64d49907d179`。承接先前唯讀盤點結論——「目標市值 = 總市值 × 目標權重%；差額 = 目標市值 − 目前市值」這行基礎公式在 `rebalanceRecommendation.ts`／`rebalanceStrategyComparison.ts`／`AllocationSimulatorPage.tsx` 三處被獨立實作、屬已知低風險技術債——在三處公式旁補上互相呼應的說明註解，記錄平行實作關係與刻意保持獨立的理由（模擬工具 vs 正式決策引擎，各自資料品質規則／預算限制／資金模型不同），提醒未來修改任一處公式細節時應同步檢查其他兩處。**純新增註解，零邏輯變更、零函式簽名變更**，建置後輸出 bundle hash 與變更前逐字相同，實證零執行期影響；依 §8.2 低風險自動 Merge 規則第 4 類精神（純函式／helper 小修正）自動完成，**未使用 admin override**。
+
+---
+
+**治理記錄落差修正：UR-TODO-041（負債資料過期警示）正式標記 CLOSED。** Review Mode Closeout Audit 發現：功能本身早於 2026-08-05 已透過 PR [#254](https://github.com/hyc640110/family-universal-rebalance/pull/254)（merge commit `e11da75a476c4d426fedefabcc629b01f305a181`）完整實作、測試並上線 Production，`origin/main` 早已包含此功能，只是 `008_TODO_BACKLOG.md` 條目狀態自 2026-07-26 建立後從未同步更新為 CLOSED。`/tools/risk-center`「借款安全分析」卡片的負債資料過期提醒＋「我已確認這筆資料仍正確」按鈕（`loanDataFreshness.ts`：30 天門檻、完全獨立於 `blockingReasons`／`dataCompleteness` 路徑，不影響任何買賣建議）已穩定運行超過一週，本次僅補齊治理文件記錄，詳見 `008_TODO_BACKLOG.md` UR-TODO-041 正式條目。**PR [#352](https://github.com/hyc640110/family-universal-rebalance/pull/352)** 已正式 Merge（merge commit `d071b3f7c74be23fc5edb209cced1cc0778ce861`，一般 merge commit，未使用 admin override），`origin/main` 當時正式基線更新為 `d071b3f7c74be23fc5edb209cced1cc0778ce861`（此值已由上方 PR #351／#353 進一步取代，僅供歷史對照）。
 
 ---
 
