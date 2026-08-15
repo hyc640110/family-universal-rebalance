@@ -19,8 +19,8 @@ type DashboardData = {
   opportunities: InvestmentOpportunity[];
   todayConclusion: string;
   creditCardDueSoonReminders: readonly CreditCardDueSoonReminder[];
-  focusedAssetCard: HomeFocusedAssetCardData;
-  focusedAssetLadder: HomeFocusedAssetLadderData;
+  focusedAssetCard: HomeFocusedAssetCardData | null;
+  focusedAssetLadder: HomeFocusedAssetLadderData | null;
 };
 
 type DashboardDecisionPageProps = { data: DashboardData; onAcknowledgeCreditCardReminder: (id: string, dueDate: string) => void };

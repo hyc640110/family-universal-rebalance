@@ -3,7 +3,7 @@ import { INVESTMENT_DECISION_ROUTES } from '../lib/toolNavigation';
 import type { HomeFocusedAssetCardData } from '../lib/homeFocusedAssetCard';
 import type { HomeFocusedAssetLadderData } from '../lib/homeFocusedAssetLadderCard';
 
-type Props = Readonly<{ data: HomeFocusedAssetCardData; ladder: HomeFocusedAssetLadderData }>;
+type Props = Readonly<{ data: HomeFocusedAssetCardData | null; ladder: HomeFocusedAssetLadderData | null }>;
 
 const finite = (value: number | null) => value !== null && Number.isFinite(value) ? value : null;
 const money = (value: number | null) => {
@@ -13,7 +13,11 @@ const money = (value: number | null) => {
 const pct = (value: number | null, signed = false) => { const amount = finite(value); return amount === null ? '—' : `${signed && amount > 0 ? '+' : ''}${amount.toFixed(1)}%`; };
 const price = (value: number | null) => { const amount = finite(value); return amount === null ? '—' : `${amount.toFixed(2)} 元`; };
 
+// UR-TODO-061: mirrors CreditCardDueSoonCard.tsx's "no items → render nothing" convention —
+// when the user has no focused symbol selected, this block occupies no homepage space at all
+// rather than showing an empty-state shell.
 export default function HomeFocusedAssetCard({ data, ladder }: Props) {
+  if (!data || !ladder) return null;
   return <section className={`dashboard-focused-asset-card dashboard-focused-asset-card-${data.status}`} aria-labelledby="dashboard-focused-asset-title">
     <div className="dashboard-section-heading">
       <div><p className="eyebrow">重點標的</p><h2 id="dashboard-focused-asset-title">{data.name ? `${data.name}（${data.symbol}）` : data.symbol}</h2></div>
