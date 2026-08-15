@@ -46,6 +46,15 @@ export type StrategyAdjustment = { symbol: StrategyAssetSymbol; amount: number; 
 
 // Mirrors rebalanceRecommendation.ts's own amountFloor=1 convention: a difference under this
 // magnitude reads as "hold" rather than a spurious sub-dollar buy/sell.
+//
+// Repository-wide note (read-only audit, 2026-08-15): deriveRatioRebalance() below is the second
+// of three independent implementations of "target value = total value × target weight%; diff =
+// target − current" — the others are rebalanceRecommendation.ts's deriveRebalanceRecommendation()
+// (the real decision engine, with data quality gates and budget clamping this simulator
+// deliberately omits) and AllocationSimulatorPage.tsx's inline calculation (a third simulator with
+// its own separate funding model). Kept independent on purpose: this is a pure what-if comparison
+// tool that must not inherit the decision engine's blocking/budget rules. If this file's formula
+// details change (rounding, floor value, etc.), check whether the other two need the same update.
 const AMOUNT_FLOOR = 1;
 const actionFor = (adjustment: number): StrategyAction => Math.abs(adjustment) < AMOUNT_FLOOR ? 'hold' : adjustment > 0 ? 'buy' : 'sell';
 
@@ -113,6 +122,9 @@ export type RatioRebalanceResult = { adjustments: StrategyAdjustment[]; totalVal
 /** 比率再平衡：三檔全部依（目標權重 × 總市值 − 目前市值）收斂，正值＝理論買進、負值＝理論賣出。 */
 export function deriveRatioRebalance(assets: StrategyComparisonAssets): RatioRebalanceResult {
   const totalValue = totalValueOf(assets);
+  // See the repository-wide duplication note above AMOUNT_FLOOR — this is the 2nd of 3 parallel
+  // target-value/difference implementations; check rebalanceRecommendation.ts and
+  // AllocationSimulatorPage.tsx before changing this formula's details.
   const adjustments = STRATEGY_ASSET_SYMBOLS.map(symbol => {
     const targetValue = totalValue * assets[symbol].targetWeightPct / 100;
     const amount = targetValue - assets[symbol].currentValue;
