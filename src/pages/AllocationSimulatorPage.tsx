@@ -106,6 +106,14 @@ export default function AllocationSimulatorPage({ rows, totalAssets, cash, fundi
     : null;
   const calculationTotal = simulatedTotal ?? 0;
   const result = useMemo(() => {
+    // Repository-wide note (read-only audit, 2026-08-15): this target-value/difference calculation
+    // is the 3rd of 3 parallel implementations of the same "total × weight% − current" formula —
+    // the others are rebalanceRecommendation.ts's deriveRebalanceRecommendation() (the real decision
+    // engine, with data quality gates and budget clamping) and rebalanceStrategyComparison.ts's
+    // deriveRatioRebalance() (a fixed-3-asset what-if simulator). This page has its own independent
+    // funding model (see deriveAllocationSimulatorFunding() above/allocationSimulatorFunding.ts) and
+    // MONEY_FLOOR threshold (1000, not the other two's amountFloor=1) — kept separate on purpose,
+    // not an oversight. If this formula's rounding/floor details change, check the other two files.
     const entries = rows.map(row => {
       const targetPercent = Math.max(0, safeNumber(targets[row.symbol]));
       const targetValue = calculationTotal * targetPercent / 100;

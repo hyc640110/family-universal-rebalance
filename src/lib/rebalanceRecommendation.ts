@@ -55,6 +55,14 @@ export function deriveRebalanceRecommendation(input: RebalanceRecommendationInpu
   const thresholdReached = Math.abs(number(input.allocationDeviation)) >= Math.max(0, number(input.rebalanceThreshold));
   const thresholdGap = Math.max(0, Math.abs(number(input.allocationDeviation)) - Math.max(0, number(input.rebalanceThreshold)));
   const canRecommend = blockingReasons.length === 0;
+  // Repository-wide note (read-only audit, 2026-08-15): this target-value/difference formula is
+  // independently implemented in three places — here (the real decision engine, with full data
+  // quality gates + budget clamping below), rebalanceStrategyComparison.ts's deriveRatioRebalance()
+  // (a what-if simulator with none of those constraints), and AllocationSimulatorPage.tsx's inline
+  // calculation (a third, separately-scoped simulator with its own funding model). Kept independent
+  // on purpose — this engine's blocking/budget rules don't belong in either simulator — but any
+  // change to this line's math (rounding, floor behavior, etc.) should prompt a check of the other
+  // two for whether they need the same update.
   const baseRows = input.holdings.map(holding => {
     const currentValue = Math.max(0, number(holding.marketValue));
     const targetWeight = Math.max(0, number(holding.targetWeight));
