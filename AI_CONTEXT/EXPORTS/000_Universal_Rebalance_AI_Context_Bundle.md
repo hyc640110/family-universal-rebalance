@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-15T10:54:21.541161+00:00
+Generated UTC: 2026-08-15T12:04:01.072603+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-15T10:54:21.541161+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `418d83987c5f4d32bab195c9945fd987da947120ee4809b3307a64644e068096`
+- `003_CURRENT_STATUS.md` — SHA-256 `22bc8f9ae2d48f18d6957a0b3c614f2a9bf7b4f901800b7dc2d41994c6a6755f`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `aa39a9676e429e9a5844d49a7727df882c6caee11d41ad728fff84b44292eaf7`
-- `008_TODO_BACKLOG.md` — SHA-256 `a7ab0d0b585c8a65a90cf9c45ca7f9edf2d8c7b26bf0e05c9fbdaccda3258e05`
+- `008_TODO_BACKLOG.md` — SHA-256 `1f1c88320f4f3061f6cf7b8e29326fd043e61d9775a8bbeb610933a14f7f8a22`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.09
+# Universal Rebalance Current Status v4.10
 
 最後更新：2026-08-15
+
+**UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）正式完成並 Merge，`origin/main` 正式基線更新為 `b4aec0a1761817dd68fff79479cf56d9156af72b`。** PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為使用者於驗收 UR-TODO-058 過程中同日臨時發起的產品調整：`ToolDefinition`（`src/lib/toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，標記再平衡建議中心／CLEC 再平衡策略中心為「真實建議」、配置模擬器／三策略再平衡模擬比較為「假設模擬」，其餘既有工具維持原樣；`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，避免暗示優劣）；`AllocationSimulatorPage.tsx`／`RebalanceStrategyComparisonPage.tsx` 既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。未修改任何核心計算模組（`rebalanceRecommendation.ts`／`clecStrategyRules.ts`／`rebalanceStrategyComparison.ts`／`allocationSimulatorFunding.ts` 皆未觸碰）。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張工具卡片正確顯示對應徽章、其餘工具卡片不受影響、既有頁面 console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-062 正式條目（含同一輪對話中核心再平衡公式重複性唯讀盤點的附帶記錄）。
+
+---
 
 **UR-TODO-058（Excel 三策略再平衡模擬比較）正式完成並 Merge，`origin/main` 正式基線更新為 `234fe137c017adef3536b892ac025afe1d445890`。** PR [#345](https://github.com/hyc640110/family-universal-rebalance/pull/345) 已正式 Merge（merge commit `234fe137c017adef3536b892ac025afe1d445890`，一般 merge commit，未使用 admin override），落地獨立新頁面 `/tools/investment-backtest`（啟用既有 `toolNavigation.ts` 原本待規劃的佔位項目）：純模擬／比較工具，不接進 `clecStrategyRules.ts`／`rebalanceExecutionEligibility.ts` 等正式決策引擎，不寫入任何正式持久化資料。資料來源為使用者提供之 EP04-02-大道至簡投資法-資產配置與再平衡 Excel，經完整解析後落地三套純函式策略：聰明再平衡（依期間漲跌動態調整，Excel 作者不推薦但使用者要求保留供比對）、無腦再平衡（Excel 作者推薦，僅在 00631L／00865B 間互換）、比率再平衡（三檔全面向目標權重收斂）；另有 Beta 曝險 session-only 模擬（不重用或修改既有正式 Beta 指標）。開發後應使用者要求，假設情境輸入與結果顯示統一改為萬元（重用既有 `yuanToWan()`／`wanToYuan()` 慣例）。Deploy GitHub Pages run [31880137982](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31880137982) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/investment-backtest` 正確顯示三策略模擬比較，既有功能未受影響，console 無錯誤，詳見 `008_TODO_BACKLOG.md` UR-TODO-058 正式條目（含最初「導入 CLEC」定位與最終「純模擬比較工具」定位的範圍差異記錄）。
 
@@ -2978,9 +2982,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.81
+# Universal Rebalance Todo Backlog v1.82
 
-最後更新：2026-08-14
+最後更新：2026-08-15
+
+2026-08-15 **新增並正式標記 CLOSED：UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）。** 使用者於驗收 UR-TODO-058（三策略再平衡模擬比較）過程中，發現 4 個再平衡相關工具頁面（再平衡建議中心、CLEC 策略中心、配置模擬器、三策略模擬比較）混在同一工具導覽層級、未區分「真實建議」與「假設模擬」性質，同日臨時發起、盤點並完成開發。PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347) 已正式 Merge（merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`ToolDefinition`（`toolNavigation.ts`）新增選用加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，`ToolsPage.tsx` 卡片標題旁渲染對應徽章（藍色系＝真實建議、紫色系＝假設模擬，刻意避開既有 `.good`／`.bad` 綠紅語意色，不暗示優劣），兩個模擬類頁面既有「不是投資建議」提示區塊補上導向再平衡建議中心的明確連結。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張卡片正確顯示徽章、其餘工具不受影響，console 無錯誤。**同一輪對話中另以 Review Mode 唯讀盤點確認**：「權重差額 × 總市值」基礎公式（`target=total×weight%; diff=target−current`）目前於 Repository 內共被獨立實作 3 次（`rebalanceRecommendation.ts`／`rebalanceStrategyComparison.ts`／`AllocationSimulatorPage.tsx`），評估為低風險、已知技術債，暫不整合，此結論已記錄於 UR-TODO-062 正式條目附帶記錄段落，非獨立待辦。詳見下方 **UR-TODO-062** 正式條目。
 
 2026-08-14 **治理同步：UR-TODO-054-A（Loan Confirmation UI）正式標記 CLOSED，UR-TODO-054 正式拆分為 054-A／054-B／054-C 三個子項，054-B（FX Confirmation UI）Contract Audit 判定 GO、狀態更新為「待開發」。** 054-A 已於 PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331) 正式 Merge（merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`／`0184834b5da0b618ca44981b6e231a1b230c1791`，一般 merge commit，未使用 admin override；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`），落地 Minimal Loan Repayment Producer、Loan Group Candidate Review、Confirm、Atomic Void、Reconfirm，並修正 `RuntimeAttributionProvenanceCard` 對 Loan derived component 錯誤暴露 component-level generic confirmation 按鈕的既有 UI safety 缺口；Deploy GitHub Pages run `31804595653` success，Production／Preview HTTP 200，`origin/main` 現為 `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`。開發過程中發現並修正兩項真實 Preview 阻斷 bug（confirm helper 回傳語意誤用、`canonicalCalendarDay()` 未保護呼叫的靜默失敗風險），詳見下方 UR-TODO-054-A 正式條目。**UR-TODO-054-B（FX Confirmation UI）Review Mode Contract Audit 已完成，正式判定 GO**：既有 FX confirm／void／reconfirm core contract（`confirmFxConversionAndAppend()`、`resolveActiveFxConversionGroups()`）已完整、已測試（130 個相關測試現況 0 fail），結構上比 Loan 更單純（一次確認只產生 1 筆 `fx-conversion` FinancialEvent，非多筆 component group，無需獨立 confirmationGroupId），且已確認**不需要**修改 `RuntimeAttributionProvenanceCard`（FX 沒有 Loan 式的 derived-evidence 洩漏路徑）；唯一需要開發階段特別注意的方向性差異是 `confirmFxConversionAndAppend()` 成功時 `result.events` 為**完整合併 Ledger**（與 Loan 相反，caller 須 replace 不得 append）。**Production FX Producer 維持 OFF、Preview 維持 ON，054-B 不修改 feature gate、不啟用 Production Producer**，FX Production Producer Enable 仍是獨立、需另行明確授權的 Controlled Rollout Policy 決策，不因 054-B 開發或完成而自動觸發。UR-TODO-054-C（Generic Split Confirmation UI）狀態維持「待規劃」，尚未進行 Contract Audit。詳見下方更新後的 **UR-TODO-054／054-A／054-B／054-C** 正式條目。
 
@@ -4077,6 +4083,25 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-062 工具導覽「真實建議／假設模擬」分組標籤
+
+- 優先級：P2（使用者於驗收過程中直接發起，同日盤點、定案並完成開發）
+- 狀態：**CLOSED（2026-08-15）／已完成**
+- 完成日期：2026-08-15
+- Merge 資訊：**PR [#347](https://github.com/hyc640110/family-universal-rebalance/pull/347)**，merge commit `b4aec0a1761817dd68fff79479cf56d9156af72b`，一般 merge commit，**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，required check 通過後直接合併，未觸發任何 branch protection 阻擋）。Deploy GitHub Pages run [31883336445](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31883336445) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools` 頁面 4 張工具卡片正確顯示對應徽章、其餘工具卡片不受影響、首頁等既有頁面正常載入，console 無錯誤。
+- 提出日期：2026-08-15（使用者於驗收 UR-TODO-058〔三策略再平衡模擬比較〕過程中，順道發現既有工具導覽的分組缺口並當場提出）
+- 背景：Repository 內有 4 個與再平衡相關的工具頁面——再平衡建議中心（`/tools/rebalance-recommendation`）、CLEC 再平衡策略中心（`/tools/clec-strategy`）、配置模擬器（`/tools/allocation-simulator`）、三策略再平衡模擬比較（`/tools/investment-backtest`）——混在同一個工具導覽選單層級，未區分「會影響實際操作判斷的真實建議」與「純假設情境模擬工具」，使用者需要點進去才能分辨性質，且各工具算出的金額可能不同，容易造成混淆。
+- **最終落地範圍**：
+  1. **資料結構（最小改動）**：`ToolDefinition`（`src/lib/toolNavigation.ts`）新增選用、加法式欄位 `nature?: 'real-recommendation' | 'simulation'`，不影響既有欄位、不需重構既有工具導覽資料結構或渲染邏輯；新增 `TOOL_NATURE_LABELS` 中文標籤對照表。
+  2. **標記範圍**：`rebalance-recommendation`／`clec-strategy` → `real-recommendation`（真實建議）；`allocation-simulator`／`investment-backtest` → `simulation`（假設模擬）。其餘既有工具維持原樣、不強制分組。
+  3. **視覺呈現**：`ToolsPage.tsx`（工具中心主要選單清單）在卡片標題旁渲染小徽章。真實建議＝藍色系（`#132c4d` 底／`#7dd3fc` 字）；假設模擬＝紫色系（`#291f45` 底／`#d8b4fe` 字）。**刻意避開既有 `.good`／`.bad` 綠紅語意色**，避免暗示「真實建議優於假設模擬」的優劣關係——兩組只是性質不同。
+  4. **導引連結**：`AllocationSimulatorPage.tsx`／`RebalanceStrategyComparisonPage.tsx` 既有的「不是投資建議」提示區塊，各補上一句「想看真實再平衡建議，請至再平衡建議中心」並附可點擊連結導向 `/tools/rebalance-recommendation`。
+- 技術落地：`tests/toolNatureGrouping.test.ts` 新增 5 項 characterization test（分組標籤正確對應、標籤文字非優劣配色、兩模擬頁面連結存在）；既有 `tests/toolNavigation.test.ts`／`tests/toolNavigationConsistency.test.ts` 因新欄位為選用加法式欄位，未修改、直接通過。`npx tsc -b`、`npm run test:ci`、`npm run build`、`npm run build:preview` 皆成功；本機 Preview 與 Production 皆已實機驗證（見上方 Merge 資訊）。
+- 明確不包含：合併或刪除任何現有頁面；修改任何核心計算模組（`rebalanceRecommendation.ts`／`clecStrategyRules.ts`／`rebalanceStrategyComparison.ts`／`allocationSimulatorFunding.ts` 皆未觸碰）；新增或移除任何 `CLEC_STRATEGIES` 策略項目；schema／persistence／Ledger／attribution／Firebase 修改。
+- 依賴：UR-TODO-058（已 CLOSED，落地 `/tools/investment-backtest`，本次分組標籤的兩個「假設模擬」工具之一）。
+- **附帶記錄（同一輪對話盤點結論，非本項開發範圍）**：驗收 UR-TODO-058 過程中，同步以 Review Mode 唯讀盤點確認「權重差額 × 總市值」（`target = total×weight%; diff = target−current`）這行基礎公式，目前 Repository 內共被**獨立實作 3 次**——`rebalanceRecommendation.ts`（正式決策引擎，含完整資料品質 gate／預算 clamp／賣出上限）、`rebalanceStrategyComparison.ts`（UR-TODO-058 比率再平衡，刻意省略上述限制，且有註解明文對齊 `amountFloor` 慣例）、`AllocationSimulatorPage.tsx`（配置模擬器，公式直接寫在頁面元件內、有自己獨立的資金語意層，**未留下**與另外兩處對齊的註解）。三者評估為**低風險、已知（其中兩處已記錄）技術債**，核心一行公式雖有重複但周邊業務規則差異夠大，不建議貿然整合成同一函式；`clecStrategyRules.ts` 為完全不同的百分比偏離分類規則，與此議題無關。**本次不處理整合**，留待未來任一處核心公式細節（例如捨入方式）真的需要變更時，再一併評估是否值得抽出共用微型函式、或至少補上對齊註解。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（4 張卡片徽章正確、藍紫配色無優劣暗示、模擬頁面導向再平衡建議中心的連結正確、其他工具卡片不受影響、手機版排版正常），Production 唯讀確認功能與既有頁面皆正常。
 
 ### UR-TODO-061 首頁重點標的可自訂
 
