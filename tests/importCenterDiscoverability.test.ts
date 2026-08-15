@@ -24,3 +24,8 @@ test('the existing Import Center opens only from the anchor without persisting a
   assert.match(navigation, /showAssetsReturn && <Link to="\/assets" aria-label="返回資產"/);
   assert.match(navigation, /\{ id, name, icon: Icon, to \}/);
 });
+
+test('Gmail OAuth state remains compatible while its unfinished connection UI is hidden from settings', () => {
+  assert.match(app, /gmailOAuth: normalizeGmailOAuth\(r\.gmailOAuth\)/);
+  assert.doesNotMatch(app, /<GmailOAuthSettings/);
+});

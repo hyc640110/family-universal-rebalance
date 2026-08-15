@@ -16,7 +16,6 @@ import AssetsPage from './pages/AssetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
-import GmailOAuthSettings from './components/GmailOAuthSettings';
 import AllocationSimulatorPage from './pages/AllocationSimulatorPage';
 import RiskCenterPage from './pages/RiskCenterPage';
 import WealthGoalPage from './pages/WealthGoalPage';
@@ -2121,7 +2120,6 @@ function App() {
           </div>
           <p><b>目前 Worker：</b>{DEFAULT_WORKER_URL}</p>
         </Card>
-        <GmailOAuthSettings value={state.gmailOAuth} onChange={gmailOAuth => setState(s => ({ ...s, gmailOAuth }))} />
         <Card title="備份 / 還原">
           <p className="note">JSON 備份可用於人工備份、跨裝置資料搬移與災難復原。</p>
           <div className="actions">
