@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import { formatYuanInput, parseYuanInput, type CashFlowItem, type CashFlowProfile } from '../lib/cashFlow';
@@ -29,6 +30,11 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
   const calculation = useMemo(() => calculateRetirementPlan(draft, currentNetWorth), [draft, currentNetWorth]);
   const updateItem = (id: string, patch: Partial<CashFlowItem>) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.map(item => item.id === id ? { ...item, ...patch } : item) }));
   const removeItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
+  const confirmRemoveItem = (id: string, name: string) => {
+    const displayName = name || '未命名';
+    if (!window.confirm(`確定要刪除「${displayName}」嗎？`)) return;
+    removeItem(id);
+  };
   const addCustomItem = () => setDraft(current => {
     if (current.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES) return current;
     const id = createItemId();
@@ -58,10 +64,12 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
       <div className="retirement-expense-list">
         {draft.fixedExpenses.length === 0 && <p className="note">尚無固定支出；可新增最多 {MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目。</p>}
         {draft.fixedExpenses.map(item => <article key={item.id} className={item.enabled ? '' : 'is-disabled'}>
-          <label className="retirement-expense-enabled"><input type="checkbox" checked={item.enabled} onChange={event => updateItem(item.id, { enabled: event.currentTarget.checked })} /> 計入支出</label>
+          <div className="retirement-expense-toolbar">
+            <label className="retirement-expense-enabled"><input type="checkbox" checked={item.enabled} onChange={event => updateItem(item.id, { enabled: event.currentTarget.checked })} /> 計入支出</label>
+            <button type="button" className="danger retirement-expense-delete" aria-label={`刪除固定支出 ${item.name || '未命名'}`} title="刪除項目" onClick={() => confirmRemoveItem(item.id, item.name)}><Trash2 size={18} aria-hidden="true" /></button>
+          </div>
           <label>項目名稱<input value={item.name} placeholder={draft.customFixedExpenseIds.includes(item.id) ? '例如：退休後餐費' : '支出名稱'} onChange={event => updateItem(item.id, { name: event.currentTarget.value })} /></label>
           <YuanField label="每月金額（元）" value={item.amount} onChange={amount => updateItem(item.id, { amount })} />
-          <button type="button" className="danger small" onClick={() => removeItem(item.id)}>刪除</button>
         </article>)}
       </div>
       <div className="actions"><button type="button" className="small" disabled={draft.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES} onClick={addCustomItem}>新增自訂項目</button><span className="note">已新增 {draft.customFixedExpenseIds.length}／{MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目</span></div>

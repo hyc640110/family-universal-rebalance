@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v4.23
+# Universal Rebalance Current Status v4.24
 
 最後更新：2026-08-16
+
+**UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）正在 Development Mode。** 正式起點為 `origin/main` `299ef0d1616b2700e33d8b1fa74e4f936742f960`；僅調整 `/tools/retirement-planner` 的固定支出卡片呈現：頂端工具列左側保留「計入支出」、右側改用既有 `lucide-react` 的 `Trash2` 小型圖示按鈕，名稱與金額欄位各自保持全寬單列。按鈕在桌機／手機皆為至少 44×44px 並有可存取名稱；刪除只影響本頁 `retirementPlan` 草稿、不回寫 Cash Flow。唯讀盤點發現前版實際沒有刪除確認，故本 Sprint 依使用者驗收要求補上確認對話框；`removeItem()` 本身的資料過濾邏輯不變。完成 CI 與 Preview 驗收前不得 Merge。
 
 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）已於 2026-08-16 正式 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已以一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26` 合併（未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge）；main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success，Production HTTP 200，重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致，既有功能與 console 皆正常。`origin/main` 現行正式基線為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
 

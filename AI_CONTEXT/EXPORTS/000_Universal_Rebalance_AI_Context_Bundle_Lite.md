@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T09:46:16.751472+00:00
+Generated UTC: 2026-08-16T11:31:29.183063+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `3c146fe11809d67b7216971d821d1b83b0f0fcf8fe2cd778520c6a311e184b53`
-- `008_TODO_BACKLOG.md` — SHA-256 `047fc5dc36dde2c7d3beabc13155567f00b0bfb24faa41e7c79719ccbc292991`
-- `012_AI_HANDOVER.md` — SHA-256 `ac1d42fd7d0b21356b5c36321ef5549687ea8f963eeb898fafd9c3ab1d2b2227`
+- `003_CURRENT_STATUS.md` — SHA-256 `d34b9f60d578ab8c8475686daccbbcc4009c6cb589f01047f07e86c6896113ad`
+- `008_TODO_BACKLOG.md` — SHA-256 `03c1ccfe3586c180024dfa6768d65a4590b56919a5942023f51608d9a0c7c397`
+- `012_AI_HANDOVER.md` — SHA-256 `7106d3e5ebe008ba42edf61024ecf89e5f09468ce5abc749386bc3b93eec29c7`
 
 ---
 
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.23
+# Universal Rebalance Current Status v4.24
 
 最後更新：2026-08-16
+
+**UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）正在 Development Mode。** 正式起點為 `origin/main` `299ef0d1616b2700e33d8b1fa74e4f936742f960`；僅調整 `/tools/retirement-planner` 的固定支出卡片呈現：頂端工具列左側保留「計入支出」、右側改用既有 `lucide-react` 的 `Trash2` 小型圖示按鈕，名稱與金額欄位各自保持全寬單列。按鈕在桌機／手機皆為至少 44×44px 並有可存取名稱；刪除只影響本頁 `retirementPlan` 草稿、不回寫 Cash Flow。唯讀盤點發現前版實際沒有刪除確認，故本 Sprint 依使用者驗收要求補上確認對話框；`removeItem()` 本身的資料過濾邏輯不變。完成 CI 與 Preview 驗收前不得 Merge。
 
 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）已於 2026-08-16 正式 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已以一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26` 合併（未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge）；main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success，Production HTTP 200，重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致，既有功能與 console 皆正常。`origin/main` 現行正式基線為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
 
@@ -1180,9 +1182,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.93
+# Universal Rebalance Todo Backlog v1.94
 
 最後更新：2026-08-16
+
+2026-08-16 **新增 UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸），狀態：Development Mode／Draft PR 待驗收。** 依使用者拍板方向，固定支出卡片改為頂端工具列（左「計入支出」勾選框、右 `Trash2` 圖示刪除按鈕），項目名稱與金額維持各自全寬單列；桌機與手機統一佈局，圖示按鈕至少 44×44px、具 `aria-label`，防止誤觸。唯讀盤點確認既有 `removeItem()` 只改本頁 `retirementPlan` 草稿，故資料過濾邏輯維持不變；但原版實際未設刪除確認，依本次驗收條件在按鈕 handler 補上 `window.confirm()`，取消時保留項目、確認後才呼叫既有 handler。不得改動 Cash Flow、persistence schema 或任何退休計算；待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
 
 2026-08-16 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）正式標記 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已正式 Merge（merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`，一般 merge commit，未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge），`origin/main` 正式基線更新為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除；唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。Deploy GitHub Pages run [31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面桌機與 390px 手機 Preview 驗收。詳見下方 **UR-TODO-068** 正式條目。
 
@@ -2332,6 +2336,19 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
 
+### UR-TODO-069 退休規劃固定支出卡片精簡＋刪除圖示防誤觸
+
+- 優先級：P3（退休規劃頁面既有卡片在手機滑動距離過長，使用者拍板精簡布局）
+- 狀態：**開發中／Draft PR 待驗收；未經使用者明確授權不得 Merge**
+- 提出日期：2026-08-16
+- 範圍：
+  1. 固定支出卡片統一改為單欄：頂端工具列左側為「計入支出」勾選框，右側為既有 `lucide-react` `Trash2` 圖示按鈕；項目名稱與每月金額各自維持全寬獨立列，不以桌機／手機斷點分流。
+  2. 圖示按鈕有中文 `aria-label`／提示文字，桌機與手機皆為至少 44×44px；以工具列 `justify-content: space-between` 與 16px gap 保持與勾選框分離，降低誤觸。
+  3. `removeItem()` 的草稿資料過濾邏輯不變，不回寫 `cashFlowProfile`；依驗收條件在按鈕 handler 補上刪除確認，取消不修改草稿、確認才呼叫既有 handler。
+  4. 更新 `retirementPlannerPage.test.ts`：鎖定圖示按鈕可存取名稱、頂端工具列結構、確認後刪除與取消保留行為。
+- 明確不包含：退休試算公式、`retirementPlan` schema／localStorage／JSON Backup、Cash Flow 匯入／覆蓋邏輯、任何核心財務資料、其他頁面或圖示庫依賴。
+- 驗收條件：桌機與 390px 手機皆顯示同列勾選框／刪除圖示，名稱與金額各自全寬、無水平溢出；圖示按鈕保持 44px 觸控區、確認對話框出現、取消不刪除且確認後正確刪除；TypeScript、完整 CI、Production／Preview build 與 Preview 人工驗收均通過。
+
 ### UR-TODO-068 退休規劃頁面「匯入項目」新增刪除功能
 
 - 優先級：P3（使用者驗收退休頁面時發現既有限制，同日盤點、拍板並完成開發）
@@ -3024,7 +3041,16 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ---
 
-## 最新交接快照：UR-TODO-066 退休提領規劃（CLOSED，2026-08-16）
+## 最新交接快照：UR-TODO-069 退休規劃固定支出卡片精簡（開發中，2026-08-16）
+
+- 正式起點：`origin/main` `299ef0d1616b2700e33d8b1fa74e4f936742f960`；獨立 branch `codex/ur-todo-069-retirement-expense-delete-layout`，原工作目錄 stash 與未追蹤項目不在此 worktree 內。
+- 已定案 UI：每張固定支出卡片統一使用單欄，頂端工具列左「計入支出」勾選框、右 `lucide-react` `Trash2` 圖示按鈕；項目名稱／金額各自全寬單列，桌機與手機不分斷點。按鈕 44×44px、`aria-label`／title 齊備；390px 實測無水平溢出且與勾選框有足夠間距。
+- 行為邊界：`removeItem()` 不變、只移除本頁 `retirementPlan` 草稿項目，不回寫 Cash Flow。唯讀盤點發現前版沒有刪除確認；本 Sprint 依明確驗收條件在按鈕 handler 新增 `window.confirm()`，取消則不變、確認才移除。
+- 測試：已新增圖示按鈕／同列結構與確認取消 regression tests，先在舊實作觀察到預期失敗，再以最小實作轉綠；仍需完整 CI／build、Bundle、Draft PR 與 Preview 驗收。不得自行 Merge。
+
+---
+
+## 前一交接快照：UR-TODO-066 退休提領規劃（CLOSED，2026-08-16）
 
 - 正式結案：PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已一般 Merge，merge commit／最新 `origin/main` `83223498afb196179f24f66c7f3009644e006765`；CI `31931191149`、main Deploy `31931698419` success，Production HTTP 200／`environment=production`，未使用 admin override。
 - 已完成 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不偽造精確投入金額。
