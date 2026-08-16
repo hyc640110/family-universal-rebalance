@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.90
+# Universal Rebalance Todo Backlog v1.91
 
 最後更新：2026-08-16
+
+2026-08-16 **新增並正式標記 CLOSED：UR-TODO-067（DraftInput 共用元件——顯示 0 時輸入被附加而非取代）。** 使用者於驗收 UR-TODO-066（退休提領規劃）過程中發現金額輸入框「顯示 0 時輸入被附加而非取代」問題，排查確認退休頁面本身已於 PR #366 修正，但全站共用元件 `DraftInput`（`src/App.tsx`）存在同類、範圍更廣的既有缺陷（影響帳戶餘額 8 種類型、持股欄位、逢低提醒設定、加碼預算、股價更新秒數），先前未正式登錄過編號。PR [#368](https://github.com/hyc640110/family-universal-rebalance/pull/368) 已正式 Merge（merge commit `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`，一般 merge commit，未使用 admin override，使用者親自執行 `gh pr merge --merge`），`origin/main` 正式基線更新為 `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`。修正為單一加法式變更：`DraftInput` 的 `onFocus` 新增「顯示字面 `0` 時清空 draft」判斷，讓下一個按鍵直接取代而非附加；不影響任何底層資料結構或計算邏輯。Deploy GitHub Pages run [31933735266](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31933735266) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致（證實修正已上線）、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面 Preview 驗收（資產頁帳戶管理、持股資產頁、逢低提醒設定、加碼預算、設定頁）。詳見下方 **UR-TODO-067** 正式條目。
 
 2026-08-16 **UR-TODO-066（退休提領規劃／retirement-planner）正式標記 CLOSED。** PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已 Merge（一般 merge commit `83223498afb196179f24f66c7f3009644e006765`，未使用 admin override）；CI Verification `31931191149` 與 main Deploy GitHub Pages `31931698419` success，Production 已唯讀確認退休頁與工具導覽正確載入、HTTP 200／`environment=production`。
 
@@ -1145,6 +1147,28 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-067 DraftInput 共用元件——顯示 0 時輸入被附加而非取代
+
+- 優先級：P3（使用者於驗收 UR-TODO-066 過程中發現既有缺陷，同日盤點、定案並完成開發）
+- 狀態：**CLOSED（2026-08-16）／已完成、已 Merge、Production Verified**
+- 完成日期：2026-08-16
+- Merge 資訊：**PR [#368](https://github.com/hyc640110/family-universal-rebalance/pull/368)**，一般 merge commit `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`（parents `c4c35962a5b9cf33fa9201c6925d978077af3df8`／`34268d1a4c9afa1e7d4e3545f156f283c9b591a3`），**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，使用者親自執行 `gh pr merge 368 --merge`）。PR CI Verification `31933131406` success；main push 觸發之 Deploy GitHub Pages `31933735266` success。Production 已唯讀確認：HTTP 200；重新以相同 commit 本機建置後與正式部署的 `assets/index-BDKSxSb6.js` 逐位元組（byte-for-byte）比對完全一致，證實修正已包含於正式站台；既有頁面（首頁）console 無錯誤、既有功能正常載入。
+- 提出日期：2026-08-16
+- 背景：UR-TODO-066（退休提領規劃）驗收過程中，使用者發現金額輸入框「顯示 0 時輸入新數字會附加而非取代」的問題（例如輸入 `2` 變成 `02`，再輸入 `2` 變成 `022`，失焦後被解析成 `22`）。Repository 唯讀盤點確認退休頁面本身的輸入元件已在 PR #366 修正，但全站共用元件 `DraftInput`（`src/App.tsx`）存在同類、範圍更廣的既有缺陷，且完全沒有對應防呆——`onFocus` 只設定 editing 狀態，未清空顯示的字面 `"0"`。
+- 最終落地範圍：
+  1. `DraftInput`（`App.tsx:991-1004` 一帶）`onFocus` 新增判斷：目前顯示值字面等於 `'0'` 時清空 draft，讓使用者接下來輸入的數字直接取代，而非附加在 `0` 後面。手法比照先前 PR #366 修正 `CashFlowPage`／`RetirementPlannerPage` `YuanField` 的既有做法。
+  2. 非零值取得焦點不受影響（既有「選取全部後重新輸入」等編輯行為維持不變）；清空後失焦的既有回退行為（回到 `0`）也不受影響。
+  3. 新增 `tests/draftInputZeroValueFocus.test.ts`（已納入 `test:ci`）：直接針對 `DraftInput` 函式本體做 source-level characterization test（`readFileSync`＋regex，比照 `v6DataRefreshMobileFormStability.test.ts` 等既有對 `App.tsx` 內部元件的測試慣例——`App.tsx` 及其依賴鏈讀取 `import.meta.env.*`，只有透過 Vite 才會被注入，全專案沒有任何測試檔案直接 `import` `App.tsx`），確認：(a) `onFocus` 內含清空字面 `'0'` 的判斷式；(b) 判斷式只針對字面 `'0'`，不會誤清空其他非零值；(c) 目前至少 9 個既有呼叫點皆共用同一個 `DraftInput`，證明修正不需要、也不應該逐一在呼叫端補丁。
+- 影響範圍（唯讀盤點確認並逐項於本機 Preview 瀏覽器實測）：
+  - 帳戶餘額（8 種帳戶類型：現金／銀行／證券／信用卡／貸款／房貸／電子錢包／其他）：8 項全數實測修正生效
+  - 持股「總股數」「成交均價」：實測修正生效；「波段最高價」確認因 `value={... || ''}` 恆不顯示字面 `0`，本來就不受影響
+  - 逢低提醒卡片「參考價」「跌幅門檻」（`DipAlertCard`）：**無法在瀏覽器實測**——全庫搜尋確認此元件目前沒有任何 JSX 呼叫點，屬既有未串接的 dead code，UI 無法到達；程式碼層級的修正仍涵蓋（同一個 `DraftInput`），若未來接上此卡片會自動繼承修正
+  - 「只買不賣可用加碼預算」：實測修正生效
+  - 「股價更新間隔秒數」：因欄位有 `min=60` fallback、實務上不會顯示字面 `0`，仍驗證一般編輯（選取＋輸入）不受影響
+- 明確記錄：此為單一共用元件的加法式修正（僅新增 `onFocus` 防呆邏輯），不影響任何底層資料結構、Financial Event Ledger、attribution、persistence schema 或計算邏輯；過程中未發現「0 接字」以外的其他既有輸入異常。
+- 明確不包含：`DipAlertCard` 串接為可達 UI（獨立未評估項目）；任何個別欄位層級的補丁（改為修正共用元件本身）；PR #366（已獨立 CLOSED）範圍。
+- 驗收條件（已達成）：使用者已完成跨頁面 Preview 驗收（資產頁帳戶管理多種帳戶類型、持股資產頁、逢低提醒設定、加碼預算、設定頁），確認修正生效且既有正常編輯行為不受影響；TypeScript、完整 `test:ci`、Production／Preview build、`git diff --check` 皆成功；Production 唯讀驗證（HTTP 200、bundle 內容比對、console 無錯誤）。
 
 ### UR-TODO-066 退休提領規劃（retirement-planner）
 
