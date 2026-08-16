@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T07:28:10.749710+00:00
+Generated UTC: 2026-08-16T09:20:41.971675+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `628342e3e7f6bcae1fb54f7466994446208ec85a31f18a42dfea4952165ab826`
-- `008_TODO_BACKLOG.md` — SHA-256 `c153344b1958e2128347519f5173562d1384d7bfa432219ffd8a3b58cc4038f5`
+- `003_CURRENT_STATUS.md` — SHA-256 `f916e73a4924d62b1b047b7621879f3ff23e1265cb2cb64409c7b7a58729fe7e`
+- `008_TODO_BACKLOG.md` — SHA-256 `54fa4eac74aa66eb20a96c4a0ee31eac4ebde6650b6b93e8b9bda9feff033fbe`
 - `012_AI_HANDOVER.md` — SHA-256 `ac1d42fd7d0b21356b5c36321ef5549687ea8f963eeb898fafd9c3ab1d2b2227`
 
 ---
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.21
+# Universal Rebalance Current Status v4.22
 
 最後更新：2026-08-16
+
+**UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）開發完成，Draft PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 待 Preview 驗收，尚未 Merge，`origin/main` 基線暫不變動。** 使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功，本機桌機與 390px 手機已實機驗證；已依 UR-TODO-050 方案 B 觸發一次 workflow_dispatch 部署 Preview，待使用者親自驗收後另行指示 Merge，本次不自行 Merge。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
+
+---
 
 **新增並正式標記 CLOSED：UR-TODO-067（DraftInput 共用元件——顯示 0 時輸入被附加而非取代），`origin/main` 正式基線更新為 `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #366／`83223498afb196179f24f66c7f3009644e006765`）以來的 Merge：
 
@@ -1174,9 +1178,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.91
+# Universal Rebalance Todo Backlog v1.92
 
 最後更新：2026-08-16
+
+2026-08-16 **新增 UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能），開發完成，Draft PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 待 Preview 驗收，尚未 Merge。** 使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除。唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。新增 3 項測試＋更新 2 項既有測試斷言；`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；本機桌機與 390px 手機皆已實機驗證。詳見下方 **UR-TODO-068** 正式條目；待使用者於部署後的 Preview 環境驗收，驗收通過後由使用者另行指示 Merge。
 
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-067（DraftInput 共用元件——顯示 0 時輸入被附加而非取代）。** 使用者於驗收 UR-TODO-066（退休提領規劃）過程中發現金額輸入框「顯示 0 時輸入被附加而非取代」問題，排查確認退休頁面本身已於 PR #366 修正，但全站共用元件 `DraftInput`（`src/App.tsx`）存在同類、範圍更廣的既有缺陷（影響帳戶餘額 8 種類型、持股欄位、逢低提醒設定、加碼預算、股價更新秒數），先前未正式登錄過編號。PR [#368](https://github.com/hyc640110/family-universal-rebalance/pull/368) 已正式 Merge（merge commit `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`，一般 merge commit，未使用 admin override，使用者親自執行 `gh pr merge --merge`），`origin/main` 正式基線更新為 `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`。修正為單一加法式變更：`DraftInput` 的 `onFocus` 新增「顯示字面 `0` 時清空 draft」判斷，讓下一個按鍵直接取代而非附加；不影響任何底層資料結構或計算邏輯。Deploy GitHub Pages run [31933735266](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31933735266) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致（證實修正已上線）、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面 Preview 驗收（資產頁帳戶管理、持股資產頁、逢低提醒設定、加碼預算、設定頁）。詳見下方 **UR-TODO-067** 正式條目。
 
@@ -2323,6 +2329,23 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-068 退休規劃頁面「匯入項目」新增刪除功能
+
+- 優先級：P3（使用者驗收退休頁面時發現既有限制，同日盤點、拍板並完成開發）
+- 狀態：**開發完成，Draft PR 待 Preview 驗收，尚未 Merge**
+- 提出日期：2026-08-16
+- 背景：使用者回報 `/tools/retirement-planner` 固定支出清單中，透過「從現金流匯入」複製進來的項目（例如中嘉寬頻+TV、遠傳、機車保養）只有「計入支出」勾選框，沒有刪除按鈕，無法整筆從清單移除；只有透過「新增自訂項目」加入的項目才有刪除按鈕。Repository 唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（`draft.customFixedExpenseIds.includes(item.id)` 條件式渲染，只有自訂項目 id 落在此陣列內才顯示刪除按鈕），非後續 commit 造成的回歸；PR #366 說明、`008_TODO_BACKLOG.md` UR-TODO-066 正式條目與既有測試皆未記載此為刻意設計，判定為未妥善考慮匯入項目管理情境的既有缺口，經使用者拍板後補上功能。
+- 最終落地範圍：
+  1. 移除刪除按鈕的 `customFixedExpenseIds` 條件式渲染，改為每筆項目（不分匯入或自訂來源）皆顯示「刪除」按鈕，視覺樣式與位置與既有自訂項目刪除按鈕完全一致（同一個 `danger small` class、同一個位置）。
+  2. `removeCustomItem` handler 更名為通用的 `removeItem`，邏輯不變（同時從 `fixedExpenses` 與 `customFixedExpenseIds` 移除該 id；對匯入項目而言後者本來就不含該 id，過濾為 no-op，安全通用）。刪除行為與既有自訂項目刪除完全一致：只影響 `draft.fixedExpenses`（本頁草稿本身），不回寫 `cashFlowProfile`，Cash Flow 頁面固定支出清單完全不受影響，維持既有「調整只會儲存於本退休規劃，不會回寫現金流設定」原則不變。
+  3. 「從現金流匯入」確認對話框文字更新為明確點名可能重新出現：「此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？」（使用者於開發前盤點階段拍板選擇的完整版文案）。
+- 開發前唯讀盤點確認的既有行為（供未來參考）：
+  1. **匯入邏輯本來就是整份覆蓋**（`fixedExpenses: importedPlan.fixedExpenses` 直接取代整個陣列，`customFixedExpenseIds` 同時重設為 `[]`），不會記得先前刪除過哪些匯入項目——確認刪除某匯入項目後若再次按「從現金流匯入」，該項目會重新出現。此為既有行為，非本次新增刪除功能才產生的新問題，已透過上述對話框文案更新明確提醒使用者。
+  2. `calculateRetirementPlan()` 的 `monthlyFixedExpenses` 每次直接對當下 `draft.fixedExpenses` 陣列 `reduce()`，刪除項目不會有殘留資料或計算落後風險，已於本機 Preview 實機驗證刪除後金額正確重新計算。
+- 技術落地：更新 `tests/retirementPlannerPage.test.ts`，新增 3 項測試（匯入項目顯示刪除按鈕且刪除後清單與每月小計正確重新計算、自訂與匯入項目刪除按鈕 class 與行為完全一致、刪除匯入項目後再次匯入會重新出現且對話框文字正確），並更新既有 2 項測試對新確認對話框文字的斷言。`npx tsc -b`、`npm run test:ci`、`npm run build`、`npm run build:preview`、`git diff --check` 皆成功。本機 dev server 桌機與 390px 手機皆已實機驗證：匯入項目與自訂項目刪除按鈕視覺一致（`danger small`）、點擊後正確移除且無殘留、390px 無水平溢出、Cash Flow 頁面固定支出清單（localStorage `cashFlowProfile.fixedExpenses`）完全不受影響、console 無錯誤。
+- 明確不包含：`cashFlowProfile.fixedExpenses`／`CashFlowPage.tsx` 的既有邏輯；`AppState.retirementPlan` 資料結構本身（僅移除陣列元素，未新增欄位）；匯入邏輯改為合併式（保留使用者刪除紀錄）——維持既有整份覆蓋設計，僅補強提醒文案。
+- 驗收條件（待使用者於 Preview 環境驗收）：匯入項目與自訂項目刪除按鈕視覺一致、點擊後正確移除、Cash Flow 頁面不受影響、桌機與手機版皆正常，驗收通過後由使用者另行指示 Merge。
 
 ### UR-TODO-067 DraftInput 共用元件——顯示 0 時輸入被附加而非取代
 

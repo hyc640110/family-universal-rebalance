@@ -28,7 +28,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
   const [draft, setDraft] = useState(() => plan ?? createRetirementPlanDraft());
   const calculation = useMemo(() => calculateRetirementPlan(draft, currentNetWorth), [draft, currentNetWorth]);
   const updateItem = (id: string, patch: Partial<CashFlowItem>) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.map(item => item.id === id ? { ...item, ...patch } : item) }));
-  const removeCustomItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
+  const removeItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
   const addCustomItem = () => setDraft(current => {
     if (current.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES) return current;
     const id = createItemId();
@@ -41,7 +41,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
       window.alert('目前「收支與現金流」沒有固定支出資料可以匯入。');
       return;
     }
-    if (draft.fixedExpenses.length > 0 && !window.confirm('此動作將覆蓋目前已輸入的項目，是否繼續？')) return;
+    if (draft.fixedExpenses.length > 0 && !window.confirm('此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？')) return;
     setDraft(current => ({ ...current, fixedExpenses: importedPlan.fixedExpenses, customFixedExpenseIds: [] }));
   };
 
@@ -61,7 +61,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
           <label className="retirement-expense-enabled"><input type="checkbox" checked={item.enabled} onChange={event => updateItem(item.id, { enabled: event.currentTarget.checked })} /> 計入支出</label>
           <label>項目名稱<input value={item.name} placeholder={draft.customFixedExpenseIds.includes(item.id) ? '例如：退休後餐費' : '支出名稱'} onChange={event => updateItem(item.id, { name: event.currentTarget.value })} /></label>
           <YuanField label="每月金額（元）" value={item.amount} onChange={amount => updateItem(item.id, { amount })} />
-          {draft.customFixedExpenseIds.includes(item.id) && <button type="button" className="danger small" onClick={() => removeCustomItem(item.id)}>刪除</button>}
+          <button type="button" className="danger small" onClick={() => removeItem(item.id)}>刪除</button>
         </article>)}
       </div>
       <div className="actions"><button type="button" className="small" disabled={draft.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES} onClick={addCustomItem}>新增自訂項目</button><span className="note">已新增 {draft.customFixedExpenseIds.length}／{MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目</span></div>
