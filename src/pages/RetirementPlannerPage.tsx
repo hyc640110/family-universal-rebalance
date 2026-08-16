@@ -25,7 +25,7 @@ function YuanField({ label, value, onChange, placeholder }: { label: string; val
 }
 
 export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNetWorth, onSave }: { plan?: RetirementPlan; cashFlowProfile?: CashFlowProfile; currentNetWorth: number; onSave: (plan: RetirementPlan) => void }) {
-  const [draft, setDraft] = useState(() => plan ?? createRetirementPlanDraft(cashFlowProfile));
+  const [draft, setDraft] = useState(() => plan ?? (window.confirm('是否要從『收支與現金流』的固定支出清單匯入作為起點？') ? createRetirementPlanDraft(cashFlowProfile) : createRetirementPlanDraft()));
   const calculation = useMemo(() => calculateRetirementPlan(draft, currentNetWorth), [draft, currentNetWorth]);
   const updateItem = (id: string, patch: Partial<CashFlowItem>) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.map(item => item.id === id ? { ...item, ...patch } : item) }));
   const removeCustomItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
