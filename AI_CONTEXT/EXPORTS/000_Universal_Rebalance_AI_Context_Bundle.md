@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T01:26:08.391688+00:00
+Generated UTC: 2026-08-16T01:40:21.157520+00:00
 
 ## Manifest
 
@@ -16,7 +16,7 @@ Generated UTC: 2026-08-16T01:26:08.391688+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `7f80234a308a0ae3a055b43bba9785d6eb184ec2b2840b5bf059834f421dab79`
+- `008_TODO_BACKLOG.md` — SHA-256 `6b86a0a6aab3ea755aec668ee093c81e27deeb6ef541fc77801bb84766cd16ab`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -3033,9 +3033,11 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.87
+# Universal Rebalance Todo Backlog v1.88
 
 最後更新：2026-08-15
+
+2026-08-15 **UR-TODO-056（FX Enhancement Bundle）Contract Audit 結論補記，維持「待規劃」狀態，判定四個子項皆不建議現在開發。** Contract Audit（Review Mode 唯讀盤點）逐項確認四個子項現況：(1) **FX valuation attribution**——`unexplainedResidual = netWorthChange - classifiedEventContribution`，USD 部位匯率波動效果留在此殘差是「沒有分類事件」的數學必然結果，非刻意規則；`fxValuation.ts` 目前只有單一時間點的估值（`ForeignCashValuation`），沒有跨快照拆解匯率波動貢獻的邏輯；四項中**唯一已有直接可重用基礎建設**（rate history、valuation function），相對複雜度較低。(2) **JPY/EUR 等其他貨幣對**——確認嚴格限定 TWD↔USD，`SUPPORTED_FX_CONVERSION_CURRENCIES`（`fxConversionIdentity.ts`）、`FxRateRecord.baseCurrency` 型別字面值（`fxValuation.ts`）、`cbcFxProvider.ts` 三處皆寫死為 `'USD'`；非 runtime 開關，橫跨型別系統／Worker 資料來源／UI 表單四層，擴充範圍大。(3) **Automated FX pairing**——全庫搜尋確認零雛形，唯一相關命中是既有程式碼註解「never auto-repaired, never silently guessed at」（刻意拒絕自動猜測的既有設計原則，非尚未實作的既定方向）；且「automated」具體場景（CSV 自動偵測配對？表單自動預填？）治理文件與程式碼皆未定義，**開發前需先做需求釐清，才能進行 Contract Audit**。(4) **進階 fee attribution**——現有 `none`／`explicit`／`included`／`unknown` 四態穩定運作；「進階」明確指向兩項已被 F2D 排除的能力：從匯率價差反推 fee（需先定義「市場匯率」基準，屬產品定義問題非技術缺口）、fee 表單內直接建立新交易（單純 UI 便利性改善，複雜度較低）。**四個子項架構上完全獨立、無強制依賴順序**（automated pairing 不需要先有 valuation attribution，JPY/EUR 擴充不影響其他三項）。治理文件內**未記載任何一項的具體業務情境**（無使用者提出的日圓部位、fee 計算不準、批次換匯等具體需求），比照 UR-TODO-054-C／055 判定邏輯，**四項皆判定為未經需求驗證的技術性擴充清單，不建議現在開發**。若未來啟動，建議：先確認具體業務情境、各自獨立走 Contract Audit（不得合併成單一 PR，本次確認四者架構上也確實彼此獨立）、automated pairing 需先定義場景才能稽核。詳見下方更新後的 **UR-TODO-056** 正式條目。
 
 2026-08-15 **UR-TODO-055（Loan／Investment Delivery Mapping）Contract Audit 結論補記，維持「待規劃」狀態；同時修正 UR-TODO-054-A 條目對 Investment 的既有錯誤記錄。** UR-TODO-055 盤點過程中發現 UR-TODO-054-A 條目原記載「Investment 不需要處理——已用 runtime 證據確認 Investment 買賣本就走既有通用 `safe-taxonomy-candidate`／`RuntimeAttributionProvenanceCard` 路徑」，經以實際程式碼逐項核對後**證實此說法不準確，已正式修正**：全庫搜尋確認 `investmentAttribution` 欄位在 `src/App.tsx`／`src/components/`／`src/pages/` 零命中，Investment 買賣目前完全沒有任何 Producer；`transactionReconciliation.ts` 的 `candidateFor()` 必須此欄位已存在才會判定 `investment-buy`／`investment-sell`，未設定時「投資」類別交易會因 `SAFE_EXPENSE_CATEGORIES` 不含 `expense-investment` 而直接判定 `unsupported-taxonomy`，連進入 `safe-taxonomy-candidate` 可確認清單的資格都沒有。**UR-TODO-055 Contract Audit 本身結論**：底層 attribution contract 已完整存在不需修改，缺口在交付層；Loan 側已有 Producer，缺口是 CSV 批次匯入＋金額拆分 UI（需新 UI 互動設計，因原始資料通常不含拆分後數字）；Investment 側連基礎 Producer 都不存在，範圍更接近獨立的「Investment Producer」子項；治理文件內未記載任何具體業務情境，比照 UR-TODO-054-C 判定邏輯，**判定為錦上添花性質，暫不建議開發**，若未來啟動建議拆成 Investment Producer／Loan CSV 拆分 UI／Import Center schema 擴充三個獨立子項。詳見下方更新後的 **UR-TODO-054-A／UR-TODO-055** 正式條目。
 
@@ -4069,13 +4071,21 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-056 FX Enhancement Bundle（Valuation Attribution／其他貨幣對／自動配對／進階 Fee）
 
 - 優先級：待評估
-- 狀態：**待規劃**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；**實作時仍須拆成獨立子 Sprint，不得合併成單一大 PR**）
+- 狀態：**待規劃**（Contract Audit 已於 2026-08-15 完成，四項皆判定不建議現在開發；**實作時仍須拆成獨立子 Sprint，不得合併成單一大 PR**）
 - 提出日期：2026-08-14
 - 背景：UR-TODO-046 FX 序列（F2D）已完成 conversion principal 的 attribution foundation，並已用測試明確證明 principal contribution 與 FX 匯率波動對既有部位的估值效果（FX-A3 valuation）完全分離。以下項目從未被列為 046 的驗收條件，歷次治理紀錄一貫將其記錄為獨立、未來階段：
   1. **FX valuation attribution**：USD 部位因匯率波動產生的 realized／unrealized gain/loss，目前仍留在 `unexplainedResidual`，未有正式 attribution contract
   2. **JPY/EUR 等其他貨幣對**：F2B／F2D 皆嚴格限定 TWD↔USD
   3. **Automated FX pairing／CSV 自動配對**：目前 Manual FX Producer 為使用者手動指定兩腿，未有自動偵測配對機制
   4. **進階 fee attribution**：F2D 明確排除 rate spread 推算 fee、explicit fee 表單內建立新交易等
+- **Contract Audit 結論（2026-08-15，Review Mode 唯讀盤點）：**
+  1. **FX valuation attribution**：`unexplainedResidual = netWorthChange - classifiedEventContribution`（`netWorthAttribution.ts`），匯率波動效果落在此殘差是「沒有分類事件」的數學必然結果，非刻意規則。`fxValuation.ts` 只有 FX-A1 單一時間點估值（`ForeignCashValuation`），沒有跨快照拆解「匯率波動貢獻 vs 部位增減貢獻」的邏輯。**四項中唯一已有直接可重用基礎建設**（rate history、valuation function），相對複雜度最低，但非開發優先理由。
+  2. **JPY/EUR 等其他貨幣對**：確認嚴格限定 TWD↔USD，寫死於 `fxConversionIdentity.ts`（`SUPPORTED_FX_CONVERSION_CURRENCIES = new Set(['TWD', 'USD'])`）、`fxValuation.ts`（`FxRateRecord.baseCurrency` 型別即為 `'USD'` 字面值，非 `string`）、`cbcFxProvider.ts`（`CBC_USD_TWD_PROVIDER` 專為 NTD/USD 收盤匯率設計）三處。**非 runtime 開關，橫跨型別系統、Worker 資料來源、UI 表單四層**，擴充範圍大。
+  3. **Automated FX pairing**：全庫搜尋 `fxConversionIdentity.ts`／`fxConversionProducer.ts`／`src/components/fx/*.tsx` 對 auto／automat／autoDetect 等字樣，唯一命中是既有程式碼註解「never auto-repaired, never silently guessed at」——**刻意拒絕自動猜測是既有設計原則，非尚未實作的既定方向**。完全沒有雛形，且「automated」具體場景（CSV 匯入自動偵測配對？表單自動預填？）治理文件與程式碼皆未定義，**需先做需求釐清才能進行 Contract Audit**。
+  4. **進階 fee attribution**：現有 `none`／`explicit`／`included`／`unknown` 四態穩定運作（`explicit` 要求 fee 交易已存在，僅能透過連結既有交易下拉選單連結）。「進階」明確指向兩項已被 F2D 排除的能力：(a) 從匯率價差反推 fee——需先定義「市場匯率」基準，屬產品定義問題非技術缺口；(b) fee 表單內直接建立新交易——單純 UI 便利性改善，複雜度較低。
+  - **依賴關係**：四個子項**架構上完全獨立，無強制依賴順序**——valuation attribution 不需要其他三項；JPY/EUR 擴充不影響其他三項；automated pairing 在 TWD/USD 單一貨幣對下即有獨立價值，不需要先有多貨幣對或 valuation attribution；advanced fee 可疊加在任何貨幣對／配對方式之上。
+  - **是否有真實使用需求**：治理文件內**未記載任何一項的具體業務情境**（無使用者提出的日圓部位、fee 計算不準、批次換匯等具體需求）。比照 UR-TODO-054-C／UR-TODO-055 判定邏輯，**四項皆判定為未經需求驗證的技術性擴充清單，不建議現在開發任何一項**。
+  - **若未來啟動的建議**：先確認具體業務情境；各自獨立走 Contract Audit（不得合併成單一 PR，本次盤點確認四者架構上也確實彼此獨立，適合分開稽核）；automated pairing 需先定義具體場景才能稽核，優先順序低於其餘三項。
 - 明確不包含：修改既有 conversion principal attribution（已完成，不得重新開放）；Production Producer enable（獨立 rollout 決策，見下方）
 - 依賴：UR-TODO-046（已 CLOSED，F2D principal/valuation 分離基礎已具備）
 - 驗收條件（待正式排入時另訂）
