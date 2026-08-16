@@ -3,15 +3,15 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T09:20:41.971675+00:00
+Generated UTC: 2026-08-16T09:46:16.751472+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `f916e73a4924d62b1b047b7621879f3ff23e1265cb2cb64409c7b7a58729fe7e`
-- `008_TODO_BACKLOG.md` — SHA-256 `54fa4eac74aa66eb20a96c4a0ee31eac4ebde6650b6b93e8b9bda9feff033fbe`
+- `003_CURRENT_STATUS.md` — SHA-256 `3c146fe11809d67b7216971d821d1b83b0f0fcf8fe2cd778520c6a311e184b53`
+- `008_TODO_BACKLOG.md` — SHA-256 `047fc5dc36dde2c7d3beabc13155567f00b0bfb24faa41e7c79719ccbc292991`
 - `012_AI_HANDOVER.md` — SHA-256 `ac1d42fd7d0b21356b5c36321ef5549687ea8f963eeb898fafd9c3ab1d2b2227`
 
 ---
@@ -425,11 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.22
+# Universal Rebalance Current Status v4.23
 
 最後更新：2026-08-16
 
-**UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）開發完成，Draft PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 待 Preview 驗收，尚未 Merge，`origin/main` 基線暫不變動。** 使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功，本機桌機與 390px 手機已實機驗證；已依 UR-TODO-050 方案 B 觸發一次 workflow_dispatch 部署 Preview，待使用者親自驗收後另行指示 Merge，本次不自行 Merge。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
+**UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）已於 2026-08-16 正式 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已以一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26` 合併（未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge）；main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success，Production HTTP 200，重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致，既有功能與 console 皆正常。`origin/main` 現行正式基線為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
+
+---
 
 ---
 
@@ -1178,11 +1180,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.92
+# Universal Rebalance Todo Backlog v1.93
 
 最後更新：2026-08-16
 
-2026-08-16 **新增 UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能），開發完成，Draft PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 待 Preview 驗收，尚未 Merge。** 使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除。唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。新增 3 項測試＋更新 2 項既有測試斷言；`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功；本機桌機與 390px 手機皆已實機驗證。詳見下方 **UR-TODO-068** 正式條目；待使用者於部署後的 Preview 環境驗收，驗收通過後由使用者另行指示 Merge。
+2026-08-16 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）正式標記 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已正式 Merge（merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`，一般 merge commit，未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge），`origin/main` 正式基線更新為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除；唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。Deploy GitHub Pages run [31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面桌機與 390px 手機 Preview 驗收。詳見下方 **UR-TODO-068** 正式條目。
 
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-067（DraftInput 共用元件——顯示 0 時輸入被附加而非取代）。** 使用者於驗收 UR-TODO-066（退休提領規劃）過程中發現金額輸入框「顯示 0 時輸入被附加而非取代」問題，排查確認退休頁面本身已於 PR #366 修正，但全站共用元件 `DraftInput`（`src/App.tsx`）存在同類、範圍更廣的既有缺陷（影響帳戶餘額 8 種類型、持股欄位、逢低提醒設定、加碼預算、股價更新秒數），先前未正式登錄過編號。PR [#368](https://github.com/hyc640110/family-universal-rebalance/pull/368) 已正式 Merge（merge commit `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`，一般 merge commit，未使用 admin override，使用者親自執行 `gh pr merge --merge`），`origin/main` 正式基線更新為 `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`。修正為單一加法式變更：`DraftInput` 的 `onFocus` 新增「顯示字面 `0` 時清空 draft」判斷，讓下一個按鍵直接取代而非附加；不影響任何底層資料結構或計算邏輯。Deploy GitHub Pages run [31933735266](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31933735266) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致（證實修正已上線）、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面 Preview 驗收（資產頁帳戶管理、持股資產頁、逢低提醒設定、加碼預算、設定頁）。詳見下方 **UR-TODO-067** 正式條目。
 
@@ -2333,7 +2335,9 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-068 退休規劃頁面「匯入項目」新增刪除功能
 
 - 優先級：P3（使用者驗收退休頁面時發現既有限制，同日盤點、拍板並完成開發）
-- 狀態：**開發完成，Draft PR 待 Preview 驗收，尚未 Merge**
+- 狀態：**CLOSED（2026-08-16）／已完成、已 Merge、Production Verified**
+- 完成日期：2026-08-16
+- Merge 資訊：**PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370)**，一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`（parents `b8626d9fac5e991b272b2a2394ab34a462ea0317`／`04c099290941e70e01937b8d4efb9341c828ab63`），**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，使用者親自於 Preview 驗收通過後執行 Merge）。main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success。Production 已唯讀確認：HTTP 200；重新以合併後 commit 本機建置，`dist/assets/index-CeGxvZna.js` 與正式部署站台下載的 bundle **逐位元組（byte-for-byte）比對完全一致**；首頁 console 無錯誤，既有功能正常載入，未於正式站台輸入任何測試資料。
 - 提出日期：2026-08-16
 - 背景：使用者回報 `/tools/retirement-planner` 固定支出清單中，透過「從現金流匯入」複製進來的項目（例如中嘉寬頻+TV、遠傳、機車保養）只有「計入支出」勾選框，沒有刪除按鈕，無法整筆從清單移除；只有透過「新增自訂項目」加入的項目才有刪除按鈕。Repository 唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（`draft.customFixedExpenseIds.includes(item.id)` 條件式渲染，只有自訂項目 id 落在此陣列內才顯示刪除按鈕），非後續 commit 造成的回歸；PR #366 說明、`008_TODO_BACKLOG.md` UR-TODO-066 正式條目與既有測試皆未記載此為刻意設計，判定為未妥善考慮匯入項目管理情境的既有缺口，經使用者拍板後補上功能。
 - 最終落地範圍：
@@ -2345,7 +2349,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   2. `calculateRetirementPlan()` 的 `monthlyFixedExpenses` 每次直接對當下 `draft.fixedExpenses` 陣列 `reduce()`，刪除項目不會有殘留資料或計算落後風險，已於本機 Preview 實機驗證刪除後金額正確重新計算。
 - 技術落地：更新 `tests/retirementPlannerPage.test.ts`，新增 3 項測試（匯入項目顯示刪除按鈕且刪除後清單與每月小計正確重新計算、自訂與匯入項目刪除按鈕 class 與行為完全一致、刪除匯入項目後再次匯入會重新出現且對話框文字正確），並更新既有 2 項測試對新確認對話框文字的斷言。`npx tsc -b`、`npm run test:ci`、`npm run build`、`npm run build:preview`、`git diff --check` 皆成功。本機 dev server 桌機與 390px 手機皆已實機驗證：匯入項目與自訂項目刪除按鈕視覺一致（`danger small`）、點擊後正確移除且無殘留、390px 無水平溢出、Cash Flow 頁面固定支出清單（localStorage `cashFlowProfile.fixedExpenses`）完全不受影響、console 無錯誤。
 - 明確不包含：`cashFlowProfile.fixedExpenses`／`CashFlowPage.tsx` 的既有邏輯；`AppState.retirementPlan` 資料結構本身（僅移除陣列元素，未新增欄位）；匯入邏輯改為合併式（保留使用者刪除紀錄）——維持既有整份覆蓋設計，僅補強提醒文案。
-- 驗收條件（待使用者於 Preview 環境驗收）：匯入項目與自訂項目刪除按鈕視覺一致、點擊後正確移除、Cash Flow 頁面不受影響、桌機與手機版皆正常，驗收通過後由使用者另行指示 Merge。
+- 驗收條件（已達成）：使用者已於 Preview 環境完整驗收（匯入項目與自訂項目刪除按鈕視覺一致、點擊後正確移除、Cash Flow 頁面不受影響、桌機與手機版皆正常），驗收通過後由使用者親自執行 Merge，Production 唯讀確認功能與既有頁面皆正常。
 
 ### UR-TODO-067 DraftInput 共用元件——顯示 0 時輸入被附加而非取代
 

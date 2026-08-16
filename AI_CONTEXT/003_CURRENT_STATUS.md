@@ -1,8 +1,10 @@
-# Universal Rebalance Current Status v4.22
+# Universal Rebalance Current Status v4.23
 
 最後更新：2026-08-16
 
-**UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）開發完成，Draft PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 待 Preview 驗收，尚未 Merge，`origin/main` 基線暫不變動。** 使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。`npx tsc -b`、`npm run test:ci`、Production／Preview build 皆成功，本機桌機與 390px 手機已實機驗證；已依 UR-TODO-050 方案 B 觸發一次 workflow_dispatch 部署 Preview，待使用者親自驗收後另行指示 Merge，本次不自行 Merge。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
+**UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）已於 2026-08-16 正式 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已以一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26` 合併（未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge）；main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success，Production HTTP 200，重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致，既有功能與 console 皆正常。`origin/main` 現行正式基線為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
+
+---
 
 ---
 
