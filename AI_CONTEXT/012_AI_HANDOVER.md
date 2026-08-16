@@ -11,9 +11,9 @@
 ## 最新交接快照：UR-TODO-069 手機版固定支出工具列 follow-up（開發中，2026-08-16）
 
 - 正式起點：PR #372 已 Merge，`origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar`，原工作目錄 stash 與未追蹤項目不在此 worktree 內。
-- 已定案 UI：保留完整「計入支出」文字；僅手機斷點 `max-width:768px` 禁止勾選 label 換行。390px 實機量測原本工具列雖為 `row` 且無橫向溢出，label 卻約 66px 寬／81px 高而折行；垃圾桶仍為 44×44px。本次不改桌機、名稱／金額全寬列、JSX 或既有 `Trash2`。
+- 已定案 UI：保留完整「計入支出」文字；僅手機斷點 `max-width:768px` 將共用勾選 label 設為 `flex-direction:row; white-space:nowrap`。追查確認匯入與自訂項目都由同一段 `draft.fixedExpenses.map(...)` JSX 建立，使用相同 `.retirement-expense-enabled` class；不是來源分流。根因為全域 `label{flex-direction:column}` 覆蓋了原先未明確指定方向的 class。垃圾桶仍為 44×44px。本次不改桌機、名稱／金額全寬列、JSX 或既有 `Trash2`。
 - 行為邊界：`removeItem()`、`window.confirm()`、`retirementPlan`、Cash Flow 與所有退休計算均不變；完整可存取名稱繼續由原生 `<label>` 提供，不增加重複 ARIA。
-- 測試：新增手機斷點不換行 regression test；先在沒有 CSS 規則時觀察到預期失敗，加入單一 CSS 規則後轉綠。仍需完整 CI 確認、Bundle、Draft PR 與 Preview 驗收；不得自行 Merge。
+- 測試：新增手機斷點勾選標籤同列 regression test；先在缺少 `flex-direction:row` 時觀察到預期失敗，加入單一 CSS 規則後轉綠。仍需完整 CI 確認、Bundle、Draft PR 與 Preview 驗收；不得自行 Merge。
 
 ---
 

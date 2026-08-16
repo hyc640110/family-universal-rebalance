@@ -239,8 +239,8 @@ test('刪除匯入項目後再次按「從現金流匯入」，被刪除的項�
   assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), true);
 });
 
-test('手機斷點固定支出勾選標籤保留完整文字且不換行', () => {
+test('手機斷點固定支出勾選標籤以同列方向保留完整文字', () => {
   const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 
-  assert.match(styles, /@media\(max-width:768px\)\{[^}]*\.retirement-expense-enabled\{[^}]*white-space:nowrap/);
+  assert.match(styles, /@media\(max-width:768px\)\{[^}]*\.retirement-expense-enabled\{[^}]*flex-direction:row[^}]*white-space:nowrap/);
 });
