@@ -44,9 +44,17 @@ async function mountInJsdom(profileInput: CashFlowProfile | undefined = profile)
     root.render(createElement(MemoryRouter, null, createElement(CashFlowPage, { profile: profileInput, currentCash: 100000, onSave })));
   });
   const click = async (button: HTMLButtonElement) => { await act(async () => { button.dispatchEvent(new browser.window.MouseEvent('click', { bubbles: true })); }); };
+  const change = async (input: HTMLInputElement, value: string) => {
+    Object.getOwnPropertyDescriptor(browser.window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    await act(async () => {
+      input.dispatchEvent(new browser.window.Event('input', { bubbles: true }));
+      input.dispatchEvent(new browser.window.Event('change', { bubbles: true }));
+    });
+  };
+  const focus = async (input: HTMLInputElement) => { await act(async () => { input.focus(); }); };
   const findButton = (text: string) => [...container.querySelectorAll('button')].find(candidate => candidate.textContent === text) as HTMLButtonElement;
   const findToggle = () => container.querySelector('.section-toggle') as HTMLButtonElement;
-  return { container, click, findButton, findToggle };
+  return { container, click, change, focus, findButton, findToggle };
 }
 
 test('the fixed-expense-list section defaults open, its items visible, with a toggle in the title row', async () => {
@@ -107,4 +115,17 @@ test('新增項目 still works while the section is collapsed (adding is decoupl
   await click(findToggle());
   const nameInputs = [...container.querySelectorAll('input')].filter(input => input.placeholder === '例如：房貸');
   assert.equal(nameInputs.length, 2, 'a second fixed-expense item should have been added even while the list was collapsed');
+});
+
+test('Cash Flow 元金額欄位聚焦零值時可直接輸入取代', async () => {
+  const zeroProfile: CashFlowProfile = { ...profile, monthlyIncome: 0, monthlyInvestmentBudget: 0, fixedExpenses: [{ ...profile.fixedExpenses[0]!, amount: 0 }] };
+  const { container, change, focus } = await mountInJsdom(zeroProfile);
+  const inputs = [...container.querySelectorAll('input[type="number"]')] as HTMLInputElement[];
+
+  for (const input of inputs) {
+    await focus(input);
+    assert.equal(input.value, '', '零值聚焦後必須先清空，避免新數字依瀏覽器行為被附加');
+    await change(input, '1');
+    assert.equal(input.value, '1');
+  }
 });

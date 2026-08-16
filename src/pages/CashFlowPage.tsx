@@ -74,7 +74,7 @@ export default function CashFlowPage({ profile, currentCash, loans = [], onSave 
     <ToolQuickNavigation current="cash-flow" />
   </PageFrame>;
 }
-function YuanField({label,value,onChange}:{label:string;value:number|null;onChange:(value:string)=>void}) { return <label>{label}<input type="number" inputMode="numeric" min="0" step="1" value={formatYuanInput(value)} onChange={event=>{const rawValue=event.currentTarget.value;onChange(rawValue);}} /></label>; }
+function YuanField({label,value,onChange}:{label:string;value:number|null;onChange:(value:string)=>void}) { return <label>{label}<input type="number" inputMode="numeric" min="0" step="1" value={formatYuanInput(value)} onFocus={event=>{if(event.currentTarget.value==='0')event.currentTarget.value='';}} onChange={event=>{const rawValue=event.currentTarget.value;onChange(rawValue);}} /></label>; }
 function VariableExpenseBudgetMigrationPrompt({amount,onConfirm,onDismiss}:{amount:number;onConfirm:()=>void;onDismiss:()=>void}) {
   return <div className="card cashflow-migration-prompt" role="alert"><p>偵測到您先前設定的「每月生活費預算」（{money(amount)}），此欄位即將整合進固定支出清單。是否轉為一筆「生活必要支出」項目？金額不變，名稱與分類可再自行編輯。</p><div className="actions"><button type="button" onClick={onConfirm}>轉為固定支出項目</button><button type="button" className="small" onClick={onDismiss}>忽略（不再計入安全存量計算）</button></div></div>;
 }

@@ -106,6 +106,8 @@
     "test:fx-confirmation-ui": "tsx --test tests/fxConfirmationCard.test.ts",
     "test:credit-card-due-soon-card": "tsx --test tests/creditCardDueSoonCard.test.ts",
     "test:cash-flow-fixed-expenses-collapse": "tsx --test tests/cashFlowFixedExpensesCollapse.test.ts",
+    "test:retirement-planner": "tsx --test tests/retirementPlanner.test.ts tests/retirementPlannerPersistence.test.ts tests/retirementPlannerPage.test.ts tests/retirementPlannerNavigation.test.ts",
+    "posttest:ci": "npm run test:retirement-planner",
     "preview": "vite preview --host",
     "deploy": "npm run build && gh-pages -d dist",
     "deploy:preview": "npm run build:preview && gh-pages -d dist-preview -e preview -a -m \"Deploy preview\"",

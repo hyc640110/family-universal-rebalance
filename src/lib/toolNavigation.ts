@@ -61,7 +61,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   { id: 'wealth-goal', name: 'FIRE／財富目標', description: '設定財富目標、每月投入與預期報酬率，查看目前進度及預估達成時間。', icon: Flame, to: '/tools/wealth-goal', actionLabel: '查看目標' },
   { id: 'cash-flow', name: '收支與現金流', description: '設定每月收入、必要支出與投資預算，掌握現金流壓力和緊急預備金。', icon: WalletCards, to: '/tools/cash-flow', actionLabel: '查看現金流' },
   { id: 'net-worth-history', name: '淨資產歷史中心', description: '以每日快照追蹤資產、現金、負債與淨資產的長期變化。', icon: LineChart, to: '/tools/net-worth-history', actionLabel: '查看歷史' },
-  { id: 'retirement-planner', name: '退休試算', description: '估算退休資金需求與安全存量。', icon: ShieldCheck },
+  { id: 'retirement-planner', name: '退休試算', description: '以目前淨資產、退休支出與提領率試算目標退休金與填補缺口；僅為數學試算，非投資建議。', icon: ShieldCheck, to: '/tools/retirement-planner', actionLabel: '開始試算', nature: 'simulation' },
   { id: 'allocation-simulator', name: getAllocationContext('simulation').name, description: getAllocationContext('simulation').description, icon: Scale, to: '/tools/allocation-simulator', actionLabel: '開始模擬', nature: 'simulation' },
   { id: 'risk-center', name: '風險與現金安全中心', description: '整合現金、借款、槓桿及資產集中風險，快速找出最需要優先處理的財務問題。', icon: ShieldAlert, to: '/tools/risk-center', actionLabel: '查看風險' }
 ];
