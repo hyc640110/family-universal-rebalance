@@ -16,7 +16,7 @@ const cashFlowProfile: CashFlowProfile = {
   fixedExpenses: [{ id: 'rent', name: '房租', amount: 20_000, category: 'housing', enabled: true }]
 };
 
-async function mount({ confirmResult = true, plan }: { confirmResult?: boolean; plan?: RetirementPlan } = {}) {
+async function mount({ confirmResult = true, plan, profile = cashFlowProfile }: { confirmResult?: boolean; plan?: RetirementPlan; profile?: CashFlowProfile } = {}) {
   const { JSDOM } = await import('jsdom');
   const browser = new JSDOM('<!doctype html><html><body></body></html>', { pretendToBeVisual: true });
   (globalThis as unknown as { window: typeof browser.window }).window = browser.window;
@@ -33,14 +33,16 @@ async function mount({ confirmResult = true, plan }: { confirmResult?: boolean; 
   const root = createRoot(container);
   const saved: unknown[] = [];
   const confirmCalls: string[] = [];
+  const alertCalls: string[] = [];
   browser.window.confirm = message => {
     confirmCalls.push(message);
     return confirmResult;
   };
+  browser.window.alert = message => { alertCalls.push(message); };
   await act(async () => {
     root.render(createElement(MemoryRouter, null, createElement(RetirementPlannerPage, {
       plan,
-      cashFlowProfile,
+      cashFlowProfile: profile,
       currentNetWorth: 1_000_000,
       onSave: plan => saved.push(plan)
     })));
@@ -56,15 +58,25 @@ async function mount({ confirmResult = true, plan }: { confirmResult?: boolean; 
   const focus = async (input: HTMLInputElement) => { await act(async () => { input.focus(); }); };
   const blur = async (input: HTMLInputElement) => { await act(async () => { input.blur(); }); };
   const button = (label: string) => [...container.querySelectorAll('button')].find(item => item.textContent === label) as HTMLButtonElement;
-  return { container, saved, confirmCalls, click, change, focus, blur, button };
+  return { container, saved, confirmCalls, alertCalls, click, change, focus, blur, button };
 }
 
-test('退休頁以現金流固定支出建立獨立草稿，顯示 FIRE 結果並只在按下儲存後回傳', async () => {
-  const { container, saved, click, button } = await mount();
+test('退休頁首次開啟保持空白草稿，不主動詢問或匯入現金流固定支出', async () => {
+  const { container, confirmCalls } = await mount();
 
+  assert.deepEqual(confirmCalls, []);
+  assert.equal(container.querySelector('input[placeholder="支出名稱"]'), null);
+  assert.match(container.textContent || '', /尚無固定支出/);
+});
+
+test('退休頁從現金流匯入按鈕會確認後覆蓋目前草稿，並只在儲存後回傳', async () => {
+  const plan = createRetirementPlanDraft(undefined, { fixedExpenses: [{ ...cashFlowProfile.fixedExpenses[0]!, id: 'manual', name: '手動輸入', amount: 12_345 }] });
+  const { container, saved, confirmCalls, click, button } = await mount({ plan });
+
+  assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '手動輸入');
+  await click(button('從現金流匯入'));
+  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目，是否繼續？']);
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '房租');
-  assert.match(container.textContent || '', /每月小計/);
-  assert.match(container.textContent || '', /目標退休金/);
   assert.equal(saved.length, 0);
   await click(button('儲存退休規劃'));
   assert.equal(saved.length, 1);
@@ -72,28 +84,26 @@ test('退休頁以現金流固定支出建立獨立草稿，顯示 FIRE 結果�
   assert.equal(cashFlowProfile.fixedExpenses[0]!.amount, 20_000);
 });
 
-test('首次開啟選擇匯入時，以現金流固定支出建立退休草稿', async () => {
-  const { container, confirmCalls } = await mount({ confirmResult: true });
+test('退休頁現金流沒有固定支出時顯示提示且不改變草稿', async () => {
+  const emptyProfile = { ...cashFlowProfile, fixedExpenses: [] };
+  const { container, alertCalls, confirmCalls, click, button } = await mount({ profile: emptyProfile });
 
-  assert.deepEqual(confirmCalls, ['是否要從『收支與現金流』的固定支出清單匯入作為起點？']);
-  assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '房租');
-});
-
-test('首次開啟拒絕匯入時，以空白固定支出草稿開始', async () => {
-  const { container, confirmCalls } = await mount({ confirmResult: false });
-
-  assert.deepEqual(confirmCalls, ['是否要從『收支與現金流』的固定支出清單匯入作為起點？']);
+  await click(button('從現金流匯入'));
+  assert.deepEqual(confirmCalls, []);
+  assert.deepEqual(alertCalls, ['目前「收支與現金流」沒有固定支出資料可以匯入。']);
   assert.equal(container.querySelector('input[placeholder="支出名稱"]'), null);
   assert.match(container.textContent || '', /尚無固定支出/);
 });
 
-test('已儲存退休草稿載入時不再詢問匯入，並保留既有草稿', async () => {
+test('已儲存退休草稿載入時仍可使用現金流匯入按鈕', async () => {
   const plan = createRetirementPlanDraft(undefined, { fixedExpenses: [{ ...cashFlowProfile.fixedExpenses[0]!, id: 'saved-expense', name: '已儲存支出', amount: 12_345 }] });
-  const { container, confirmCalls } = await mount({ plan });
+  const { container, confirmCalls, click, button } = await mount({ plan, confirmResult: false });
 
   assert.deepEqual(confirmCalls, []);
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '已儲存支出');
-  assert.equal((container.querySelector('input[type="number"]') as HTMLInputElement).value, '12345');
+  await click(button('從現金流匯入'));
+  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目，是否繼續？']);
+  assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '已儲存支出');
 });
 
 test('退休頁滑桿事件在最小、中間與最大值都不會讀取已失效的 event currentTarget', async () => {
@@ -112,6 +122,7 @@ test('退休頁滑桿事件在最小、中間與最大值都不會讀取已失�
 
 test('退休頁元金額欄位聚焦零值時可直接輸入取代，清空失焦後回復零值', async () => {
   const { container, saved, click, change, focus, blur, button } = await mount();
+  await click(button('從現金流匯入'));
   await click(button('新增自訂項目'));
   await change(container.querySelector('input[placeholder="例如：退休後餐費"]') as HTMLInputElement, '自訂支出');
   const amountInputs = () => [...container.querySelectorAll('input[type="number"]')] as HTMLInputElement[];

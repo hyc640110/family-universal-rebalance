@@ -25,7 +25,7 @@ function YuanField({ label, value, onChange, placeholder }: { label: string; val
 }
 
 export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNetWorth, onSave }: { plan?: RetirementPlan; cashFlowProfile?: CashFlowProfile; currentNetWorth: number; onSave: (plan: RetirementPlan) => void }) {
-  const [draft, setDraft] = useState(() => plan ?? (window.confirm('是否要從『收支與現金流』的固定支出清單匯入作為起點？') ? createRetirementPlanDraft(cashFlowProfile) : createRetirementPlanDraft()));
+  const [draft, setDraft] = useState(() => plan ?? createRetirementPlanDraft());
   const calculation = useMemo(() => calculateRetirementPlan(draft, currentNetWorth), [draft, currentNetWorth]);
   const updateItem = (id: string, patch: Partial<CashFlowItem>) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.map(item => item.id === id ? { ...item, ...patch } : item) }));
   const removeCustomItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
@@ -35,6 +35,15 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
     return { ...current, fixedExpenses: [...current.fixedExpenses, { id, name: '', amount: 0, category: 'other', enabled: true }], customFixedExpenseIds: [...current.customFixedExpenseIds, id] };
   });
   const updateBigExpense = (key: keyof RetirementPlan['annualBigExpenses'], value: number) => setDraft(current => ({ ...current, annualBigExpenses: { ...current.annualBigExpenses, [key]: value } }));
+  const importFixedExpensesFromCashFlow = () => {
+    const importedPlan = createRetirementPlanDraft(cashFlowProfile);
+    if (importedPlan.fixedExpenses.length === 0) {
+      window.alert('目前「收支與現金流」沒有固定支出資料可以匯入。');
+      return;
+    }
+    if (draft.fixedExpenses.length > 0 && !window.confirm('此動作將覆蓋目前已輸入的項目，是否繼續？')) return;
+    setDraft(current => ({ ...current, fixedExpenses: importedPlan.fixedExpenses, customFixedExpenseIds: [] }));
+  };
 
   return <PageFrame page="tools" title="退休提領規劃" description="以目前淨資產、退休支出與提領率進行 FIRE 試算；此頁草稿獨立於現金流設定。">
     <section className="retirement-summary" aria-label="退休試算摘要">
@@ -45,7 +54,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
     </section>
 
     <section className="card retirement-section">
-      <header><div><h2>每月經常性開銷</h2><p className="note">首次開啟時預填自現金流固定支出；調整只會儲存於本退休規劃，不會回寫現金流設定。</p></div><strong>每月小計 {money(calculation.monthlyFixedExpenses)}</strong></header>
+      <header><div><div className="retirement-section-title"><h2>每月經常性開銷</h2><button type="button" className="small" onClick={importFixedExpensesFromCashFlow}>從現金流匯入</button></div><p className="note">可按需要從現金流匯入固定支出；調整只會儲存於本退休規劃，不會回寫現金流設定。</p></div><strong>每月小計 {money(calculation.monthlyFixedExpenses)}</strong></header>
       <div className="retirement-expense-list">
         {draft.fixedExpenses.length === 0 && <p className="note">尚無固定支出；可新增最多 {MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目。</p>}
         {draft.fixedExpenses.map(item => <article key={item.id} className={item.enabled ? '' : 'is-disabled'}>
