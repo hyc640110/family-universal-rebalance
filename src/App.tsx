@@ -1003,7 +1003,8 @@ function DraftInput({ value, type = 'text', min, step, inputMode, onCommit }: { 
   useEffect(() => () => { if (editingRef.current || draftRef.current !== valueRef.current) onCommitRef.current(draftRef.current); }, []);
   const updateDraft = (next: string) => { editingRef.current = true; setEditing(true); draftRef.current = next; setDraft(next); };
   const commit = (next = draftRef.current) => { editingRef.current = false; setEditing(false); draftRef.current = next; setDraft(next); onCommitRef.current(next); };
-  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={() => { editingRef.current = true; setEditing(true); }} onInput={e => updateDraft(e.currentTarget.value)} onChange={e => updateDraft(e.currentTarget.value)} onBlur={e => commit(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') commit(e.currentTarget.value); }} />;
+  const onFocus = () => { editingRef.current = true; setEditing(true); if (draftRef.current === '0') updateDraft(''); };
+  return <input type={type} min={min} step={step} inputMode={inputMode} value={draft} onFocus={onFocus} onInput={e => updateDraft(e.currentTarget.value)} onChange={e => updateDraft(e.currentTarget.value)} onBlur={e => commit(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') commit(e.currentTarget.value); }} />;
 }
 const parsePositive = (value: string, fallback = 0) => value.trim() === '' ? fallback : Math.max(0, num(Number(value)));
 
