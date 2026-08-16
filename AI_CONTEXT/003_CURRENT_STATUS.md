@@ -1,6 +1,15 @@
-# Universal Rebalance Current Status v4.18
+# Universal Rebalance Current Status v4.19
 
-最後更新：2026-08-15
+最後更新：2026-08-16
+
+**新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）、UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關），`origin/main` 正式基線更新為 `5cc0fe5`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #361／`6d96c0b`）以來的 Merge：
+
+- **PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363)**（`chore/fix: 首頁 supportingItems 清理＋標題文案微調`），merge commit `93d5911`，一般 merge commit，未使用 admin override。UR-TODO-064 正式完成並 Merge，詳見下方獨立條目。
+- **PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364)**（`feat: 現金流工具頁按鈕移位＋收合開關`），merge commit `5cc0fe5`，一般 merge commit，未使用 admin override。UR-TODO-065 正式完成並 Merge，詳見下方獨立條目。
+
+兩項調整皆為本次對話中臨時發起、先前未正式登錄編號的產品調整，本次治理同步一併補登為正式 UR-TODO 條目並直接標記 CLOSED。Production 皆已唯讀確認功能正常，詳見 `008_TODO_BACKLOG.md` UR-TODO-064／UR-TODO-065 正式條目。
+
+---
 
 **UR-TODO-055（Loan／Investment Delivery Mapping）Contract Audit 結論補記，並修正 UR-TODO-054-A 對 Investment 的既有錯誤記錄；依 §8.2 六規則一併追平 PR #359 的一個 commit 落差。** 盤點以實際程式碼證實 UR-TODO-054-A 原記載「Investment 本就走既有通用 `safe-taxonomy-candidate` 路徑」不準確——`investmentAttribution` 欄位全庫零 UI 呼叫者，未設定時「投資」類別交易會被判定 `unsupported-taxonomy`，連候選清單都進不去，已正式修正記錄。UR-TODO-055 本身：底層 contract 已完整存在，缺口在交付層；Investment 側連基礎 Producer 都不存在，範圍比原描述更大；治理文件內未記載具體業務情境，比照 UR-TODO-054-C 判定為錦上添花性質，暫不建議開發。純治理文件記錄，**未修改任何 `src/`／`tests/` 程式碼**，`origin/main` 功能基線不因此變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A／UR-TODO-055 正式條目。
 
