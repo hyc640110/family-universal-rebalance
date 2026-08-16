@@ -6,6 +6,7 @@ import { calculateRetirementPlan, createRetirementPlanDraft, normalizeRetirement
 
 const money = (value: number) => `${(Math.abs(value) / 10_000).toLocaleString('zh-TW', { maximumFractionDigits: 1 })} 萬元`;
 const percent = (value: number) => `${Number.isFinite(value) ? value.toFixed(1) : '0.0'}%`;
+const MAX_CUSTOM_FIXED_EXPENSES = 10;
 
 function createItemId(): string {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -27,7 +28,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
   const updateItem = (id: string, patch: Partial<CashFlowItem>) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.map(item => item.id === id ? { ...item, ...patch } : item) }));
   const removeCustomItem = (id: string) => setDraft(current => ({ ...current, fixedExpenses: current.fixedExpenses.filter(item => item.id !== id), customFixedExpenseIds: current.customFixedExpenseIds.filter(itemId => itemId !== id) }));
   const addCustomItem = () => setDraft(current => {
-    if (current.customFixedExpenseIds.length >= 5) return current;
+    if (current.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES) return current;
     const id = createItemId();
     return { ...current, fixedExpenses: [...current.fixedExpenses, { id, name: '', amount: 0, category: 'other', enabled: true }], customFixedExpenseIds: [...current.customFixedExpenseIds, id] };
   });
@@ -44,7 +45,7 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
     <section className="card retirement-section">
       <header><div><h2>每月經常性開銷</h2><p className="note">首次開啟時預填自現金流固定支出；調整只會儲存於本退休規劃，不會回寫現金流設定。</p></div><strong>每月小計 {money(calculation.monthlyFixedExpenses)}</strong></header>
       <div className="retirement-expense-list">
-        {draft.fixedExpenses.length === 0 && <p className="note">尚無固定支出；可新增最多五個自訂項目。</p>}
+        {draft.fixedExpenses.length === 0 && <p className="note">尚無固定支出；可新增最多 {MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目。</p>}
         {draft.fixedExpenses.map(item => <article key={item.id} className={item.enabled ? '' : 'is-disabled'}>
           <label className="retirement-expense-enabled"><input type="checkbox" checked={item.enabled} onChange={event => updateItem(item.id, { enabled: event.currentTarget.checked })} /> 計入支出</label>
           <label>項目名稱<input value={item.name} placeholder={draft.customFixedExpenseIds.includes(item.id) ? '例如：退休後餐費' : '支出名稱'} onChange={event => updateItem(item.id, { name: event.currentTarget.value })} /></label>
@@ -52,16 +53,16 @@ export default function RetirementPlannerPage({ plan, cashFlowProfile, currentNe
           {draft.customFixedExpenseIds.includes(item.id) && <button type="button" className="danger small" onClick={() => removeCustomItem(item.id)}>刪除</button>}
         </article>)}
       </div>
-      <div className="actions"><button type="button" className="small" disabled={draft.customFixedExpenseIds.length >= 5} onClick={addCustomItem}>新增自訂項目</button><span className="note">已新增 {draft.customFixedExpenseIds.length}／5 個自訂項目</span></div>
+      <div className="actions"><button type="button" className="small" disabled={draft.customFixedExpenseIds.length >= MAX_CUSTOM_FIXED_EXPENSES} onClick={addCustomItem}>新增自訂項目</button><span className="note">已新增 {draft.customFixedExpenseIds.length}／{MAX_CUSTOM_FIXED_EXPENSES} 個自訂項目</span></div>
     </section>
 
     <section className="card retirement-section retirement-two-column">
       <div><h2>年度大額開銷</h2><YuanField label="旅遊預算（元）" value={draft.annualBigExpenses.travelBudget} onChange={value => updateBigExpense('travelBudget', value)} /><YuanField label="保險費（元）" value={draft.annualBigExpenses.insuranceFee} onChange={value => updateBigExpense('insuranceFee', value)} /></div>
-      <div><h2>提領策略</h2><label className="retirement-range-label">年提領率 <output>{percent(draft.withdrawalRatePercent)}</output><input type="range" min="1" max="20" step="0.1" value={draft.withdrawalRatePercent} onChange={event => setDraft(current => ({ ...current, withdrawalRatePercent: Number(event.currentTarget.value) }))} /></label><p className="note">4% 法則是常見的退休提領試算起點；實際適用性會受到報酬、通膨、稅費與支出變化影響。</p></div>
+      <div><h2>提領策略</h2><label className="retirement-range-label">年提領率 <output>{percent(draft.withdrawalRatePercent)}</output><input type="range" min="1" max="20" step="0.1" value={draft.withdrawalRatePercent} onChange={event => { const value = Number(event.currentTarget.value); setDraft(current => ({ ...current, withdrawalRatePercent: value })); }} /></label><p className="note">4% 法則是常見的退休提領試算起點；實際適用性會受到報酬、通膨、稅費與支出變化影響。</p></div>
     </section>
 
     <section className="card retirement-section retirement-two-column">
-      <div><h2>填補缺口計畫</h2><label className="retirement-range-label">預計退休年限 <output>{draft.retirementYears} 年</output><input type="range" min="0" max="60" step="1" value={draft.retirementYears} onChange={event => setDraft(current => ({ ...current, retirementYears: Number(event.currentTarget.value) }))} /></label><label className="retirement-range-label">預期年化報酬 <output>{percent(draft.expectedAnnualReturnPercent)}</output><input type="range" min="0" max="20" step="0.1" value={draft.expectedAnnualReturnPercent} onChange={event => setDraft(current => ({ ...current, expectedAnnualReturnPercent: Number(event.currentTarget.value) }))} /></label></div>
+      <div><h2>填補缺口計畫</h2><label className="retirement-range-label">預計退休年限 <output>{draft.retirementYears} 年</output><input type="range" min="0" max="60" step="1" value={draft.retirementYears} onChange={event => { const value = Number(event.currentTarget.value); setDraft(current => ({ ...current, retirementYears: value })); }} /></label><label className="retirement-range-label">預期年化報酬 <output>{percent(draft.expectedAnnualReturnPercent)}</output><input type="range" min="0" max="20" step="0.1" value={draft.expectedAnnualReturnPercent} onChange={event => { const value = Number(event.currentTarget.value); setDraft(current => ({ ...current, expectedAnnualReturnPercent: value })); }} /></label></div>
       <div className="retirement-gap-results"><h2>所需投入</h2><p><span>每年需投入</span><strong>{calculation.annualContribution === null ? '請設定退休年限' : money(calculation.annualContribution)}</strong></p><p><span>平均每月負擔</span><strong>{calculation.averageMonthlyContribution === null ? '請設定退休年限' : money(calculation.averageMonthlyContribution)}</strong></p><p className="note">此計算將您的「目前淨資產」納入複利基礎，計算填補缺口所需的條件；僅為依你輸入條件的數學試算，非投資建議。</p></div>
     </section>
 

@@ -39,8 +39,15 @@ async function mount() {
     })));
   });
   const click = async (button: HTMLButtonElement) => { await act(async () => { button.dispatchEvent(new browser.window.MouseEvent('click', { bubbles: true })); }); };
+  const change = async (input: HTMLInputElement, value: string) => {
+    Object.getOwnPropertyDescriptor(browser.window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    await act(async () => {
+      input.dispatchEvent(new browser.window.Event('input', { bubbles: true }));
+      input.dispatchEvent(new browser.window.Event('change', { bubbles: true }));
+    });
+  };
   const button = (label: string) => [...container.querySelectorAll('button')].find(item => item.textContent === label) as HTMLButtonElement;
-  return { container, saved, click, button };
+  return { container, saved, click, change, button };
 }
 
 test('退休頁以現金流固定支出建立獨立草稿，顯示 FIRE 結果並只在按下儲存後回傳', async () => {
@@ -56,10 +63,24 @@ test('退休頁以現金流固定支出建立獨立草稿，顯示 FIRE 結果�
   assert.equal(cashFlowProfile.fixedExpenses[0]!.amount, 20_000);
 });
 
-test('退休頁最多新增五個自訂每月支出項目', async () => {
-  const { container, click, button } = await mount();
-  for (let index = 0; index < 5; index++) await click(button('新增自訂項目'));
+test('退休頁滑桿事件在最小、中間與最大值都不會讀取已失效的 event currentTarget', async () => {
+  const { container, change } = await mount();
+  const sliders = [...container.querySelectorAll('input[type="range"]')] as HTMLInputElement[];
+  assert.equal(sliders.length, 3);
 
-  assert.equal(container.querySelectorAll('input[placeholder="例如：退休後餐費"]').length, 5);
+  for (const [slider, values] of [[sliders[0]!, ['1', '10', '20']], [sliders[1]!, ['0', '30', '60']], [sliders[2]!, ['0', '10', '20']]] as const) {
+    for (const value of values) {
+      await change(slider, value);
+      assert.equal(slider.value, value);
+    }
+  }
+  assert.match(container.textContent || '', /所需投入/);
+});
+
+test('退休頁最多新增十個自訂每月支出項目', async () => {
+  const { container, click, button } = await mount();
+  for (let index = 0; index < 10; index++) await click(button('新增自訂項目'));
+
+  assert.equal(container.querySelectorAll('input[placeholder="例如：退休後餐費"]').length, 10);
   assert.equal(button('新增自訂項目').disabled, true);
 });
