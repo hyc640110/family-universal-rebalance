@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T01:40:21.157520+00:00
+Generated UTC: 2026-08-16T03:17:08.399520+00:00
 
 ## Manifest
 
@@ -11,12 +11,12 @@ Generated UTC: 2026-08-16T01:40:21.157520+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `00f15a1d0eeb77a2b4e2670fd9a765b7294de5a27f328b331c8cfaf326d15885`
+- `003_CURRENT_STATUS.md` — SHA-256 `aa1de2485c1ad24a09518fbd8e439decd634c9feb03b667cb248803f0f879fdb`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `6b86a0a6aab3ea755aec668ee093c81e27deeb6ef541fc77801bb84766cd16ab`
+- `008_TODO_BACKLOG.md` — SHA-256 `5452dc23042fd416474373e2949040ad4db8a8be83823591cb6f52c88fef13b9`
 - `009_CHANGELOG.md` — SHA-256 `ab74e4f9cd495e181648df8587a64b3c6ab15eb11b8dcb20885ffdcd7805c712`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -655,9 +655,18 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.18
+# Universal Rebalance Current Status v4.19
 
-最後更新：2026-08-15
+最後更新：2026-08-16
+
+**新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）、UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關），`origin/main` 正式基線更新為 `5cc0fe5`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #361／`6d96c0b`）以來的 Merge：
+
+- **PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363)**（`chore/fix: 首頁 supportingItems 清理＋標題文案微調`），merge commit `93d5911`，一般 merge commit，未使用 admin override。UR-TODO-064 正式完成並 Merge，詳見下方獨立條目。
+- **PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364)**（`feat: 現金流工具頁按鈕移位＋收合開關`），merge commit `5cc0fe5`，一般 merge commit，未使用 admin override。UR-TODO-065 正式完成並 Merge，詳見下方獨立條目。
+
+兩項調整皆為本次對話中臨時發起、先前未正式登錄編號的產品調整，本次治理同步一併補登為正式 UR-TODO 條目並直接標記 CLOSED。Production 皆已唯讀確認功能正常，詳見 `008_TODO_BACKLOG.md` UR-TODO-064／UR-TODO-065 正式條目。
+
+---
 
 **UR-TODO-055（Loan／Investment Delivery Mapping）Contract Audit 結論補記，並修正 UR-TODO-054-A 對 Investment 的既有錯誤記錄；依 §8.2 六規則一併追平 PR #359 的一個 commit 落差。** 盤點以實際程式碼證實 UR-TODO-054-A 原記載「Investment 本就走既有通用 `safe-taxonomy-candidate` 路徑」不準確——`investmentAttribution` 欄位全庫零 UI 呼叫者，未設定時「投資」類別交易會被判定 `unsupported-taxonomy`，連候選清單都進不去，已正式修正記錄。UR-TODO-055 本身：底層 contract 已完整存在，缺口在交付層；Investment 側連基礎 Producer 都不存在，範圍比原描述更大；治理文件內未記載具體業務情境，比照 UR-TODO-054-C 判定為錦上添花性質，暫不建議開發。純治理文件記錄，**未修改任何 `src/`／`tests/` 程式碼**，`origin/main` 功能基線不因此變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A／UR-TODO-055 正式條目。
 
@@ -3033,9 +3042,13 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.88
+# Universal Rebalance Todo Backlog v1.89
 
-最後更新：2026-08-15
+最後更新：2026-08-16
+
+2026-08-16 **新增並正式標記 CLOSED：UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關）。** PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364) 已正式 Merge（merge commit `5cc0fe5`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`/tools/cash-flow`「固定支出清單」的「新增項目」按鈕從標題列移至清單最下方，與「儲存現金流設定」「清空設定」並排；標題列新增收合／展開開關，沿用全站既有 `SectionCard` 收合慣例（`collapsible-card`／`CollapseEyeIcon`），未發明新機制。純 UI 調整，不涉及計算邏輯或資料結構變更。Deploy GitHub Pages run [31923694128](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31923694128) success；Production 已唯讀確認按鈕新位置與收合開關正確運作、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-065** 正式條目。
+
+2026-08-16 **新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）。** PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363) 已正式 Merge（merge commit `93d5911`，一般 merge commit，未使用 admin override）。延續 UR-TODO-063 首頁瘦身方向，經 Repository 唯讀 Daily Decision UX Audit 發現兩處低風險小缺陷後修正：移除 `deriveInvestmentIntelligence()` 內完全未被消費的 `todayPerformance`／`attentionItems` 兩項計算欄位；「今日投資摘要」（`investment-summary-card`）eyebrow 由「今日投資摘要」改為「資產快照」，降低與「今日投資狀態」（`investment-intelligence-card`）標題混淆。**內容本身無重複，僅命名容易混淆，此為文案層級調整，非邏輯或資料流變更。** Deploy GitHub Pages run [31922805564](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31922805564) success；Production 已唯讀確認「資產快照」標題正確顯示、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-064** 正式條目。
 
 2026-08-15 **UR-TODO-056（FX Enhancement Bundle）Contract Audit 結論補記，維持「待規劃」狀態，判定四個子項皆不建議現在開發。** Contract Audit（Review Mode 唯讀盤點）逐項確認四個子項現況：(1) **FX valuation attribution**——`unexplainedResidual = netWorthChange - classifiedEventContribution`，USD 部位匯率波動效果留在此殘差是「沒有分類事件」的數學必然結果，非刻意規則；`fxValuation.ts` 目前只有單一時間點的估值（`ForeignCashValuation`），沒有跨快照拆解匯率波動貢獻的邏輯；四項中**唯一已有直接可重用基礎建設**（rate history、valuation function），相對複雜度較低。(2) **JPY/EUR 等其他貨幣對**——確認嚴格限定 TWD↔USD，`SUPPORTED_FX_CONVERSION_CURRENCIES`（`fxConversionIdentity.ts`）、`FxRateRecord.baseCurrency` 型別字面值（`fxValuation.ts`）、`cbcFxProvider.ts` 三處皆寫死為 `'USD'`；非 runtime 開關，橫跨型別系統／Worker 資料來源／UI 表單四層，擴充範圍大。(3) **Automated FX pairing**——全庫搜尋確認零雛形，唯一相關命中是既有程式碼註解「never auto-repaired, never silently guessed at」（刻意拒絕自動猜測的既有設計原則，非尚未實作的既定方向）；且「automated」具體場景（CSV 自動偵測配對？表單自動預填？）治理文件與程式碼皆未定義，**開發前需先做需求釐清，才能進行 Contract Audit**。(4) **進階 fee attribution**——現有 `none`／`explicit`／`included`／`unknown` 四態穩定運作；「進階」明確指向兩項已被 F2D 排除的能力：從匯率價差反推 fee（需先定義「市場匯率」基準，屬產品定義問題非技術缺口）、fee 表單內直接建立新交易（單純 UI 便利性改善，複雜度較低）。**四個子項架構上完全獨立、無強制依賴順序**（automated pairing 不需要先有 valuation attribution，JPY/EUR 擴充不影響其他三項）。治理文件內**未記載任何一項的具體業務情境**（無使用者提出的日圓部位、fee 計算不準、批次換匯等具體需求），比照 UR-TODO-054-C／055 判定邏輯，**四項皆判定為未經需求驗證的技術性擴充清單，不建議現在開發**。若未來啟動，建議：先確認具體業務情境、各自獨立走 Contract Audit（不得合併成單一 PR，本次確認四者架構上也確實彼此獨立）、automated pairing 需先定義場景才能稽核。詳見下方更新後的 **UR-TODO-056** 正式條目。
 
@@ -4174,6 +4187,40 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-065 現金流工具頁「新增項目」按鈕移位＋收合開關
+
+- 優先級：P3（使用者於首頁 Daily Decision UX Audit 之後臨時發起，同日盤點、定案並完成開發）
+- 狀態：**CLOSED（2026-08-16）／已完成**
+- 完成日期：2026-08-16
+- Merge 資訊：**PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364)**，merge commit `5cc0fe5`，一般 merge commit，**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，required check 通過後直接合併）。Deploy GitHub Pages run [31923694128](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31923694128) success，headSha 與 merge commit 一致；Production 已唯讀確認 `/#/tools/cash-flow` 頁面按鈕新位置與收合開關正確運作、其餘既有功能不受影響，console 無錯誤。
+- 提出日期：2026-08-16（使用者直接提出，同日盤點與開發）
+- 背景：`/tools/cash-flow`「固定支出清單」原本「新增項目」按鈕位於清單標題列，與「儲存現金流設定」按鈕分離；清單本身無收合機制，使用者希望調整按鈕位置並可收合清單。
+- **最終落地範圍**：
+  1. **按鈕移位**：「新增項目」從標題列移至清單最下方既有 `.actions` 列內，與「儲存現金流設定」「清空設定」並排（新增項目在左、儲存現金流設定居中、清空設定在右）。
+  2. **收合／展開開關**：標題列新增收合開關，沿用全站既有 `SectionCard` 的 `collapsible-card`／`section-toggle-row`／`section-toggle` CSS class 與共用 `CollapseEyeIcon`（Eye／EyeOff）元件視覺樣式，未發明新機制。因 `SectionCard` 本身定義於 `App.tsx` 內未匯出，`CashFlowPage.tsx` 以相同 class 結構手動複製一份等價 markup。收合時清單內所有項目（名稱／分類／金額／家庭流動性角色欄位，含空清單時的提示文字）完全隱藏，只留標題列；預設維持展開，不持久化。查證確認全庫僅此一套「眼睛圖示」慣例，本身即為收合／展開專用，不存在與「隱藏數字」功能混淆的風險。
+  3. **新增項目與收合狀態解耦**：按鈕移出標題列後不再受收合狀態影響，收合時點擊仍可正常新增項目（新項目暫時不可見，展開後可見）。
+- 技術落地：新增 `tests/cashFlowFixedExpensesCollapse.test.ts`（6 項，`jsdom`＋`react-dom/client` 真實渲染）：涵蓋預設展開、收合後所有欄位隱藏且只留標題列、再次展開恢復、空清單收合情境、按鈕位置與順序（原始碼比對）、收合狀態下新增項目仍可運作。`npx tsc -b`、`npm run test:ci`（1268 tests pass）、`node scripts/stability-check.mjs`、`npm run build`、`npm run build:preview` 皆成功；本機 dev server 375px 手機版與 Production 皆已實機驗證（見上方 Merge 資訊）。
+- 明確不包含：計算邏輯、資料結構、驗證規則修改；「支出結構」右側卡片或其他頁面；收合狀態持久化。
+- 依賴：無（獨立 UI 調整）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（按鈕位置正確、收合／展開開關正常運作、收合狀態下新增項目仍可運作、既有功能未受影響、手機版排版正常），Production 唯讀確認功能與既有頁面皆正常。
+
+### UR-TODO-064 首頁 supportingItems 清理＋標題文案微調
+
+- 優先級：P3（使用者於首頁 Daily Decision UX Audit 後直接拍板，同日盤點、定案並完成開發）
+- 狀態：**CLOSED（2026-08-16）／已完成**
+- 完成日期：2026-08-16
+- Merge 資訊：**PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363)**，merge commit `93d5911`，一般 merge commit，**未使用 admin override**（`mergeStateStatus` 為 `CLEAN`，required check 通過後直接合併）。Deploy GitHub Pages run [31922805564](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31922805564) success，headSha 與 merge commit 一致；Production 已唯讀確認首頁「資產快照」標題正確顯示、其餘既有區塊不受影響，console 無錯誤。
+- 提出日期：2026-08-16（延續 UR-TODO-063 首頁瘦身方向，經 Repository 唯讀「首頁 Daily Decision UX Audit」發現後直接拍板）
+- 背景：首頁 Daily Decision UX Audit（Review Mode 唯讀盤點）逐一比對首頁所有區塊內容，確認「今日投資狀態」與「今日投資摘要」兩者實際渲染內容互不重疊，但標題文字（eyebrow）一字之差容易混淆；另確認 `deriveInvestmentIntelligence()` 輸出的 `todayPerformance`（`supportingItems[1]`）與 `attentionItems` 兩個欄位全庫零消費者，屬死程式碼路徑。
+- **最終落地範圍**：
+  1. **移除未使用計算欄位**：`deriveInvestmentIntelligence()`（`src/lib/investmentIntelligence.ts`）輸出物件移除 `todayPerformance`／`attentionItems` 兩個欄位；`supportingItems` 陣列本身（含其索引 `[1]`／`[7]` 的元素）與其餘 6 項（`[0]`、`[2]`–`[6]`，皆有下游消費者 `dailyDecisionWorkflow.ts` → `investmentOpportunities`／`investmentActionCenter`）維持不動。
+  2. **標題文案微調**：`investment-summary-card`（`DashboardDecisionPage.tsx`）的 eyebrow 由「今日投資摘要」改為「資產快照」；`<h2>`（「資產與今日表現」）未變；「今日投資狀態」（`investment-intelligence-card`）維持不變。確認新文案不與其他既有頁面標題衝突（`/assets` 頁「資產總覽」SectionCard 為不同文字）。
+- **明確記錄**：內容本身無重複，僅命名容易混淆，此為文案層級調整，非邏輯或資料流變更。
+- 技術落地：更新 `tests/investmentIntelligence.test.ts`（改用 `supportingItems[1]` 取代已移除的 `todayPerformance`，新增兩項欄位不存在的鎖定斷言）；同步更新 `scripts/stability-check.mjs` 對應文字比對。`npx tsc -b`、`npm run test:ci`（1262 tests pass）、`node scripts/stability-check.mjs`、`npm run build`、`npm run build:preview` 皆成功；Preview 與 Production 皆已實機驗證（見上方 Merge 資訊）。
+- 明確不包含：`dailyDecisionWorkflow.ts` 及其消費 `supportingItems[0]`／`[2]`–`[6]` 的既有邏輯；任何區塊渲染順序／渲染條件；`todayDecision.ts` 與 `/assets` 頁「今日決策」SectionCard；schema／persistence／Ledger／attribution 核心邏輯。
+- 依賴：UR-TODO-063（已 CLOSED，首頁瘦身方向的既有先例，本次為其後續小型清理）。
+- 驗收條件（已達成）：使用者於 Preview 環境完整驗收（「資產快照」標題正確顯示、4 個數字內容不變、其他首頁區塊未受影響、手機版排版正常），Production 唯讀確認功能與既有頁面皆正常。
 
 ### UR-TODO-063 首頁瘦身——移除投資健康度、狀態確認改為異常才顯示
 
