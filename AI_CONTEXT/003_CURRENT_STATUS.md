@@ -1,10 +1,10 @@
-# Universal Rebalance Current Status v4.19
+# Universal Rebalance Current Status v4.20
 
 最後更新：2026-08-16
 
-**UR-TODO-066（退休提領規劃／retirement-planner）已進入 Development Mode，尚未 Merge。** 新工具頁只做退休支出與提領條件的數學試算；目前淨資產採既有即時計算 `totalAssets - debt`，不讀寫 net-worth history。退休草稿以加法式 `retirementPlan?` 持久化並納入 JSON Backup；它只從 Cash Flow 固定支出複製初始值，之後完全獨立，不回寫 `cashFlowProfile`。每月／年度所需投入直接重用 `calculateRequiredMonthlyContribution()`，不新增第二套複利公式。CLEC、再平衡、Ledger、attribution 與 Firebase 均不在本 Sprint 範圍；待 CI 與 Preview 驗收後才可建立 Merge 授權。
+**UR-TODO-066（退休提領規劃／retirement-planner）已於 2026-08-16 正式 CLOSED。** PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已以一般 merge commit `83223498afb196179f24f66c7f3009644e006765` 合併；CI Verification `31931191149` 與 main Deploy GitHub Pages `31931698419` 均成功，Production HTTP 200／`environment=production`。`origin/main` 現行正式基線為 `83223498afb196179f24f66c7f3009644e006765`。新工具頁只做退休支出與提領條件的數學試算；目前淨資產採既有即時計算 `totalAssets - debt`，不讀寫 net-worth history。退休草稿以加法式 `retirementPlan?` 持久化並納入 JSON Backup；固定支出改由使用者按「從現金流匯入」主動複製，之後完全獨立，不回寫 `cashFlowProfile`。每月／年度所需投入直接重用 `calculateRequiredMonthlyContribution()`，不新增第二套複利公式。CLEC、再平衡、Ledger、attribution 與 Firebase 均不在本 Todo 範圍。
 
-**新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）、UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關），`origin/main` 正式基線更新為 `5cc0fe5`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #361／`6d96c0b`）以來的 Merge：
+**新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）、UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關），當時 `origin/main` 基線更新為 `5cc0fe5`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #361／`6d96c0b`）以來的 Merge；現行基線見上方 UR-TODO-066 條目：
 
 - **PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363)**（`chore/fix: 首頁 supportingItems 清理＋標題文案微調`），merge commit `93d5911`，一般 merge commit，未使用 admin override。UR-TODO-064 正式完成並 Merge，詳見下方獨立條目。
 - **PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364)**（`feat: 現金流工具頁按鈕移位＋收合開關`），merge commit `5cc0fe5`，一般 merge commit，未使用 admin override。UR-TODO-065 正式完成並 Merge，詳見下方獨立條目。
