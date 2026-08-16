@@ -58,7 +58,11 @@ async function mount({ confirmResult = true, plan, profile = cashFlowProfile }: 
   const focus = async (input: HTMLInputElement) => { await act(async () => { input.focus(); }); };
   const blur = async (input: HTMLInputElement) => { await act(async () => { input.blur(); }); };
   const button = (label: string) => [...container.querySelectorAll('button')].find(item => item.textContent === label) as HTMLButtonElement;
-  return { container, saved, confirmCalls, alertCalls, click, change, focus, blur, button };
+  const deleteButtonFor = (itemName: string) => {
+    const nameInput = [...container.querySelectorAll('.retirement-expense-list input')].find(item => (item as HTMLInputElement).value === itemName) as HTMLInputElement;
+    return nameInput.closest('article')!.querySelector('button.danger') as HTMLButtonElement;
+  };
+  return { container, saved, confirmCalls, alertCalls, click, change, focus, blur, button, deleteButtonFor };
 }
 
 test('退休頁首次開啟保持空白草稿，不主動詢問或匯入現金流固定支出', async () => {
@@ -75,7 +79,7 @@ test('退休頁從現金流匯入按鈕會確認後覆蓋目前草稿，並只�
 
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '手動輸入');
   await click(button('從現金流匯入'));
-  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目，是否繼續？']);
+  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？']);
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '房租');
   assert.equal(saved.length, 0);
   await click(button('儲存退休規劃'));
@@ -102,7 +106,7 @@ test('已儲存退休草稿載入時仍可使用現金流匯入按鈕', async ()
   assert.deepEqual(confirmCalls, []);
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '已儲存支出');
   await click(button('從現金流匯入'));
-  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目，是否繼續？']);
+  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？']);
   assert.equal((container.querySelector('input[placeholder="支出名稱"]') as HTMLInputElement).value, '已儲存支出');
 });
 
@@ -157,4 +161,61 @@ test('退休頁最多新增十個自訂每月支出項目', async () => {
 
   assert.equal(container.querySelectorAll('input[placeholder="例如：退休後餐費"]').length, 10);
   assert.equal(button('新增自訂項目').disabled, true);
+});
+
+const multiItemProfile: CashFlowProfile = {
+  ...cashFlowProfile,
+  fixedExpenses: [
+    { id: 'rent', name: '房租', amount: 20_000, category: 'housing', enabled: true },
+    { id: 'internet', name: '中嘉寬頻+TV', amount: 1_200, category: 'subscription', enabled: true }
+  ]
+};
+
+test('匯入項目（非自訂項目）也顯示刪除按鈕，點擊後從清單正確移除，每月小計重新計算正確', async () => {
+  const plan = createRetirementPlanDraft(multiItemProfile);
+  const { container, saved, click, button, deleteButtonFor } = await mount({ plan, profile: multiItemProfile });
+
+  assert.deepEqual(plan.customFixedExpenseIds, [], '兩筆項目皆為匯入項目，不是自訂項目');
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 2);
+  const monthlySubtotal = () => container.querySelector('.retirement-summary article strong') as HTMLElement;
+  assert.match(monthlySubtotal().textContent || '', /2\.1 萬元/, '刪除前每月小計應為房租 20,000 ＋ 中嘉寬頻+TV 1,200 = 21,200 元');
+
+  await click(deleteButtonFor('中嘉寬頻+TV'));
+
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 1, '刪除後清單只剩一筆，無殘留');
+  assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), false);
+  assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '房租'), true, '未被刪除的房租項目維持不變');
+  assert.equal(monthlySubtotal().textContent, '2 萬元', '刪除後每月小計應只剩房租 20,000 元，正確重新計算，無殘留金額');
+
+  await click(button('儲存退休規劃'));
+  assert.deepEqual((saved[0] as { fixedExpenses: Array<{ id: string }> }).fixedExpenses.map(item => item.id), ['rent']);
+});
+
+test('自訂項目的刪除按鈕行為與匯入項目完全一致（同一個 handler，同一個 class）', async () => {
+  const { container, click, button, deleteButtonFor } = await mount();
+  await click(button('從現金流匯入'));
+  await click(button('新增自訂項目'));
+  const customNameInput = container.querySelector('input[placeholder="例如：退休後餐費"]') as HTMLInputElement;
+  const customDeleteButton = customNameInput.closest('article')!.querySelector('button.danger') as HTMLButtonElement;
+  const importedDeleteButton = deleteButtonFor('房租');
+
+  assert.equal(customDeleteButton.className, importedDeleteButton.className, '自訂與匯入項目的刪除按鈕必須是同一個 class，視覺樣式一致');
+  assert.equal(customDeleteButton.textContent, importedDeleteButton.textContent);
+
+  await click(importedDeleteButton);
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 1, '刪除匯入項目後只剩自訂項目');
+  assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '房租'), false);
+});
+
+test('刪除匯入項目後再次按「從現金流匯入」，被刪除的項目會重新出現（整份覆蓋既有行為，非合併）', async () => {
+  const alreadyDeletedPlan = createRetirementPlanDraft(multiItemProfile, { fixedExpenses: [multiItemProfile.fixedExpenses[0]!] });
+  const { container, confirmCalls, click, button } = await mount({ plan: alreadyDeletedPlan, profile: multiItemProfile });
+
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 1, '模擬使用者先前已刪除中嘉寬頻+TV，草稿只剩房租');
+
+  await click(button('從現金流匯入'));
+
+  assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？']);
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 2, '再次匯入是整份覆蓋 cashFlowProfile.fixedExpenses，不記得先前刪除過哪些項目，中嘉寬頻+TV 會重新出現');
+  assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), true);
 });
