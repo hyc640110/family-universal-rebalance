@@ -2,7 +2,7 @@
 
 最後更新：2026-08-16
 
-2026-08-16 **新增 UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸），狀態：Development Mode／Draft PR 待驗收。** 依使用者拍板方向，固定支出卡片改為頂端工具列（左「計入支出」勾選框、右 `Trash2` 圖示刪除按鈕），項目名稱與金額維持各自全寬單列；桌機與手機統一佈局，圖示按鈕至少 44×44px、具 `aria-label`，防止誤觸。唯讀盤點確認既有 `removeItem()` 只改本頁 `retirementPlan` 草稿，故資料過濾邏輯維持不變；但原版實際未設刪除確認，依本次驗收條件在按鈕 handler 補上 `window.confirm()`，取消時保留項目、確認後才呼叫既有 handler。不得改動 Cash Flow、persistence schema 或任何退休計算；待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
+2026-08-16 **UR-TODO-069 手機版 follow-up，狀態：Development Mode／Draft PR 待驗收。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge；本次從新 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a` 建立獨立 branch，只處理同一卡片在 390px 的完整「計入支出」勾選框與文字同列。原先 PR #372 已完成頂端工具列（左勾選框、右 `Trash2` 圖示刪除按鈕）、名稱／金額全寬單列、44×44px 刪除觸控區與確認刪除；追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 及 `.retirement-expense-enabled` class，不存在選擇器只命中一種來源的差異。實際根因是全域 `label` 的 `flex-direction:column` 未被原本的 `white-space:nowrap` 覆寫。本 follow-up 僅在 `max-width:768px` 對該共用 class 加入 `flex-direction:row; white-space:nowrap`；保留完整可存取文字與原生 label 語意，桌機布局、JSX、刪除確認、`removeItem()`、Cash Flow、persistence schema 與退休計算均不變。待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
 
 2026-08-16 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）正式標記 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已正式 Merge（merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`，一般 merge commit，未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge），`origin/main` 正式基線更新為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除；唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。Deploy GitHub Pages run [31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面桌機與 390px 手機 Preview 驗收。詳見下方 **UR-TODO-068** 正式條目。
 
@@ -1155,13 +1155,14 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-069 退休規劃固定支出卡片精簡＋刪除圖示防誤觸
 
 - 優先級：P3（退休規劃頁面既有卡片在手機滑動距離過長，使用者拍板精簡布局）
-- 狀態：**開發中／Draft PR 待驗收；未經使用者明確授權不得 Merge**
+- 狀態：**PR #372 已 Merge；手機版 follow-up 開發中／Draft PR 待驗收；未經使用者明確授權不得 Merge**
 - 提出日期：2026-08-16
 - 範圍：
   1. 固定支出卡片統一改為單欄：頂端工具列左側為「計入支出」勾選框，右側為既有 `lucide-react` `Trash2` 圖示按鈕；項目名稱與每月金額各自維持全寬獨立列，不以桌機／手機斷點分流。
   2. 圖示按鈕有中文 `aria-label`／提示文字，桌機與手機皆為至少 44×44px；以工具列 `justify-content: space-between` 與 16px gap 保持與勾選框分離，降低誤觸。
   3. `removeItem()` 的草稿資料過濾邏輯不變，不回寫 `cashFlowProfile`；依驗收條件在按鈕 handler 補上刪除確認，取消不修改草稿、確認才呼叫既有 handler。
   4. 更新 `retirementPlannerPage.test.ts`：鎖定圖示按鈕可存取名稱、頂端工具列結構、確認後刪除與取消保留行為。
+  5. 手機版 follow-up 僅在 `max-width:768px` 將共用勾選 label 明確設為 `flex-direction:row; white-space:nowrap`，使完整「計入支出」與勾選框同列；桌機布局與文字均維持原樣。
 - 明確不包含：退休試算公式、`retirementPlan` schema／localStorage／JSON Backup、Cash Flow 匯入／覆蓋邏輯、任何核心財務資料、其他頁面或圖示庫依賴。
 - 驗收條件：桌機與 390px 手機皆顯示同列勾選框／刪除圖示，名稱與金額各自全寬、無水平溢出；圖示按鈕保持 44px 觸控區、確認對話框出現、取消不刪除且確認後正確刪除；TypeScript、完整 CI、Production／Preview build 與 Preview 人工驗收均通過。
 
