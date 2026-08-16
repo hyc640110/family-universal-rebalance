@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import React, { createElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -236,4 +237,10 @@ test('刪除匯入項目後再次按「從現金流匯入」，被刪除的項�
   assert.deepEqual(confirmCalls, ['此動作將覆蓋目前已輸入的項目並重新載入現金流全部固定支出，先前在此清單中刪除的項目可能會重新出現，是否繼續？']);
   assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 2, '再次匯入是整份覆蓋 cashFlowProfile.fixedExpenses，不記得先前刪除過哪些項目，中嘉寬頻+TV 會重新出現');
   assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), true);
+});
+
+test('手機斷點固定支出勾選標籤保留完整文字且不換行', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(styles, /@media\(max-width:768px\)\{[^}]*\.retirement-expense-enabled\{[^}]*white-space:nowrap/);
 });
