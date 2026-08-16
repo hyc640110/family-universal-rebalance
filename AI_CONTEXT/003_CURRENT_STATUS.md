@@ -1,6 +1,15 @@
-# Universal Rebalance Current Status v4.20
+# Universal Rebalance Current Status v4.21
 
 最後更新：2026-08-16
+
+**新增並正式標記 CLOSED：UR-TODO-067（DraftInput 共用元件——顯示 0 時輸入被附加而非取代），`origin/main` 正式基線更新為 `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #366／`83223498afb196179f24f66c7f3009644e006765`）以來的 Merge：
+
+- **PR [#367](https://github.com/hyc640110/family-universal-rebalance/pull/367)**（`docs: close UR-TODO-066 retirement planner`），merge commit `c4c35962a5b9cf33fa9201c6925d978077af3df8`，一般 merge commit，未使用 admin override。純治理文件同步，追平 UR-TODO-066 自身無法宣告自己 merge commit 的結構性落差。
+- **PR [#368](https://github.com/hyc640110/family-universal-rebalance/pull/368)**（`fix: DraftInput replaces zero on focus instead of appending digits`），merge commit `b4d13eb1466d1ec2dee99b140f2a2fc083a96e33`，一般 merge commit，未使用 admin override，使用者親自執行 `gh pr merge 368 --merge`。UR-TODO-067 正式完成並 Merge，詳見下方獨立條目。
+
+使用者於驗收 UR-TODO-066 過程中發現金額輸入框「顯示 0 時輸入被附加而非取代」問題，排查確認退休頁面本身已於 PR #366 修正，但全站共用元件 `DraftInput`（`src/App.tsx`）存在同類、範圍更廣的既有缺陷（帳戶餘額 8 種類型、持股欄位、逢低提醒設定、加碼預算、股價更新秒數），本次同日臨時發起、盤點並完成開發，先前未正式登錄過編號，本次治理同步一併補登為正式 UR-TODO 條目並直接標記 CLOSED。修正為單一加法式變更（`DraftInput` 的 `onFocus` 新增清空字面 `0` 判斷），不影響任何底層資料結構或計算邏輯。CI Verification `31933131406`、Deploy GitHub Pages `31933735266` 均成功；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署 bundle 逐位元組比對完全一致、既有功能與 console 皆正常，未於正式站台輸入資料污染真實帳目，詳見 `008_TODO_BACKLOG.md` UR-TODO-067 正式條目。
+
+---
 
 **UR-TODO-066（退休提領規劃／retirement-planner）已於 2026-08-16 正式 CLOSED。** PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已以一般 merge commit `83223498afb196179f24f66c7f3009644e006765` 合併；CI Verification `31931191149` 與 main Deploy GitHub Pages `31931698419` 均成功，Production HTTP 200／`environment=production`。`origin/main` 現行正式基線為 `83223498afb196179f24f66c7f3009644e006765`。新工具頁只做退休支出與提領條件的數學試算；目前淨資產採既有即時計算 `totalAssets - debt`，不讀寫 net-worth history。退休草稿以加法式 `retirementPlan?` 持久化並納入 JSON Backup；固定支出改由使用者按「從現金流匯入」主動複製，之後完全獨立，不回寫 `cashFlowProfile`。每月／年度所需投入直接重用 `calculateRequiredMonthlyContribution()`，不新增第二套複利公式。CLEC、再平衡、Ledger、attribution 與 Firebase 均不在本 Todo 範圍。
 
