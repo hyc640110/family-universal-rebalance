@@ -8,7 +8,16 @@
 
 ---
 
-## 最新交接快照：UR-TODO-066 退休提領規劃（CLOSED，2026-08-16）
+## 最新交接快照：UR-TODO-069 退休規劃固定支出卡片精簡（開發中，2026-08-16）
+
+- 正式起點：`origin/main` `299ef0d1616b2700e33d8b1fa74e4f936742f960`；獨立 branch `codex/ur-todo-069-retirement-expense-delete-layout`，原工作目錄 stash 與未追蹤項目不在此 worktree 內。
+- 已定案 UI：每張固定支出卡片統一使用單欄，頂端工具列左「計入支出」勾選框、右 `lucide-react` `Trash2` 圖示按鈕；項目名稱／金額各自全寬單列，桌機與手機不分斷點。按鈕 44×44px、`aria-label`／title 齊備；390px 實測無水平溢出且與勾選框有足夠間距。
+- 行為邊界：`removeItem()` 不變、只移除本頁 `retirementPlan` 草稿項目，不回寫 Cash Flow。唯讀盤點發現前版沒有刪除確認；本 Sprint 依明確驗收條件在按鈕 handler 新增 `window.confirm()`，取消則不變、確認才移除。
+- 測試：已新增圖示按鈕／同列結構與確認取消 regression tests，先在舊實作觀察到預期失敗，再以最小實作轉綠；仍需完整 CI／build、Bundle、Draft PR 與 Preview 驗收。不得自行 Merge。
+
+---
+
+## 前一交接快照：UR-TODO-066 退休提領規劃（CLOSED，2026-08-16）
 
 - 正式結案：PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已一般 Merge，merge commit／最新 `origin/main` `83223498afb196179f24f66c7f3009644e006765`；CI `31931191149`、main Deploy `31931698419` success，Production HTTP 200／`environment=production`，未使用 admin override。
 - 已完成 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不偽造精確投入金額。

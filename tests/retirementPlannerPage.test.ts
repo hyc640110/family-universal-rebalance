@@ -173,14 +173,20 @@ const multiItemProfile: CashFlowProfile = {
 
 test('匯入項目（非自訂項目）也顯示刪除按鈕，點擊後從清單正確移除，每月小計重新計算正確', async () => {
   const plan = createRetirementPlanDraft(multiItemProfile);
-  const { container, saved, click, button, deleteButtonFor } = await mount({ plan, profile: multiItemProfile });
+  const { container, saved, confirmCalls, click, button, deleteButtonFor } = await mount({ plan, profile: multiItemProfile });
 
   assert.deepEqual(plan.customFixedExpenseIds, [], '兩筆項目皆為匯入項目，不是自訂項目');
   assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 2);
   const monthlySubtotal = () => container.querySelector('.retirement-summary article strong') as HTMLElement;
   assert.match(monthlySubtotal().textContent || '', /2\.1 萬元/, '刪除前每月小計應為房租 20,000 ＋ 中嘉寬頻+TV 1,200 = 21,200 元');
 
-  await click(deleteButtonFor('中嘉寬頻+TV'));
+  const deleteButton = deleteButtonFor('中嘉寬頻+TV');
+  assert.equal(deleteButton.getAttribute('aria-label'), '刪除固定支出 中嘉寬頻+TV');
+  assert.ok(deleteButton.classList.contains('retirement-expense-delete'));
+  assert.equal(deleteButton.closest('.retirement-expense-toolbar')?.querySelector('.retirement-expense-enabled input[type="checkbox"]') !== null, true, '勾選框與刪除圖示必須位於同一個頂端工具列');
+  await click(deleteButton);
+
+  assert.deepEqual(confirmCalls, ['確定要刪除「中嘉寬頻+TV」嗎？']);
 
   assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 1, '刪除後清單只剩一筆，無殘留');
   assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), false);
@@ -189,6 +195,17 @@ test('匯入項目（非自訂項目）也顯示刪除按鈕，點擊後從清�
 
   await click(button('儲存退休規劃'));
   assert.deepEqual((saved[0] as { fixedExpenses: Array<{ id: string }> }).fixedExpenses.map(item => item.id), ['rent']);
+});
+
+test('取消刪除固定支出時保留原項目，避免圖示按鈕誤觸造成資料遺失', async () => {
+  const plan = createRetirementPlanDraft(multiItemProfile);
+  const { container, confirmCalls, click, deleteButtonFor } = await mount({ plan, profile: multiItemProfile, confirmResult: false });
+
+  await click(deleteButtonFor('中嘉寬頻+TV'));
+
+  assert.deepEqual(confirmCalls, ['確定要刪除「中嘉寬頻+TV」嗎？']);
+  assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 2);
+  assert.equal([...container.querySelectorAll('.retirement-expense-list input')].some(item => (item as HTMLInputElement).value === '中嘉寬頻+TV'), true);
 });
 
 test('自訂項目的刪除按鈕行為與匯入項目完全一致（同一個 handler，同一個 class）', async () => {
@@ -200,7 +217,8 @@ test('自訂項目的刪除按鈕行為與匯入項目完全一致（同一個 h
   const importedDeleteButton = deleteButtonFor('房租');
 
   assert.equal(customDeleteButton.className, importedDeleteButton.className, '自訂與匯入項目的刪除按鈕必須是同一個 class，視覺樣式一致');
-  assert.equal(customDeleteButton.textContent, importedDeleteButton.textContent);
+  assert.equal(customDeleteButton.getAttribute('aria-label'), '刪除固定支出 未命名');
+  assert.equal(importedDeleteButton.getAttribute('aria-label'), '刪除固定支出 房租');
 
   await click(importedDeleteButton);
   assert.equal(container.querySelectorAll('.retirement-expense-list article').length, 1, '刪除匯入項目後只剩自訂項目');
