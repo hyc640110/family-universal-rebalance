@@ -48,7 +48,7 @@ export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardRem
     <CreditCardDueSoonCard reminders={data.creditCardDueSoonReminders} onAcknowledge={onAcknowledgeCreditCardReminder} />
 
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
-      <div className="dashboard-section-heading"><div><p className="eyebrow">今日投資摘要</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
+      <div className="dashboard-section-heading"><div><p className="eyebrow">資產快照</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
       <div className="investment-summary-grid investment-summary-grid-compact">
         <article><small>總資產</small><strong>{money(data.total)}</strong></article>
         <article><small>淨資產</small><strong>{money(data.net)}</strong></article>

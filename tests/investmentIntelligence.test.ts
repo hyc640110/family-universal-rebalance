@@ -18,12 +18,14 @@ test('is deterministic, traceable, and never mutates its derived input', () => {
   const input = base(); const before = JSON.stringify(input); const result = deriveInvestmentIntelligence(input);
   assert.deepEqual(deriveInvestmentIntelligence(input), result); assert.equal(JSON.stringify(input), before);
   assert.equal(result.nextAction.route, '/tools/dividend-center'); assert.equal(result.supportingItems.length, 8);
+  assert.equal('todayPerformance' in result, false, 'todayPerformance was removed as an unused output field — supportingItems[1] still carries the same data');
+  assert.equal('attentionItems' in result, false, 'attentionItems was removed as an unused output field');
 });
 
 test('data-quality faults outrank every other status and keep unavailable values explicit', () => {
   const result = deriveInvestmentIntelligence(base({ dashboard: { dayPnl: null, dayPnlRate: null, quoteStatus: '部分標的報價日期不明', holdingsCount: 1 }, portfolioRisk: { ...base().portfolioRisk, quality: { items: ['日期不明', '備援價格（估值可用，報價品質不足）'] } }, risk: { overallLevel: 3, overallLabel: '高風險', primaryRisk: { title: '槓桿資產', status: '高風險', reason: '測試。' } } }));
   assert.equal(result.overallStatus, '資料不足'); assert.equal(result.nextAction.route, '/assets');
-  assert.match(result.todayPerformance.value, /資料不足/); assert.doesNotMatch(result.todayPerformance.detail, /0 元/);
+  assert.match(result.supportingItems[1].value, /資料不足/); assert.doesNotMatch(result.supportingItems[1].detail, /0 元/);
 });
 
 test('high-risk, blocked and usable rebalance follow the required single-action priority', () => {
