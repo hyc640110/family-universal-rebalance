@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T03:17:08.399520+00:00
+Generated UTC: 2026-08-16T04:07:33.283568+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `aa1de2485c1ad24a09518fbd8e439decd634c9feb03b667cb248803f0f879fdb`
-- `008_TODO_BACKLOG.md` — SHA-256 `5452dc23042fd416474373e2949040ad4db8a8be83823591cb6f52c88fef13b9`
-- `012_AI_HANDOVER.md` — SHA-256 `372727711f35964c41aeba864ec89902709d9799657a3cb972d57bb7c9d29745`
+- `003_CURRENT_STATUS.md` — SHA-256 `84203cc9da99da7e0033a4d2bc760aadbe61322ab68cc2c849eb7b6cd73ea95c`
+- `008_TODO_BACKLOG.md` — SHA-256 `83ca194215b8a4afb79a0923322a5a3d1d2d6119ef898248e041ff62e8d033b4`
+- `012_AI_HANDOVER.md` — SHA-256 `8b4d5b1564f70942eea45924e34bcd6f01497620ff429f49c2e265da671338e0`
 
 ---
 
@@ -428,6 +428,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 # Universal Rebalance Current Status v4.19
 
 最後更新：2026-08-16
+
+**UR-TODO-066（退休提領規劃／retirement-planner）已進入 Development Mode，尚未 Merge。** 新工具頁只做退休支出與提領條件的數學試算；目前淨資產採既有即時計算 `totalAssets - debt`，不讀寫 net-worth history。退休草稿以加法式 `retirementPlan?` 持久化並納入 JSON Backup；它只從 Cash Flow 固定支出複製初始值，之後完全獨立，不回寫 `cashFlowProfile`。每月／年度所需投入直接重用 `calculateRequiredMonthlyContribution()`，不新增第二套複利公式。CLEC、再平衡、Ledger、attribution 與 Firebase 均不在本 Sprint 範圍；待 CI 與 Preview 驗收後才可建立 Merge 授權。
 
 **新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）、UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關），`origin/main` 正式基線更新為 `5cc0fe5`。** 依 §8.2 六「治理文件最終一致性」規則一併追平自上次基線陳述（PR #361／`6d96c0b`）以來的 Merge：
 
@@ -1166,6 +1168,8 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 # Universal Rebalance Todo Backlog v1.89
 
 最後更新：2026-08-16
+
+2026-08-16 **新增 UR-TODO-066（退休提領規劃／retirement-planner），狀態：開發中。** 本 Sprint 以獨立工具頁提供退休支出、提領率與填補缺口的數學試算；「每年需投入」與「平均每月負擔」直接重用 `wealthGoal.ts` 的 `calculateRequiredMonthlyContribution()` 月複利年金反推，不新建第二套年複利公式。退休草稿是獨立、加法式 `AppState.retirementPlan?`，初始可從 `cashFlowProfile.fixedExpenses` 複製但永不回寫現金流，並透過 localStorage／JSON Backup round-trip 保存。明確不接入 CLEC／再平衡／任何正式決策引擎，不寫入 netWorthHistory、Ledger 或 attribution。待 CI 與 Preview 驗收後才可進入 Review／Merge 流程。
 
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關）。** PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364) 已正式 Merge（merge commit `5cc0fe5`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`/tools/cash-flow`「固定支出清單」的「新增項目」按鈕從標題列移至清單最下方，與「儲存現金流設定」「清空設定」並排；標題列新增收合／展開開關，沿用全站既有 `SectionCard` 收合慣例（`collapsible-card`／`CollapseEyeIcon`），未發明新機制。純 UI 調整，不涉及計算邏輯或資料結構變更。Deploy GitHub Pages run [31923694128](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31923694128) success；Production 已唯讀確認按鈕新位置與收合開關正確運作、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-065** 正式條目。
 
@@ -2309,6 +2313,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
 
+### UR-TODO-066 退休提領規劃（retirement-planner）
+
+- 優先級：P2（使用者確認需求與資料契約後正式開發）
+- 狀態：**開發中／Draft PR 待審閱；未經使用者明確授權不得 Merge**
+- 提出日期：2026-08-16
+- 背景：現有 `/tools/wealth-goal` 可設定單一財富目標，但沒有以退休支出、提領率與退休年限呈現 FIRE 目標及缺口投入條件的獨立工具。
+- 範圍：
+  1. 加法式 `AppState.retirementPlan?`：保存本頁 fixed expenses draft、旅遊／保險年度大額支出、提領率、退休年限與預期年化報酬；其 localStorage、JSON Backup normalizer 與 import/export 必須同步保留相容。
+  2. 每月支出只消費一份從 `cashFlowProfile.fixedExpenses` 複製而來的初始 draft；後續調整只寫入 `retirementPlan`，不可回寫 `cashFlowProfile`。
+  3. FIRE 目標＝年總開銷 ÷ 提領率；目前達成率使用即時計算的 `totalAssets - debt`；缺口投入使用既有 `calculateRequiredMonthlyContribution()` 的月複利年金反推，月回傳值即平均每月負擔、乘以 12 為每年需投入。
+  4. 啟用 `/tools/retirement-planner` 與 Tool Center 卡片；提供最多五個自訂支出、4% 法則說明、退休年限與年化報酬滑桿、儲存按鈕及非投資建議免責文字。
+- 明確不包含：修改 `cashFlow.ts`／`wealthGoal.ts` 的既有公式或函式簽名；CLEC、再平衡、AI Decision、正式投資建議；netWorthHistory、Financial Event Ledger、attribution、Firebase 或任何自動同步；任何 Production deploy／Merge。
+- 驗收條件：4% FIRE、達成率、零報酬與零退休年限邊界、現金流 draft 隔離、localStorage／JSON Backup round-trip、自訂項目上限、工具路由、TypeScript、完整 CI、Production／Preview build、Preview 桌機與手機驗收。
+
 ### UR-TODO-065 現金流工具頁「新增項目」按鈕移位＋收合開關
 
 - 優先級：P3（使用者於首頁 Daily Decision UX Audit 之後臨時發起，同日盤點、定案並完成開發）
@@ -2935,6 +2953,15 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-066 退休提領規劃（開發中，2026-08-16）
+
+- 正式起點：Development Mode 已以 `origin/main` `f4eab512cd5947fef035902d88445e79171c961b` 建立獨立 branch `codex/ur-todo-066-retirement-planner`；既有 stash 與原工作目錄未追蹤項目不在此 worktree 內。
+- 已定案 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入必須直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不可偽造精確投入金額。
+- persistence：`retirementPlan?` 是 additive App state／JSON Backup 欄位；其固定支出初次由 `cashFlowProfile.fixedExpenses` 複製，後續儲存與編輯不可寫回 Cash Flow。它不寫入 snapshot、Ledger、attribution 或任何同步服務。
+- UI scope：`/tools/retirement-planner` 啟用既有工具卡；提供固定支出 draft、最多 5 筆自訂支出、旅遊／保險年度支出、1%～20%提領率、退休年限與預期年化報酬滑桿、FIRE／達成率／投入金額與免責文字。Draft PR 交付、CI 與 Preview 驗收依既有流程進行；未經使用者明確授權不得 Merge 或部署 Production。
 
 ---
 

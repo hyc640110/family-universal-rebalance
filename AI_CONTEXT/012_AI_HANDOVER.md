@@ -8,6 +8,15 @@
 
 ---
 
+## 最新交接快照：UR-TODO-066 退休提領規劃（開發中，2026-08-16）
+
+- 正式起點：Development Mode 已以 `origin/main` `f4eab512cd5947fef035902d88445e79171c961b` 建立獨立 branch `codex/ur-todo-066-retirement-planner`；既有 stash 與原工作目錄未追蹤項目不在此 worktree 內。
+- 已定案 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入必須直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不可偽造精確投入金額。
+- persistence：`retirementPlan?` 是 additive App state／JSON Backup 欄位；其固定支出初次由 `cashFlowProfile.fixedExpenses` 複製，後續儲存與編輯不可寫回 Cash Flow。它不寫入 snapshot、Ledger、attribution 或任何同步服務。
+- UI scope：`/tools/retirement-planner` 啟用既有工具卡；提供固定支出 draft、最多 5 筆自訂支出、旅遊／保險年度支出、1%～20%提領率、退休年限與預期年化報酬滑桿、FIRE／達成率／投入金額與免責文字。Draft PR 交付、CI 與 Preview 驗收依既有流程進行；未經使用者明確授權不得 Merge 或部署 Production。
+
+---
+
 ## 最新交接快照：UR-TODO-054-A Closed／UR-TODO-054-B Audit GO（2026-08-14）
 
 - 任務背景：UR-TODO-046 Final Audit／Closeout（見下方歷史交接快照）拆出 UR-TODO-054（Attribution Confirmation Lifecycle UI），本輪正式完成第一個子項 054-A（Loan Confirmation UI）的開發／Preview 驗收／Merge，並完成第二個子項 054-B（FX Confirmation UI）的 Review Mode Contract Audit。

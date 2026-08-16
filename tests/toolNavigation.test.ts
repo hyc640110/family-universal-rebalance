@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 // matching its position in TOOL_DEFINITIONS (etf-xray and monte-carlo still have no route).
 const expectedQuickOrder = [
   'investment-backtest', 'investment-action-center', 'import-transactions', 'dividend-center', 'ai-decision', 'portfolio-risk', 'rebalance-recommendation', 'clec-strategy',
-  'wealth-goal', 'cash-flow', 'net-worth-history', 'allocation-simulator', 'risk-center'
+  'wealth-goal', 'cash-flow', 'net-worth-history', 'retirement-planner', 'allocation-simulator', 'risk-center'
 ];
 
 test('Tool Center and quick navigation share one ordered route definition', () => {

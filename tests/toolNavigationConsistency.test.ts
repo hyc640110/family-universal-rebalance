@@ -13,6 +13,7 @@ const toolPages = [
   'src/pages/RebalanceRecommendationPage.tsx',
   'src/pages/ClecStrategyCenterPage.tsx',
   'src/pages/WealthGoalPage.tsx',
+  'src/pages/RetirementPlannerPage.tsx',
   'src/pages/CashFlowPage.tsx',
   'src/pages/NetWorthHistoryPage.tsx',
   'src/pages/AllocationSimulatorPage.tsx',

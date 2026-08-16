@@ -2,6 +2,8 @@
 
 最後更新：2026-08-16
 
+2026-08-16 **新增 UR-TODO-066（退休提領規劃／retirement-planner），狀態：開發中。** 本 Sprint 以獨立工具頁提供退休支出、提領率與填補缺口的數學試算；「每年需投入」與「平均每月負擔」直接重用 `wealthGoal.ts` 的 `calculateRequiredMonthlyContribution()` 月複利年金反推，不新建第二套年複利公式。退休草稿是獨立、加法式 `AppState.retirementPlan?`，初始可從 `cashFlowProfile.fixedExpenses` 複製但永不回寫現金流，並透過 localStorage／JSON Backup round-trip 保存。明確不接入 CLEC／再平衡／任何正式決策引擎，不寫入 netWorthHistory、Ledger 或 attribution。待 CI 與 Preview 驗收後才可進入 Review／Merge 流程。
+
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關）。** PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364) 已正式 Merge（merge commit `5cc0fe5`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`/tools/cash-flow`「固定支出清單」的「新增項目」按鈕從標題列移至清單最下方，與「儲存現金流設定」「清空設定」並排；標題列新增收合／展開開關，沿用全站既有 `SectionCard` 收合慣例（`collapsible-card`／`CollapseEyeIcon`），未發明新機制。純 UI 調整，不涉及計算邏輯或資料結構變更。Deploy GitHub Pages run [31923694128](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31923694128) success；Production 已唯讀確認按鈕新位置與收合開關正確運作、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-065** 正式條目。
 
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-064（首頁 supportingItems 清理＋標題文案微調）。** PR [#363](https://github.com/hyc640110/family-universal-rebalance/pull/363) 已正式 Merge（merge commit `93d5911`，一般 merge commit，未使用 admin override）。延續 UR-TODO-063 首頁瘦身方向，經 Repository 唯讀 Daily Decision UX Audit 發現兩處低風險小缺陷後修正：移除 `deriveInvestmentIntelligence()` 內完全未被消費的 `todayPerformance`／`attentionItems` 兩項計算欄位；「今日投資摘要」（`investment-summary-card`）eyebrow 由「今日投資摘要」改為「資產快照」，降低與「今日投資狀態」（`investment-intelligence-card`）標題混淆。**內容本身無重複，僅命名容易混淆，此為文案層級調整，非邏輯或資料流變更。** Deploy GitHub Pages run [31922805564](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31922805564) success；Production 已唯讀確認「資產快照」標題正確顯示、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-064** 正式條目。
@@ -1143,6 +1145,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   3. 「關聯帳戶」欄位原本是草案唯讀盤點階段就存在的選配欄位，但一度因「目前用不到」被隱藏 UI；後續應使用者要求重新提升為主要識別方式（方案 B）並放寬可選帳戶類型（原僅信用卡 → 銀行＋信用卡），為多輪迭代後的最終定案，與最初草案的欄位定位不同。
 - 明確不包含：從交易記錄自動偵測／加總信用卡消費金額（B2，未實作）；信用卡專屬交易 taxonomy 或歸因型別；使用者可自訂提醒天數（固定 3 天）；FinancialEvent／Ledger／attribution 任何修改。
 - 驗收條件（已達成）：Preview 與 Production 皆已驗收，涵蓋基本提醒流程、完成按鈕、逾期顯示、關聯帳戶銀行／信用卡篩選、已刪除帳戶防呆、手機版排版。
+
+### UR-TODO-066 退休提領規劃（retirement-planner）
+
+- 優先級：P2（使用者確認需求與資料契約後正式開發）
+- 狀態：**開發中／Draft PR 待審閱；未經使用者明確授權不得 Merge**
+- 提出日期：2026-08-16
+- 背景：現有 `/tools/wealth-goal` 可設定單一財富目標，但沒有以退休支出、提領率與退休年限呈現 FIRE 目標及缺口投入條件的獨立工具。
+- 範圍：
+  1. 加法式 `AppState.retirementPlan?`：保存本頁 fixed expenses draft、旅遊／保險年度大額支出、提領率、退休年限與預期年化報酬；其 localStorage、JSON Backup normalizer 與 import/export 必須同步保留相容。
+  2. 每月支出只消費一份從 `cashFlowProfile.fixedExpenses` 複製而來的初始 draft；後續調整只寫入 `retirementPlan`，不可回寫 `cashFlowProfile`。
+  3. FIRE 目標＝年總開銷 ÷ 提領率；目前達成率使用即時計算的 `totalAssets - debt`；缺口投入使用既有 `calculateRequiredMonthlyContribution()` 的月複利年金反推，月回傳值即平均每月負擔、乘以 12 為每年需投入。
+  4. 啟用 `/tools/retirement-planner` 與 Tool Center 卡片；提供最多五個自訂支出、4% 法則說明、退休年限與年化報酬滑桿、儲存按鈕及非投資建議免責文字。
+- 明確不包含：修改 `cashFlow.ts`／`wealthGoal.ts` 的既有公式或函式簽名；CLEC、再平衡、AI Decision、正式投資建議；netWorthHistory、Financial Event Ledger、attribution、Firebase 或任何自動同步；任何 Production deploy／Merge。
+- 驗收條件：4% FIRE、達成率、零報酬與零退休年限邊界、現金流 draft 隔離、localStorage／JSON Backup round-trip、自訂項目上限、工具路由、TypeScript、完整 CI、Production／Preview build、Preview 桌機與手機驗收。
 
 ### UR-TODO-065 現金流工具頁「新增項目」按鈕移位＋收合開關
 
