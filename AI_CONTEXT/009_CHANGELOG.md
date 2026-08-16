@@ -1,5 +1,7 @@
 # Universal Rebalance Changelog
 
+**UR-TODO-066 退休提領規劃正式結案（2026-08-16）**：PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已 Merge，merge commit `83223498afb196179f24f66c7f3009644e006765`，一般 merge、未使用 admin override。新增 `/tools/retirement-planner`，以既有 `calculateRequiredMonthlyContribution()` 計算 FIRE 缺口投入，退休草稿以加法式 `retirementPlan` 保存並相容 localStorage／JSON Backup；工具導覽已由規劃中啟用。完成 Preview 驗收與 Production 唯讀驗證後，CI `31931191149`、Deploy `31931698419` 成功。開發期間修正滑桿 event 延遲讀取崩潰、零值金額輸入附加、以及把首次自動匯入詢問改成主動「從現金流匯入」按鈕（含覆蓋確認與空來源提示）。
+
 本文件記錄已完成並通過驗收的重要變更。
 
 格式參考 Keep a Changelog，但可依專案實際版本調整。

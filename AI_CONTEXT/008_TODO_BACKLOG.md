@@ -1,8 +1,8 @@
-# Universal Rebalance Todo Backlog v1.89
+# Universal Rebalance Todo Backlog v1.90
 
 最後更新：2026-08-16
 
-2026-08-16 **新增 UR-TODO-066（退休提領規劃／retirement-planner），狀態：開發中。** 本 Sprint 以獨立工具頁提供退休支出、提領率與填補缺口的數學試算；「每年需投入」與「平均每月負擔」直接重用 `wealthGoal.ts` 的 `calculateRequiredMonthlyContribution()` 月複利年金反推，不新建第二套年複利公式。退休草稿是獨立、加法式 `AppState.retirementPlan?`，初始可從 `cashFlowProfile.fixedExpenses` 複製但永不回寫現金流，並透過 localStorage／JSON Backup round-trip 保存。明確不接入 CLEC／再平衡／任何正式決策引擎，不寫入 netWorthHistory、Ledger 或 attribution。待 CI 與 Preview 驗收後才可進入 Review／Merge 流程。
+2026-08-16 **UR-TODO-066（退休提領規劃／retirement-planner）正式標記 CLOSED。** PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已 Merge（一般 merge commit `83223498afb196179f24f66c7f3009644e006765`，未使用 admin override）；CI Verification `31931191149` 與 main Deploy GitHub Pages `31931698419` success，Production 已唯讀確認退休頁與工具導覽正確載入、HTTP 200／`environment=production`。
 
 2026-08-16 **新增並正式標記 CLOSED：UR-TODO-065（現金流工具頁「新增項目」按鈕移位＋收合開關）。** PR [#364](https://github.com/hyc640110/family-universal-rebalance/pull/364) 已正式 Merge（merge commit `5cc0fe5`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。`/tools/cash-flow`「固定支出清單」的「新增項目」按鈕從標題列移至清單最下方，與「儲存現金流設定」「清空設定」並排；標題列新增收合／展開開關，沿用全站既有 `SectionCard` 收合慣例（`collapsible-card`／`CollapseEyeIcon`），未發明新機制。純 UI 調整，不涉及計算邏輯或資料結構變更。Deploy GitHub Pages run [31923694128](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31923694128) success；Production 已唯讀確認按鈕新位置與收合開關正確運作、既有功能不受影響，console 無錯誤。詳見下方 **UR-TODO-065** 正式條目。
 
@@ -1149,16 +1149,24 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-066 退休提領規劃（retirement-planner）
 
 - 優先級：P2（使用者確認需求與資料契約後正式開發）
-- 狀態：**開發中／Draft PR 待審閱；未經使用者明確授權不得 Merge**
+- 狀態：**CLOSED（2026-08-16）／已完成、已 Merge、Production Verified**
+- 完成日期：2026-08-16
+- Merge 資訊：**PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366)**，一般 merge commit `83223498afb196179f24f66c7f3009644e006765`，未使用 admin override；PR CI Verification `31931191149` success，main Deploy GitHub Pages `31931698419` success，head SHA 與 merge commit 一致。Production HTTP 200／`environment=production`；退休頁、工具導覽與既有功能 smoke check 均正常，console 無產品 error。
 - 提出日期：2026-08-16
-- 背景：現有 `/tools/wealth-goal` 可設定單一財富目標，但沒有以退休支出、提領率與退休年限呈現 FIRE 目標及缺口投入條件的獨立工具。
-- 範圍：
-  1. 加法式 `AppState.retirementPlan?`：保存本頁 fixed expenses draft、旅遊／保險年度大額支出、提領率、退休年限與預期年化報酬；其 localStorage、JSON Backup normalizer 與 import/export 必須同步保留相容。
-  2. 每月支出只消費一份從 `cashFlowProfile.fixedExpenses` 複製而來的初始 draft；後續調整只寫入 `retirementPlan`，不可回寫 `cashFlowProfile`。
-  3. FIRE 目標＝年總開銷 ÷ 提領率；目前達成率使用即時計算的 `totalAssets - debt`；缺口投入使用既有 `calculateRequiredMonthlyContribution()` 的月複利年金反推，月回傳值即平均每月負擔、乘以 12 為每年需投入。
-  4. 啟用 `/tools/retirement-planner` 與 Tool Center 卡片；提供最多五個自訂支出、4% 法則說明、退休年限與年化報酬滑桿、儲存按鈕及非投資建議免責文字。
-- 明確不包含：修改 `cashFlow.ts`／`wealthGoal.ts` 的既有公式或函式簽名；CLEC、再平衡、AI Decision、正式投資建議；netWorthHistory、Financial Event Ledger、attribution、Firebase 或任何自動同步；任何 Production deploy／Merge。
-- 驗收條件：4% FIRE、達成率、零報酬與零退休年限邊界、現金流 draft 隔離、localStorage／JSON Backup round-trip、自訂項目上限、工具路由、TypeScript、完整 CI、Production／Preview build、Preview 桌機與手機驗收。
+- 背景：使用者提供具體參考設計截圖（4% 法則 FIRE 計算器）；Repository 唯讀盤點確認 `wealthGoal.ts` 已有可重用的月複利年金反推公式 `calculateRequiredMonthlyContribution()`，現金流固定支出清單也已有「props 正式資料 → 本地 draft → 不自動寫回」慣例可沿用。
+- 最終落地範圍：
+  1. 新增 `/tools/retirement-planner` 頁面：每月經常性開銷、年度大額開銷、年提領率滑桿（1%～20%，預設 4%）、目標退休金（FIRE）、目前達成率、退休年限與預期年化報酬滑桿，以及反推每年／每月需投入與免責文字。
+  2. 自訂每月支出上限為 10；現金流固定支出以「從現金流匯入」主動按鈕複製至退休草稿，已有草稿項目時先確認覆蓋，來源無資料時明確提示，不回寫 `cashFlowProfile`。
+  3. 新增加法式 `AppState.retirementPlan` 持久化（fixed expenses draft、旅遊／保險年度大額支出、提領率、退休年限、預期年化報酬），並保持 localStorage／JSON Backup 相容。
+  4. Tool Center 的 `retirement-planner` 條目補上路由，從「規劃中」灰卡啟用為可點擊卡片。
+- 計算契約：FIRE 目標＝年總開銷 ÷ 提領率；目前達成率使用即時計算的 `totalAssets - debt`；缺口投入直接重用 `calculateRequiredMonthlyContribution()` 的月複利年金反推，月回傳值為平均每月負擔、乘以 12 為每年需投入。
+- 開發過程修正：
+  1. 三個滑桿原在 React state updater 內延遲讀取 `event.currentTarget`，React 清空後為 `null` 而造成整頁崩潰；修正為 handler 當下先讀取 primitive value。
+  2. 本頁 DraftInput 金額欄位在顯示 `0` 時會附加新輸入（例如 `1` 變 `11`）；修正為 focus 時正確取代零值。此為本頁輸入方式的獨立缺陷。
+  3. 現金流匯入由首次開啟自動詢問改為主動按鈕，避免來源無資料時產生多餘詢問；加入覆蓋前二次確認與無資料提示。
+- 附帶記錄（不屬本 Todo 範圍）：全站共用 `DraftInput`（不同於本頁輸入元件）另有同類「顯示 0 時輸入被附加」缺陷，影響帳戶餘額（8 種帳戶類型）、持股欄位、逢低提醒設定、加碼預算與股價更新秒數；已判定為獨立範圍，另開 PR 處理。
+- 明確不包含：修改 `cashFlow.ts`／`wealthGoal.ts` 的既有公式或函式簽名；CLEC、再平衡、AI Decision、正式投資建議；netWorthHistory、Financial Event Ledger、attribution、Firebase 或任何自動同步。
+- 驗收條件（已達成）：4% FIRE、達成率、零報酬與零退休年限邊界、現金流 draft 隔離、localStorage／JSON Backup round-trip、自訂項目上限、工具路由、TypeScript、完整 CI、Production／Preview build、Preview 桌機與手機驗收、Production 唯讀驗證。
 
 ### UR-TODO-065 現金流工具頁「新增項目」按鈕移位＋收合開關
 

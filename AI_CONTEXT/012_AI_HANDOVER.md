@@ -8,12 +8,13 @@
 
 ---
 
-## 最新交接快照：UR-TODO-066 退休提領規劃（開發中，2026-08-16）
+## 最新交接快照：UR-TODO-066 退休提領規劃（CLOSED，2026-08-16）
 
-- 正式起點：Development Mode 已以 `origin/main` `f4eab512cd5947fef035902d88445e79171c961b` 建立獨立 branch `codex/ur-todo-066-retirement-planner`；既有 stash 與原工作目錄未追蹤項目不在此 worktree 內。
-- 已定案 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入必須直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不可偽造精確投入金額。
-- persistence：`retirementPlan?` 是 additive App state／JSON Backup 欄位；其固定支出初次由 `cashFlowProfile.fixedExpenses` 複製，後續儲存與編輯不可寫回 Cash Flow。它不寫入 snapshot、Ledger、attribution 或任何同步服務。
-- UI scope：`/tools/retirement-planner` 啟用既有工具卡；提供固定支出 draft、最多 5 筆自訂支出、旅遊／保險年度支出、1%～20%提領率、退休年限與預期年化報酬滑桿、FIRE／達成率／投入金額與免責文字。Draft PR 交付、CI 與 Preview 驗收依既有流程進行；未經使用者明確授權不得 Merge 或部署 Production。
+- 正式結案：PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已一般 Merge，merge commit／最新 `origin/main` `83223498afb196179f24f66c7f3009644e006765`；CI `31931191149`、main Deploy `31931698419` success，Production HTTP 200／`environment=production`，未使用 admin override。
+- 已完成 contract：FIRE 目標＝年總開銷 ÷ 年提領率；目前達成率使用即時計算 `totalAssets - debt`；所需投入直接重用 `calculateRequiredMonthlyContribution(currentNetWorth, WealthGoalSettings, retirementYears * 12)`，月回傳值為平均每月負擔、乘 12 為每年需投入。退休年限為 0 時不偽造精確投入金額。
+- persistence：加法式 `retirementPlan` 已納入 App state／localStorage／JSON Backup；固定支出改為以主動「從現金流匯入」按鈕複製，之後完全獨立且不回寫 Cash Flow，不寫入 snapshot、Ledger、attribution 或同步服務。
+- UI：`/tools/retirement-planner` 與 Tool Center 卡片已啟用；固定支出自訂上限 10，提供旅遊／保險年度支出、1%～20%提領率、退休年限與預期年化報酬滑桿、FIRE／達成率／投入金額與免責文字。Preview 完整驗收、Production 唯讀 smoke check 均已完成。
+- 已修正三項 Preview 問題：滑桿 event 延遲讀取造成崩潰、零值金額輸入附加、以及首次自動詢問匯入造成空資料時體驗不佳（改成含確認與空資料提示的主動按鈕）。全站共用 `DraftInput` 的同類零值輸入缺陷已判定為獨立後續 PR，不屬 UR-TODO-066。
 
 ---
 
