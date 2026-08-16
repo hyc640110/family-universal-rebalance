@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.86
+# Universal Rebalance Todo Backlog v1.87
 
 最後更新：2026-08-15
+
+2026-08-15 **UR-TODO-055（Loan／Investment Delivery Mapping）Contract Audit 結論補記，維持「待規劃」狀態；同時修正 UR-TODO-054-A 條目對 Investment 的既有錯誤記錄。** UR-TODO-055 盤點過程中發現 UR-TODO-054-A 條目原記載「Investment 不需要處理——已用 runtime 證據確認 Investment 買賣本就走既有通用 `safe-taxonomy-candidate`／`RuntimeAttributionProvenanceCard` 路徑」，經以實際程式碼逐項核對後**證實此說法不準確，已正式修正**：全庫搜尋確認 `investmentAttribution` 欄位在 `src/App.tsx`／`src/components/`／`src/pages/` 零命中，Investment 買賣目前完全沒有任何 Producer；`transactionReconciliation.ts` 的 `candidateFor()` 必須此欄位已存在才會判定 `investment-buy`／`investment-sell`，未設定時「投資」類別交易會因 `SAFE_EXPENSE_CATEGORIES` 不含 `expense-investment` 而直接判定 `unsupported-taxonomy`，連進入 `safe-taxonomy-candidate` 可確認清單的資格都沒有。**UR-TODO-055 Contract Audit 本身結論**：底層 attribution contract 已完整存在不需修改，缺口在交付層；Loan 側已有 Producer，缺口是 CSV 批次匯入＋金額拆分 UI（需新 UI 互動設計，因原始資料通常不含拆分後數字）；Investment 側連基礎 Producer 都不存在，範圍更接近獨立的「Investment Producer」子項；治理文件內未記載任何具體業務情境，比照 UR-TODO-054-C 判定邏輯，**判定為錦上添花性質，暫不建議開發**，若未來啟動建議拆成 Investment Producer／Loan CSV 拆分 UI／Import Center schema 擴充三個獨立子項。詳見下方更新後的 **UR-TODO-054-A／UR-TODO-055** 正式條目。
 
 2026-08-15 **UR-TODO-054-C（Generic Split Confirmation UI）Contract Audit 結論補記，維持「待規劃」狀態，判定不建議現在開發。** Contract Audit（Codex Desktop 執行，Review Mode 唯讀盤點；本次治理同步已重新以 Repository 實證逐項核對）確認：Generic Split 底層 contract（`appendGenericSplitAllocationGroup()`、`genericSplitAllocation.ts` identity）已完整存在，但**完全沒有任何 candidate producer**——全庫搜尋確認 `src/App.tsx` 對 Generic Split 相關識別字（`appendGenericSplitAllocationGroup`／`splitAllocationLink`／`allocationGroupId`）零命中，`appendGenericSplitAllocationGroup()` 唯一呼叫者是測試本身；`transactionReconciliation.ts` 對 Generic Split 只有 `matched` 狀態的 `linked-generic-split-group` reason，**沒有專屬 `candidate` reason**（與 Loan／FX 皆已有專屬 candidate reason 的現況不同）；`RuntimeAttributionProvenanceCard` 確認不適用，但性質與 Loan／FX 不同——不是「需要排除」而是「目前根本沒有資料會出現」。與 054-A（Loan，已 CLOSED）的關鍵差異：054-A 開始開發前已有 Producer 與 candidate 存在，054-C 目前連 production domain、candidate producer、使用者輸入來源都不存在，範圍大於單純 Confirmation UI 開發。**結論：阻礙是「沒有可消費的真實 candidate／producer」，不是 UI 實作細節；維持待規劃狀態，若未來要啟動需先有具體業務需求才能定義 Producer，不建議現在開發。** 詳見下方更新後的 **UR-TODO-054／054-C** 正式條目。
 
@@ -968,7 +970,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - Atomic Void Runtime 驗證：**PASS**（Review Mode Debug Trace 直接以 `composeRuntimeNetWorthAttribution()` 真實計算結果證明 void 後整組 `Ledger 貢獻` 歸零、`衍生貢獻` 正確恢復，reconfirm 後新舊 confirmationGroupId 互不干擾、無雙重計算）。
 - 開發過程中發現並修正一個真實 Preview 阻斷 bug：`confirmLoanPaymentGroupAndAppend()` 成功時 `result.events` 只回傳新建的那組事件、不是完整合併後的 Ledger（與 FX 對應 helper 的語意不同），App.tsx caller 原先誤用「取代」語意，已修正為「附加」；另修正 `buildLoanPaymentConfirmationGroup()` 對 `transaction.occurredAt` 的未保護 `canonicalCalendarDay()` 呼叫可能造成的靜默失敗風險（於 App.tsx caller 與 UI 元件兩層皆補上 try/catch 防禦）。
 - Merge 資訊：**PR [#331](https://github.com/hyc640110/family-universal-rebalance/pull/331)**，merge commit `c87a9e933af9cd5e7d2fa31bcb301adfa10e7944`，parents `0097107e3f860009d00c4dfb8b83708ba4fef269`（merge 前 main）／`0184834b5da0b618ca44981b6e231a1b230c1791`（PR head），**一般 merge commit，未使用 admin override**；`mergedAt: 2026-08-14T13:24:48Z`、`mergedBy: hyc640110`。Deploy GitHub Pages run [31804595653](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31804595653) success，headSha 與 merge commit 一致；Production／Preview 皆 `curl` 實測 HTTP 200，Production 唯讀確認新「登記還款」Producer UI 已存在、console 無錯誤，未在 Production 建立任何測試資料。
-- 明確不包含：FX（見 054-B）、Generic Split（見 054-C）、Investment（不需要——已用 runtime 證據確認 Investment 買賣本就走既有通用 `safe-taxonomy-candidate`／`RuntimeAttributionProvenanceCard` 路徑，非本次遺漏的缺口）、CSV／Import Center（見 UR-TODO-055）、schema／persistence／attribution calculator／reconciliation 核心修改。
+- 明確不包含：FX（見 054-B）、Generic Split（見 054-C）、Investment（見下方**治理記錄修正**）、CSV／Import Center（見 UR-TODO-055）、schema／persistence／attribution calculator／reconciliation 核心修改。
+- **治理記錄修正（2026-08-15，UR-TODO-055 唯讀盤點時發現並修正）**：本條目原本記載「Investment 不需要處理——已用 runtime 證據確認 Investment 買賣本就走既有通用 `safe-taxonomy-candidate`／`RuntimeAttributionProvenanceCard` 路徑，非本次遺漏的缺口」，**此說法經 UR-TODO-055 盤點以實際程式碼逐項核對後證實不準確，正式修正如下**：Investment 買賣目前**完全沒有任何 Producer**（手動或匯入皆無）——全庫搜尋確認 `investmentAttribution` 欄位在 `src/App.tsx`／`src/components/`／`src/pages/` 零命中，沒有任何 UI 或匯入路徑會設定這個欄位。`transactionReconciliation.ts` 的 `candidateFor()` 必須 `transaction.investmentAttribution` 已存在才會判定 `investment-buy`／`investment-sell`；若未設定，分類為「投資」（`expense-investment`）類別的交易會落入 `SAFE_EXPENSE_CATEGORIES` 判斷，而該清單**不含** `expense-investment`，最終結果是 `status: 'unsupported', reason: 'unsupported-taxonomy'`——**連進入 `safe-taxonomy-candidate`（`RuntimeAttributionProvenanceCard` 可確認清單）的資格都沒有**，並非原記錄所述「本就走既有通用路徑」。此修正避免未來依舊記錄的錯誤前提誤判 UR-TODO-055 或其他 Investment 相關工作的範圍；後續評估詳見 UR-TODO-055 正式條目。
 
 #### UR-TODO-054-B FX Confirmation UI
 
@@ -1011,16 +1014,22 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-055 Loan／Investment Delivery Mapping（UI／CSV／Import Center）
 
 - 優先級：待評估
-- 狀態：**待規劃**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出）
+- 狀態：**待規劃（Contract Audit 已完成，2026-08-15，判定暫不建議開發——非「不可行」，而是「目前無記錄在案的急迫使用需求，且範圍比原始描述更大更複雜」，比照 054-C 的判定邏輯）**
 - 提出日期：2026-08-14
+- Contract Audit 完成日期：2026-08-15（Review Mode 唯讀盤點）
 - 背景：UR-TODO-046 歷次治理紀錄（046-I1／046-L1 完成條目、FX-A3 條目）持續將「Loan UI／CSV／Import Center producer mapping」列為 Remaining Boundary，但從未列為 046 本身的驗收條件——即 Loan／Investment 的正式 attribution contract（identity、component group、fail-safe）已完成，缺口在於「如何讓使用者透過既有 Import Center 或專屬 UI，把外部資料（銀行對帳單、券商交易紀錄等）安全映射成符合正式 contract 的 `loanAttribution`／`investmentAttribution`」，這是交付／匯入層的工作，不是 attribution 核心邏輯缺口。
-- 範圍（草案，待正式盤點與拍板）：
-  - Loan repayment／disbursement 的手動輸入 UI（目前僅能透過既有通用交易表單間接建立，缺乏 Loan 專屬引導）
-  - CSV／Import Center 是否／如何新增 Loan／Investment 專屬欄位映射
-  - 與既有 `ImportCenter.tsx`、`importCenter.ts` 既有 mapping 機制的整合方式
-- 明確不包含：修改既有 attribution 核心 contract；FX（見 UR-TODO-056）
-- 依賴：UR-TODO-046（已 CLOSED，Loan／Investment contract 基礎已具備）
-- 驗收條件（待正式排入時另訂）
+- Contract Audit 核心結論：
+  1. 底層 attribution contract（`loanAttribution`／`investmentAttribution` 型別定義、`normalizeLoanAttribution()`／`normalizeInvestmentAttribution()`、reconciliation 判斷邏輯）**已完整存在，不需修改**；缺口純粹在「誰來產生（producer／匯入）這些欄位」的交付層，與原始背景描述的定位一致。
+  2. **Loan 側**：已有 Producer（UR-TODO-054-A），缺口是「CSV 批次匯入＋金額拆分 UI」——且**需要新的 UI 互動設計，非單純欄位對應**：銀行對帳單通常只有一欄「貸款扣款金額」（例如 28,700），不會有現成的「本金 23,500／利息 5,200」拆分欄位，Import Center 既有的「系統猜測欄位對應＋使用者確認」慣例無法直接套用在「金額拆分」這件事上，需要另外設計互動流程（例如使用者在匯入預覽階段逐筆手動輸入拆分金額）。
+  3. **Investment 側：範圍比原始背景描述假設的更大**——連基礎 Producer 都不存在（詳見上方 UR-TODO-054-A 條目的治理記錄修正），實際上更接近一個獨立的「Investment Producer」子項（性質類似 UR-TODO-054 系列的第四個子項：先要有手動單筆輸入的 Producer 與 Confirmation UI，CSV／Import Center 對應才有意義討論），而非單純的 CSV 欄位對應工作。
+  4. **治理文件內未記載任何具體業務情境**（例如哪個銀行／券商的 CSV 格式、目前手動輸入的實際痛點頻率）——`008_TODO_BACKLOG.md`、`012_AI_HANDOVER.md`、`009_CHANGELOG.md` 逐一查證確認皆只有「銀行對帳單、券商交易紀錄等」這類泛用範例，非使用者實際提出的具體需求。比照 UR-TODO-054-C 的判定邏輯，**判定為錦上添花性質，暫不建議在沒有具體業務情境前開發**。
+- 若未來要啟動，建議拆成至少三個獨立子項分開稽核與開發，不建議合併成單一 PR：
+  1. Investment Producer（獨立 Contract Audit＋開發，性質類似 054 系列子項）
+  2. Loan CSV 批次匯入＋金額拆分 UI
+  3. Import Center `ImportMapping` schema 擴充（若 1、2 皆需要，可能有共用的型別調整）
+- 明確不包含：修改既有 attribution 核心 contract；FX（見 UR-TODO-056）；在沒有具體業務需求前開始開發。
+- 依賴：UR-TODO-046（已 CLOSED，Loan／Investment contract 基礎已具備）；UR-TODO-054-A（已 CLOSED，Loan Producer 已存在，Investment 對應的 Producer 不存在，是本次盤點的關鍵發現）。
+- 驗收條件（待正式排入時另訂，且需先有具體業務情境）
 
 ### UR-TODO-056 FX Enhancement Bundle（Valuation Attribution／其他貨幣對／自動配對／進階 Fee）
 

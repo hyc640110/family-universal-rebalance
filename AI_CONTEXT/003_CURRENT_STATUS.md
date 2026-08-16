@@ -1,12 +1,17 @@
-# Universal Rebalance Current Status v4.17
+# Universal Rebalance Current Status v4.18
 
 最後更新：2026-08-15
 
-**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `70db4aafcdd2a19ed67f96d2eac8791226e48c91`。** 本次治理同步一併追平自上次基線陳述（PR #355／`98c96c1`）以來被跳過的三筆 Merge：
+**UR-TODO-055（Loan／Investment Delivery Mapping）Contract Audit 結論補記，並修正 UR-TODO-054-A 對 Investment 的既有錯誤記錄；依 §8.2 六規則一併追平 PR #359 的一個 commit 落差。** 盤點以實際程式碼證實 UR-TODO-054-A 原記載「Investment 本就走既有通用 `safe-taxonomy-candidate` 路徑」不準確——`investmentAttribution` 欄位全庫零 UI 呼叫者，未設定時「投資」類別交易會被判定 `unsupported-taxonomy`，連候選清單都進不去，已正式修正記錄。UR-TODO-055 本身：底層 contract 已完整存在，缺口在交付層；Investment 側連基礎 Producer 都不存在，範圍比原描述更大；治理文件內未記載具體業務情境，比照 UR-TODO-054-C 判定為錦上添花性質，暫不建議開發。純治理文件記錄，**未修改任何 `src/`／`tests/` 程式碼**，`origin/main` 功能基線不因此變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-054-A／UR-TODO-055 正式條目。
+
+---
+
+**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `90ab61a30db68fe53302c7b613f1293114d31c44`。** 本次治理同步一併追平自上次基線陳述（PR #355／`98c96c1`）以來被跳過的四筆 Merge：
 
 - **PR [#356](https://github.com/hyc640110/family-universal-rebalance/pull/356)**（`docs: catch up baseline to PR #355's merge commit`），merge commit `c49594a06586889b31314d353c1a67288bb5e161`，一般 merge commit，未使用 admin override。純治理文件同步（依 §8.1 既有政策自動 Merge），追平 PR #355 自身無法宣告自己 merge commit 的結構性落差。
 - **PR [#357](https://github.com/hyc640110/family-universal-rebalance/pull/357)**（`feat: FX Conversion Confirmation UI (UR-TODO-054-B)`），merge commit `fc9684ef955fca5c9d4194ea670b719e32c58727`，一般 merge commit，未使用 admin override。UR-TODO-054-B 正式完成並 Merge，詳見下方獨立條目。
-- **PR [#358](https://github.com/hyc640110/family-universal-rebalance/pull/358)**（`docs: close UR-TODO-054-B and catch up baseline to PR #357`），merge commit `70db4aafcdd2a19ed67f96d2eac8791226e48c91`，一般 merge commit，未使用 admin override。純治理文件同步，與本次 PR #356 情況相同的結構性落差（治理同步 PR 無法自我宣告自己的 merge commit）。
+- **PR [#358](https://github.com/hyc640110/family-universal-rebalance/pull/358)**（`docs: close UR-TODO-054-B and catch up baseline to PR #357`），merge commit `70db4aafcdd2a19ed67f96d2eac8791226e48c91`，一般 merge commit，未使用 admin override。純治理文件同步，同類結構性落差。
+- **PR [#359](https://github.com/hyc640110/family-universal-rebalance/pull/359)**（`docs: record UR-TODO-054-C Contract Audit conclusion (NO-GO development)`），merge commit `90ab61a30db68fe53302c7b613f1293114d31c44`，一般 merge commit，未使用 admin override。純治理文件同步，同類結構性落差。
 
 ---
 
