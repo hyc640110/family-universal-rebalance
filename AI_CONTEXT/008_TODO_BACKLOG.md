@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.85
+# Universal Rebalance Todo Backlog v1.86
 
 最後更新：2026-08-15
+
+2026-08-15 **UR-TODO-054-C（Generic Split Confirmation UI）Contract Audit 結論補記，維持「待規劃」狀態，判定不建議現在開發。** Contract Audit（Codex Desktop 執行，Review Mode 唯讀盤點；本次治理同步已重新以 Repository 實證逐項核對）確認：Generic Split 底層 contract（`appendGenericSplitAllocationGroup()`、`genericSplitAllocation.ts` identity）已完整存在，但**完全沒有任何 candidate producer**——全庫搜尋確認 `src/App.tsx` 對 Generic Split 相關識別字（`appendGenericSplitAllocationGroup`／`splitAllocationLink`／`allocationGroupId`）零命中，`appendGenericSplitAllocationGroup()` 唯一呼叫者是測試本身；`transactionReconciliation.ts` 對 Generic Split 只有 `matched` 狀態的 `linked-generic-split-group` reason，**沒有專屬 `candidate` reason**（與 Loan／FX 皆已有專屬 candidate reason 的現況不同）；`RuntimeAttributionProvenanceCard` 確認不適用，但性質與 Loan／FX 不同——不是「需要排除」而是「目前根本沒有資料會出現」。與 054-A（Loan，已 CLOSED）的關鍵差異：054-A 開始開發前已有 Producer 與 candidate 存在，054-C 目前連 production domain、candidate producer、使用者輸入來源都不存在，範圍大於單純 Confirmation UI 開發。**結論：阻礙是「沒有可消費的真實 candidate／producer」，不是 UI 實作細節；維持待規劃狀態，若未來要啟動需先有具體業務需求才能定義 Producer，不建議現在開發。** 詳見下方更新後的 **UR-TODO-054／054-C** 正式條目。
 
 2026-08-15 **UR-TODO-054-B（FX Confirmation UI）正式標記 CLOSED。** PR [#357](https://github.com/hyc640110/family-universal-rebalance/pull/357) 已正式 Merge（merge commit `fc9684ef955fca5c9d4194ea670b719e32c58727`，一般 merge commit，未使用 admin override），為目前 `main`／`origin/main` 正式基線。承接同日稍早的 Review Mode Contract Audit（GO 判定），架構比照已完成的 054-A（Loan Confirmation UI）成功模式：新增 `fxConversionPresentation.ts`（依 `conversionId` 把兩腿合併為單一 presentation 項目）、`FxConfirmationCard.tsx`，`App.tsx` 新增 `confirmFxConversion()`／`voidFxConversion()`，正確重用既有 `confirmFxConversionAndAppend()`／`voidFinancialEventAndAppend()` contract。**關鍵風險點**：`confirmFxConversionAndAppend()` 的 `result.events` 是完整合併 Ledger（與 Loan 方向相反），已有 CRITICAL regression test 明確鎖定，並經本機 Preview 端到端實機驗證 create→confirm→void→reconfirm 全流程 `financialEvents.length` 正確為 0→1→2→3。開發過程中發現並處理另一個過時的重複 Draft PR [#333](https://github.com/hyc640110/family-universal-rebalance/pull/333)（來自無關的較早 session，基於嚴重過時的 main，若 Merge 會刪除大量已上線功能），Closeout Audit 確認其與 PR #357 獨立收斂到相同核心架構判斷後，已 Close without merge，並將其中有保留價值的內容（跨 envelope 重複認領防呆、`handleVoid` 對稱防護、測試韌性缺口）整合進 PR #357。Deploy GitHub Pages run [31895761055](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31895761055) success，headSha 與 merge commit 一致；Production 已唯讀確認 FX Producer 表單與 `FxConfirmationCard` 皆正確不顯示（Producer gate 維持 OFF）、既有功能不受影響，console 無錯誤。詳見下方更新後的 **UR-TODO-054／054-B** 正式條目。
 
@@ -951,7 +953,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-054 Attribution Confirmation Lifecycle UI（FX／Loan／Generic Split）
 
 - 優先級：待評估
-- 狀態：**開發中**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發；**054-A、054-B 已於 2026-08-14／2026-08-15 分別正式 CLOSED，僅 054-C（Generic Split）尚待規劃**）
+- 狀態：**開發中**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發；**054-A、054-B 已於 2026-08-14／2026-08-15 分別正式 CLOSED；054-C（Generic Split）已於 2026-08-15 完成 Contract Audit，判定「沒有可消費的真實 candidate／producer」，維持待規劃、不建議現在開發**）
 - 提出日期：2026-08-14
 - 背景：UR-TODO-046 已完成 FX（F2D）、Loan（046-L1）、Generic Split（046-L2A/L2B）三個 domain 的正式 attribution contract（identity、reconciliation candidate/matched、zero-effect 或明示 contribution、duplicate prevention、void/forward-only correction），但三者的正式確認（confirm）動作原本**皆只存在於函式庫層級**：`confirmFxConversionAndAppend()`（`fxConversionAttributionConfirmation.ts`）、`confirmLoanPaymentGroupAndAppend()`（Loan）等在 `App.tsx` 零呼叫，一般使用者無法透過畫面實際確認、撤銷（void）或重新確認（reconfirm）任何一筆這三個 domain 的正式記帳事件。既有唯一有 UI 入口的確認流程是 `RuntimeAttributionProvenanceCard` 的「確認並正式記帳」按鈕，但其 `confirmAttributionEvidence` handler 硬編碼只處理 `derivedEvidenceItems`（`safe-taxonomy-candidate` 專用），FX／Loan／Generic Split 的 candidate reason（`fx-conversion-contract-candidate`／`loan-payment-contract-candidate` 等）結構上不會進入此卡片。**Loan（054-A）已於 2026-08-14 正式完成並 Merge，FX（054-B）已於 2026-08-15 正式完成並 Merge，詳見下方 054-A／054-B 條目；兩者獨立驗證「各 domain 各自獨立 UI 元件、不共用 confirmation framework」為可行且已驗證的實作模式。**
 - 三個 domain 各自獨立唯讀盤點、產品決策與明確授權後才開始開發，不因其中一項完成而自動解鎖其餘子項；子項清單與現況見下方 054-A／054-B／054-C。
@@ -993,10 +995,17 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 #### UR-TODO-054-C Generic Split Confirmation UI
 
-- 狀態：**待規劃**（尚未進行 Contract Audit）
-- 說明：Generic Split（046-L2A/L2B）的 confirm／void／reconfirm primitive 現況與 054-A 開發前的 Loan 類似——`appendGenericSplitAllocationGroup()`／`resolveActiveGenericSplitAllocationGroups()` 等已存在於函式庫層級，`App.tsx` 尚無呼叫。是否可直接沿用 054-A 的 Loan Confirmation UI 實作模式（group-by-allocation-identity 的獨立元件），或有 Generic Split 特有的差異，需另行唯讀盤點確認，本輪未評估，不預先假設。
-- 明確不包含：在 054-B（FX）Audit／開發完成前開始；修改既有 attribution 核心 contract。
-- 依賴：UR-TODO-046（已 CLOSED）
+- 狀態：**待規劃（Contract Audit 已完成，判定 NO-GO development——非「不可行」，而是「目前沒有可消費的真實 candidate／producer」，阻礙不在 UI 實作細節）**
+- Contract Audit 完成日期：2026-08-15（Codex Desktop 執行，Review Mode 唯讀盤點；本次治理同步已重新以 Repository 實證逐項核對下方結論，非直接照抄外部來源文字）
+- Contract Audit 核心結論：
+  1. Generic Split 底層 contract（`appendGenericSplitAllocationGroup()`、`genericSplitAllocation.ts` 的 `domain`／`allocationGroupId`／`componentId` identity）已存在且完整，符合 ADR-003。
+  2. **關鍵缺口**：目前完全沒有任何 candidate producer——`appendGenericSplitAllocationGroup()` 唯一呼叫者是測試本身（`src/lib/financialEvents.ts` 內定義，全庫搜尋確認 `src/App.tsx` 對 `appendGenericSplitAllocationGroup`／`genericSplitAllocation`／`splitAllocationLink`／`allocationGroupId` 任一字串**零命中**），沒有任何頁面、表單、CSV／Import Center 路徑會建立 `splitAllocationLink` 或 `allocationGroupId`。既有整合測試（`tests/genericSplitAllocation.test.ts`）僅使用 `domain: 'test-only'` fixture。
+  3. `transactionReconciliation.ts` 對 Generic Split 只定義了 `matched` 狀態的 `linked-generic-split-group` reason（第 13、266 行），**沒有 Generic Split 專屬的 `candidate` reason**——這與 Loan（`loan-payment-contract-candidate`）、FX（`fx-conversion-contract-candidate`）皆已有專屬 candidate reason 的現況不同。未匹配的交易只會落入一般 `safe-taxonomy-candidate`，不含 allocation 資訊，無法作為 Generic Split Confirmation UI 的可確認 payload。
+  4. `RuntimeAttributionProvenanceCard` 確認不適用，但與 Loan／FX 的「已確認不適用」性質不同：Loan／FX 是「有 derived evidence 路徑、需要明確排除邏輯避免誤判」；Generic Split 是**連 derived evidence 或 candidate 都不存在**，全庫搜尋 `derivedAttributionEvidence.ts`／`runtimeAttributionPresentation.ts` 對 Generic Split 相關字串同樣零命中——不是「需要排除」，是「目前根本沒有資料會出現」。
+  5. **與 054-A（Loan，已 CLOSED）的關鍵差異**：底層 atomic contract 概念可部分重用（group-level 卡片、`voidFinancialEventAndAppend()`、confirm／void／reconfirm 互動流程），但 054-A 開始開發前已有 Loan Producer 與 `paymentId` candidate 存在；054-C 目前連 production domain、candidate producer、使用者輸入來源都不存在，範圍明顯大於單純的 Confirmation UI 開發（等同於要先做一個全新的 Producer，才有東西可以「確認」）。
+- **結論：目前沒有實際使用場景需要這個 UI；阻礙是「沒有可消費的真實 candidate／producer」，不是 UI 實作細節。維持待規劃狀態，不建議現在開發。** 若未來要啟動，需要先有具體業務需求（使用者實際會拆分什麼類型的交易，例如一筆帳單同時含多個分類）才能定義 Producer 與 component mapping，不建議在沒有真實需求前先做 UI。
+- 明確不包含：在沒有具體業務需求與對應 Producer 設計前開始開發；修改既有 attribution 核心 contract；修改 `genericSplitAllocation.ts`／`appendGenericSplitAllocationGroup()`／`resolveActiveGenericSplitAllocationGroups()` 本身。
+- 依賴：UR-TODO-046（已 CLOSED，contract 基礎已具備）；054-A（已 CLOSED，group-level 卡片架構可供未來參考，但不可直接套用，因為 054-C 缺少 054-A 開發前就已具備的 Producer／candidate 前提）。
 - 驗收條件（待正式排入時另訂）
 
 ### UR-TODO-055 Loan／Investment Delivery Mapping（UI／CSV／Import Center）
