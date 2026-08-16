@@ -15,7 +15,9 @@ function createItemId(): string {
 }
 
 function YuanField({ label, value, onChange, placeholder }: { label: string; value: number; onChange: (value: number) => void; placeholder?: string }) {
-  return <label>{label}<input type="number" inputMode="numeric" min="0" step="1" value={formatYuanInput(value)} placeholder={placeholder} onChange={event => {
+  return <label>{label}<input type="number" inputMode="numeric" min="0" step="1" value={formatYuanInput(value)} placeholder={placeholder} onFocus={event => {
+    if (event.currentTarget.value === '0') event.currentTarget.value = '';
+  }} onChange={event => {
     const rawValue = event.currentTarget.value;
     const parsed = parseYuanInput(rawValue);
     if (rawValue === '' || parsed !== null) onChange(parsed ?? 0);
