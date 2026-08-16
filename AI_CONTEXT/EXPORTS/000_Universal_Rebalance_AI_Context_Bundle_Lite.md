@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T13:01:02.046725+00:00
+Generated UTC: 2026-08-16T14:25:42.298229+00:00
 
 ## Manifest
 
@@ -11,7 +11,7 @@ Generated UTC: 2026-08-16T13:01:02.046725+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `003_CURRENT_STATUS.md` — SHA-256 `2814a3344178b6c2341885645eac25140d565e67df7b69c4d9a29bdeaebe274a`
-- `008_TODO_BACKLOG.md` — SHA-256 `3734b5533e51ea4069a920090b10e6e2aa20971ca3130be5def34c2fe52f75a3`
+- `008_TODO_BACKLOG.md` — SHA-256 `8d81f98594e6c07a0c90340107487a6626530ee1ff2b031a2b8fbd0313cfbb9c`
 - `012_AI_HANDOVER.md` — SHA-256 `b43213cefe2cf6454ebfa399d6dbb20cf7e3d56f8ad210f9bf7a0f5b01f5d1a5`
 
 ---
@@ -1182,9 +1182,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.94
+# Universal Rebalance Todo Backlog v1.95
 
 最後更新：2026-08-16
+
+2026-08-16 **舊 Backlog Closeout Audit（UR-TODO-012～025）唯讀盤點完成，經使用者逐項拍板後更新對應正式條目。** Review Mode 唯讀盤點確認 UR-TODO-012／013 自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對 `AI_CONTEXT/` 全部歷史版本與 git log，確認無獨立規格文件）；依使用者指示**不逕行標記完成**，改為記錄與 UR-TODO-048／058 的功能面比對結論，並將殘留範圍縮小、明文記錄。UR-TODO-014 範圍縮小為「CLEC 442／433／703／5050 規則本身」之歷史回測，與 UR-TODO-058（特定 3 資產、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線。UR-TODO-021 依 Import Center 現況（`ImportCenter.tsx` 已支援 CSV／XLSX 解析、欄位對應、重複判定）上修狀態。UR-TODO-022 維持部分完成，範圍註明縮小為尚缺「全自動分類（無需人工欄位對應）」。UR-TODO-024 拆分：多帳戶部分（`financialAccounts.ts` 既有 8 種帳戶類型）標記完成，範圍縮小為「多家庭成員」。UR-TODO-025 不關閉，範圍縮小聚焦「保險保單追蹤與保障缺口分析」（原退休子範圍已由 UR-TODO-066 CLOSED 吸收），並與縮小後的 UR-TODO-024（多家庭成員）建立依賴關係。UR-TODO-015／016／017／018／019／020／023 維持現狀不變。純治理文件更新，未修改任何程式碼。詳見下方各自正式條目。
 
 2026-08-16 **UR-TODO-069 手機版 follow-up，狀態：Development Mode／Draft PR 待驗收。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge；本次從新 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a` 建立獨立 branch，只處理同一卡片在 390px 的完整「計入支出」勾選框與文字同列。原先 PR #372 已完成頂端工具列（左勾選框、右 `Trash2` 圖示刪除按鈕）、名稱／金額全寬單列、44×44px 刪除觸控區與確認刪除；追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 及 `.retirement-expense-enabled` class，不存在選擇器只命中一種來源的差異。實際根因是全域 `label` 的 `flex-direction:column` 未被原本的 `white-space:nowrap` 覆寫。本 follow-up 僅在 `max-width:768px` 對該共用 class 加入 `flex-direction:row; white-space:nowrap`；保留完整可存取文字與原生 label 語意，桌機布局、JSX、刪除確認、`removeItem()`、Cash Flow、persistence schema 與退休計算均不變。待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
 
@@ -2964,19 +2966,30 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-012 Rebalance Scenario Simulator
 
 - 優先級：P2
-- 狀態：待開發
+- 狀態：**部分完成／範圍縮小**（2026-08-16 Review Mode 唯讀盤點，經使用者拍板不逕行標記完成）
 - 前置依賴：UR-TODO-006～011
+- 2026-08-16 唯讀盤點結論：本項自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對 `AI_CONTEXT/` 全部歷史版本與 git log，確認無獨立規格文件可供逐項核對）。改以功能面比對現有實作：
+  1. UR-TODO-048（Allocation Simulator，`/tools/allocation-simulator`）已提供 CLEC 442／433／703／5050 樣板的**靜態配置權重**情境預覽（`deriveAllocationPresetPreview()`），屬單一時間點的假設配置模擬，session-only、不產生交易。
+  2. UR-TODO-058（`/tools/investment-backtest`）已提供針對**特定三資產（0050／00631L／00865B）**、三套 Excel 來源固定策略（聰明再平衡／無腦再平衡／比率再平衡）的歷史回測比較，屬時間序列模擬，但資產組合與策略邏輯皆為寫死，非通用參數化。
+  3. 兩者合計已滿足「再平衡情境模擬」標題下的**部分**產品期待（特定資產組合的假設配置與歷史回測），但**未涵蓋**任意資產組合、可調整再平衡頻率／閾值參數的通用情境模擬——這是原標題可能暗示、但從未有正式驗收條件明文要求的開放範圍，因無法逐項核對，故不逕行標記完成。
+- 明確不包含（縮小後）：任意資產組合、可調整再平衡頻率／閾值的通用參數化模擬（已被 048／058 覆蓋的固定樣板／固定策略範圍不重複開發）。
+- 建議：不關閉，範圍縮小為「通用參數化再平衡情境模擬」；目前無記錄在案的急迫使用需求，維持 P2 但不主動排程，待具體業務情境出現後另行 Contract Audit。
 
 ### UR-TODO-013 Investment Decision Workflow Integration
 
 - 優先級：P2
-- 狀態：部分完成
+- 狀態：**部分完成**（維持，2026-08-16 Review Mode 唯讀盤點重新核對，經使用者拍板不逕行標記完成）
 - 前置依賴：UR-TODO-009
+- 2026-08-16 唯讀盤點結論：本項自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對歷史版本與 git log，確認無獨立規格文件可供逐項核對）。功能面比對：`dailyDecisionWorkflow.ts`、再平衡建議中心（`/tools/rebalance-recommendation`）、UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）已將投資決策工具整合進具一致性的導覽與工作流程，並明確區分「會影響實際操作判斷」與「純假設情境」兩類工具，整合程度已相當可觀。
+- 因無正式逐項驗收條件可比對，無法直接判定「已全數滿足」，故維持「部分完成」，不逕行標記完成。
+- 建議：維持部分完成；若未來要正式關閉，需先補上明確驗收條件清單再逐項核對，或由使用者確認現有整合程度已達產品預期。
 
 ## P3－中長期投資功能
 
-### UR-TODO-014 CLEC 歷史驗證與回測
+### UR-TODO-014 CLEC 規則本身之歷史回測
 - 狀態：待開發
+- 2026-08-16 範圍縮小重新描述（原名「CLEC 歷史驗證與回測」）：聚焦**CLEC 442／433／703／5050 規則本身**的歷史回測驗證，即假設歷史期間依 CLEC 規則實際觸發邏輯進行再平衡，驗證規則本身的歷史績效與觸發時機。
+- 明確不包含：與 UR-TODO-058（`/tools/investment-backtest`，特定 3 資產 0050／00631L／00865B、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線，避免混淆或重複開發。
 
 ### UR-TODO-015 股票質押與 LTV 壓力測試
 - 狀態：待開發
@@ -2999,19 +3012,29 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 狀態：待開發
 
 ### UR-TODO-021 銀行 CSV／Excel／電子帳單整合
-- 狀態：部分完成
+- 狀態：**部分完成（已大幅推進）**（2026-08-16 依 Import Center 現況上修）
+- 2026-08-16 唯讀盤點結論：`src/components/import/ImportCenter.tsx` 已支援 CSV／XLSX 檔案解析（`csvParse()`／`readXlsxFile()`）、欄位對應（交易日期／單一金額／收入／支出／描述／商家對象／類別／外部 ID）、逐筆重複判定（`duplicate: 'certain'`）與匯入預覽，銀行 CSV／Excel 對帳單匯入已具備完整可用路徑。
+- 明確不包含（尚未涵蓋）：非表格式電子帳單（例如 PDF 帳單）的解析與匯入。
 
 ### UR-TODO-022 自動分類與重複交易偵測
-- 狀態：部分完成
+- 狀態：**部分完成**（維持，2026-08-16 範圍註明）
+- 2026-08-16 範圍註明：重複交易偵測（`duplicate: 'certain'`）與類別欄位對應已具備，但類別對應目前仍需使用者於匯入畫面手動指定／確認，非模型自動判斷；殘留範圍縮小聚焦為「全自動分類（無需人工欄位對應即可正確判定交易類別）」。
 
 ### UR-TODO-023 月底自動對帳
 - 狀態：待開發
 
-### UR-TODO-024 多帳戶與多家庭成員
+### UR-TODO-024 多家庭成員
 - 狀態：待開發
+- 2026-08-16 範圍縮小重新描述（原名「多帳戶與多家庭成員」）：多帳戶部分已由 `src/lib/financialAccounts.ts` 既有 8 種帳戶類型的多帳戶架構滿足，**正式標記完成**，自本次更新起自本條目移出；本條目聚焦剩餘缺口「多家庭成員」（成員歸屬、各自報表／彙總），全庫搜尋確認目前無任何成員歸屬欄位或資料結構。
+- 已完成（移出範圍）：多帳戶——`FinancialAccountType` 涵蓋 8 種帳戶類型，UR-TODO-066 完成筆記已提及此既有能力。
 
-### UR-TODO-025 保險、退休與家庭淨資產規劃
+### UR-TODO-025 保險保單追蹤與保障缺口分析
 - 狀態：待開發
+- 2026-08-16 範圍縮小重新描述（原名「保險、退休與家庭淨資產規劃」）：退休子範圍已由 **UR-TODO-066（CLOSED，退休提領規劃）**完整吸收（FIRE 目標、提領率、達成率、缺口投入反推），家庭淨資產趨勢已由既有 `netWorthHistory`／`WealthGoalPage.tsx`（財富目標）覆蓋單一使用者視角；本條目聚焦剩餘缺口：
+  1. **保險保單追蹤**：目前保險僅為 `retirementPlanner.ts` 內單一欄位 `insuranceFee`（年度大額支出金額），完全沒有保單類型、保額、受益人、繳費期別、續保提醒等追蹤能力。
+  2. **保障缺口分析**：目前無任何機制比對既有保障與家庭財務缺口。
+- 依賴：UR-TODO-024（多家庭成員）——若「家庭」淨資產與保障規劃需涵蓋多成員各自資料，需待 024 完成多家庭成員資料結構後才能延伸；本條目與 024 共用同一「家庭成員」資料缺口，不得各自獨立重複定義成員資料結構。
+- 明確不包含：退休提領規劃（見 UR-TODO-066，已 CLOSED，不重新開放討論）；單一使用者視角的淨資產歷史／財富目標既有功能修改。
 
 ## 已完成並關閉
 
