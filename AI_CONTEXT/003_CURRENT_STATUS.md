@@ -1,11 +1,16 @@
-# Universal Rebalance Current Status v4.16
+# Universal Rebalance Current Status v4.17
 
 最後更新：2026-08-15
 
-**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `fc9684ef955fca5c9d4194ea670b719e32c58727`。** 本次治理同步一併追平自上次基線陳述（PR #355／`98c96c1`）以來被跳過的兩筆 Merge：
+**依 §8.2 六「治理文件最終一致性」規則追平：`origin/main` 正式基線更新為 `70db4aafcdd2a19ed67f96d2eac8791226e48c91`。** 本次治理同步一併追平自上次基線陳述（PR #355／`98c96c1`）以來被跳過的三筆 Merge：
 
 - **PR [#356](https://github.com/hyc640110/family-universal-rebalance/pull/356)**（`docs: catch up baseline to PR #355's merge commit`），merge commit `c49594a06586889b31314d353c1a67288bb5e161`，一般 merge commit，未使用 admin override。純治理文件同步（依 §8.1 既有政策自動 Merge），追平 PR #355 自身無法宣告自己 merge commit 的結構性落差。
 - **PR [#357](https://github.com/hyc640110/family-universal-rebalance/pull/357)**（`feat: FX Conversion Confirmation UI (UR-TODO-054-B)`），merge commit `fc9684ef955fca5c9d4194ea670b719e32c58727`，一般 merge commit，未使用 admin override。UR-TODO-054-B 正式完成並 Merge，詳見下方獨立條目。
+- **PR [#358](https://github.com/hyc640110/family-universal-rebalance/pull/358)**（`docs: close UR-TODO-054-B and catch up baseline to PR #357`），merge commit `70db4aafcdd2a19ed67f96d2eac8791226e48c91`，一般 merge commit，未使用 admin override。純治理文件同步，與本次 PR #356 情況相同的結構性落差（治理同步 PR 無法自我宣告自己的 merge commit）。
+
+---
+
+**UR-TODO-054-C（Generic Split Confirmation UI）Contract Audit 結論補記，維持「待規劃」狀態。** Contract Audit（2026-08-15，Codex Desktop 執行，Review Mode 唯讀盤點；本次治理同步已重新以 Repository 實證逐項核對）確認 Generic Split 底層 contract（`appendGenericSplitAllocationGroup()`）已完整存在，但完全沒有任何 candidate producer——`App.tsx` 對 Generic Split 相關識別字零命中，`transactionReconciliation.ts` 也沒有 Generic Split 專屬 `candidate` reason（與 Loan／FX 皆已有專屬 candidate reason 不同）。**結論：阻礙是「沒有可消費的真實 candidate／producer」，不是 UI 實作細節，維持待規劃、不建議現在開發。** 純治理文件記錄補記，**未修改任何 `src/`／`tests/` 程式碼**，`origin/main` 功能基線不因此變動，詳見 `008_TODO_BACKLOG.md` UR-TODO-054-C 正式條目。
 
 ---
 
