@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v4.24
+# Universal Rebalance Current Status v4.25
 
-最後更新：2026-08-16
+最後更新：2026-08-17
+
+**UR-TODO-016（再平衡歷史與決策紀錄）已於 2026-08-17 正式完成並進入 Production。** PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者以一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00` 合併（final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。再平衡建議中心新增「目前建議／決策紀錄」工作流與可持久化的 Recommendation Snapshot／使用者備註；此紀錄僅代表使用者決策意向，不代表下單或成交，且不建立 Transaction／Financial Event、不修改 holdings。使用者已完成 Desktop 與 390 × 844 手機人工驗收：tabs、展開、三種決策選項、textarea、提交／取消、決策卡、mobile bottom navigation 均正常，無明顯 horizontal overflow；Ctrl+R 與 JSON Backup Export → Import round-trip 均保存紀錄。`test:ci` 已正式納入 `test:ur-todo-016`。
 
 **UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）正在同一 Todo 的手機版 follow-up Development Mode。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge，現行正式起點為 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar` 僅修正 `/tools/retirement-planner` 固定支出卡片在 390px 下的「計入支出」勾選框與文字縱向堆疊。唯讀追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 與 `.retirement-expense-enabled` class，並非選擇器涵蓋範圍差異；根因是全域 `label` 設定 `flex-direction:column`，原 follow-up 的 `white-space:nowrap` 不能覆寫此方向。本 follow-up 僅於 `max-width:768px` 對同一 class 明確加入 `flex-direction:row; white-space:nowrap`，保留完整可存取文案與既有原生 `<label>` 語意。桌機、JSX、刪除確認／`removeItem()`、Cash Flow 與 `retirementPlan` 資料邏輯均不變。待 CI 與 Preview 驗收後，使用者再決定是否 Merge。
 

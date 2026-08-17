@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-16T14:25:42.298229+00:00
+Generated UTC: 2026-08-17T11:55:25.335093+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `2814a3344178b6c2341885645eac25140d565e67df7b69c4d9a29bdeaebe274a`
-- `008_TODO_BACKLOG.md` — SHA-256 `8d81f98594e6c07a0c90340107487a6626530ee1ff2b031a2b8fbd0313cfbb9c`
-- `012_AI_HANDOVER.md` — SHA-256 `b43213cefe2cf6454ebfa399d6dbb20cf7e3d56f8ad210f9bf7a0f5b01f5d1a5`
+- `003_CURRENT_STATUS.md` — SHA-256 `c91b5e780924cfd67c4d934f4ac1344dd74e056dca6b1c954c30dff1dc9d52a4`
+- `008_TODO_BACKLOG.md` — SHA-256 `fb407e455c27c454ba3490db54b6a1340a94b8a76f1ce2cc3582bb81ae18a140`
+- `012_AI_HANDOVER.md` — SHA-256 `383eed90b9f0d80e489c6d445feb82edb6896aee3fbf027427527bb3c7e28fc4`
 
 ---
 
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.24
+# Universal Rebalance Current Status v4.25
 
-最後更新：2026-08-16
+最後更新：2026-08-17
+
+**UR-TODO-016（再平衡歷史與決策紀錄）已於 2026-08-17 正式完成並進入 Production。** PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者以一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00` 合併（final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。再平衡建議中心新增「目前建議／決策紀錄」工作流與可持久化的 Recommendation Snapshot／使用者備註；此紀錄僅代表使用者決策意向，不代表下單或成交，且不建立 Transaction／Financial Event、不修改 holdings。使用者已完成 Desktop 與 390 × 844 手機人工驗收：tabs、展開、三種決策選項、textarea、提交／取消、決策卡、mobile bottom navigation 均正常，無明顯 horizontal overflow；Ctrl+R 與 JSON Backup Export → Import round-trip 均保存紀錄。`test:ci` 已正式納入 `test:ur-todo-016`。
 
 **UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）正在同一 Todo 的手機版 follow-up Development Mode。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge，現行正式起點為 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar` 僅修正 `/tools/retirement-planner` 固定支出卡片在 390px 下的「計入支出」勾選框與文字縱向堆疊。唯讀追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 與 `.retirement-expense-enabled` class，並非選擇器涵蓋範圍差異；根因是全域 `label` 設定 `flex-direction:column`，原 follow-up 的 `white-space:nowrap` 不能覆寫此方向。本 follow-up 僅於 `max-width:768px` 對同一 class 明確加入 `flex-direction:row; white-space:nowrap`，保留完整可存取文案與既有原生 `<label>` 語意。桌機、JSX、刪除確認／`removeItem()`、Cash Flow 與 `retirementPlan` 資料邏輯均不變。待 CI 與 Preview 驗收後，使用者再決定是否 Merge。
 
@@ -2995,7 +2997,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 狀態：待開發
 
 ### UR-TODO-016 再平衡歷史與決策紀錄
-- 狀態：待開發
+- 狀態：**CLOSED**（2026-08-17）
+- 完成證據：PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已 Merge；final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。
+- 完成範圍：再平衡建議中心提供「目前建議／決策紀錄」工作流；可保存「依建議處理／延後／不採用」決策、備註與 immutable Recommendation Snapshot，並納入 localStorage 與 JSON Backup 的 additive persistence。`test:ci` 已正式納入 `test:ur-todo-016`。
+- 產品邊界：Decision Journal **僅表示使用者決策意向，不代表已下單或成交**；不建立 Transaction、不建立 Financial Event、不修改 holdings，不變更 Household Liquidity 或 recommendation algorithm，首頁不新增 Decision Journal／History Card。
+- 驗收：使用者已完成 Preview／本機 Desktop 與 390 × 844 手機人工驗收；tabs、決策表單、三種選項、備註 textarea、提交／取消、Recommendation Snapshot、決策紀錄卡與 mobile bottom navigation 均正常，無明顯 horizontal overflow。已實測 `canRecommend=true` 建立決策、Ctrl+R 持久化、JSON Backup Export → Import round-trip；確認沒有 Transaction／Financial Event／holdings side effect。
 
 ### UR-TODO-017 股息預估模型
 - 狀態：待開發
@@ -3062,6 +3068,16 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
 >
 > 所有未完成事項仍以 `008_TODO_BACKLOG.md` 為唯一正式來源；最新正式版本與正式環境狀態仍以 `003_CURRENT_STATUS.md` 為準。本文件也不是 `002_MASTER_ROADMAP.md` 的替代品：長期順序異動仍只記錄於 Roadmap。
+
+---
+
+## 最新交接快照：UR-TODO-016 再平衡歷史與決策紀錄（CLOSED，2026-08-17）
+
+- 正式結案：PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者 Merge；final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，一般 2-parent merge commit／最新 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`。PR CI `32025916546` 與 main Deploy GitHub Pages `32026237097` 均 success，後者 head 與 merge commit 一致。
+- 已完成行為：再平衡建議中心可保存「依建議處理／延後／不採用」、備註與 immutable Recommendation Snapshot；資料在 Ctrl+R 後仍存在，並已通過 JSON Backup Export → Import round-trip。`test:ci` 已正式執行 `test:ur-todo-016`。
+- 安全邊界：Decision Journal 只記錄使用者決策意向，不代表已下單或成交；不建立 Transaction、不建立 Financial Event、不修改 holdings，未修改 Household Liquidity、Recommendation algorithm 或首頁。
+- 人工驗收：Desktop 與 390 × 844 手機均 PASS；「目前建議／決策紀錄」tabs、展開、Recommendation Snapshot、三個決策選項、textarea、提交／取消、決策紀錄卡與 mobile bottom navigation 正常，無明顯 horizontal overflow。
+- 下一位 AI：UR-TODO-016 不再是 active 開發項。不得因本功能完成而自動開啟新的產品 Sprint；UR-TODO-054 維持 Deferred／Non-Priority，除非使用者另行指定。
 
 ---
 

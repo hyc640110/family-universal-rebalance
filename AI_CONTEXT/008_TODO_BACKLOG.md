@@ -1811,7 +1811,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 狀態：待開發
 
 ### UR-TODO-016 再平衡歷史與決策紀錄
-- 狀態：待開發
+- 狀態：**CLOSED**（2026-08-17）
+- 完成證據：PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已 Merge；final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。
+- 完成範圍：再平衡建議中心提供「目前建議／決策紀錄」工作流；可保存「依建議處理／延後／不採用」決策、備註與 immutable Recommendation Snapshot，並納入 localStorage 與 JSON Backup 的 additive persistence。`test:ci` 已正式納入 `test:ur-todo-016`。
+- 產品邊界：Decision Journal **僅表示使用者決策意向，不代表已下單或成交**；不建立 Transaction、不建立 Financial Event、不修改 holdings，不變更 Household Liquidity 或 recommendation algorithm，首頁不新增 Decision Journal／History Card。
+- 驗收：使用者已完成 Preview／本機 Desktop 與 390 × 844 手機人工驗收；tabs、決策表單、三種選項、備註 textarea、提交／取消、Recommendation Snapshot、決策紀錄卡與 mobile bottom navigation 均正常，無明顯 horizontal overflow。已實測 `canRecommend=true` 建立決策、Ctrl+R 持久化、JSON Backup Export → Import round-trip；確認沒有 Transaction／Financial Event／holdings side effect。
 
 ### UR-TODO-017 股息預估模型
 - 狀態：待開發
