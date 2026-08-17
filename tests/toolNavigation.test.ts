@@ -96,6 +96,15 @@ test('planned tools remain non-routed and never appear in contextual quick links
   for (const tool of planned) assert.equal(quickLinkIds.has(tool.id), false);
 });
 
+test('ToolsPage renders Tool Center by IA sections instead of one flat directory', () => {
+  const toolsPage = readFileSync(new URL('../src/pages/ToolsPage.tsx', import.meta.url), 'utf8');
+  assert.match(toolsPage, /TOOL_GROUP_ORDER/);
+  assert.match(toolsPage, /TOOL_GROUP_LABELS/);
+  assert.match(toolsPage, /tool\.group === group/);
+  assert.match(toolsPage, /a\.priority - b\.priority/);
+  assert.doesNotMatch(toolsPage, /<section className="tool-grid">\{TOOL_DEFINITIONS\.map/);
+});
+
 test('the Performance analytics route uses the same quick navigation component', () => {
   const analyticsPage = readFileSync(new URL('../src/pages/AnalyticsPage.tsx', import.meta.url), 'utf8');
   assert.match(analyticsPage, /<ToolQuickNavigation \/>/);
