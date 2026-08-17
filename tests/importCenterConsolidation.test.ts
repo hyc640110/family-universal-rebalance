@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { applyMappingPreset, type ImportPreset } from '../src/lib/importCenter';
+import { IMPORT_FILE_ACCEPT, applyMappingPreset, type ImportPreset } from '../src/lib/importCenter';
 
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const component = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
@@ -16,7 +16,8 @@ test('App uses one extracted Import Center and no longer keeps either legacy inl
 
 test('the extracted UI delegates import behavior to the existing import model and keeps the route composition in App', () => {
   for (const helper of ['applyMappingPreset', 'buildImportPreview', 'createImportSessionId', 'createImportTransactions', 'csvParse', 'rowsToRecords']) assert.match(component, new RegExp(`\\b${helper}\\b`));
-  assert.match(component, /accept="\.csv,\.xlsx,\.pdf,application\/pdf"/);
+  assert.equal(IMPORT_FILE_ACCEPT, '.csv,.xlsx,.pdf');
+  assert.match(component, /accept=\{IMPORT_FILE_ACCEPT\}/);
   assert.match(component, /onCommit\(/);
   assert.match(component, /onRollback\(/);
   assert.match(component, /onPresets\(/);

@@ -4,6 +4,16 @@ export const IMPORT_SCHEMA_VERSION = 1;
 export const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMPORT_ROWS = 2000;
 export type ImportFileType = 'csv' | 'xlsx' | 'pdf';
+// Keep the native Windows file picker contract extension-based. A MIME-only token can be
+// interpreted differently by platform pickers, while these extensions match the parser gate.
+export const IMPORT_FILE_ACCEPT = '.csv,.xlsx,.pdf';
+export const detectImportFileType = (fileName: string): ImportFileType | undefined => {
+  const lower = fileName.trim().toLowerCase();
+  if (lower.endsWith('.csv')) return 'csv';
+  if (lower.endsWith('.xlsx')) return 'xlsx';
+  if (lower.endsWith('.pdf')) return 'pdf';
+  return undefined;
+};
 export type ImportMapping = { occurredAt?: string; postedAt?: string; description?: string; merchant?: string; amount?: string; credit?: string; debit?: string; type?: string; categoryId?: string; currency?: string; externalId?: string; note?: string; amountSign?: 'positive-income' | 'positive-expense' };
 export type ImportSession = { id: string; fileName: string; fileType: ImportFileType; importedAt: string; accountId: string; totalRows: number; validRows: number; invalidRows: number; duplicateRows: number; importedRows: number; skippedRows: number; mapping: ImportMapping; source: 'csv' | 'excel' | 'pdf'; createdAt: string; schemaVersion: number; warnings: string[]; status: 'previewed' | 'imported' | 'reverted' };
 export type ImportPreset = { id: string; name: string; mapping: ImportMapping; dateFormat: 'ymd' | 'mdy' | 'dmy'; defaultCurrency?: string; createdAt: string; updatedAt: string; schemaVersion: number };

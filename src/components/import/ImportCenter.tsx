@@ -6,6 +6,7 @@ import type { FinancialAccount } from '../../lib/financialAccounts';
 import type { FinancialTransaction } from '../../lib/transactions';
 import {
   IMPORT_SCHEMA_VERSION,
+  IMPORT_FILE_ACCEPT,
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
   applyMappingPreset,
@@ -13,6 +14,7 @@ import {
   createImportSessionId,
   createImportTransactions,
   csvParse,
+  detectImportFileType,
   decodeXlsxRows,
   guessImportMapping,
   rowsToRecords,
@@ -87,8 +89,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const parseFile = async (file: File) => {
     try {
       if (file.size > MAX_IMPORT_FILE_BYTES) throw new Error('檔案超過 5 MB 限制');
-      const lower = file.name.toLowerCase();
-      const kind = lower.endsWith('.csv') ? 'csv' : lower.endsWith('.xlsx') ? 'xlsx' : lower.endsWith('.pdf') ? 'pdf' : null;
+      const kind = detectImportFileType(file.name);
       if (!kind) throw new Error('僅支援 UTF-8 CSV、.xlsx 或文字型 PDF；.xls 請先另存為 .xlsx');
       if (kind === 'pdf') {
         const parsed = parseTextPdfStatement(await extractTextPdfPages(file));
@@ -175,7 +176,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <p className="note">檔案只在本機記憶體解析，不保存原始檔或工作表資料。支援 CSV、XLSX 與文字型 PDF；掃描／圖片型 PDF 不支援。限制 5 MB／2,000 列。</p>
     <div className="financial-account-fields">
       <label>匯入帳戶<select value={accountId} onChange={event => setAccountId(event.currentTarget.value)}><option value="">選擇啟用帳戶</option>{targets.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-      <label>選擇檔案<input type="file" accept=".csv,.xlsx,.pdf,application/pdf" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void parseFile(file); }} /></label>
+      <label>選擇檔案<input type="file" accept={IMPORT_FILE_ACCEPT} onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void parseFile(file); }} /></label>
       {fileType === 'xlsx' && <label>工作表<select value={sheetName} onChange={event => { const sheet = sheets.find(item => item.sheet === event.currentTarget.value); if (sheet) selectSheet(sheet, true); }}>{sheets.map(sheet => <option value={sheet.sheet} key={sheet.sheet}>{sheet.sheet}</option>)}</select></label>}
       <label>日期格式<select value={dateFormat} onChange={event => setDateFormat(event.currentTarget.value as 'ymd' | 'mdy' | 'dmy')}><option value="ymd">YYYY/MM/DD</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
       {field('交易日期', 'occurredAt')}{field('單一金額', 'amount')}{field('收入', 'credit')}{field('支出', 'debit')}{field('描述', 'description')}{field('商家／對象', 'merchant')}{field('類別', 'categoryId')}{field('外部 ID', 'externalId')}

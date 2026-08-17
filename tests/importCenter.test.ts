@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, validateMappingPreset } from '../src/lib/importCenter';
+import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, validateMappingPreset } from '../src/lib/importCenter';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
+test('file-picker contract and parser gate allow CSV, XLSX, and PDF only', () => {
+  assert.equal(IMPORT_FILE_ACCEPT, '.csv,.xlsx,.pdf');
+  assert.equal(detectImportFileType('fixture.CSV'), 'csv');
+  assert.equal(detectImportFileType('fixture.XLSX'), 'xlsx');
+  assert.equal(detectImportFileType('fixture.PDF'), 'pdf');
+  assert.equal(detectImportFileType('fixture.xls'), undefined);
+  assert.equal(detectImportFileType('fixture.txt'), undefined);
+  assert.equal(detectImportFileType('fixture.pdf.exe'), undefined);
+});
 test('CSV parser supports BOM, quotes, commas, blank rows, and platform newlines', () => {
   const rows = csvParse('\uFEFFdate,description,amount\r\n2026/07/13,"coffee, shop",-1,234\n\n');
   assert.equal(rows.length, 2); assert.equal(rows[1][1], 'coffee, shop');
