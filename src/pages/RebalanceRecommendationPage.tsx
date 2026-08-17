@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import PageFrame from './PageFrame';
 import ToolQuickNavigation from '../components/ToolQuickNavigation';
 import { deriveRebalanceRecommendation, type RebalanceRecommendationRow } from '../lib/rebalanceRecommendation';
@@ -7,18 +8,36 @@ import RecommendationCard from '../components/RecommendationCard';
 import ClecRuleSummaryCard from '../components/ClecRuleSummaryCard';
 import type { ClecRuleOutput } from '../lib/clecStrategyRules';
 import type { RebalanceExecutionEligibilityOutput } from '../lib/rebalanceExecutionEligibility';
+import type { RebalanceDecision, RebalanceDecisionSnapshot } from '../lib/rebalanceDecisionJournal';
 
 type View = ReturnType<typeof deriveRebalanceRecommendation>;
-const money = (value: number | null) => value === null ? '不可計算' : `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
+const money = (value: number | null | undefined) => value === null || value === undefined || !Number.isFinite(value) ? '不可計算' : `${(Math.abs(value) / 10000).toLocaleString('zh-TW', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 萬元`;
 const signedMoney = (value: number | null) => value === null ? '不可計算' : `${value > 0 ? '+' : value < 0 ? '-' : ''}${money(value)}`;
 const pct = (value: number | null) => value === null || !Number.isFinite(value) ? '不可計算' : `${value.toFixed(1)}%`;
 
 const recommendationCategories: RecommendationCategory[] = ['rebalance', 'cash', 'concentration', 'leverage', 'risk'];
 
-export default function RebalanceRecommendationPage({ view, recommendations, rule, eligibility }: { view: View; recommendations: RecommendationModel[]; rule: ClecRuleOutput; eligibility: RebalanceExecutionEligibilityOutput }) {
+const decisionLabels: Record<RebalanceDecision, string> = {
+  'follow-recommendation': '依建議處理',
+  defer: '延後',
+  reject: '不採用',
+};
+
+export default function RebalanceRecommendationPage({ view, recommendations, rule, eligibility, journal, onRecordDecision }: { view: View; recommendations: RecommendationModel[]; rule: ClecRuleOutput; eligibility: RebalanceExecutionEligibilityOutput; journal: readonly RebalanceDecisionSnapshot[]; onRecordDecision: (decision: RebalanceDecision, note: string) => void }) {
   const actionLabel = (row: RebalanceRecommendationRow) => row.action === 'buy' ? '理論增加' : row.action === 'sell' ? '理論減少' : row.action === 'blocked' ? '已停止計算' : '維持';
+  const [tab, setTab] = useState<'current' | 'history'>('current');
+  const [showDecisionForm, setShowDecisionForm] = useState(false);
+  const [decision, setDecision] = useState<RebalanceDecision>('follow-recommendation');
+  const [note, setNote] = useState('');
+  const tabs = <div className="decision-journal-tabs" role="tablist" aria-label="再平衡決策紀錄"><button type="button" role="tab" aria-selected={tab === 'current'} className={tab === 'current' ? 'active' : ''} onClick={() => setTab('current')}>目前建議</button><button type="button" role="tab" aria-selected={tab === 'history'} className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>決策紀錄</button></div>;
+  const history = <section className="recommendation-card" aria-labelledby="decision-history-title"><h2 id="decision-history-title">決策紀錄</h2><p className="note">保留提交當下的建議快照；不會重新計算建議，也不代表已下單或成交。</p>{journal.length === 0 ? <p className="note">尚無決策紀錄。</p> : <div className="recommendation-list">{journal.slice().reverse().map(entry => <article className="recommendation-row hold" key={entry.id}><header><div><strong>{decisionLabels[entry.decision]}</strong><span>{entry.decidedAt}</span></div><b>{entry.recommendation.mode === 'standard' ? '標準再平衡' : '只買不賣'}</b></header><Metrics rows={[["建議狀態", entry.recommendation.canRecommend ? '可產生理論建議' : '資料不足'], ["建議買入", money(entry.recommendation.buyTotal as number | null)], ["建議減少", money(entry.recommendation.sellTotal as number | null)], ["備註", entry.note || '—']]} /></article>)}</div>}</section>;
+  const decisionForm = showDecisionForm ? <section className="recommendation-card" aria-labelledby="record-decision-title"><h2 id="record-decision-title">紀錄我的決策</h2><p className="note">以下為提交當下保存的唯讀 Recommendation Snapshot 摘要。</p><Metrics rows={[["模式", view.mode === 'standard' ? '標準再平衡' : '只買不賣'], ["再平衡門檻", view.thresholdReached ? '已達門檻' : '未達執行門檻'], ["配置偏離", pct(view.allocationDeviation)], ["理論買入", money(view.buyTotal)], ["理論減少", money(view.sellTotal)]]} /><p className="warning-message">此紀錄只代表您的決策意向，不代表已下單或成交。</p><fieldset><legend>您的決策</legend>{(Object.keys(decisionLabels) as RebalanceDecision[]).map(value => <label key={value}><input type="radio" name="rebalance-decision" value={value} checked={decision === value} onChange={() => setDecision(value)} /> {decisionLabels[value]}</label>)}</fieldset><label>備註（選填）<textarea value={note} onChange={event => setNote(event.currentTarget.value)} /></label><div className="actions"><button type="button" onClick={() => { onRecordDecision(decision, note); setNote(''); setShowDecisionForm(false); }}>提交決策紀錄</button><button type="button" className="secondary" onClick={() => setShowDecisionForm(false)}>取消</button></div></section> : null;
+  if (tab === 'history') return <PageFrame page="tools" title="再平衡建議中心" description="以本機資料計算個別標的理論再平衡金額；不自動下單、不預測價格或時機。">{tabs}{history}<ToolQuickNavigation current="rebalance-recommendation" /></PageFrame>;
   return <PageFrame page="tools" title="再平衡建議中心" description="以本機資料計算個別標的理論再平衡金額；不自動下單、不預測價格或時機。">
+    {tabs}
     <section className="recommendation-summary"><article className={view.canRecommend ? 'good' : 'bad'}><small>建議狀態</small><strong>{view.canRecommend ? '可產生理論建議' : '資料不足，已停止計算'}</strong><span>{view.canRecommend ? '所有資料品質 gate 已通過。' : view.blockingReasons[0]}</span></article><article><small>目前模式</small><strong>{view.mode === 'standard' ? '標準再平衡' : '只買不賣'}</strong><span>{view.mode === 'standard' ? '買入與減少金額分開呈現。' : '最大缺口優先分配預算。'}</span></article><article><small>再平衡門檻</small><strong>{view.thresholdReached ? '已達門檻' : '未達執行門檻'}</strong><span>偏離 {pct(view.allocationDeviation)}｜超過 {pct(view.thresholdGap)}</span></article><article><small>最高優先限制</small><strong>{view.blockingReasons.length ? '請先修正資料' : '資料品質正常'}</strong><span>{view.blockingReasons.length ? view.blockingReasons.length + ' 項停止原因' : '可檢視理論金額差額。'}</span></article></section>
+    {view.canRecommend && <section className="recommendation-card"><h2>記錄這次判斷</h2><p className="note">可保留您對目前建議的意向；不會建立交易、財務事件或變更持股。</p><p className="warning-message">此紀錄只代表您的決策意向，不代表已下單或成交。</p><button type="button" onClick={() => setShowDecisionForm(true)}>紀錄我的決策</button></section>}
+    {decisionForm}
     <section className="recommendation-two-column"><article className="recommendation-card"><h2>目前／目標配置</h2><p className="note">所有比例分母均為總資產。</p><Metrics rows={[["成長資產", money(view.allocation.growth.currentValue), pct(view.allocation.growth.targetWeight)], ["防守持股", money(view.allocation.defensive.currentValue), pct(view.allocation.defensive.targetWeight)], ["流動現金", money(view.allocation.cash.currentValue), pct(view.cashTargetPct)]]} headers={['項目', '目前', '目標']} /><p className="note">持股目標合計 {pct(view.targetTotal)}｜現金目標 {money(view.cashTargetValue)}</p></article><article className="recommendation-card"><h2>現金與預算影響</h2>{view.mode === 'standard' ? <Metrics rows={[["現有流動現金", money(view.liquidCash), '不假設賣出可立即使用'], ["理論賣出所得", money(view.sellTotal), '僅理論金額'], ["理論買入需求", money(view.buyTotal), '未含成本'], ["現金缺口", money(view.cashShortfall), '以現有流動現金計算']]} /> : <Metrics rows={[["設定預算", money(view.availableBuyBudget), '已取預算與流動現金較小值'], ["已分配", money(view.usedBuyBudget), '最大缺口優先'], ["剩餘預算", money(view.remainingBudget), '未自動投入'], ["尚未滿足缺口", money(view.unresolvedGap), '預算不足或低配缺口']]} />}</article></section>
     <section className="recommendation-overview" aria-labelledby="recommendation-overview-title"><div><p className="eyebrow">V5.8 Foundation</p><h2 id="recommendation-overview-title">共用建議總覽</h2><p className="note">只整理既有再平衡與風險計算結果；不新增投資公式或自動決策。</p></div>{recommendationCategories.map(category => { const items = recommendations.filter(item => item.category === category); return items.length ? <section key={category} className="recommendation-category" aria-labelledby={`recommendation-category-${category}`}><h3 id={`recommendation-category-${category}`}>{RECOMMENDATION_CATEGORY_LABELS[category]}</h3><div className="recommendation-shared-grid">{items.map(item => <RecommendationCard key={item.id} recommendation={item} />)}</div></section> : null; })}</section>
     <ClecRuleSummaryCard rule={rule} />
