@@ -8,6 +8,16 @@
 
 ---
 
+## 最新交接快照：UR-TODO-016 再平衡歷史與決策紀錄（CLOSED，2026-08-17）
+
+- 正式結案：PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者 Merge；final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，一般 2-parent merge commit／最新 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`。PR CI `32025916546` 與 main Deploy GitHub Pages `32026237097` 均 success，後者 head 與 merge commit 一致。
+- 已完成行為：再平衡建議中心可保存「依建議處理／延後／不採用」、備註與 immutable Recommendation Snapshot；資料在 Ctrl+R 後仍存在，並已通過 JSON Backup Export → Import round-trip。`test:ci` 已正式執行 `test:ur-todo-016`。
+- 安全邊界：Decision Journal 只記錄使用者決策意向，不代表已下單或成交；不建立 Transaction、不建立 Financial Event、不修改 holdings，未修改 Household Liquidity、Recommendation algorithm 或首頁。
+- 人工驗收：Desktop 與 390 × 844 手機均 PASS；「目前建議／決策紀錄」tabs、展開、Recommendation Snapshot、三個決策選項、textarea、提交／取消、決策紀錄卡與 mobile bottom navigation 正常，無明顯 horizontal overflow。
+- 下一位 AI：UR-TODO-016 不再是 active 開發項。不得因本功能完成而自動開啟新的產品 Sprint；UR-TODO-054 維持 Deferred／Non-Priority，除非使用者另行指定。
+
+---
+
 ## 最新交接快照：UR-TODO-069 手機版固定支出工具列 follow-up（開發中，2026-08-16）
 
 - 正式起點：PR #372 已 Merge，`origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar`，原工作目錄 stash 與未追蹤項目不在此 worktree 內。
