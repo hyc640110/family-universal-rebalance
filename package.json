@@ -25,6 +25,8 @@
     "test:loan-attribution-confirmation": "tsx --test tests/loanAttributionConfirmation.test.ts",
     "test:transaction-presentation": "tsx --test tests/transactionPresentation.test.ts",
     "test:import-center": "tsx --test tests/importCenter.test.ts",
+    "test:electronic-statement-import": "tsx --test tests/electronicStatementImport.test.ts",
+    "pretest:ci": "npm run test:electronic-statement-import",
     "test:v6-0-2-import-center": "tsx --test tests/importCenterConsolidation.test.ts",
     "test:v6-0-3-import-discoverability": "tsx --test tests/importCenterDiscoverability.test.ts",
     "test:v6-0-4-tool-navigation": "tsx --test tests/toolNavigationConsistency.test.ts",
@@ -119,6 +121,7 @@
   "dependencies": {
     "@vitejs/plugin-react": "6.0.3",
     "lucide-react": "^1.24.0",
+    "pdfjs-dist": "^6.2.108",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-router-dom": "^7.18.1",

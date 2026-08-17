@@ -2,6 +2,8 @@
 
 最後更新：2026-08-16
 
+2026-08-17 **UR-TODO-021 Electronic Statement Import Foundation，狀態：Development Mode／待 Preview 驗收。** Contract Audit 判定 GO-B：既有 Import Center 的 CSV／XLSX、mapping、preview、duplicate detection、user confirmation 與 transaction creation 下游契約完整可重用；本 Sprint 只新增 text-based PDF 的 lazy-loaded 文字擷取與純 adapter，不建立第二套匯入引擎。第一版只接受每筆都有可驗證日期、明確正負號或括號負數金額、描述的單欄文字型交易列；掃描／圖片型、無文字、裸正數而無 debit／credit 語意、日期／金額／描述不完整或 layout 無法可靠辨識時一律 fail closed，尚未寫入任何交易。未加入 OCR、銀行專屬猜測、AI 自動分類、Loan／Investment／FX attribution、Ledger／Backup schema 或其他財務核心變更。待 CI 與 Preview 桌機／390px 驗收後，使用者再決定是否 Merge。
+
 2026-08-16 **舊 Backlog Closeout Audit（UR-TODO-012～025）唯讀盤點完成，經使用者逐項拍板後更新對應正式條目。** Review Mode 唯讀盤點確認 UR-TODO-012／013 自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對 `AI_CONTEXT/` 全部歷史版本與 git log，確認無獨立規格文件）；依使用者指示**不逕行標記完成**，改為記錄與 UR-TODO-048／058 的功能面比對結論，並將殘留範圍縮小、明文記錄。UR-TODO-014 範圍縮小為「CLEC 442／433／703／5050 規則本身」之歷史回測，與 UR-TODO-058（特定 3 資產、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線。UR-TODO-021 依 Import Center 現況（`ImportCenter.tsx` 已支援 CSV／XLSX 解析、欄位對應、重複判定）上修狀態。UR-TODO-022 維持部分完成，範圍註明縮小為尚缺「全自動分類（無需人工欄位對應）」。UR-TODO-024 拆分：多帳戶部分（`financialAccounts.ts` 既有 8 種帳戶類型）標記完成，範圍縮小為「多家庭成員」。UR-TODO-025 不關閉，範圍縮小聚焦「保險保單追蹤與保障缺口分析」（原退休子範圍已由 UR-TODO-066 CLOSED 吸收），並與縮小後的 UR-TODO-024（多家庭成員）建立依賴關係。UR-TODO-015／016／017／018／019／020／023 維持現狀不變。純治理文件更新，未修改任何程式碼。詳見下方各自正式條目。
 
 2026-08-16 **UR-TODO-069 手機版 follow-up，狀態：Development Mode／Draft PR 待驗收。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge；本次從新 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a` 建立獨立 branch，只處理同一卡片在 390px 的完整「計入支出」勾選框與文字同列。原先 PR #372 已完成頂端工具列（左勾選框、右 `Trash2` 圖示刪除按鈕）、名稱／金額全寬單列、44×44px 刪除觸控區與確認刪除；追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 及 `.retirement-expense-enabled` class，不存在選擇器只命中一種來源的差異。實際根因是全域 `label` 的 `flex-direction:column` 未被原本的 `white-space:nowrap` 覆寫。本 follow-up 僅在 `max-width:768px` 對該共用 class 加入 `flex-direction:row; white-space:nowrap`；保留完整可存取文字與原生 label 語意，桌機布局、JSX、刪除確認、`removeItem()`、Cash Flow、persistence schema 與退休計算均不變。待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
@@ -1832,9 +1834,10 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 狀態：待開發
 
 ### UR-TODO-021 銀行 CSV／Excel／電子帳單整合
-- 狀態：**部分完成（已大幅推進）**（2026-08-16 依 Import Center 現況上修）
+- 狀態：**開發中／待 Preview 驗收**（2026-08-17 Electronic Statement Import Foundation）
 - 2026-08-16 唯讀盤點結論：`src/components/import/ImportCenter.tsx` 已支援 CSV／XLSX 檔案解析（`csvParse()`／`readXlsxFile()`）、欄位對應（交易日期／單一金額／收入／支出／描述／商家對象／類別／外部 ID）、逐筆重複判定（`duplicate: 'certain'`）與匯入預覽，銀行 CSV／Excel 對帳單匯入已具備完整可用路徑。
-- 明確不包含（尚未涵蓋）：非表格式電子帳單（例如 PDF 帳單）的解析與匯入。
+- 2026-08-17 開發中範圍：新增 generic text-PDF foundation（PDF text extraction → pure statement adapter → 現有 canonical import records），既有 mapping／validation／duplicate detection／preview／user confirmation／transaction creation 完全沿用；`pdfjs-dist` 以 lazy-load 與 worker chunk 載入，避免併入初始 app bundle。
+- 明確不包含：OCR、圖片／掃描型 PDF、銀行專屬 parser、無明確方向的金額猜測、AI 自動分類、Loan／Investment／FX attribution、Financial Event Ledger、Transaction／Backup schema、Firebase、Worker 與 Production deploy。尚未宣告 CLOSED；需完成 Preview 驗收與使用者 Merge 後再更新。
 
 ### UR-TODO-022 自動分類與重複交易偵測
 - 狀態：**部分完成**（維持，2026-08-16 範圍註明）

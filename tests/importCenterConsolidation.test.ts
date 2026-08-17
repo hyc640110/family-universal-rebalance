@@ -16,7 +16,7 @@ test('App uses one extracted Import Center and no longer keeps either legacy inl
 
 test('the extracted UI delegates import behavior to the existing import model and keeps the route composition in App', () => {
   for (const helper of ['applyMappingPreset', 'buildImportPreview', 'createImportSessionId', 'createImportTransactions', 'csvParse', 'rowsToRecords']) assert.match(component, new RegExp(`\\b${helper}\\b`));
-  assert.match(component, /accept="\.csv,\.xlsx"/);
+  assert.match(component, /accept="\.csv,\.xlsx,\.pdf,application\/pdf"/);
   assert.match(component, /onCommit\(/);
   assert.match(component, /onRollback\(/);
   assert.match(component, /onPresets\(/);
