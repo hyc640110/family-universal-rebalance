@@ -12,11 +12,11 @@ export default function ToolsPage() {
         .sort((a, b) => a.priority - b.priority);
 
       return <section className="tool-section" key={group} aria-labelledby={`tool-section-${group}`}>
-        <h2 id={`tool-section-${group}`}>{TOOL_GROUP_LABELS[group]}</h2>
+        <h2 id={`tool-section-${group}`} className="tool-section-title">{TOOL_GROUP_LABELS[group]}</h2>
         <div className="tool-grid">{tools.map(({ id, name, description, icon: Icon, to, actionLabel, nature }) => to ? <article className="tool-card tool-card-active" key={id}>
-          <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h3>{name}{nature && <span className={`tool-nature-badge tool-nature-${nature}`}>{TOOL_NATURE_LABELS[nature]}</span>}</h3><p>{description}</p></div><Link to={to} aria-label={name} title={name}>{actionLabel} <ArrowRight size={15} aria-hidden="true" /></Link>
+          <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}{nature && <span className={`tool-nature-badge tool-nature-${nature}`}>{TOOL_NATURE_LABELS[nature]}</span>}</h2><p>{description}</p></div><Link to={to} aria-label={name} title={name}>{actionLabel} <ArrowRight size={15} aria-hidden="true" /></Link>
         </article> : <article className="tool-card" key={id} aria-disabled="true">
-          <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h3>{name}{nature && <span className={`tool-nature-badge tool-nature-${nature}`}>{TOOL_NATURE_LABELS[nature]}</span>}</h3><p>{description}</p></div><span>規劃中</span>
+          <div className="tool-icon"><Icon size={22} aria-hidden="true" /></div><div><h2>{name}{nature && <span className={`tool-nature-badge tool-nature-${nature}`}>{TOOL_NATURE_LABELS[nature]}</span>}</h2><p>{description}</p></div><span>規劃中</span>
         </article>)}</div>
       </section>;
     })}
