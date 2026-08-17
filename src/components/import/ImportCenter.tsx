@@ -3,7 +3,7 @@ import readXlsxFile from 'read-excel-file/browser';
 import { parseTextPdfStatement } from '../../lib/electronicStatementImport';
 import { extractTextPdfPages } from '../../lib/pdfTextExtraction';
 import type { FinancialAccount } from '../../lib/financialAccounts';
-import type { FinancialTransaction } from '../../lib/transactions';
+import { transactionTypeLabel, type FinancialTransaction } from '../../lib/transactions';
 import {
   IMPORT_SCHEMA_VERSION,
   IMPORT_FILE_ACCEPT,
@@ -187,7 +187,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <FeedbackLine feedback={presetFeedback} />
     {records.length > 0 && <button className="small" type="button" onClick={makePreview}>產生匯入預覽</button>}
     <FeedbackLine feedback={previewFeedback} />
-    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => { const checked = event.currentTarget.checked; setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: checked } : item)); }} /> 第 {row.rowNumber} 列｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
+    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => <label className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => { const checked = event.currentTarget.checked; setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: checked } : item)); }} /> 第 {row.rowNumber} 列｜{row.type ? transactionTypeLabel(row.type) : '方向未確認'}｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>)}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
     <FeedbackLine feedback={commitFeedback} />
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => rollback(session.id)}>撤銷</button>}</p>)}
     <FeedbackLine feedback={rollbackFeedback} />
