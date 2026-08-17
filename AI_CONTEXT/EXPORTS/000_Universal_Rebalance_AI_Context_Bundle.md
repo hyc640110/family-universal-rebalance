@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-17T12:42:19.688486+00:00
+Generated UTC: 2026-08-17T14:03:40.839220+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-17T12:42:19.688486+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `c91b5e780924cfd67c4d934f4ac1344dd74e056dca6b1c954c30dff1dc9d52a4`
+- `003_CURRENT_STATUS.md` — SHA-256 `898e4d43e3c80560f3e1b708534c03a5261ca879c0d24db87700988880dc2d4d`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `5cdacda7db427cba748a5c80759b633185a9ee41d648c2d33f4e0ecfc4ab0a53`
+- `008_TODO_BACKLOG.md` — SHA-256 `7f3e4c57d2218a52e30f3ae9685400de3aa31b2f544fb611e30cfb05d34d4702`
 - `009_CHANGELOG.md` — SHA-256 `ddbf711702b364086784b37c8dd2efff9b835fc5afb88b4071324a32f92e389f`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `383eed90b9f0d80e489c6d445feb82edb6896aee3fbf027427527bb3c7e28fc4`
+- `012_AI_HANDOVER.md` — SHA-256 `81f6b0e0e6cea26059ccd041215dbe65ac7fe80025016b3908ec52474489a051`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -658,6 +658,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v4.25
 
 最後更新：2026-08-17
+
+**UR-TODO-021（Electronic Statement Import Foundation）已於 2026-08-17 正式完成並進入 Production。** PR [#377](https://github.com/hyc640110/family-universal-rebalance/pull/377) 已由使用者授權以一般 2-parent merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併（parents：`4645541dca26bb26fb805d7d820006bb94e2303f`／`9851a5ed295cb44ffc5066be9dd15d516c7e0f14`，`mergedAt: 2026-08-17T13:59:49Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f0b57c038c0a19c86deeee7a0a73872ac94231e2`。PR verify [run 32036912584](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32036912584) success；main Deploy GitHub Pages [run 32037454446](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32037454446) success，head 與 merge commit 一致。Production HTTP 200／`environment=production`；公開 bundle 已唯讀確認含 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援，未建立任何測試交易。Import Center 新增 text-based PDF 的 fail-closed 解析（掃描／無文字／裸正數／不明結構拒絕）並在 Preview 列直接顯示既有 `row.type` 的「收入／支出」方向；無 schema、persistence、Ledger 或 Backup contract 變更。
 
 **UR-TODO-016（再平衡歷史與決策紀錄）已於 2026-08-17 正式完成並進入 Production。** PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者以一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00` 合併（final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。再平衡建議中心新增「目前建議／決策紀錄」工作流與可持久化的 Recommendation Snapshot／使用者備註；此紀錄僅代表使用者決策意向，不代表下單或成交，且不建立 Transaction／Financial Event、不修改 holdings。使用者已完成 Desktop 與 390 × 844 手機人工驗收：tabs、展開、三種決策選項、textarea、提交／取消、決策卡、mobile bottom navigation 均正常，無明顯 horizontal overflow；Ctrl+R 與 JSON Backup Export → Import round-trip 均保存紀錄。`test:ci` 已正式納入 `test:ur-todo-016`。
 
@@ -3067,7 +3069,7 @@ Hotfix 仍需：
 
 最後更新：2026-08-16
 
-2026-08-17 **UR-TODO-021 Electronic Statement Import Foundation，狀態：Development Mode／待 Preview 驗收。** Contract Audit 判定 GO-B：既有 Import Center 的 CSV／XLSX、mapping、preview、duplicate detection、user confirmation 與 transaction creation 下游契約完整可重用；本 Sprint 只新增 text-based PDF 的 lazy-loaded 文字擷取與純 adapter，不建立第二套匯入引擎。第一版只接受每筆都有可驗證日期、明確正負號或括號負數金額、描述的單欄文字型交易列；掃描／圖片型、無文字、裸正數而無 debit／credit 語意、日期／金額／描述不完整或 layout 無法可靠辨識時一律 fail closed，尚未寫入任何交易。未加入 OCR、銀行專屬猜測、AI 自動分類、Loan／Investment／FX attribution、Ledger／Backup schema 或其他財務核心變更。待 CI 與 Preview 桌機／390px 驗收後，使用者再決定是否 Merge。
+2026-08-17 **UR-TODO-021 Electronic Statement Import Foundation，狀態：CLOSED／Production Verified。** PR [#377](https://github.com/hyc640110/family-universal-rebalance/pull/377) 已由使用者授權以一般 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併；PR verify `32036912584` 與 main Deploy GitHub Pages `32037454446` 均 success。使用者已完成本機隔離 Preview 的桌機／390px 人工驗收：正常文字型 PDF、多頁解析、收入／支出方向、bare-positive fail-closed 與 unknown-structure fail-closed 均通過。Production HTTP 200／`environment=production`，公開 bundle 已確認 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援；未建立測試交易。Contract Audit GO-B 結論維持：CSV／XLSX、mapping、preview、duplicate detection、user confirmation 與 transaction creation 下游契約沿用既有 Import Center；PDF 僅新增 lazy-loaded text extraction／pure adapter，明確方向的金額才接受，掃描／圖片型、無文字、裸正數、不完整或不明結構一律 fail closed。未加入 OCR、銀行專屬猜測、AI 自動分類、Loan／Investment／FX attribution、Ledger／Backup schema 或其他財務核心變更。
 
 2026-08-16 **舊 Backlog Closeout Audit（UR-TODO-012～025）唯讀盤點完成，經使用者逐項拍板後更新對應正式條目。** Review Mode 唯讀盤點確認 UR-TODO-012／013 自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對 `AI_CONTEXT/` 全部歷史版本與 git log，確認無獨立規格文件）；依使用者指示**不逕行標記完成**，改為記錄與 UR-TODO-048／058 的功能面比對結論，並將殘留範圍縮小、明文記錄。UR-TODO-014 範圍縮小為「CLEC 442／433／703／5050 規則本身」之歷史回測，與 UR-TODO-058（特定 3 資產、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線。UR-TODO-021 依 Import Center 現況（`ImportCenter.tsx` 已支援 CSV／XLSX 解析、欄位對應、重複判定）上修狀態。UR-TODO-022 維持部分完成，範圍註明縮小為尚缺「全自動分類（無需人工欄位對應）」。UR-TODO-024 拆分：多帳戶部分（`financialAccounts.ts` 既有 8 種帳戶類型）標記完成，範圍縮小為「多家庭成員」。UR-TODO-025 不關閉，範圍縮小聚焦「保險保單追蹤與保障缺口分析」（原退休子範圍已由 UR-TODO-066 CLOSED 吸收），並與縮小後的 UR-TODO-024（多家庭成員）建立依賴關係。UR-TODO-015／016／017／018／019／020／023 維持現狀不變。純治理文件更新，未修改任何程式碼。詳見下方各自正式條目。
 
@@ -4899,10 +4901,10 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 狀態：待開發
 
 ### UR-TODO-021 銀行 CSV／Excel／電子帳單整合
-- 狀態：**開發中／待 Preview 驗收**（2026-08-17 Electronic Statement Import Foundation）
+- 狀態：**已完成／Production Verified**（2026-08-17 Electronic Statement Import Foundation，PR #377 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2`）
 - 2026-08-16 唯讀盤點結論：`src/components/import/ImportCenter.tsx` 已支援 CSV／XLSX 檔案解析（`csvParse()`／`readXlsxFile()`）、欄位對應（交易日期／單一金額／收入／支出／描述／商家對象／類別／外部 ID）、逐筆重複判定（`duplicate: 'certain'`）與匯入預覽，銀行 CSV／Excel 對帳單匯入已具備完整可用路徑。
-- 2026-08-17 開發中範圍：新增 generic text-PDF foundation（PDF text extraction → pure statement adapter → 現有 canonical import records），既有 mapping／validation／duplicate detection／preview／user confirmation／transaction creation 完全沿用；`pdfjs-dist` 以 lazy-load 與 worker chunk 載入，避免併入初始 app bundle。
-- 明確不包含：OCR、圖片／掃描型 PDF、銀行專屬 parser、無明確方向的金額猜測、AI 自動分類、Loan／Investment／FX attribution、Financial Event Ledger、Transaction／Backup schema、Firebase、Worker 與 Production deploy。尚未宣告 CLOSED；需完成 Preview 驗收與使用者 Merge 後再更新。
+- 2026-08-17 完成範圍：新增 generic text-PDF foundation（PDF text extraction → pure statement adapter → 現有 canonical import records），既有 mapping／validation／duplicate detection／preview／user confirmation／transaction creation 完全沿用；`pdfjs-dist` 以 lazy-load 與 worker chunk 載入。Preview 列直接顯示既有 `row.type` 的「收入／支出」方向，金額仍維持正數資料模型。
+- 明確不包含：OCR、圖片／掃描型 PDF、銀行專屬 parser、無明確方向的金額猜測、AI 自動分類、Loan／Investment／FX attribution、Financial Event Ledger、Transaction／Backup schema、Firebase、Worker。Production 已由 PR merge 的既有 main workflow 部署並完成唯讀驗證。
 
 ### UR-TODO-022 自動分類與重複交易偵測
 - 狀態：**部分完成**（維持，2026-08-16 範圍註明）
@@ -5473,6 +5475,13 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## UR-TODO-021 Closeout（2026-08-17）
+
+- PR #377 已由使用者授權以一般 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併（parents：`4645541dca26bb26fb805d7d820006bb94e2303f`／`9851a5ed295cb44ffc5066be9dd15d516c7e0f14`）；`origin/main` 同為此 SHA。
+- PR verify `32036912584` success；main Deploy GitHub Pages `32037454446` success。Production HTTP 200、metadata `environment=production`，公開 bundle 含 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援；未輸入或建立任何測試交易。
+- 使用者已於本機隔離 Preview 完成正常／多頁文字型 PDF、方向顯示、bare-positive／unknown-structure fail-closed、390px 驗收。PDF contract 是 explicit direction → `type` + positive `amount`；Preview 直接用 `row.type` 顯示「收入／支出」，不由金額重新推導。
+- 未包含 OCR、銀行專屬 parser、金額方向猜測、AI 自動分類、schema／persistence／Ledger／Backup、Loan／Investment／FX attribution、Firebase 或 Worker 變更。UR-TODO-021 已 CLOSED。
 
 > 文件定位：本文件是 AI 交接時使用的「工作狀態快照」。
 >

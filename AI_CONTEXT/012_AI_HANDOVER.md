@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## UR-TODO-021 Closeout（2026-08-17）
+
+- PR #377 已由使用者授權以一般 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併（parents：`4645541dca26bb26fb805d7d820006bb94e2303f`／`9851a5ed295cb44ffc5066be9dd15d516c7e0f14`）；`origin/main` 同為此 SHA。
+- PR verify `32036912584` success；main Deploy GitHub Pages `32037454446` success。Production HTTP 200、metadata `environment=production`，公開 bundle 含 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援；未輸入或建立任何測試交易。
+- 使用者已於本機隔離 Preview 完成正常／多頁文字型 PDF、方向顯示、bare-positive／unknown-structure fail-closed、390px 驗收。PDF contract 是 explicit direction → `type` + positive `amount`；Preview 直接用 `row.type` 顯示「收入／支出」，不由金額重新推導。
+- 未包含 OCR、銀行專屬 parser、金額方向猜測、AI 自動分類、schema／persistence／Ledger／Backup、Loan／Investment／FX attribution、Firebase 或 Worker 變更。UR-TODO-021 已 CLOSED。
+
 > 文件定位：本文件是 AI 交接時使用的「工作狀態快照」。
 >
 > 它不是 Master Roadmap、Current Status 或 Todo Backlog 的替代品，也不是新的待辦來源。
