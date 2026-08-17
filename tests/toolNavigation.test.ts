@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getToolQuickLinks, isTransactionToolsTarget, TOOL_DEFINITIONS } from '../src/lib/toolNavigation.ts';
+import { getToolQuickLinks, isTransactionToolsTarget, TOOL_DEFINITIONS, TOOL_GROUP_ORDER } from '../src/lib/toolNavigation.ts';
 import { readFileSync } from 'node:fs';
 
 const expectedRoutedTools = [
@@ -54,22 +54,20 @@ test('Tool Center keeps one canonical definition for all 16 tools and preserves 
 });
 
 test('all 16 tools belong to exactly one approved IA group with deterministic priority order', () => {
-  const grouped = new Map<string, string[]>();
+  const allowedGroups = new Set(Object.keys(expectedGroups));
   for (const tool of TOOL_DEFINITIONS) {
-    assert.ok(tool.group, `${tool.id} must define group`);
+    assert.ok(allowedGroups.has(tool.group), `${tool.id} must define an approved group`);
     assert.equal(typeof tool.priority, 'number', `${tool.id} must define priority`);
-    const tools = grouped.get(tool.group) ?? [];
-    tools.push(tool.id);
-    grouped.set(tool.group, tools);
   }
 
-  assert.deepEqual([...grouped.keys()], Object.keys(expectedGroups));
-  for (const [group, expectedIds] of Object.entries(expectedGroups)) {
+  assert.deepEqual(TOOL_GROUP_ORDER, Object.keys(expectedGroups));
+  for (const group of TOOL_GROUP_ORDER) {
     const ids = TOOL_DEFINITIONS
       .filter(tool => tool.group === group)
+      .slice()
       .sort((a, b) => a.priority - b.priority)
       .map(tool => tool.id);
-    assert.deepEqual(ids, expectedIds);
+    assert.deepEqual(ids, expectedGroups[group]);
   }
 });
 
