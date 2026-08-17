@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-17T14:03:40.839220+00:00
+Generated UTC: 2026-08-17T14:32:35.121435+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `898e4d43e3c80560f3e1b708534c03a5261ca879c0d24db87700988880dc2d4d`
-- `008_TODO_BACKLOG.md` — SHA-256 `7f3e4c57d2218a52e30f3ae9685400de3aa31b2f544fb611e30cfb05d34d4702`
-- `012_AI_HANDOVER.md` — SHA-256 `81f6b0e0e6cea26059ccd041215dbe65ac7fe80025016b3908ec52474489a051`
+- `003_CURRENT_STATUS.md` — SHA-256 `0f1a8be171113de7e9365a4b7896f189dd16e6e7e2de335a36be33a69a793f1e`
+- `008_TODO_BACKLOG.md` — SHA-256 `d5c20ffbcdf15dfb90252abb2ada510d840a9fc41c68c81fd9e453cb741775fb`
+- `012_AI_HANDOVER.md` — SHA-256 `b4fbb4800cd991c9295eaae7e8ccfb48ba24dcd8c08761b871d3fe27ba430476`
 
 ---
 
@@ -433,7 +433,7 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 **UR-TODO-016（再平衡歷史與決策紀錄）已於 2026-08-17 正式完成並進入 Production。** PR [#375](https://github.com/hyc640110/family-universal-rebalance/pull/375) 已由使用者以一般 2-parent merge commit `f7bc4a336e92b43facc58f83a2cdbad400846e00` 合併（final head `2a391adde9fb8d10ac6209d2686796d470c2943d`，`mergedAt: 2026-08-17T11:42:40Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f7bc4a336e92b43facc58f83a2cdbad400846e00`。PR required CI Verification run `32025916546` success；main Deploy GitHub Pages run `32026237097` success，head 與 merge commit 一致。再平衡建議中心新增「目前建議／決策紀錄」工作流與可持久化的 Recommendation Snapshot／使用者備註；此紀錄僅代表使用者決策意向，不代表下單或成交，且不建立 Transaction／Financial Event、不修改 holdings。使用者已完成 Desktop 與 390 × 844 手機人工驗收：tabs、展開、三種決策選項、textarea、提交／取消、決策卡、mobile bottom navigation 均正常，無明顯 horizontal overflow；Ctrl+R 與 JSON Backup Export → Import round-trip 均保存紀錄。`test:ci` 已正式納入 `test:ur-todo-016`。
 
-**UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）正在同一 Todo 的手機版 follow-up Development Mode。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge，現行正式起點為 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar` 僅修正 `/tools/retirement-planner` 固定支出卡片在 390px 下的「計入支出」勾選框與文字縱向堆疊。唯讀追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 與 `.retirement-expense-enabled` class，並非選擇器涵蓋範圍差異；根因是全域 `label` 設定 `flex-direction:column`，原 follow-up 的 `white-space:nowrap` 不能覆寫此方向。本 follow-up 僅於 `max-width:768px` 對同一 class 明確加入 `flex-direction:row; white-space:nowrap`，保留完整可存取文案與既有原生 `<label>` 語意。桌機、JSX、刪除確認／`removeItem()`、Cash Flow 與 `retirementPlan` 資料邏輯均不變。待 CI 與 Preview 驗收後，使用者再決定是否 Merge。
+**UR-TODO-069（退休規劃固定支出卡片精簡＋刪除圖示防誤觸）已於 2026-08-17 正式 CLOSED／Production Verified。** PR [#373](https://github.com/hyc640110/family-universal-rebalance/pull/373) 已以一般 2-parent merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74` 合併（parents：`87777766f9e2c37bcae0bad35194cc20444ab67a`／`56b3f551bccb22407cdbda4005246cf68f3c9abb`，`mergedAt: 2026-08-16T13:17:12Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `1b47a5d44cc20abd13c1b70d486a4fed17313ca3`。PR verify [run 31948775856](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31948775856) success；main Deploy GitHub Pages [run 31949386977](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31949386977) completed/success，head 與 merge commit 一致。Production HTTP 200／`environment=production`，公開 CSS bundle 已確認於 `max-width:768px` 對 `.retirement-expense-enabled` 套用 `flex-direction:row; white-space:nowrap`；390px 與 Desktop 本機 Preview 驗收均通過，Desktop 不套用 mobile override。匯入與自訂項目維持共用既有 JSX／class；桌機、JSX、刪除確認／`removeItem()`、Cash Flow、`retirementPlan`、schema、persistence、JSON Backup、Ledger、attribution、Household Liquidity 與 Rebalance 均未變更；對應 regression test 已納入並持續通過。
 
 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）已於 2026-08-16 正式 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已以一般 merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26` 合併（未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge）；main push 觸發之 Deploy GitHub Pages [run 31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success，Production HTTP 200，重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致，既有功能與 console 皆正常。`origin/main` 現行正式基線為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從現金流匯入的項目只有勾選框、沒有刪除按鈕；唯讀盤點確認為 UR-TODO-066 建立當下即存在、未有文件記載為刻意設計的既有限制，拍板後移除刪除按鈕的條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（不回寫 `cashFlowProfile`）；匯入確認對話框文字同步更新，明確點名先前刪除的項目可能重新出現。詳見 `008_TODO_BACKLOG.md` UR-TODO-068 正式條目。
 
@@ -1194,7 +1194,7 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 2026-08-16 **舊 Backlog Closeout Audit（UR-TODO-012～025）唯讀盤點完成，經使用者逐項拍板後更新對應正式條目。** Review Mode 唯讀盤點確認 UR-TODO-012／013 自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對 `AI_CONTEXT/` 全部歷史版本與 git log，確認無獨立規格文件）；依使用者指示**不逕行標記完成**，改為記錄與 UR-TODO-048／058 的功能面比對結論，並將殘留範圍縮小、明文記錄。UR-TODO-014 範圍縮小為「CLEC 442／433／703／5050 規則本身」之歷史回測，與 UR-TODO-058（特定 3 資產、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線。UR-TODO-021 依 Import Center 現況（`ImportCenter.tsx` 已支援 CSV／XLSX 解析、欄位對應、重複判定）上修狀態。UR-TODO-022 維持部分完成，範圍註明縮小為尚缺「全自動分類（無需人工欄位對應）」。UR-TODO-024 拆分：多帳戶部分（`financialAccounts.ts` 既有 8 種帳戶類型）標記完成，範圍縮小為「多家庭成員」。UR-TODO-025 不關閉，範圍縮小聚焦「保險保單追蹤與保障缺口分析」（原退休子範圍已由 UR-TODO-066 CLOSED 吸收），並與縮小後的 UR-TODO-024（多家庭成員）建立依賴關係。UR-TODO-015／016／017／018／019／020／023 維持現狀不變。純治理文件更新，未修改任何程式碼。詳見下方各自正式條目。
 
-2026-08-16 **UR-TODO-069 手機版 follow-up，狀態：Development Mode／Draft PR 待驗收。** PR [#372](https://github.com/hyc640110/family-universal-rebalance/pull/372) 已 Merge；本次從新 `origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a` 建立獨立 branch，只處理同一卡片在 390px 的完整「計入支出」勾選框與文字同列。原先 PR #372 已完成頂端工具列（左勾選框、右 `Trash2` 圖示刪除按鈕）、名稱／金額全寬單列、44×44px 刪除觸控區與確認刪除；追查確認匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 及 `.retirement-expense-enabled` class，不存在選擇器只命中一種來源的差異。實際根因是全域 `label` 的 `flex-direction:column` 未被原本的 `white-space:nowrap` 覆寫。本 follow-up 僅在 `max-width:768px` 對該共用 class 加入 `flex-direction:row; white-space:nowrap`；保留完整可存取文字與原生 label 語意，桌機布局、JSX、刪除確認、`removeItem()`、Cash Flow、persistence schema 與退休計算均不變。待 CI 與 Preview 桌機／390px 驗收後，使用者再指示 Merge。
+2026-08-17 **UR-TODO-069（退休規劃固定支出卡片手機版 follow-up），狀態：CLOSED／Production Verified。** PR [#373](https://github.com/hyc640110/family-universal-rebalance/pull/373) 已以一般 2-parent merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74` 合併（parents：`87777766f9e2c37bcae0bad35194cc20444ab67a`／`56b3f551bccb22407cdbda4005246cf68f3c9abb`，`mergedAt: 2026-08-16T13:17:12Z`，`mergedBy: hyc640110`）；PR verify [31948775856](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31948775856) success，merge 後 main Deploy GitHub Pages [31949386977](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31949386977) completed/success，head 與 merge commit 一致。Production HTTP 200／`environment=production`，公開 CSS bundle 已確認在 `max-width:768px` 以 `.retirement-expense-enabled{flex-direction:row;white-space:nowrap}` 保持「計入支出」勾選框與文字同列；390px 與 Desktop 本機 Preview 驗收均正常，Desktop 不受該 mobile override 影響。匯入與自訂項目共用同一段 `draft.fixedExpenses.map(...)` JSX 與 class，對應 regression test 已存在並通過。未變更 JSX、刪除確認、`removeItem()`、Cash Flow、`retirementPlan`、schema、persistence、JSON Backup、Ledger、attribution、Household Liquidity 或 Rebalance；本 Todo 無剩餘項目。
 
 2026-08-16 **UR-TODO-068（退休規劃頁面「匯入項目」新增刪除功能）正式標記 CLOSED。** PR [#370](https://github.com/hyc640110/family-universal-rebalance/pull/370) 已正式 Merge（merge commit `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`，一般 merge commit，未使用 admin override，使用者於 Preview 驗收通過後親自執行 Merge），`origin/main` 正式基線更新為 `c7aba5f91bbd024eafdc88bdd9fbf18128dada26`。使用者回報 `/tools/retirement-planner` 固定支出清單中，從「收支與現金流」匯入的項目只有勾選框、沒有刪除按鈕，只有「新增自訂項目」加入的項目才能整筆刪除；唯讀盤點確認此為 UR-TODO-066 建立當下即存在的既有行為（非回歸），且沒有任何文件記載為刻意設計，經使用者拍板後移除刪除按鈕的 `customFixedExpenseIds` 條件限制，改為所有項目皆可刪除，行為與既有自訂項目刪除完全一致（只影響本頁草稿，不回寫 `cashFlowProfile`）；「從現金流匯入」確認對話框文字同步更新為明確點名「先前刪除的項目可能會重新出現」。Deploy GitHub Pages run [31939740957](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31939740957) success；Production 已唯讀確認 HTTP 200、重新本機建置後與正式部署的 JS bundle 逐位元組比對完全一致、既有功能與 console 皆正常，未在正式站台輸入資料污染真實帳目。使用者已完成跨頁面桌機與 390px 手機 Preview 驗收。詳見下方 **UR-TODO-068** 正式條目。
 
@@ -3093,12 +3093,12 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ---
 
-## 最新交接快照：UR-TODO-069 手機版固定支出工具列 follow-up（開發中，2026-08-16）
+## 最新交接快照：UR-TODO-069 手機版固定支出工具列 follow-up（CLOSED／Production Verified，2026-08-17）
 
-- 正式起點：PR #372 已 Merge，`origin/main` `87777766f9e2c37bcae0bad35194cc20444ab67a`；獨立 branch `codex/ur-todo-069-mobile-expense-toolbar`，原工作目錄 stash 與未追蹤項目不在此 worktree 內。
-- 已定案 UI：保留完整「計入支出」文字；僅手機斷點 `max-width:768px` 將共用勾選 label 設為 `flex-direction:row; white-space:nowrap`。追查確認匯入與自訂項目都由同一段 `draft.fixedExpenses.map(...)` JSX 建立，使用相同 `.retirement-expense-enabled` class；不是來源分流。根因為全域 `label{flex-direction:column}` 覆蓋了原先未明確指定方向的 class。垃圾桶仍為 44×44px。本次不改桌機、名稱／金額全寬列、JSX 或既有 `Trash2`。
-- 行為邊界：`removeItem()`、`window.confirm()`、`retirementPlan`、Cash Flow 與所有退休計算均不變；完整可存取名稱繼續由原生 `<label>` 提供，不增加重複 ARIA。
-- 測試：新增手機斷點勾選標籤同列 regression test；先在缺少 `flex-direction:row` 時觀察到預期失敗，加入單一 CSS 規則後轉綠。仍需完整 CI 確認、Bundle、Draft PR 與 Preview 驗收；不得自行 Merge。
+- 正式結案：PR [#373](https://github.com/hyc640110/family-universal-rebalance/pull/373) 已以一般 2-parent merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74` 合併（parents：`87777766f9e2c37bcae0bad35194cc20444ab67a`／`56b3f551bccb22407cdbda4005246cf68f3c9abb`，`mergedAt: 2026-08-16T13:17:12Z`，`mergedBy: hyc640110`）；目前 `origin/main` 為 `1b47a5d44cc20abd13c1b70d486a4fed17313ca3`。
+- 驗證：PR verify [31948775856](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31948775856) success；merge 後 main Deploy GitHub Pages [31949386977](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31949386977) completed/success，head 與 merge commit 一致。Production HTTP 200／`environment=production`，公開 CSS bundle 含 `@media(max-width:768px){.retirement-expense-enabled{flex-direction:row;white-space:nowrap}}`；390px 與 Desktop 本機 Preview 已重新確認，Desktop 不套用 mobile override。
+- 完成行為與邊界：匯入與自訂項目同由 `draft.fixedExpenses.map(...)` JSX 與 `.retirement-expense-enabled` class 處理；全域 `label{flex-direction:column}` 的局部覆寫已使「計入支出」同列且不換行。`removeItem()`、`window.confirm()`、`retirementPlan`、Cash Flow、退休計算、schema、persistence、JSON Backup、Ledger、attribution、Household Liquidity 與 Rebalance 均未變；對應 regression test 已存在並持續通過。
+- 下一位 AI：UR-TODO-069 已無未完成項目。不得因本 Closeout 自動開始 UR-TODO-040 或其他產品 Sprint；一律等待使用者下一步明確指示。
 
 ---
 
