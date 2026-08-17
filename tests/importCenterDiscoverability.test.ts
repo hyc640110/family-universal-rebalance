@@ -6,10 +6,14 @@ import { TOOL_DEFINITIONS, getToolQuickLinks, isTransactionToolsTarget } from '.
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const importCenter = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
 
-test('the Tool Center and tool quick navigation use the existing assets transaction anchor', () => {
+test('the Tool Center keeps the existing assets transaction anchor while quick navigation stays contextual', () => {
   const entry = TOOL_DEFINITIONS.find(tool => tool.id === 'import-transactions');
   assert.deepEqual(entry && { name: entry.name, to: entry.to, actionLabel: entry.actionLabel }, { name: '交易匯入（Import Transactions）', to: '/assets#transactions-section', actionLabel: '前往匯入' });
-  assert.ok(getToolQuickLinks('dividend-center').some(tool => tool.id === 'import-transactions' && tool.to === '/assets#transactions-section'));
+
+  const dividendLinks = getToolQuickLinks('dividend-center');
+  assert.deepEqual(dividendLinks.map(tool => tool.id), ['cash-flow', 'net-worth-history', 'wealth-goal']);
+  assert.ok(dividendLinks.length <= 3);
+  assert.equal(dividendLinks.some(tool => tool.id === 'import-transactions'), false);
 });
 
 test('the existing Import Center opens only from the anchor without persisting a UI-state change', () => {
