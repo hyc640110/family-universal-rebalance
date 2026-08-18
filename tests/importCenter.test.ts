@@ -39,19 +39,36 @@ test('auto mapping uses an explicit transaction-date alias and never substitutes
   assert.equal(guessImportMapping(['posting date', 'amount']).occurredAt, undefined);
   assert.equal(guessImportMapping(['交易日期', '交易日', 'amount']).occurredAt, undefined, 'equivalent date candidates fail closed');
 });
+test('auto mapping accepts the reviewed consumer-date aliases but still excludes posting dates', () => {
+  assert.equal(guessImportMapping(['消費日期', 'amount']).occurredAt, '消費日期');
+  assert.equal(guessImportMapping(['消費日', 'amount']).occurredAt, '消費日');
+  assert.equal(guessImportMapping(['posting date', 'posted date', '入帳日期', 'amount']).occurredAt, undefined);
+});
 test('auto mapping prevents amount, credit, and debit collisions and prefers a complete credit/debit pair', () => {
   assert.deepEqual(guessImportMapping(['交易日期', '收入', '支出', '單一金額']), { occurredAt: '交易日期', credit: '收入', debit: '支出', amount: undefined, description: undefined, merchant: undefined, categoryId: undefined, externalId: undefined, note: undefined });
   assert.deepEqual(guessImportMapping(['交易日期', '單一金額']), { occurredAt: '交易日期', amount: '單一金額', credit: undefined, debit: undefined, description: undefined, merchant: undefined, categoryId: undefined, externalId: undefined, note: undefined });
   assert.equal(guessImportMapping(['交易日期', '收入/支出金額']).amount, undefined, 'a direction-ambiguous amount header is not guessed');
+});
+test('auto mapping accepts the reviewed credit and debit aliases without inferring an amount column', () => {
+  for (const header of ['存入', '入帳金額', '貸方', 'deposit']) assert.equal(guessImportMapping(['交易日期', header]).credit, header);
+  for (const header of ['提出', '扣款金額', '借方', 'withdrawal']) assert.equal(guessImportMapping(['交易日期', header]).debit, header);
+  assert.equal(guessImportMapping(['交易日期', '存入', '扣款金額']).amount, undefined);
 });
 test('auto mapping recognizes only explicit description, merchant, and category aliases', () => {
   assert.deepEqual(guessImportMapping(['transaction date', 'amount', 'memo', 'payee', 'category']), { occurredAt: 'transaction date', amount: 'amount', credit: undefined, debit: undefined, description: 'memo', merchant: 'payee', categoryId: 'category', externalId: undefined, note: undefined });
   assert.equal(guessImportMapping(['transaction date', 'amount', 'name']).description, undefined);
   assert.equal(guessImportMapping(['transaction date', 'amount', 'name']).merchant, undefined);
 });
+test('auto mapping accepts the reviewed merchant aliases', () => {
+  for (const header of ['特店', '店家', '交易對象']) assert.equal(guessImportMapping(['交易日期', '金額', header]).merchant, header);
+});
 test('auto mapping requires an explicit external identifier alias and rejects a bare id', () => {
   assert.equal(guessImportMapping(['交易日期', '金額', '交易編號']).externalId, '交易編號');
   assert.equal(guessImportMapping(['交易日期', '金額', 'external id']).externalId, 'external id');
+  assert.equal(guessImportMapping(['交易日期', '金額', 'id']).externalId, undefined);
+});
+test('auto mapping accepts the reviewed external identifier aliases and still rejects bare id', () => {
+  for (const header of ['交易序號', '流水號', 'transaction no']) assert.equal(guessImportMapping(['交易日期', '金額', header]).externalId, header);
   assert.equal(guessImportMapping(['交易日期', '金額', 'id']).externalId, undefined);
 });
 test('auto mapping is deterministic and fails closed for a shared source or equivalent target candidates', () => {

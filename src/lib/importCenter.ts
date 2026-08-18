@@ -37,14 +37,14 @@ const normalizedHeader = (value: string) => value.normalize('NFKC').toLocaleLowe
 type MappingTarget = Exclude<keyof ImportMapping, 'amountSign' | 'postedAt' | 'type' | 'currency'>;
 type HeaderAliases = { exact: readonly string[]; strong: readonly string[] };
 const importMappingAliases: Record<MappingTarget, HeaderAliases> = {
-  occurredAt: { exact: ['date', '交易日期', '交易日'], strong: ['transaction date', 'transactiondate'] },
+  occurredAt: { exact: ['date', '交易日期', '交易日'], strong: ['transaction date', 'transactiondate', '消費日期', '消費日'] },
   description: { exact: ['description', '描述'], strong: ['memo', '摘要', '說明', 'transaction description', '交易說明'] },
-  merchant: { exact: ['merchant', '商家'], strong: ['payee', '對象', '商家/對象'] },
+  merchant: { exact: ['merchant', '商家'], strong: ['payee', '對象', '商家/對象', '特店', '店家', '交易對象'] },
   amount: { exact: ['amount', '金額', '單一金額'], strong: ['transaction amount', '交易金額'] },
-  credit: { exact: ['credit', '收入'], strong: ['income', 'credit amount', '收入金額'] },
-  debit: { exact: ['debit', '支出'], strong: ['expense', 'debit amount', '支出金額'] },
+  credit: { exact: ['credit', '收入'], strong: ['income', 'credit amount', '收入金額', '存入', '入帳金額', '貸方', 'deposit'] },
+  debit: { exact: ['debit', '支出'], strong: ['expense', 'debit amount', '支出金額', '提出', '扣款金額', '借方', 'withdrawal'] },
   categoryId: { exact: ['category', '類別'], strong: ['category id', '分類'] },
-  externalId: { exact: ['external id', '外部id'], strong: ['transaction id', '交易編號', 'reference number', 'reference id'] },
+  externalId: { exact: ['external id', '外部id'], strong: ['transaction id', '交易編號', 'reference number', 'reference id', '交易序號', '流水號', 'transaction no'] },
   note: { exact: ['note', '備註'], strong: ['remark', 'remarks', '附註'] }
 };
 const uniqueHeaderForAliases = (headers: ReadonlyArray<{ name: string; normalized: string }>, aliases: HeaderAliases) => {
