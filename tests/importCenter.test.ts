@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
+import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, reconcileImportPreviewDuplicates, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
 const importCenterComponent = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
@@ -128,4 +128,113 @@ test('suggestion action has a responsive structure that stacks without changing 
   assert.match(importCenterComponent, /className="import-preview-category"/);
   assert.match(styles, /\.import-preview-suggestion\{flex-direction:column;align-items:flex-start\}/);
   assert.match(styles, /\.import-preview-category select\{min-width:0;max-width:100%\}/);
+});
+
+const batchMapping = { occurredAt: 'date', amount: 'amount', description: 'description', merchant: 'merchant', categoryId: 'category', externalId: 'externalId' };
+const batchPreview = (rows: Array<Array<string>>, existing = []) => buildImportPreview(rowsToRecords([['date', 'amount', 'description', 'merchant', 'category', 'externalId'], ...rows]), batchMapping, account, existing);
+
+test('batch reconciliation keeps the earliest exact row and marks the later row as certain and skipped', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  assert.deepEqual(preview.map(row => [row.duplicate, row.selected]), [['none', true], ['certain', false]]);
+});
+
+test('batch reconciliation marks every later exact row as certain deterministically', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  assert.deepEqual(preview.map(row => row.duplicate), ['none', 'certain', 'certain']);
+});
+
+test('batch canonical selection is determined by rowNumber even when reconciliation input order changes', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  const reconciled = reconcileImportPreviewDuplicates([...preview].reverse(), account, []);
+  assert.equal(reconciled.find(row => row.rowNumber === preview[0].rowNumber)?.duplicate, 'none');
+  assert.equal(reconciled.find(row => row.rowNumber === preview[1].rowNumber)?.duplicate, 'certain');
+});
+
+test('a repeated nonempty external ID is a certain batch duplicate even when other values differ', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', 'bank-1'], ['2026-08-19', '-999', 'other', '', 'expense-shopping', 'bank-1']]);
+  assert.deepEqual(preview.map(row => [row.duplicate, row.selected]), [['none', true], ['certain', false]]);
+});
+
+test('same date amount and identity with different fingerprints is a possible batch duplicate', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-shopping', '']]);
+  assert.equal(preview[0].fingerprint === preview[1].fingerprint, false);
+  assert.equal(preview[1].duplicate, 'possible');
+  assert.equal(preview[1].selected, true);
+  assert.match(preview[1].warning ?? '', /同批次可能重複/);
+});
+
+test('batch reconciliation does not infer duplicates when amounts, dates, or identities differ', () => {
+  const amount = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-121', 'coffee', '', 'expense-food', '']]);
+  const date = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-19', '-120', 'coffee', '', 'expense-food', '']]);
+  const identity = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'tea', '', 'expense-shopping', '']]);
+  assert.equal(amount[1].duplicate, 'none'); assert.equal(date[1].duplicate, 'none'); assert.equal(identity[1].duplicate, 'none');
+});
+
+test('invalid rows never become batch canonical sources', () => {
+  const preview = batchPreview([['invalid-date', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  assert.ok(preview[0].error);
+  assert.equal(preview[1].duplicate, 'none');
+});
+
+test('existing certain duplicates remain certain when the row also has a batch duplicate', () => {
+  const initial = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  const existing = createImportTransactions(initial, account, 'existing-certain');
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']], existing);
+  assert.deepEqual(preview.map(row => [row.duplicate, row.selected]), [['certain', false], ['certain', false]]);
+});
+
+test('a batch certain duplicate upgrades an existing possible duplicate', () => {
+  const existing = createImportTransactions(batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]), account, 'existing-possible');
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-shopping', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-shopping', '']], existing);
+  assert.equal(preview[0].duplicate, 'possible');
+  assert.equal(preview[1].duplicate, 'certain');
+  assert.equal(preview[1].selected, false);
+});
+
+test('existing none plus a batch possible duplicate remains possible', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-shopping', '']]);
+  assert.deepEqual(preview.map(row => row.duplicate), ['none', 'possible']);
+});
+
+test('category changes re-reconcile the whole batch and can upgrade possible to certain', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-shopping', '']]);
+  const changed = preview.map(row => row.rowNumber === preview[1].rowNumber ? updateImportPreviewRowCategory(row, 'expense-food', account, []) : row);
+  const reconciled = reconcileImportPreviewDuplicates(changed, account, []);
+  assert.equal(preview[1].duplicate, 'possible');
+  assert.equal(reconciled[1].duplicate, 'certain');
+  assert.equal(reconciled[1].selected, false);
+});
+
+test('category changes re-reconcile the whole batch without auto-reselecting a downgraded certain row', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  const changed = preview.map(row => row.rowNumber === preview[1].rowNumber ? updateImportPreviewRowCategory(row, 'expense-shopping', account, []) : row);
+  const reconciled = reconcileImportPreviewDuplicates(changed, account, []);
+  assert.equal(reconciled[1].duplicate, 'possible');
+  assert.equal(reconciled[1].selected, false);
+});
+
+test('applying a 022-A suggestion re-reconciles the whole batch', () => {
+  const preview = batchPreview([['2026-08-18', '-120', '電費', '', 'expense-other', ''], ['2026-08-18', '-120', '電費', '', 'expense-utilities', '']]);
+  const changed = preview.map(row => row.rowNumber === preview[0].rowNumber ? updateImportPreviewRowCategory(row, 'expense-utilities', account, []) : row);
+  const reconciled = reconcileImportPreviewDuplicates(changed, account, []);
+  assert.equal(reconciled[1].duplicate, 'certain');
+  assert.equal(reconciled[1].selected, false);
+});
+
+test('reconciliation preserves a manual selection when its non-certain severity is unchanged', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-shopping', '']]);
+  const manuallySkipped = preview.map((row, index) => index === 1 ? { ...row, selected: false } : row);
+  const reconciled = reconcileImportPreviewDuplicates(manuallySkipped, account, []);
+  assert.equal(reconciled[1].duplicate, 'possible');
+  assert.equal(reconciled[1].selected, false);
+});
+
+test('import sessions count batch certain rows through the existing preview duplicateRows expression', () => {
+  const preview = batchPreview([['2026-08-18', '-120', 'coffee', '', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', '', 'expense-food', '']]);
+  assert.equal(preview.filter(row => row.duplicate === 'certain').length, 1);
+  assert.match(importCenterComponent, /duplicateRows: preview\.filter\(row => row\.duplicate === 'certain'\)\.length/);
+});
+
+test('category controls reconcile whole preview batches rather than only the edited row', () => {
+  assert.match(importCenterComponent, /reconcileImportPreviewDuplicates\(current\.map\(/);
 });
