@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-18T03:00:40.289550+00:00
+Generated UTC: 2026-08-18T04:09:41.541838+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-18T03:00:40.289550+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `32c3496ed2d46bd5a0b7f08ca4828e09a3388b9ab5bb641d1b6a0232051980b6`
+- `003_CURRENT_STATUS.md` — SHA-256 `85f5dd29252a11b36612a9e1dc2d8af1be4121b93640b58008a29ef1fd63ec32`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `251632c83d6a1024a0c74f04bf1bc6fa1ddae5bd497228f65c91e00a6d84af78`
-- `009_CHANGELOG.md` — SHA-256 `b449081e648af8ed0586859ba630698fbd0fe71c1230957a149ae59d91d03813`
+- `008_TODO_BACKLOG.md` — SHA-256 `de5c253a09333fefd321e71656430832704be595ae5ce06b1b9b00965d2c6154`
+- `009_CHANGELOG.md` — SHA-256 `acb5867f39f9a64636c4be7b3d56debae9e831f60bb6892aac617a1f6b3be19f`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `6a52cb2beef32715dbc6cec46fb2950f57e20a95915f41cddfed84c4b18e668e`
+- `012_AI_HANDOVER.md` — SHA-256 `55eb32314482492910031f66e4a8a5ae150812b0fe822132256aaabca489fd06`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -657,6 +657,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v4.27
 
 最後更新：2026-08-18
+
+**UR-TODO-022-A（Rule-Assisted Category Suggestion Foundation）已完成／Production Verified；UR-TODO-022 整體仍 OPEN／PARTIAL。** PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) 的 final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d` 已於 2026-08-18T04:03:57Z 由 `hyc640110` 以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（parents：`aba0a9283035ba1e6fd3c55d01a24490aa62943f`／`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；未使用 admin override）；本次 `git fetch --prune origin` 後，現行 `origin/main` 為同一 SHA。PR verify [run 32096747958](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32096747958)、相同 head 的 Preview workflow_dispatch [run 32096761194](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32096761194)、merge 後 push/main Deploy GitHub Pages [run 32097751304](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32097751304) 均 success；後者 regression gate、Production build 與 Pages deploy 均 success，head 與 merge commit 一致。Production root HTTP 200、environment metadata=`production`，實際 bundle 為 `index-UfIXOsXo.js`，未混用 `/preview/` asset，且含本次 Import Preview suggestion contract。使用者已在同一 PR head 的 Preview 完成 Desktop 與 390 × 844 人工驗收；Production 僅做唯讀 deployment verification，未建立測試交易、未假稱重新人工功能驗收。功能維持 deterministic、high-confidence only、safe whitelist only、high-risk semantic fail closed、conflict=`none`；suggestion metadata 僅限 Import Preview/session，須使用者明確套用，無自動交易建立或 commit。未加入 AI／LLM、historical learning、schema／persistence、Ledger／attribution、Household Liquidity 公式或 Rebalance／AI Decision coupling；既有 duplicate detection 不屬本次剩餘範圍。全自動分類仍未實作，因此不得將 UR-TODO-022 標記 CLOSED。
 
 **UR-TODO-013（Investment Decision Workflow Integration）已於 2026-08-18 正式 CLOSED，closure reason = absorbed by subsequent Production capabilities。** 本次為純治理 Closeout Sync，不新增功能；`src/**`、`tests/**`、`package*.json`、`.github/**` 均為 0 diff。依 Review Mode Closeout Audit，原始可驗證治理記錄僅有標題、P2、`UR-TODO-009` dependency 與「部分完成」，未找到獨立 specification 或逐項 acceptance criteria，最初建立日期亦無法完整還原；因此不得描述為「所有原始驗收條件均已完成」。正式結論是：後續已進 Production 的 Rebalance Recommendation／Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center／Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary 與 Rebalance Decision Journal，已實質吸收可合理推定的產品意圖。現行 workflow 維持 advisory-only、data／liquidity fail closed、recommendation 與 execution eligibility 分離、無自動下單／holdings 修改，且 Decision Journal 不代表成交；未發現 UR-TODO-013 workflow dead-end。首頁固定下一步 CTA 與 Dip 納入 Action Center 排序僅保留為 future enhancement candidates，未自動建立新 Todo。此次 `git fetch --prune origin` 後實際 `origin/main` 為 `683c728107768d5a0848b5f445dccdd566065d65`；這是 PR #383 治理同步 merge 後的現行基線，不將 `4205e37…` 錯記為目前 HEAD。
 
@@ -4921,8 +4923,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：OCR、圖片／掃描型 PDF、銀行專屬 parser、無明確方向的金額猜測、AI 自動分類、Loan／Investment／FX attribution、Financial Event Ledger、Transaction／Backup schema、Firebase、Worker。Production 已由 PR merge 的既有 main workflow 部署並完成唯讀驗證。
 
 ### UR-TODO-022 自動分類與重複交易偵測
-- 狀態：**部分完成**（維持，2026-08-16 範圍註明）
-- 2026-08-16 範圍註明：重複交易偵測（`duplicate: 'certain'`）與類別欄位對應已具備，但類別對應目前仍需使用者於匯入畫面手動指定／確認，非模型自動判斷；殘留範圍縮小聚焦為「全自動分類（無需人工欄位對應即可正確判定交易類別）」。
+- 狀態：**部分完成／OPEN**（2026-08-18 更新）
+- 2026-08-16 範圍註明：重複交易偵測（`duplicate: 'certain'`）與類別欄位對應已具備，但類別對應目前仍需使用者於匯入畫面手動指定／確認，非模型自動判斷；殘留範圍聚焦為「全自動分類（無需人工欄位對應即可正確判定交易類別）」。
+- 2026-08-18 **UR-TODO-022-A Rule-Assisted Category Suggestion Foundation 已完成／Production Verified**：PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d` 已以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（parents：`aba0a9283035ba1e6fd3c55d01a24490aa62943f`／`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；未使用 admin override）。verify `32096747958`、Preview workflow_dispatch `32096761194` 與 push/main Deploy GitHub Pages `32097751304` 均 success；後者 regression gate、Production build、Pages deploy success，Production source 為 merge commit，root HTTP 200／`environment=production`，bundle `index-UfIXOsXo.js` 已更新且未混用 Preview asset。相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收均通過；Production 證據僅為唯讀 deployment verification，未建立測試交易。
+- 022-A 契約：僅以 deterministic、high-confidence safe-whitelist 規則產生建議；high-risk semantic 一律 fail closed、conflict=`none`。suggestion metadata 僅存在 Import Preview/session，使用者必須明確按「套用建議」才改變 Preview category；無自動 transaction commit。既有 duplicate detection contract 未變，且不屬本次 remaining scope。
+- 明確仍未實作：fully automatic classification、historical learning、AI／LLM；亦未變更 schema、persistence、JSON Backup、Financial Event Ledger、attribution、Household Liquidity 公式或 Rebalance／AI Decision coupling。**022-A 完成不代表 UR-TODO-022 整體 CLOSED。**
 
 ### UR-TODO-023 月底自動對帳
 - 狀態：待開發
@@ -4960,6 +4965,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 009_CHANGELOG.md -->
 
 # Universal Rebalance Changelog
+
+**UR-TODO-022-A Rule-Assisted Category Suggestion Foundation（2026-08-18，已 Merge／Production Verified；UR-TODO-022 仍 OPEN／PARTIAL）**：PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) 以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d`；parents `aba0a9283035ba1e6fd3c55d01a24490aa62943f`／`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；未使用 admin override）。verify `32096747958`、Preview workflow_dispatch `32096761194` 與 main Deploy GitHub Pages `32097751304` 均 success；Production HTTP 200、`environment=production`，現行 bundle 為 `index-UfIXOsXo.js`，未混用 Preview asset。Import Preview 新增 deterministic、high-confidence safe-whitelist 類別建議，high-risk semantics fail closed、conflict=`none`；建議僅為 session/Preview metadata，使用者明確套用才改變 Preview category，無自動 transaction commit。Desktop 與 390 × 844 Preview 人工驗收通過；Production 僅做唯讀 deployment verification，未建立測試交易或假稱重做人工驗收。未加入 AI／LLM、historical learning、schema/persistence、Ledger、attribution、Household Liquidity 或 Rebalance／AI Decision coupling，既有 duplicate detection 未變。這是安全的 suggestion foundation，非 fully automatic classification；UR-TODO-022 維持 OPEN／PARTIAL。
 
 **UR-TODO-014 CLEC Historical Backtest Foundation（2026-08-18，已 Merge／Production Verified；整體 Todo 仍 OPEN）**：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271`；parents `ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。CI Verification `32090616289`、Preview workflow_dispatch `32090745657`、main Deploy GitHub Pages `32091693042` 均 success，Production HTTP 200／`environment=production`。新增 caller-supplied、百分點報酬的純 CLEC historical backtest foundation；target weights 重用 `deriveAllocationPresetPreview()`，full rebalance 僅依 `deriveClecStrategyRule()` 回傳的 `recommendedAction === 'full_rebalance'`。無 consumer wiring、UI、state／persistence、Ledger、attribution、market provider 或 Worker；`test:ur-todo-014` 11/11 pass 且納入 `test:ci`。此完成的是 Foundation，不含正式資料來源、真實歷史驗證、UI 或交易成本模型，UR-TODO-014 維持 OPEN。
 
@@ -5495,6 +5502,13 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-022-A Rule-Assisted Category Suggestion Foundation（已完成／Production Verified，2026-08-18）
+
+- 正式基線：PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) 已由使用者授權以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d`；parents：`aba0a9283035ba1e6fd3c55d01a24490aa62943f`、`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；`mergedAt: 2026-08-18T04:03:57Z`；`mergedBy: hyc640110`；未使用 admin override）。verify `32096747958`、相同 head 的 Preview workflow_dispatch `32096761194` 與 push/main Deploy GitHub Pages `32097751304` 均 success；後者 regression gate、Production build、Pages deploy success，head 與 merge commit 相符。Production HTTP 200／metadata=`production`，bundle `index-UfIXOsXo.js`，未混用 Preview asset；未建立任何 Production 測試交易。
+- 已完成契約：Import Preview 的類別 suggestion 為 deterministic、high-confidence only、safe whitelist only；high-risk semantic 一律 fail closed、conflict=`none`。suggestion metadata 只在 Preview/session 存在；使用者須明確套用，無自動交易建立／commit。Desktop 與 390 × 844 Preview 人工驗收均已通過；Production 沿用該相同 PR head 的人工 UX 證據，僅完成唯讀 deployment verification，未假稱重新人工驗收。
+- 邊界：未加入 AI／LLM、historical learning、schema／persistence／JSON Backup、Financial Event Ledger、attribution、Household Liquidity 公式或 Rebalance／AI Decision coupling；duplicate detection contract 未變。
+- 下一位 AI：**UR-TODO-022-A 為 Implemented／Production Verified；整體 UR-TODO-022 仍 OPEN／PARTIAL，絕不可標記 CLOSED。** fully automatic classification 仍未實作；若未來要推進 historical learning 或 AI/LLM，必須另行產品決策與明確授權，不得由本 Foundation 自動擴張或開啟下一 Sprint。
 
 ## 最新交接快照：UR-TODO-013 Investment Decision Workflow Integration（CLOSED，2026-08-18）
 
