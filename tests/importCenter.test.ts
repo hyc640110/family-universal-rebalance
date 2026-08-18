@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, reconcileImportPreviewDuplicates, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
+import { reconcileMonthlyTransactions } from '../src/lib/monthlyTransactionReconciliation';
+import type { FinancialTransaction } from '../src/lib/transactions';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
 const importCenterComponent = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
@@ -241,4 +243,94 @@ test('category controls reconcile whole preview batches rather than only the edi
 
 test('preview renders an existing possible-duplicate warning without replacing invalid-row errors', () => {
   assert.match(importCenterComponent, /\{!row\.error && row\.warning && <span className="import-preview-warning">\{row\.warning\}<\/span>\}/);
+});
+
+const reconciliationPreview = (rows: Array<Array<string>>) => buildImportPreview(rowsToRecords([['date', 'amount', 'description', 'category', 'externalId'], ...rows]), { occurredAt: 'date', amount: 'amount', description: 'description', categoryId: 'category', externalId: 'externalId' }, account, []);
+const reconciliationTransaction = (id: string, patch: Partial<FinancialTransaction> = {}): FinancialTransaction => ({ id, accountId: 'bank', type: 'expense', status: 'posted', source: 'manual', amount: 120, currency: 'TWD', categoryId: 'expense-food', description: 'coffee', merchant: '', note: '', occurredAt: '2026-08-18T00:00:00.000Z', fingerprint: '', excluded: false, createdAt: '2026-08-18T00:00:00.000Z', updatedAt: '2026-08-18T00:00:00.000Z', ...patch });
+
+test('monthly reconciliation converts a unique externalId or fingerprint identity into one-to-one matched rows', () => {
+  const external = reconciliationPreview([['2026-08-18', '-120', 'coffee', 'expense-food', 'stmt-1']]);
+  const externalTransaction = reconciliationTransaction('external', { source: 'import', note: '[external:stmt-1]' });
+  const fingerprint = reconciliationPreview([['2026-08-19', '-80', 'tea', 'expense-food', '']]);
+  const fingerprintTransaction = reconciliationTransaction('fingerprint', { amount: 80, description: 'tea', occurredAt: '2026-08-19T00:00:00.000Z', fingerprint: fingerprint[0].fingerprint! });
+  const result = reconcileMonthlyTransactions([...external, ...fingerprint], [externalTransaction, fingerprintTransaction], 'bank');
+  assert.deepEqual(result.rows.map(row => row.status), ['matched', 'matched']);
+  assert.equal(result.summary.matched, 2);
+  assert.equal(result.appOnly.length, 0);
+});
+
+test('monthly reconciliation fails closed for high-confidence ambiguity and only consumes one App transaction once', () => {
+  const duplicateStatements = reconciliationPreview([['2026-08-18', '-120', 'coffee', 'expense-food', ''], ['2026-08-18', '-120', 'coffee', 'expense-food', '']]);
+  const single = reconciliationTransaction('single', { fingerprint: duplicateStatements[0].fingerprint! });
+  const duplicatedApp = [single, { ...single, id: 'same-fingerprint' }];
+  const result = reconcileMonthlyTransactions(duplicateStatements, [single], 'bank');
+  assert.deepEqual(result.rows.map(row => row.status), ['matched', 'possible']);
+  assert.equal(result.appOnly.length, 0, 'a possible relation is not also presented as app-only');
+  const ambiguous = reconcileMonthlyTransactions(duplicateStatements.slice(0, 1), duplicatedApp, 'bank');
+  assert.equal(ambiguous.rows[0].status, 'possible');
+  assert.equal(ambiguous.appOnly.length, 0);
+});
+
+test('monthly reconciliation keeps multiple possible candidates unresolved and matches separate exact pairs one-to-one', () => {
+  const possibleRows = reconciliationPreview([['2026-08-18', '-120', 'coffee', 'expense-shopping', '']]);
+  const possibleResult = reconcileMonthlyTransactions(possibleRows, [
+    reconciliationTransaction('possible-a'),
+    reconciliationTransaction('possible-b', { categoryId: 'expense-transport' })
+  ], 'bank');
+  assert.equal(possibleResult.rows[0].status, 'possible');
+  assert.deepEqual(possibleResult.rows[0].candidateTransactionIds, ['possible-a', 'possible-b']);
+  assert.equal(possibleResult.appOnly.length, 0);
+
+  const exactRows = reconciliationPreview([
+    ['2026-08-18', '-120', 'coffee', 'expense-food', ''],
+    ['2026-08-19', '-80', 'tea', 'expense-food', '']
+  ]);
+  const exactResult = reconcileMonthlyTransactions(exactRows, [
+    reconciliationTransaction('coffee', { fingerprint: exactRows[0].fingerprint! }),
+    reconciliationTransaction('tea', { amount: 80, description: 'tea', occurredAt: '2026-08-19T00:00:00.000Z', fingerprint: exactRows[1].fingerprint! })
+  ], 'bank');
+  assert.deepEqual(exactResult.rows.map(row => [row.status, row.matchedTransactionId]), [['matched', 'coffee'], ['matched', 'tea']]);
+});
+
+test('monthly reconciliation keeps possible, statement-only, invalid, and app-only semantics distinct', () => {
+  const rows = reconciliationPreview([['2026-08-18', '-120', 'coffee', 'expense-shopping', ''], ['2026-08-20', '-55', 'new', 'expense-food', ''], ['invalid', '-1', 'bad', 'expense-food', '']]);
+  const possible = reconciliationTransaction('possible');
+  const appOnly = reconciliationTransaction('app-only', { amount: 88, description: 'app only', occurredAt: '2026-08-19T00:00:00.000Z' });
+  const result = reconcileMonthlyTransactions(rows, [possible, appOnly], 'bank');
+  assert.deepEqual(result.rows.map(row => row.status), ['possible', 'statement-only', 'invalid']);
+  assert.deepEqual(result.appOnly.map(transaction => transaction.id), ['app-only']);
+  assert.deepEqual(result.summary, { matched: 0, possible: 1, statementOnly: 1, appOnly: 1, invalid: 1 });
+});
+
+test('monthly reconciliation derives the actual statement range and excludes other-account, void, excluded, pending, and out-of-range App rows', () => {
+  const rows = reconciliationPreview([['2026-07-31', '-10', 'one', 'expense-food', ''], ['2026-08-02', '-20', 'two', 'expense-food', '']]);
+  const result = reconcileMonthlyTransactions(rows, [
+    reconciliationTransaction('other-account', { accountId: 'other', amount: 10, description: 'one', occurredAt: '2026-07-31T00:00:00.000Z' }),
+    reconciliationTransaction('void', { status: 'void', amount: 10, description: 'one', occurredAt: '2026-07-31T00:00:00.000Z' }),
+    reconciliationTransaction('excluded', { excluded: true, amount: 10, description: 'one', occurredAt: '2026-07-31T00:00:00.000Z' }),
+    reconciliationTransaction('pending', { status: 'pending', amount: 10, description: 'one', occurredAt: '2026-07-31T00:00:00.000Z' }),
+    reconciliationTransaction('outside', { amount: 30, description: 'outside', occurredAt: '2026-08-03T00:00:00.000Z' })
+  ], 'bank');
+  assert.deepEqual(result.period, { minDate: '2026-07-31', maxDate: '2026-08-02' });
+  assert.equal(result.appOnly.length, 0);
+  assert.equal(result.summary.statementOnly, 2);
+});
+
+test('monthly reconciliation fails closed with no valid Statement rows', () => {
+  const rows = reconciliationPreview([['invalid', '-10', 'bad', 'expense-food', '']]);
+  assert.throws(() => reconcileMonthlyTransactions(rows, [reconciliationTransaction('app')], 'bank'), /有效 Statement/);
+});
+
+test('Import Center keeps monthly reconciliation session-only, read-only, and shows all five summary states', () => {
+  assert.match(importCenterComponent, /reconcileMonthlyTransactions\(preview, transactions, account\.id\)/);
+  assert.match(importCenterComponent, /產生對帳預覽/);
+  assert.match(importCenterComponent, /對帳期間/);
+  assert.match(importCenterComponent, /已匹配/);
+  assert.match(importCenterComponent, /可能相符/);
+  assert.match(importCenterComponent, /Statement 未找到/);
+  assert.match(importCenterComponent, /App 未找到/);
+  assert.match(importCenterComponent, /無效列/);
+  assert.match(importCenterComponent, /const updateCategory = \(categoryId: string\) => \{ setReconciliation\(null\);/);
+  assert.doesNotMatch(importCenterComponent, /reconciliationSessions|monthlyReconciliationHistory|matchedTransactionIds/);
+  assert.match(styles, /\.import-reconciliation-preview\{min-width:0;overflow-wrap:anywhere\}/);
 });
