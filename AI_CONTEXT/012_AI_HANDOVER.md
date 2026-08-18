@@ -1,5 +1,14 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-023-A Monthly Transaction Reconciliation Preview（CLOSED／Production Verified，2026-08-18）
+
+- 正式決策：UR-TODO-023-A 已 CLOSED／Production Verified；UR-TODO-023 整體仍為 **PARTIAL／OPEN**。PR [#392](https://github.com/hyc640110/family-universal-rebalance/pull/392) final head `b41e0e5c5bf3b3fffaf5732a96e728d55e4c0cb2` 已由 `hyc640110` 於 2026-08-18T14:41:46Z 以一般 2-parent merge commit `a31ad5f9511d33f7b9226138fbb9c241b7636674` 合併（parents：`c10b26d9219cda6d50e799f08c7e47e15dd188be`、`b41e0e5c5bf3b3fffaf5732a96e728d55e4c0cb2`；未使用 admin override）。CI `32148181979`、Preview workflow_dispatch `32148383148`、push/main Deploy GitHub Pages `32149911373` 均 completed/success；Production workflow 的 head 與 merge commit 相符，regression/test gate、Production build、Pages deploy success。
+- 已完成契約：statement 有效列推導 minDate／maxDate 的建議對帳期間，使用者按「產生對帳預覽」後明確確認才產生 reconciliation result；取消維持無結果。結果保持既有 matching priority、one-to-one、externalId identity、fingerprint 與 possible identity；僅 Statement／僅 App／可能相符／無效列文案清楚無方向歧義。Preview 人工驗收 PASS（已匹配 3、可能相符 2、僅 Statement 1、僅 App 1、無效列 1）；未建立 Production 資料。
+- 部署與唯讀驗證：Production／Preview root 均 HTTP 200，environment metadata 分別為 production／preview、asset isolation 正確；Production bundle 含本 Sprint safe UI 字串。Production `/assets#transactions-section` 已實際載入交易基礎、Import Center、檔案選擇與 Column Mapping；因未上傳資料，條件式對帳按鈕未在 live DOM 出現，但公開 Production bundle 已確認包含對帳 UI 字串。console 無新增 error，未建立或匯入 Production 測試交易，未修改 Production localStorage。
+- 邊界：不改 matching priority、one-to-one algorithm、externalId identity、fingerprint、possible identity、`posted && !excluded` filter、schema、persistence、AppState、JSON Backup、ImportSession、duplicate formula、UR-TODO-022-A／B／C 或 transaction write path。`test:ci` 1,114 pass，TypeScript、Production／Preview build、`git diff --check` pass；npm audit 的 4 個 high vulnerabilities 為既有相依問題，未由本 Sprint 引入。
+- Stash identity：永久識別僅使用 object SHA `e141af14273b76501c1b287ea018e8728099f1e5` 與 `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；本輪未操作 stash。唯讀盤點時其暫時位置為 `stash@{5}`／`stash@{6}`，index 可因後續新增 stash 而移動，不得作為永久 identity。
+- 下一位 AI：只能先進行 **UR-TODO-023 Closeout Scope Review（Review Mode）**。balance reconciliation 與 reconciliation history persistence 仍未決，未經新的產品決策不得自動建立 UR-TODO-023-B／023-C、不得新增持久化或交易寫入。
+
 ## 最新交接快照：UR-TODO-022 Final Governance Closeout（CLOSED／Production Verified，2026-08-18）
 
 - 正式決策：使用者完成 UR-TODO-022 Closeout Scope Review，正式決定 **UR-TODO-022 = CLOSED／Production Verified**。原始產品目的「自動分類與重複交易偵測」已由 022-A Rule-Assisted Category Suggestion Foundation、022-B Safe Column Auto-Mapping Hardening、022-C Batch-Aware Duplicate Reconciliation 完成並各自完成 Production Verified；本次為純治理結案，基線為 PR [#390](https://github.com/hyc640110/family-universal-rebalance/pull/390) merge commit `2467ed7c19350134f105c8aa6e531ad7ced9cde3`。

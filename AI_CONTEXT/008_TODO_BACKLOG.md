@@ -1853,7 +1853,10 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - **UR-TODO-022-A／B／C 與 UR-TODO-022 全部為 CLOSED／Production Verified。** Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 統一為 **Deferred／Future Enhancement**，不再是本 Todo 的未完成項目或 closure blocker。若未來產品確定需要其中任一能力，必須另立新的獨立 UR-TODO，重新進行 Contract Audit、風險邊界與 acceptance criteria；不得直接重新打開 UR-TODO-022，亦不得在本次自行建立新 Todo 編號。
 
 ### UR-TODO-023 月底自動對帳
-- 狀態：待開發
+- 狀態：**PARTIAL／OPEN**（2026-08-18；023-A 已 CLOSED／Production Verified）
+- 2026-08-18 **UR-TODO-023-A Monthly Transaction Reconciliation Preview 已完成／Production Verified**：PR [#392](https://github.com/hyc640110/family-universal-rebalance/pull/392) final head `b41e0e5c5bf3b3fffaf5732a96e728d55e4c0cb2` 已於 2026-08-18T14:41:46Z 由 `hyc640110` 以一般 2-parent merge commit `a31ad5f9511d33f7b9226138fbb9c241b7636674` 合併（parents：`c10b26d9219cda6d50e799f08c7e47e15dd188be`／`b41e0e5c5bf3b3fffaf5732a96e728d55e4c0cb2`；未使用 admin override）。CI `32148181979`、相同 final head 的 Preview workflow_dispatch `32148383148` 與 push/main Deploy GitHub Pages `32149911373` 均 completed/success；最後者 head 與 merge commit 一致，regression/test gate、Production build、Pages deploy success。Preview 人工驗收 PASS：已匹配 3、可能相符 2、僅 Statement 1、僅 App 1、無效列 1，未建立 Production 資料。Production 人工唯讀驗證 PASS：Production／Preview root HTTP 200、environment metadata 分別為 production／preview、asset isolation 正確；Production bundle 已含對帳 UI 字串，`/assets#transactions-section` 的交易基礎、Import Center、Column Mapping 正常，console 無新增 error，未建立或匯入 Production 測試交易、未修改 Production localStorage。
+- 023-A 契約：只提供唯讀 reconciliation preview，不寫入交易。statement 有效列推導 minDate／maxDate 建議期間，使用者明確確認才產生結果；取消不產生 result。matching priority、one-to-one algorithm、externalId identity、fingerprint algorithm、possible identity、`posted && !excluded` filter、schema、persistence、AppState、JSON Backup、ImportSession、duplicate formula、UR-TODO-022-A／B／C 與 transaction write path 均未變。`test:ci` 1,114 pass、TypeScript、Production／Preview build、`git diff --check` pass；npm audit 的 4 個 high vulnerabilities 為既有相依問題，非本 Sprint 引入。
+- 下一候選：**UR-TODO-023 Closeout Scope Review（Review Mode）**。balance reconciliation 與 reconciliation history persistence 均維持未決；未授權前不得自行建立 UR-TODO-023-B／023-C 或擴張資料、持久化與寫入範圍。
 
 ### UR-TODO-024 多家庭成員
 - 狀態：待開發
