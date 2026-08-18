@@ -34,6 +34,33 @@ test('numeric HTML entity XLSX headers decode before auto mapping and match CSV 
   assert.deepEqual(guessImportMapping(xlsxHeaders), guessImportMapping(csvHeaders));
   assert.deepEqual(guessImportMapping(xlsxHeaders), { occurredAt: '交易日期', amount: '單一金額', description: '描述', merchant: '商家/對象', categoryId: '類別', externalId: '外部ID', credit: undefined, debit: undefined, note: undefined });
 });
+test('auto mapping uses an explicit transaction-date alias and never substitutes posting date', () => {
+  assert.equal(guessImportMapping(['入帳日期', '交易日期', '金額']).occurredAt, '交易日期');
+  assert.equal(guessImportMapping(['posting date', 'amount']).occurredAt, undefined);
+  assert.equal(guessImportMapping(['交易日期', '交易日', 'amount']).occurredAt, undefined, 'equivalent date candidates fail closed');
+});
+test('auto mapping prevents amount, credit, and debit collisions and prefers a complete credit/debit pair', () => {
+  assert.deepEqual(guessImportMapping(['交易日期', '收入', '支出', '單一金額']), { occurredAt: '交易日期', credit: '收入', debit: '支出', amount: undefined, description: undefined, merchant: undefined, categoryId: undefined, externalId: undefined, note: undefined });
+  assert.deepEqual(guessImportMapping(['交易日期', '單一金額']), { occurredAt: '交易日期', amount: '單一金額', credit: undefined, debit: undefined, description: undefined, merchant: undefined, categoryId: undefined, externalId: undefined, note: undefined });
+  assert.equal(guessImportMapping(['交易日期', '收入/支出金額']).amount, undefined, 'a direction-ambiguous amount header is not guessed');
+});
+test('auto mapping recognizes only explicit description, merchant, and category aliases', () => {
+  assert.deepEqual(guessImportMapping(['transaction date', 'amount', 'memo', 'payee', 'category']), { occurredAt: 'transaction date', amount: 'amount', credit: undefined, debit: undefined, description: 'memo', merchant: 'payee', categoryId: 'category', externalId: undefined, note: undefined });
+  assert.equal(guessImportMapping(['transaction date', 'amount', 'name']).description, undefined);
+  assert.equal(guessImportMapping(['transaction date', 'amount', 'name']).merchant, undefined);
+});
+test('auto mapping requires an explicit external identifier alias and rejects a bare id', () => {
+  assert.equal(guessImportMapping(['交易日期', '金額', '交易編號']).externalId, '交易編號');
+  assert.equal(guessImportMapping(['交易日期', '金額', 'external id']).externalId, 'external id');
+  assert.equal(guessImportMapping(['交易日期', '金額', 'id']).externalId, undefined);
+});
+test('auto mapping is deterministic and fails closed for a shared source or equivalent target candidates', () => {
+  const headers = ['交易日期', '單一金額', '金額', '描述', 'description'];
+  assert.deepEqual(guessImportMapping(headers), guessImportMapping([...headers].reverse()));
+  assert.equal(guessImportMapping(headers).amount, undefined);
+  assert.equal(guessImportMapping(headers).description, undefined);
+  assert.deepEqual(guessImportMapping(['交易日期', '交易說明']), { occurredAt: '交易日期', amount: undefined, credit: undefined, debit: undefined, description: '交易說明', merchant: undefined, categoryId: undefined, externalId: undefined, note: undefined }, 'one source column is assigned to only its explicit semantic target');
+});
 test('money and dates normalize safely', () => {
   assert.equal(parseMoney('NT$1,234.56'), 1234.56); assert.equal(parseMoney('(1,234)'), -1234); assert.equal(parseMoney('0'), undefined); assert.equal(parseMoney('bad'), undefined);
   assert.equal(parseImportDate('20260713')?.slice(0, 10), '2026-07-13'); assert.equal(parseImportDate('115/07/13')?.slice(0, 10), '2026-07-13'); assert.equal(parseImportDate('13/07/2026'), undefined);
