@@ -732,21 +732,19 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-040 工具分頁扁平版面與重複導覽路徑
 
 - 優先級：P1
-- 狀態：**待盤點**（僅記錄發現，不在本次處理，待 Sprint 6 正式排入時處理）
+- 狀態：**CLOSED／Production Verified**
 - 提出日期：2026-07-26
-- 提出依據：本次修正 `src/pages/ToolsPage.tsx` 過時文案時，唯讀盤點 `TOOL_DEFINITIONS`（`src/lib/toolNavigation.ts`）與 `ToolsPage.tsx`／各工具子頁面版面時發現，順帶記錄，非本次處理範圍
-- 問題：
-  - 「工具」分頁（`ToolsPage.tsx`）以扁平方式收納全部 16 個工具卡片，未分區、未分優先序；其中包含再平衡建議中心、風險與現金安全中心、AI 決策中心等核心決策功能，與 ETF X-Ray、投資回測、蒙地卡羅模擬、退休試算等規劃中／較次要項目並列同一格狀清單，可能造成核心功能在版面上被低估、不容易與規劃中項目區分優先序。
-  - 每個工具子頁面內的 `ToolQuickNavigation`（页面內快速導覽元件）與「工具」首頁的卡片列表存在重複的導覽路徑——使用者在子頁面與工具首頁都能看到近似的其他工具入口清單，尚未確認兩者是否有明確的分工或是否應合併／去重。
-- 明確不處理（本次僅記錄）：
-  - 不調整 `ToolsPage.tsx` 版面分區、排序或分類。
-  - 不調整 `ToolQuickNavigation` 元件邏輯或任何子頁面導覽。
-  - 本次僅修正 `ToolsPage.tsx` 的「已上線」／「規劃中」文案誤導問題（見上方變更記錄），不涉及本項目範圍。
-- 依賴：
-  - **UR-TODO-011**（Cross-Module Presentation Consistency，Sprint 6，狀態「待開發」）：本項目為其前置輸入，實際版面調整應併入該 Sprint 一併規劃，不另立獨立 Sprint。
-- 驗收條件（待 Sprint 6 正式排入時另訂）：
-  - 「工具」分頁能清楚區分已上線核心功能與規劃中項目的視覺優先序。
-  - 子頁面 `ToolQuickNavigation` 與工具首頁卡片列表的導覽路徑分工明確，不重複造成使用者困惑。
+- 完成日期：2026-08-18
+- 完成 PR／Merge：PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380)，head `df9f03e987596c61a0a5ea164eb9af0883ad517f`，由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`）；未使用 admin override。現行 `origin/main` 已確認為相同 SHA。
+- 最終產品契約：
+  - **Tool Center 是完整工具目錄**；首頁以四區 IA 呈現：**今日決策／管理與追蹤／規劃與模擬／規劃中**。
+  - `ToolQuickNavigation` 的責任是「返回工具中心」加上最多 **3** 個 contextual related tools；不再重複完整 14～15 個工具目錄。
+  - `ToolNature` 只描述真實建議／假設模擬的產品性質，**不再兼任 IA 分組**。
+  - planned／non-routed tools 不進入 Quick Navigation；`current` 未定義或找不到目前工具時一律 fail closed，不猜測或回退為完整目錄。
+- Merge 前與 Preview 證據：CI Verification [run 32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998) success；Production build、Preview build success；Preview deployment [run 32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407) success。使用者已完成相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收。
+- Production Closeout：Deploy GitHub Pages [run 32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 最終 success，regression gate、Production build 與 Pages deploy 均 success，Production source SHA=`84b6859cd486fd4b8deccd87cca99df38cd28692`。Production root HTTP 200；實際 bundle `index-DFldBSkN.js` 與本次 Production build 一致，部署前 `index-DIAMR26i.js` 已不再載入。
+- Production automated smoke／contract evidence：四個 Tool Center 分區存在；ETF X-Ray 與蒙地卡羅模擬為 non-routed planned tools；Quick Navigation 為最多 3 個 related links 且 undefined current fail closed；`/assets#transactions-section` App 內 React Router + hash navigation regression contract PASS。GitHub Pages 對直接 server-side HTTP 請求 `/assets` 的既有 SPA deep-link 404 不屬本 Todo regression。
+- 驗收界線：Production 本次**未重新做人工瀏覽器視覺驗收**；UI 人工證據只沿用完全相同 PR head 的 Preview Desktop／390 × 844 驗收。Production Verified 的依據是上述 Production workflow、source／bundle、HTTP 與 automated smoke evidence，不得誤寫為 Production 人工驗收。
 
 ### UR-TODO-041 負債資料過期警示
 
