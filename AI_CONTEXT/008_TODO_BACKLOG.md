@@ -1803,7 +1803,9 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ## P3－中長期投資功能
 
 ### UR-TODO-014 CLEC 規則本身之歷史回測
-- 狀態：待開發
+- 狀態：**OPEN（Foundation completed／Production Verified，2026-08-18；整體 Todo 未結案）**
+- 2026-08-18 Foundation 完成：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271` 已以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。PR CI Verification run `32090616289`、Preview workflow_dispatch run `32090745657`、merge 後 main Deploy GitHub Pages run `32091693042` 均 success；Production source 為該 merge commit，Production HTTP 200／metadata=`production`／asset namespace 正確。Foundation 新增純 `clecHistoricalBacktest` library：caller-supplied historical returns 採百分點、period 嚴格日期順序 propagation、frictionless、max drawdown 回傳正值跌幅、invalid input fail closed。Target weights 唯一來自 `deriveAllocationPresetPreview()`；full rebalance 唯一由 `deriveClecStrategyRule()` 且 `recommendedAction === 'full_rebalance'` 觸發；`rebalance_consider` 不交易。`test:ur-todo-014` 11/11 pass 並納入 `test:ci`。無 UI、App／route／AppState、localStorage、JSON Backup、schema、Financial Event Ledger、attribution、production rebalance engine、market provider 或 Worker coupling。
+- 明確保留後續決策：正式 historical data source、以真實歷史資料比較 442／433／703／5050、UI，以及 transaction-cost model；皆不得因本 Foundation 合併自動開始或視為已完成。
 - 2026-08-16 範圍縮小重新描述（原名「CLEC 歷史驗證與回測」）：聚焦**CLEC 442／433／703／5050 規則本身**的歷史回測驗證，即假設歷史期間依 CLEC 規則實際觸發邏輯進行再平衡，驗證規則本身的歷史績效與觸發時機。
 - 明確不包含：與 UR-TODO-058（`/tools/investment-backtest`，特定 3 資產 0050／00631L／00865B、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線，避免混淆或重複開發。
 
