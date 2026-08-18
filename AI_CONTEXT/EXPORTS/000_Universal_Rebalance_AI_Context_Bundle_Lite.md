@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-17T14:32:35.121435+00:00
+Generated UTC: 2026-08-18T01:36:03.187669+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `0f1a8be171113de7e9365a4b7896f189dd16e6e7e2de335a36be33a69a793f1e`
-- `008_TODO_BACKLOG.md` — SHA-256 `d5c20ffbcdf15dfb90252abb2ada510d840a9fc41c68c81fd9e453cb741775fb`
-- `012_AI_HANDOVER.md` — SHA-256 `b4fbb4800cd991c9295eaae7e8ccfb48ba24dcd8c08761b871d3fe27ba430476`
+- `003_CURRENT_STATUS.md` — SHA-256 `1bd52e5916b405426b9f17359a83ced5f5d7e379d4beabf16e4e42adba7d2648`
+- `008_TODO_BACKLOG.md` — SHA-256 `7c105778df2f7cb8050d91774e28a20e2169b66284457067431f992afcf00f09`
+- `012_AI_HANDOVER.md` — SHA-256 `d79d8e4c48aff79d3d5ec6c7b1d34a4d86c0e4898d15cd9788c4f67897ab3b1b`
 
 ---
 
@@ -425,9 +425,16 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.25
+# Universal Rebalance Current Status v4.26
 
-最後更新：2026-08-17
+最後更新：2026-08-18
+
+**UR-TODO-040（工具中心資訊架構與 contextual navigation）已於 2026-08-18 正式 CLOSED／Production Verified。** PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380) 的 head 為 `df9f03e987596c61a0a5ea164eb9af0883ad517f`，已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`；`mergedAt: 2026-08-17T15:15:39Z`；未使用 admin override）。本次 `git fetch --prune origin` 後，現行正式基線 `origin/main` 為 `84b6859cd486fd4b8deccd87cca99df38cd28692`。PR CI Verification [run 32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998) success；Preview deployment [run 32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407) success，使用者已完成相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收。merge 後 Deploy GitHub Pages [run 32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 最終 success：regression gate、Production build 與 Pages deploy 均 success，Production source SHA 與 merge commit 一致；Production root HTTP 200，實際載入 `index-DFldBSkN.js`，部署前 `index-DIAMR26i.js` 已不再載入，且 bundle 與本次 Production build 產物一致。Production 自動 smoke／contract evidence 已確認 Tool Center 四區、ETF X-Ray／蒙地卡羅為 non-routed planned tools、Quick Navigation 僅 contextual related links（最多 3 個，`current` 未定義時 fail closed）以及 App 內 `/assets#transactions-section` React Router + hash navigation contract。直接 server-side 請求 `/assets` 的既有 SPA deep-link 404 不構成本 Todo regression。Production 本次未重新做人工瀏覽器視覺驗收；人工 UX 證據明確沿用同一 PR head 的 Preview Desktop／390 × 844 驗收，不得誤記為 Production 人工驗收。
+
+依 `007_GIT_WORKFLOW.md` §8.2「治理文件最終一致性」規則，本次一併追平上次基線陳述後的 Merge：
+
+- **PR [#379](https://github.com/hyc640110/family-universal-rebalance/pull/379)**（`docs: close UR-TODO-069 after PR #373 verification`）已於 2026-08-17T14:36:03Z 以一般 merge commit `43fcca43782e103aad5b6dd362eb631c483d79eb` 合併（head `74b2e0c80a5ae890d3576951dca8f1535bfb7fa9`）；未使用 admin override。
+- **PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380)**（`feat: reorganize Tool Center IA and contextual navigation`）已於 2026-08-17T15:15:39Z 以一般 merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併；未使用 admin override，詳見上方 UR-TODO-040 結案證據。
 
 **UR-TODO-021（Electronic Statement Import Foundation）已於 2026-08-17 正式完成並進入 Production。** PR [#377](https://github.com/hyc640110/family-universal-rebalance/pull/377) 已由使用者授權以一般 2-parent merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併（parents：`4645541dca26bb26fb805d7d820006bb94e2303f`／`9851a5ed295cb44ffc5066be9dd15d516c7e0f14`，`mergedAt: 2026-08-17T13:59:49Z`，`mergedBy: hyc640110`）；現行正式基線為 `origin/main` `f0b57c038c0a19c86deeee7a0a73872ac94231e2`。PR verify [run 32036912584](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32036912584) success；main Deploy GitHub Pages [run 32037454446](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32037454446) success，head 與 merge commit 一致。Production HTTP 200／`environment=production`；公開 bundle 已唯讀確認含 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援，未建立任何測試交易。Import Center 新增 text-based PDF 的 fail-closed 解析（掃描／無文字／裸正數／不明結構拒絕）並在 Preview 列直接顯示既有 `row.type` 的「收入／支出」方向；無 schema、persistence、Ledger 或 Backup contract 變更。
 
@@ -1920,21 +1927,19 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-040 工具分頁扁平版面與重複導覽路徑
 
 - 優先級：P1
-- 狀態：**待盤點**（僅記錄發現，不在本次處理，待 Sprint 6 正式排入時處理）
+- 狀態：**CLOSED／Production Verified**
 - 提出日期：2026-07-26
-- 提出依據：本次修正 `src/pages/ToolsPage.tsx` 過時文案時，唯讀盤點 `TOOL_DEFINITIONS`（`src/lib/toolNavigation.ts`）與 `ToolsPage.tsx`／各工具子頁面版面時發現，順帶記錄，非本次處理範圍
-- 問題：
-  - 「工具」分頁（`ToolsPage.tsx`）以扁平方式收納全部 16 個工具卡片，未分區、未分優先序；其中包含再平衡建議中心、風險與現金安全中心、AI 決策中心等核心決策功能，與 ETF X-Ray、投資回測、蒙地卡羅模擬、退休試算等規劃中／較次要項目並列同一格狀清單，可能造成核心功能在版面上被低估、不容易與規劃中項目區分優先序。
-  - 每個工具子頁面內的 `ToolQuickNavigation`（页面內快速導覽元件）與「工具」首頁的卡片列表存在重複的導覽路徑——使用者在子頁面與工具首頁都能看到近似的其他工具入口清單，尚未確認兩者是否有明確的分工或是否應合併／去重。
-- 明確不處理（本次僅記錄）：
-  - 不調整 `ToolsPage.tsx` 版面分區、排序或分類。
-  - 不調整 `ToolQuickNavigation` 元件邏輯或任何子頁面導覽。
-  - 本次僅修正 `ToolsPage.tsx` 的「已上線」／「規劃中」文案誤導問題（見上方變更記錄），不涉及本項目範圍。
-- 依賴：
-  - **UR-TODO-011**（Cross-Module Presentation Consistency，Sprint 6，狀態「待開發」）：本項目為其前置輸入，實際版面調整應併入該 Sprint 一併規劃，不另立獨立 Sprint。
-- 驗收條件（待 Sprint 6 正式排入時另訂）：
-  - 「工具」分頁能清楚區分已上線核心功能與規劃中項目的視覺優先序。
-  - 子頁面 `ToolQuickNavigation` 與工具首頁卡片列表的導覽路徑分工明確，不重複造成使用者困惑。
+- 完成日期：2026-08-18
+- 完成 PR／Merge：PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380)，head `df9f03e987596c61a0a5ea164eb9af0883ad517f`，由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`）；未使用 admin override。現行 `origin/main` 已確認為相同 SHA。
+- 最終產品契約：
+  - **Tool Center 是完整工具目錄**；首頁以四區 IA 呈現：**今日決策／管理與追蹤／規劃與模擬／規劃中**。
+  - `ToolQuickNavigation` 的責任是「返回工具中心」加上最多 **3** 個 contextual related tools；不再重複完整 14～15 個工具目錄。
+  - `ToolNature` 只描述真實建議／假設模擬的產品性質，**不再兼任 IA 分組**。
+  - planned／non-routed tools 不進入 Quick Navigation；`current` 未定義或找不到目前工具時一律 fail closed，不猜測或回退為完整目錄。
+- Merge 前與 Preview 證據：CI Verification [run 32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998) success；Production build、Preview build success；Preview deployment [run 32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407) success。使用者已完成相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收。
+- Production Closeout：Deploy GitHub Pages [run 32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 最終 success，regression gate、Production build 與 Pages deploy 均 success，Production source SHA=`84b6859cd486fd4b8deccd87cca99df38cd28692`。Production root HTTP 200；實際 bundle `index-DFldBSkN.js` 與本次 Production build 一致，部署前 `index-DIAMR26i.js` 已不再載入。
+- Production automated smoke／contract evidence：四個 Tool Center 分區存在；ETF X-Ray 與蒙地卡羅模擬為 non-routed planned tools；Quick Navigation 為最多 3 個 related links 且 undefined current fail closed；`/assets#transactions-section` App 內 React Router + hash navigation regression contract PASS。GitHub Pages 對直接 server-side HTTP 請求 `/assets` 的既有 SPA deep-link 404 不屬本 Todo regression。
+- 驗收界線：Production 本次**未重新做人工瀏覽器視覺驗收**；UI 人工證據只沿用完全相同 PR head 的 Preview Desktop／390 × 844 驗收。Production Verified 的依據是上述 Production workflow、source／bundle、HTTP 與 automated smoke evidence，不得誤寫為 Production 人工驗收。
 
 ### UR-TODO-041 負債資料過期警示
 
@@ -3067,6 +3072,14 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-040 Tool Center IA 與 contextual navigation（CLOSED／Production Verified，2026-08-18）
+
+- 正式結案：PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380) 已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（head `df9f03e987596c61a0a5ea164eb9af0883ad517f`；parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`；`mergedAt: 2026-08-17T15:15:39Z`；未使用 admin override）。本次 fetch 後 `origin/main` 為相同 SHA。
+- 驗證：CI Verification [32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998)、Preview deployment [32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407)、merge 後 Deploy GitHub Pages [32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 均 success；後者 regression gate、Production build、Pages deploy success，Production source SHA 與 merge commit 一致。Production HTTP 200，實際 bundle 為 `index-DFldBSkN.js`，舊 `index-DIAMR26i.js` 已不再載入，且 bundle 與本次 Production build 一致。
+- 已完成契約：Tool Center 是完整工具目錄，分為「今日決策／管理與追蹤／規劃與模擬／規劃中」四區；`ToolQuickNavigation` 只提供返回工具中心與最多 3 個 contextual related tools，`ToolNature` 不再承擔 IA 分組；planned／non-routed tools 不進 Quick Navigation，undefined current fail closed。ETF X-Ray／蒙地卡羅維持規劃中；`/assets#transactions-section` App 內 React Router + hash navigation regression contract PASS。
+- 證據界線：同一 PR head 的 Desktop 與 390 × 844 **Preview 人工驗收已 PASS**。Production 本次只完成 workflow、source／bundle、HTTP 與 automated smoke／contract verification，**沒有重新人工瀏覽器視覺驗收**。直接 server-side 請求 `/assets` 的既有 SPA deep-link 404 不屬 UR-TODO-040 regression。
+- 下一位 AI：UR-TODO-040 不再是 blocker、下一 Sprint 或未完成事項。不得因本 Closeout 自動開始任何產品 Sprint；下一步一律等待使用者明確授權。
 
 ## UR-TODO-021 Closeout（2026-08-17）
 

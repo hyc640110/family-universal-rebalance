@@ -1,5 +1,13 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-040 Tool Center IA 與 contextual navigation（CLOSED／Production Verified，2026-08-18）
+
+- 正式結案：PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380) 已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（head `df9f03e987596c61a0a5ea164eb9af0883ad517f`；parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`；`mergedAt: 2026-08-17T15:15:39Z`；未使用 admin override）。本次 fetch 後 `origin/main` 為相同 SHA。
+- 驗證：CI Verification [32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998)、Preview deployment [32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407)、merge 後 Deploy GitHub Pages [32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 均 success；後者 regression gate、Production build、Pages deploy success，Production source SHA 與 merge commit 一致。Production HTTP 200，實際 bundle 為 `index-DFldBSkN.js`，舊 `index-DIAMR26i.js` 已不再載入，且 bundle 與本次 Production build 一致。
+- 已完成契約：Tool Center 是完整工具目錄，分為「今日決策／管理與追蹤／規劃與模擬／規劃中」四區；`ToolQuickNavigation` 只提供返回工具中心與最多 3 個 contextual related tools，`ToolNature` 不再承擔 IA 分組；planned／non-routed tools 不進 Quick Navigation，undefined current fail closed。ETF X-Ray／蒙地卡羅維持規劃中；`/assets#transactions-section` App 內 React Router + hash navigation regression contract PASS。
+- 證據界線：同一 PR head 的 Desktop 與 390 × 844 **Preview 人工驗收已 PASS**。Production 本次只完成 workflow、source／bundle、HTTP 與 automated smoke／contract verification，**沒有重新人工瀏覽器視覺驗收**。直接 server-side 請求 `/assets` 的既有 SPA deep-link 404 不屬 UR-TODO-040 regression。
+- 下一位 AI：UR-TODO-040 不再是 blocker、下一 Sprint 或未完成事項。不得因本 Closeout 自動開始任何產品 Sprint；下一步一律等待使用者明確授權。
+
 ## UR-TODO-021 Closeout（2026-08-17）
 
 - PR #377 已由使用者授權以一般 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併（parents：`4645541dca26bb26fb805d7d820006bb94e2303f`／`9851a5ed295cb44ffc5066be9dd15d516c7e0f14`）；`origin/main` 同為此 SHA。
