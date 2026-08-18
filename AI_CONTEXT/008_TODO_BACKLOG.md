@@ -1794,11 +1794,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-013 Investment Decision Workflow Integration
 
 - 優先級：P2
-- 狀態：**部分完成**（維持，2026-08-16 Review Mode 唯讀盤點重新核對，經使用者拍板不逕行標記完成）
+- 狀態：**CLOSED**（2026-08-18；absorbed by subsequent Production capabilities）
 - 前置依賴：UR-TODO-009
-- 2026-08-16 唯讀盤點結論：本項自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對歷史版本與 git log，確認無獨立規格文件可供逐項核對）。功能面比對：`dailyDecisionWorkflow.ts`、再平衡建議中心（`/tools/rebalance-recommendation`）、UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）已將投資決策工具整合進具一致性的導覽與工作流程，並明確區分「會影響實際操作判斷」與「純假設情境」兩類工具，整合程度已相當可觀。
-- 因無正式逐項驗收條件可比對，無法直接判定「已全數滿足」，故維持「部分完成」，不逕行標記完成。
-- 建議：維持部分完成；若未來要正式關閉，需先補上明確驗收條件清單再逐項核對，或由使用者確認現有整合程度已達產品預期。
+- 原始可驗證歷史：僅有標題、P2、依賴 `UR-TODO-009` 與「部分完成」；未找到獨立 specification、逐項 acceptance criteria，亦無法由現有證據完整還原最初建立日期。
+- 2026-08-18 Review Mode Closeout Audit 結論：本項並非因「所有原始驗收條件均已完成」而關閉，因為原始 acceptance criteria 並不存在。後續更具體、已實作、已測試並已進入 Production 的 capabilities，已實質吸收其可合理推定的產品意圖：在 Household Liquidity 與資料品質安全邊界下，整合投資狀態、再平衡建議、CLEC 規則、執行資格、每日決策、行動導引、可解釋性與使用者決策紀錄，形成 advisory-only workflow。
+- 已吸收能力：Rebalance Recommendation、Rebalance Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center、Investment Action Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary，以及 Rebalance Decision Journal。
+- 現行產品邊界：advisory-only；data／liquidity fail closed；recommendation 與 execution eligibility 分離；不自動下單、不自動修改 holdings；Decision Journal 只記錄使用者決策意向，不代表成交。Closeout Audit 未發現屬於 UR-TODO-013 本身的 workflow dead-end。
+- Future enhancement candidates（非本 Todo 未完成範圍，未自動建立新 Todo）：首頁 Investment Intelligence 主卡固定下一步 CTA；Dip 提示獨立納入 Investment Action Center 排序模型。若未來需要，須另立新 Todo。
 
 ## P3－中長期投資功能
 
