@@ -22,16 +22,20 @@ const rowIdentity = (row: ImportPreviewRow) => normalizedIdentity(row.descriptio
 const externalIdMatch = (row: ImportPreviewRow, transaction: FinancialTransaction) => Boolean(row.externalId && transaction.source === 'import' && transaction.note.includes(`[external:${row.externalId}]`));
 const possibleIdentityMatch = (row: ImportPreviewRow, transaction: FinancialTransaction) => Boolean(row.occurredAt && row.amount && day(transaction.occurredAt) === day(row.occurredAt) && transaction.amount === row.amount && normalizedIdentity(transaction.description || transaction.merchant) === rowIdentity(row));
 
+export function deriveStatementPeriod(statementRows: ImportPreviewRow[]): MonthlyReconciliationPeriod {
+  const validRows = statementRows.filter(row => !row.error && row.occurredAt && row.amount && row.fingerprint);
+  if (!validRows.length) throw new Error('沒有有效 Statement 列可推導對帳期間');
+  const dates = validRows.map(row => day(row.occurredAt!)).sort();
+  return { minDate: dates[0], maxDate: dates[dates.length - 1] };
+}
+
 /**
  * Read-only Statement ↔ App comparison.  It deliberately does not reuse the import duplicate
  * status: the output communicates reconciliation evidence and consumes only unique high-confidence
  * pairs.  Possible relations never consume a transaction and never become app-only noise.
  */
 export function reconcileMonthlyTransactions(statementRows: ImportPreviewRow[], transactions: FinancialTransaction[], accountId: string): MonthlyTransactionReconciliation {
-  const validRows = statementRows.filter(row => !row.error && row.occurredAt && row.amount && row.fingerprint);
-  if (!validRows.length) throw new Error('沒有有效 Statement 列可推導對帳期間');
-  const dates = validRows.map(row => day(row.occurredAt!)).sort();
-  const period = { minDate: dates[0], maxDate: dates[dates.length - 1] };
+  const period = deriveStatementPeriod(statementRows);
   const eligible = transactions.filter(transaction => transaction.accountId === accountId && transaction.status === 'posted' && !transaction.excluded && day(transaction.occurredAt) >= period.minDate && day(transaction.occurredAt) <= period.maxDate);
   const consumed = new Set<string>();
   const possibleRelated = new Set<string>();

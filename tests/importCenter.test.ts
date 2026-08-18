@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, reconcileImportPreviewDuplicates, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
-import { reconcileMonthlyTransactions } from '../src/lib/monthlyTransactionReconciliation';
+import { deriveStatementPeriod, reconcileMonthlyTransactions } from '../src/lib/monthlyTransactionReconciliation';
 import type { FinancialTransaction } from '../src/lib/transactions';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
@@ -321,14 +321,29 @@ test('monthly reconciliation fails closed with no valid Statement rows', () => {
   assert.throws(() => reconcileMonthlyTransactions(rows, [reconciliationTransaction('app')], 'bank'), /有效 Statement/);
 });
 
-test('Import Center keeps monthly reconciliation session-only, read-only, and shows all five summary states', () => {
+test('monthly reconciliation derives the suggested confirmation period from valid Statement rows only', () => {
+  const rows = reconciliationPreview([['2026-08-02', '-20', 'two', 'expense-food', ''], ['invalid', '-1', 'bad', 'expense-food', ''], ['2026-07-31', '-10', 'one', 'expense-food', '']]);
+  assert.deepEqual(deriveStatementPeriod(rows), { minDate: '2026-07-31', maxDate: '2026-08-02' });
+  assert.throws(() => deriveStatementPeriod(rows.filter(row => row.error)), /有效 Statement/);
+});
+
+test('Import Center clears stale reconciliation context, confirms the suggested period, and shows unambiguous reconciliation labels', () => {
   assert.match(importCenterComponent, /reconcileMonthlyTransactions\(preview, transactions, account\.id\)/);
+  assert.match(importCenterComponent, /deriveStatementPeriod\(preview\)/);
+  assert.match(importCenterComponent, /建議對帳期間：\{reconciliationPeriod\.minDate\} ～ \{reconciliationPeriod\.maxDate\}/);
+  assert.match(importCenterComponent, /將以 \$\{period\.minDate\} ～ \$\{period\.maxDate\} 作為本次對帳期間，是否繼續？/);
+  assert.match(importCenterComponent, /if \(!window\.confirm\(/);
+  assert.match(importCenterComponent, /setAccountId\(event\.currentTarget\.value\); setReconciliation\(null\)/);
+  assert.match(importCenterComponent, /setSheetName\(sheet\.sheet\); setRecords\(next\);[\s\S]*setPreview\(\[\]\); setReconciliation\(null\)/);
+  assert.match(importCenterComponent, /setMapping\(applied\.mapping\); setDateFormat\(applied\.dateFormat\); setPreview\(\[\]\); setReconciliation\(null\)/);
+  assert.match(importCenterComponent, /setDateFormat\(event\.currentTarget\.value as 'ymd' \| 'mdy' \| 'dmy'\); setReconciliation\(null\)/);
+  assert.match(importCenterComponent, /setMapping\(current => \(\{ \.\.\.current, \[key\]: value \|\| undefined \}\)\); setReconciliation\(null\)/);
   assert.match(importCenterComponent, /產生對帳預覽/);
-  assert.match(importCenterComponent, /對帳期間/);
+  assert.match(importCenterComponent, /對帳期間：/);
   assert.match(importCenterComponent, /已匹配/);
   assert.match(importCenterComponent, /可能相符/);
-  assert.match(importCenterComponent, /Statement 未找到/);
-  assert.match(importCenterComponent, /App 未找到/);
+  assert.match(importCenterComponent, /僅 Statement/);
+  assert.match(importCenterComponent, /僅 App/);
   assert.match(importCenterComponent, /無效列/);
   assert.match(importCenterComponent, /const updateCategory = \(categoryId: string\) => \{ setReconciliation\(null\);/);
   assert.doesNotMatch(importCenterComponent, /reconciliationSessions|monthlyReconciliationHistory|matchedTransactionIds/);
