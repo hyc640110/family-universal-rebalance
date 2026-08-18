@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-022 Final Governance Closeout（CLOSED／Production Verified，2026-08-18）
+
+- 正式決策：使用者完成 UR-TODO-022 Closeout Scope Review，正式決定 **UR-TODO-022 = CLOSED／Production Verified**。原始產品目的「自動分類與重複交易偵測」已由 022-A Rule-Assisted Category Suggestion Foundation、022-B Safe Column Auto-Mapping Hardening、022-C Batch-Aware Duplicate Reconciliation 完成並各自完成 Production Verified；本次為純治理結案，基線為 PR [#390](https://github.com/hyc640110/family-universal-rebalance/pull/390) merge commit `2467ed7c19350134f105c8aa6e531ad7ced9cde3`。
+- 最終工作流與安全邊界：Import Center 維持 file parsing → safe deterministic column auto-mapping → deterministic high-confidence category suggestion → explicit user confirmation → existing＋same-batch duplicate protection → preview → explicit import。Human-in-the-loop 類別確認是刻意保留的安全邊界，不是未完成缺陷；ambiguous／low-confidence semantic 維持 fail closed，並維持 deterministic、high-confidence、preview-first、explicit user confirmation、no automatic transaction commit。
+- Deferred／Future Enhancement：Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 不再是 UR-TODO-022 closure requirement 或 blocker。未來若產品確定需要，必須另立新的獨立 UR-TODO，重新做 Contract Audit、風險邊界與 acceptance criteria；不得直接重新開啟 UR-TODO-022，且本次未自行建立新 Todo 編號。
+- 邊界：本次未變更 `src/**`、`tests/**`、package、`.github/**`、schema、persistence、localStorage、JSON Backup、Financial Event Ledger、attribution、Household Liquidity、Rebalance、AI Decision、Import Center、duplicate formula、`transactionFingerprint`、category suggestion 或 column mapping。固定 stash 只以 object SHA 識別，未操作任何 stash。
+
 ## 最新交接快照：UR-TODO-022-C Batch-Aware Duplicate Reconciliation（CLOSED／Production Verified，2026-08-18）
 
 - 正式基線：PR [#389](https://github.com/hyc640110/family-universal-rebalance/pull/389) final head `9b2f94b42951aa99665e3e7f90c82d071de16c08` 已由 `hyc640110` 於 2026-08-18T13:09:39Z 以一般 2-parent merge commit `dc6b5aca77c6ad60bb3be243e56091348be0f1ce` 合併（parents：`b720aa3ff15ec367778156528734ef9eca54fadd`、`9b2f94b42951aa99665e3e7f90c82d071de16c08`；未使用 admin override）；現行 `origin/main` 為該 merge commit。CI `32139612582`、相同 head 的 Preview workflow_dispatch `32139755897`、push/main Deploy GitHub Pages `32140771082` 均 success，最後者 regression gate、Production build、Pages deploy success 且 head 相符。
@@ -7,7 +14,7 @@
 - 部署與隔離：Production／Preview root 均 HTTP 200。Production workflow 明確為 main，Preview 為相同 feature head；Production asset `index-FKnb2K2Y.js` 與 Preview asset `index-CDobTh5S.js` 不同且均含 warning／external-ID 重複偵測字串，確認 asset isolation 與本 Sprint bundle 已部署。`test:ci` 1,097 pass（Import Center 36/36）、TypeScript、Production／Preview build、`git diff --check` pass。
 - 邊界：未改 checkbox 行為、duplicate calculation、`buildImportPreview` duplicate formula、`transactionFingerprint`、category suggestion、transaction creation 或 UR-TODO-022-A preview-only suggestion contract；無 schema、persistence、JSON Backup、Ledger、Household Liquidity、Rebalance、AI Decision、Firebase 或 Worker 變更。`npm audit --omit=dev --audit-level=high` 的 4 個 high vulnerabilities 是既有相依問題，未由本 Sprint 引入且不在本範圍處理。
 - Stash identity：永久識別使用 object SHA `e141af14273b76501c1b287ea018e8728099f1e5` 與 `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；本輪未操作兩者。其 index 可隨後續 stash 新增而移動，僅屬暫時位置，不得以 `stash@{0}`／`stash@{1}` 當永久 identity。
-- 下一位 AI：**UR-TODO-022-C 已 CLOSED／Production Verified；UR-TODO-022 整體仍 PARTIAL／OPEN，絕不可標記 CLOSED。** 下一候選為 **UR-TODO-022 Closeout Scope Review（Review Mode）**，須重新檢視 fully automatic classification 是否真為整體結案必要條件。Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 維持 deferred，未經新決策與授權不得開始。
+- 下一位 AI（歷史快照）：此為 Closeout Scope Review 前的交接狀態；已由本文件最上方 Final Governance Closeout 取代。Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 均為 Deferred／Future Enhancement，不再阻擋 UR-TODO-022 結案。
 
 ## 最新交接快照：UR-TODO-022-B Safe Column Auto-Mapping Hardening（CLOSED／Production Verified，2026-08-18）
 
@@ -15,14 +22,14 @@
 - 已完成契約：`guessImportMapping` 僅採 deterministic exact → strong alias；歧義或 source conflict 一律 fail closed。credit＋debit 優先 amount；交易日期不從 posting／posted／入帳日期推測；externalId 僅接受嚴格 alias、裸 `id` 拒絕。Preview 人工驗收 PASS（不手動調整 mapping 即有效 7／錯誤 0，收入／支出及 022-A category suggestion 正常）；Production 人工唯讀驗收 PASS（交易基礎、Import Center、檔案選擇、Column Mapping、Preset／匯入紀錄正常），未建立／匯入 Production 測試交易，未修改 Production localStorage。Production／Preview HTTP 200、environment metadata 與 assets 隔離正確，Production bundle 已含本 Sprint aliases；`test:ci` 1,063 pass、TypeScript、Production／Preview build、`git diff --check` pass。
 - 邊界：duplicate detection formula、`transactionFingerprint`、preview category action、transaction creation 與 UR-TODO-022-A preview-only suggestion 均未變；無 schema、persistence、JSON Backup、Ledger、Household Liquidity、Rebalance、AI Decision、Firebase 或 Worker 變更。`npm audit --omit=dev --audit-level=high` 的 4 個 high vulnerabilities 是既有相依問題，未由本 Sprint 引入且不在本範圍處理。
 - Stash identity：永久識別使用 object SHA `e141af14273b76501c1b287ea018e8728099f1e5` 與 `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；本輪未操作兩者。其目前索引可隨後續 stash 新增而移動（本次唯讀盤點為 `stash@{5}`／`stash@{6}`），不得再把 `stash@{0}`／`stash@{1}` 當永久 identity。
-- 下一位 AI：**UR-TODO-022-B 已 CLOSED／Production Verified；UR-TODO-022 整體仍 PARTIAL／OPEN，絕不可標記 CLOSED。** 下一候選僅為 UR-TODO-022-C Batch Internal Duplicate Detection Contract Audit。Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 維持 deferred，未經新授權不得開始。
+- 下一位 AI（歷史快照）：此為 022-B 結案當時的交接狀態；已由最上方 Final Governance Closeout 取代。Deferred 項目不再阻擋 UR-TODO-022 結案。
 
 ## 最新交接快照：UR-TODO-022-A Rule-Assisted Category Suggestion Foundation（已完成／Production Verified，2026-08-18）
 
 - 正式基線：PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) 已由使用者授權以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d`；parents：`aba0a9283035ba1e6fd3c55d01a24490aa62943f`、`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；`mergedAt: 2026-08-18T04:03:57Z`；`mergedBy: hyc640110`；未使用 admin override）。verify `32096747958`、相同 head 的 Preview workflow_dispatch `32096761194` 與 push/main Deploy GitHub Pages `32097751304` 均 success；後者 regression gate、Production build、Pages deploy success，head 與 merge commit 相符。Production HTTP 200／metadata=`production`，bundle `index-UfIXOsXo.js`，未混用 Preview asset；未建立任何 Production 測試交易。
 - 已完成契約：Import Preview 的類別 suggestion 為 deterministic、high-confidence only、safe whitelist only；high-risk semantic 一律 fail closed、conflict=`none`。suggestion metadata 只在 Preview/session 存在；使用者須明確套用，無自動交易建立／commit。Desktop 與 390 × 844 Preview 人工驗收均已通過；Production 沿用該相同 PR head 的人工 UX 證據，僅完成唯讀 deployment verification，未假稱重新人工驗收。
 - 邊界：未加入 AI／LLM、historical learning、schema／persistence／JSON Backup、Financial Event Ledger、attribution、Household Liquidity 公式或 Rebalance／AI Decision coupling；duplicate detection contract 未變。
-- 下一位 AI：**UR-TODO-022-A 為 Implemented／Production Verified；整體 UR-TODO-022 仍 OPEN／PARTIAL，絕不可標記 CLOSED。** fully automatic classification 仍未實作；若未來要推進 historical learning 或 AI/LLM，必須另行產品決策與明確授權，不得由本 Foundation 自動擴張或開啟下一 Sprint。
+- 下一位 AI（歷史快照）：此為 022-A 結案當時的交接狀態；已由最上方 Final Governance Closeout 取代。fully automatic classification 等 Deferred／Future Enhancement 未實作，但不是 UR-TODO-022 closure blocker；未來需另立新 Todo 並重新取得產品決策與授權。
 
 ## 最新交接快照：UR-TODO-013 Investment Decision Workflow Integration（CLOSED，2026-08-18）
 
