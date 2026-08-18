@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, validateMappingPreset } from '../src/lib/importCenter';
+import { readFileSync } from 'node:fs';
+import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
+const importCenterComponent = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 test('file-picker contract and parser gate allow CSV, XLSX, and PDF only', () => {
   assert.equal(IMPORT_FILE_ACCEPT, '.csv,.xlsx,.pdf');
   assert.equal(detectImportFileType('fixture.CSV'), 'csv');
@@ -53,4 +56,32 @@ test('worksheet changes require compatible mappings and do not reuse missing col
 test('preset normalization removes damaged and duplicate metadata without raw worksheet data', () => {
   const values = normalizeMappingPresets([{ id: 'p', name: 'one', mapping: { occurredAt: 'date', amount: 'amount' }, dateFormat: 'ymd', createdAt: 'x', updatedAt: 'x' }, { id: 'p', name: 'duplicate', mapping: {} }, { id: '', name: 'broken' }]);
   assert.equal(values.length, 1); assert.equal(values[0].mapping.amount, 'amount'); assert.equal('rows' in values[0], false); assert.equal('file' in values[0], false);
+});
+test('category suggestion stays preview-only until the user applies it', () => {
+  const [row] = buildImportPreview(rowsToRecords([['date', 'amount', 'description'], ['2026-08-18', '-120', '電費']]), { occurredAt: 'date', amount: 'amount', description: 'description' }, account, []);
+  assert.equal(row.categoryId, 'expense-other', 'existing fallback remains unchanged before acceptance');
+  assert.equal(row.categorySuggestion?.kind, 'suggestion');
+  assert.equal(row.categorySuggestion?.kind === 'suggestion' && row.categorySuggestion.categoryId, 'expense-utilities');
+  const accepted = updateImportPreviewRowCategory(row, 'expense-utilities', account, []);
+  assert.equal(accepted.categoryId, 'expense-utilities');
+  assert.notEqual(accepted.fingerprint, row.fingerprint, 'accepted category gets its own existing fingerprint calculation');
+});
+test('accepted preview category reuses exact duplicate detection without changing its formula', () => {
+  const records = rowsToRecords([['date', 'amount', 'description'], ['2026-08-18', '-120', '電費']]);
+  const [original] = buildImportPreview(records, { occurredAt: 'date', amount: 'amount', description: 'description' }, account, []);
+  const accepted = updateImportPreviewRowCategory(original, 'expense-utilities', account, []);
+  const existing = createImportTransactions([accepted], account, 'duplicate-category')[0];
+  const [again] = buildImportPreview(records, { occurredAt: 'date', amount: 'amount', description: 'description' }, account, [existing]);
+  const acceptedAgain = updateImportPreviewRowCategory(again, 'expense-utilities', account, [existing]);
+  assert.equal(again.categoryId, 'expense-other', 'an unaccepted suggestion never changes the existing fallback category');
+  assert.equal(again.duplicate, 'possible', 'existing possible-duplicate behavior is preserved until a suggestion is accepted');
+  assert.equal(acceptedAgain.duplicate, 'certain');
+  assert.equal(acceptedAgain.selected, false);
+});
+test('suggestion action has a responsive structure that stacks without changing its apply contract', () => {
+  assert.match(importCenterComponent, /className="import-preview-suggestion"/);
+  assert.match(importCenterComponent, /className="import-preview-suggestion-copy"/);
+  assert.match(importCenterComponent, /className="import-preview-category"/);
+  assert.match(styles, /\.import-preview-suggestion\{flex-direction:column;align-items:flex-start\}/);
+  assert.match(styles, /\.import-preview-category select\{min-width:0;max-width:100%\}/);
 });
