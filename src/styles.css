@@ -416,7 +416,11 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-card-unrealized-pnl{order:3}
   .holding-card-detail{padding:7px 8px}.holding-card-detail>strong{font-size:14px}
   .holding-card-summary>.holding-edit-button{order:1;grid-column:auto;justify-self:stretch;min-height:36px}
-  .holding-order-button{width:30px;height:30px}
+  /* UR-TODO-070 iPhone Preview round 1: horizontal ↑/↓ instead of stacked, so the header row
+     doesn't grow taller than it needs to; margin-left:auto (base rule) keeps it pinned to the
+     header's right edge. Button size stays a real touch target, not shrunk to fit. */
+  .holding-order-controls{flex-direction:row;gap:6px}
+  .holding-order-button{width:34px;height:34px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-weight{display:grid;place-items:center;align-content:center;width:46px;height:46px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
   .holding-mobile-weight strong{color:#eaf3ff;font-size:12px;white-space:nowrap}
