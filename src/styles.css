@@ -42,6 +42,7 @@ button:disabled{cursor:not-allowed;opacity:.45;filter:none}
 button.active{background:#3b82f6}
 button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .import-preview>div{min-width:0}.import-preview-category,.import-preview-suggestion{display:inline-flex;align-items:center;gap:6px;min-width:0;vertical-align:middle}.import-preview-category{flex-wrap:wrap}.import-preview-category select{min-width:0;max-width:100%}.import-preview-suggestion{flex-wrap:wrap}.import-preview-suggestion-copy{min-width:0;overflow-wrap:anywhere}
+.import-reconciliation-preview{min-width:0;overflow-wrap:anywhere}
 @media(max-width:700px){.import-preview-category,.import-preview-suggestion{display:flex;margin-top:6px}.import-preview-suggestion{flex-direction:column;align-items:flex-start}.import-preview-suggestion button{max-width:100%;align-self:flex-start}}
 .visually-hidden-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .danger{background:#7f1d1d}

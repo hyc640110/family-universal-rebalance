@@ -5,6 +5,7 @@ import { extractTextPdfPages } from '../../lib/pdfTextExtraction';
 import type { FinancialAccount } from '../../lib/financialAccounts';
 import { categoriesForTransactionType, transactionCategoryLabel, transactionTypeLabel, type FinancialTransaction } from '../../lib/transactions';
 import { importCategorySuggestionReasonLabel } from '../../lib/importCategorySuggestion';
+import { deriveStatementPeriod, reconcileMonthlyTransactions, type MonthlyTransactionReconciliation } from '../../lib/monthlyTransactionReconciliation';
 import {
   IMPORT_SCHEMA_VERSION,
   IMPORT_FILE_ACCEPT,
@@ -59,6 +60,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const [mapping, setMapping] = useState<ImportMapping>({});
   const [dateFormat, setDateFormat] = useState<'ymd' | 'mdy' | 'dmy'>('ymd');
   const [preview, setPreview] = useState<ImportPreviewRow[]>([]);
+  const [reconciliation, setReconciliation] = useState<MonthlyTransactionReconciliation | null>(null);
   const [presetName, setPresetName] = useState('');
   // Covers 選擇檔案／切換工作表 (physically adjacent triggers, same file-loading flow).
   const [fileFeedback, setFileFeedback] = useState<Feedback>(null);
@@ -81,10 +83,10 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
       if (next.length > MAX_IMPORT_ROWS) throw new Error('工作表超過 2,000 列限制');
       const names = Object.keys(next[0]?.raw || {});
       const compatible = keep && Object.values(mapping).filter(value => typeof value === 'string').every(value => !value || names.includes(value));
-      setSheetName(sheet.sheet); setRecords(next); setHeaders(names); setMapping(compatible ? mapping : guessImportMapping(names)); setPreview([]);
+      setSheetName(sheet.sheet); setRecords(next); setHeaders(names); setMapping(compatible ? mapping : guessImportMapping(names)); setPreview([]); setReconciliation(null);
       setFileFeedback({ tone: 'success', text: `${sheet.sheet}：${next.length} 筆資料列${compatible ? '，保留相容 mapping。' : '，請確認欄位對應。'}` });
     } catch (error) {
-      setSheetName(sheet.sheet); setRecords([]); setHeaders([]); setPreview([]);
+      setSheetName(sheet.sheet); setRecords([]); setHeaders([]); setPreview([]); setReconciliation(null);
       setFileFeedback({ tone: 'error', text: `${sheet.sheet} 無可匯入資料：${error instanceof Error ? error.message : '解析失敗'}` });
     }
   };
@@ -98,7 +100,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
         const parsed = parseTextPdfStatement(await extractTextPdfPages(file));
         if (parsed.status !== 'success') throw new Error(parsed.message);
         if (parsed.records.length > MAX_IMPORT_ROWS) throw new Error('帳單超過 2,000 列限制');
-        setFileName(file.name); setFileType(kind); setSheets([]); setSheetName(''); setRecords(parsed.records); setHeaders(parsed.headers); setMapping(parsed.mapping); setPreview([]);
+        setFileName(file.name); setFileType(kind); setSheets([]); setSheetName(''); setRecords(parsed.records); setHeaders(parsed.headers); setMapping(parsed.mapping); setPreview([]); setReconciliation(null);
         setFileFeedback({ tone: 'success', text: `文字型 PDF：${parsed.records.length} 筆資料列，已套用安全的日期／金額／描述對應；請選擇帳戶並產生預覽。` });
         return;
       }
@@ -112,7 +114,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const makePreview = () => {
     try {
       const next = buildImportPreview(records, mapping, account, transactions, dateFormat);
-      setPreview(next); setPreviewFeedback({ tone: 'success', text: `預覽完成：有效 ${next.filter(row => !row.error).length}，錯誤 ${next.filter(row => row.error).length}。` });
+      setPreview(next); setReconciliation(null); setPreviewFeedback({ tone: 'success', text: `預覽完成：有效 ${next.filter(row => !row.error).length}，錯誤 ${next.filter(row => row.error).length}。` });
     } catch (error) { setPreviewFeedback({ tone: 'error', text: error instanceof Error ? error.message : '欄位對應無效' }); }
   };
 
@@ -135,7 +137,7 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
   const applyPreset = (preset: ImportPreset) => {
     const applied = applyMappingPreset(preset, headers);
     if (applied.error) { setPresetFeedback({ tone: 'error', text: applied.error }); return; }
-    setMapping(applied.mapping); setDateFormat(applied.dateFormat); setPreview([]); setPresetFeedback({ tone: 'success', text: `已套用 preset「${preset.name}」，請重新產生預覽。` });
+    setMapping(applied.mapping); setDateFormat(applied.dateFormat); setPreview([]); setReconciliation(null); setPresetFeedback({ tone: 'success', text: `已套用 preset「${preset.name}」，請重新產生預覽。` });
   };
 
   const renamePreset = (preset: ImportPreset) => {
@@ -173,15 +175,26 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     setRollbackFeedback({ tone: 'error', text: '無法撤銷：此批交易已不存在（可能已被逐筆刪除），沒有可撤銷的項目。' });
   };
 
-  const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
+  const field = (label: string, key: keyof ImportMapping) => <label>{label}<select value={mapping[key] || ''} onChange={event => { const value = event.currentTarget.value; setMapping(current => ({ ...current, [key]: value || undefined })); setReconciliation(null); }}><option value="">未對應</option>{headers.map(header => <option value={header} key={header}>{header}</option>)}</select></label>;
+  let reconciliationPeriod: MonthlyTransactionReconciliation['period'] | null = null;
+  try { reconciliationPeriod = preview.length ? deriveStatementPeriod(preview) : null; } catch { reconciliationPeriod = null; }
+  const makeReconciliation = () => {
+    if (!account) return;
+    try {
+      const period = deriveStatementPeriod(preview);
+      if (!window.confirm(`將以 ${period.minDate} ～ ${period.maxDate} 作為本次對帳期間，是否繼續？`)) return;
+      setReconciliation(reconcileMonthlyTransactions(preview, transactions, account.id));
+    }
+    catch (error) { setPreviewFeedback({ tone: 'error', text: error instanceof Error ? error.message : '無法產生對帳預覽' }); }
+  };
 
   return <div className="financial-account-list import-center">
     <p className="note">檔案只在本機記憶體解析，不保存原始檔或工作表資料。支援 CSV、XLSX 與文字型 PDF；掃描／圖片型 PDF 不支援。限制 5 MB／2,000 列。</p>
     <div className="financial-account-fields">
-      <label>匯入帳戶<select value={accountId} onChange={event => setAccountId(event.currentTarget.value)}><option value="">選擇啟用帳戶</option>{targets.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+      <label>匯入帳戶<select value={accountId} onChange={event => { setAccountId(event.currentTarget.value); setReconciliation(null); }}><option value="">選擇啟用帳戶</option>{targets.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
       <label>選擇檔案<input type="file" accept={IMPORT_FILE_ACCEPT} onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void parseFile(file); }} /></label>
       {fileType === 'xlsx' && <label>工作表<select value={sheetName} onChange={event => { const sheet = sheets.find(item => item.sheet === event.currentTarget.value); if (sheet) selectSheet(sheet, true); }}>{sheets.map(sheet => <option value={sheet.sheet} key={sheet.sheet}>{sheet.sheet}</option>)}</select></label>}
-      <label>日期格式<select value={dateFormat} onChange={event => setDateFormat(event.currentTarget.value as 'ymd' | 'mdy' | 'dmy')}><option value="ymd">YYYY/MM/DD</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
+      <label>日期格式<select value={dateFormat} onChange={event => { setDateFormat(event.currentTarget.value as 'ymd' | 'mdy' | 'dmy'); setReconciliation(null); }}><option value="ymd">YYYY/MM/DD</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
       {field('交易日期', 'occurredAt')}{field('單一金額', 'amount')}{field('收入', 'credit')}{field('支出', 'debit')}{field('描述', 'description')}{field('商家／對象', 'merchant')}{field('類別', 'categoryId')}{field('外部 ID', 'externalId')}
     </div>
     <FeedbackLine feedback={fileFeedback} />
@@ -190,7 +203,10 @@ export default function ImportCenter({ accounts, transactions, sessions, presets
     <FeedbackLine feedback={presetFeedback} />
     {records.length > 0 && <button className="small" type="button" onClick={makePreview}>產生匯入預覽</button>}
     <FeedbackLine feedback={previewFeedback} />
-    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => { const suggestion = row.categorySuggestion?.kind === 'suggestion' ? row.categorySuggestion : undefined; const updateCategory = (categoryId: string) => setPreview(current => reconcileImportPreviewDuplicates(current.map(item => item.rowNumber === row.rowNumber ? updateImportPreviewRowCategory(item, categoryId, account!, transactions) : item), account!, transactions)); return <div className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><label><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => { const checked = event.currentTarget.checked; setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: checked } : item)); }} /> 第 {row.rowNumber} 列｜{row.type ? transactionTypeLabel(row.type) : '方向未確認'}｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>{!row.error && row.warning && <span className="import-preview-warning">{row.warning}</span>}{row.type && !row.error && account && <span className="import-preview-category">｜分類：<select aria-label={`第 ${row.rowNumber} 列分類`} value={row.categoryId} onChange={event => updateCategory(event.currentTarget.value)}>{categoriesForTransactionType(row.type).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></span>}{suggestion && row.type && !row.error && account && <span className="import-preview-suggestion">｜<span className="import-preview-suggestion-copy">建議：{transactionCategoryLabel(suggestion.categoryId)}（{importCategorySuggestionReasonLabel(suggestion.reasonCodes[0])}）</span><button className="small" type="button" onClick={() => updateCategory(suggestion.categoryId)}>套用建議</button></span>}</div>; })}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
+    {preview.length > 0 && <><div className="import-preview">{preview.slice(0, 50).map(row => { const suggestion = row.categorySuggestion?.kind === 'suggestion' ? row.categorySuggestion : undefined; const updateCategory = (categoryId: string) => { setReconciliation(null); setPreview(current => reconcileImportPreviewDuplicates(current.map(item => item.rowNumber === row.rowNumber ? updateImportPreviewRowCategory(item, categoryId, account!, transactions) : item), account!, transactions)); }; return <div className={row.error ? 'warning-message' : 'note'} key={row.rowNumber}><label><input type="checkbox" checked={row.selected} disabled={Boolean(row.error)} onChange={event => { const checked = event.currentTarget.checked; setPreview(current => current.map(item => item.rowNumber === row.rowNumber ? { ...item, selected: checked } : item)); }} /> 第 {row.rowNumber} 列｜{row.type ? transactionTypeLabel(row.type) : '方向未確認'}｜{row.description || '—'}｜{row.amount ?? '—'}｜{row.error || row.duplicate}</label>{!row.error && row.warning && <span className="import-preview-warning">{row.warning}</span>}{row.type && !row.error && account && <span className="import-preview-category">｜分類：<select aria-label={`第 ${row.rowNumber} 列分類`} value={row.categoryId} onChange={event => updateCategory(event.currentTarget.value)}>{categoriesForTransactionType(row.type).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></span>}{suggestion && row.type && !row.error && account && <span className="import-preview-suggestion">｜<span className="import-preview-suggestion-copy">建議：{transactionCategoryLabel(suggestion.categoryId)}（{importCategorySuggestionReasonLabel(suggestion.reasonCodes[0])}）</span><button className="small" type="button" onClick={() => updateCategory(suggestion.categoryId)}>套用建議</button></span>}</div>; })}</div><button className="small" type="button" disabled={selectedRowCount === 0} onClick={commit}>正式批次匯入已選列</button></>}
+    {reconciliationPeriod && <p className="note">建議對帳期間：{reconciliationPeriod.minDate} ～ {reconciliationPeriod.maxDate}</p>}
+    {reconciliationPeriod && <button className="small" type="button" onClick={makeReconciliation}>產生對帳預覽</button>}
+    {reconciliation && <section className="import-reconciliation-preview" aria-label="交易對帳預覽"><p className="note">對帳期間：{reconciliation.period.minDate} ～ {reconciliation.period.maxDate}（僅比較，不會修改帳本）</p><p className="note">已匹配 {reconciliation.summary.matched}｜可能相符 {reconciliation.summary.possible}｜僅 Statement {reconciliation.summary.statementOnly}｜僅 App {reconciliation.summary.appOnly}｜無效列 {reconciliation.summary.invalid}</p>{reconciliation.rows.filter(row => row.status !== 'matched').map(row => <p className="note" key={row.statementRow.rowNumber}>第 {row.statementRow.rowNumber} 列｜{row.status === 'possible' ? '可能相符' : row.status === 'statement-only' ? '僅 Statement' : '無效'}｜{row.statementRow.description || '—'}</p>)}{reconciliation.appOnly.map(transaction => <p className="note" key={transaction.id}>僅 App｜{transaction.occurredAt.slice(0, 10)}｜{transaction.description || transaction.merchant || '—'}</p>)}</section>}
     <FeedbackLine feedback={commitFeedback} />
     <h3>匯入紀錄</h3>{sessions.slice().reverse().map(session => <p className="note" key={session.id}>{session.fileName}｜成功 {session.importedRows}｜{session.status} {session.status === 'imported' && <button className="small" type="button" onClick={() => rollback(session.id)}>撤銷</button>}</p>)}
     <FeedbackLine feedback={rollbackFeedback} />
