@@ -238,3 +238,7 @@ test('import sessions count batch certain rows through the existing preview dupl
 test('category controls reconcile whole preview batches rather than only the edited row', () => {
   assert.match(importCenterComponent, /reconcileImportPreviewDuplicates\(current\.map\(/);
 });
+
+test('preview renders an existing possible-duplicate warning without replacing invalid-row errors', () => {
+  assert.match(importCenterComponent, /\{!row\.error && row\.warning && <span className="import-preview-warning">\{row\.warning\}<\/span>\}/);
+});
