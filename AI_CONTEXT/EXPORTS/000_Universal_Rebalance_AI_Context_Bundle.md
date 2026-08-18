@@ -3,24 +3,24 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-18T02:27:43.986459+00:00
+Generated UTC: 2026-08-18T03:00:40.289550+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `e1324377621c403ebbe8a59f7bfdd2fa7bd08a39cbd68ffa51393ab9e5161ded`
+- `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
+- `003_CURRENT_STATUS.md` — SHA-256 `32c3496ed2d46bd5a0b7f08ca4828e09a3388b9ab5bb641d1b6a0232051980b6`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `1d111aa3fffbc3f9e4d34718e3f0c058e4eace99bcb0f5030c2f2bd4ffc0e0cd`
-- `009_CHANGELOG.md` — SHA-256 `58a1418b8746cd2d88f59a2fcd8fa197c24e692962a66f91afdb2408cfe22a63`
+- `008_TODO_BACKLOG.md` — SHA-256 `251632c83d6a1024a0c74f04bf1bc6fa1ddae5bd497228f65c91e00a6d84af78`
+- `009_CHANGELOG.md` — SHA-256 `b449081e648af8ed0586859ba630698fbd0fe71c1230957a149ae59d91d03813`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `ffb0078d051a243a1796fe072de7eff7d875a251a39a57fdac98b449f8b55eb5`
+- `012_AI_HANDOVER.md` — SHA-256 `6a52cb2beef32715dbc6cec46fb2950f57e20a95915f41cddfed84c4b18e668e`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -625,19 +625,18 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 高風險流動性主題完成後，再依序進行：
 
 1. Rebalance Scenario Simulator
-2. Investment Decision Workflow Integration
-3. CLEC 歷史驗證與回測
-4. 股票質押與 LTV 壓力測試
-5. 再平衡歷史與決策紀錄
-6. 股息預估模型
-7. 全球主要指數正式資料來源
-8. 重要經濟事件正式資料來源
-9. Gmail／銀行通知解析
-10. 銀行 CSV／Excel／電子帳單整合
-11. 自動分類與重複交易偵測
-12. 月底自動對帳
-13. 多帳戶與家庭成員
-14. 保險、退休與家庭淨資產規劃
+2. CLEC 歷史驗證與回測
+3. 股票質押與 LTV 壓力測試
+4. 再平衡歷史與決策紀錄
+5. 股息預估模型
+6. 全球主要指數正式資料來源
+7. 重要經濟事件正式資料來源
+8. Gmail／銀行通知解析
+9. 銀行 CSV／Excel／電子帳單整合
+10. 自動分類與重複交易偵測
+11. 月底自動對帳
+12. 多帳戶與家庭成員
+13. 保險、退休與家庭淨資產規劃
 
 ## 8. 文件治理
 
@@ -658,6 +657,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v4.27
 
 最後更新：2026-08-18
+
+**UR-TODO-013（Investment Decision Workflow Integration）已於 2026-08-18 正式 CLOSED，closure reason = absorbed by subsequent Production capabilities。** 本次為純治理 Closeout Sync，不新增功能；`src/**`、`tests/**`、`package*.json`、`.github/**` 均為 0 diff。依 Review Mode Closeout Audit，原始可驗證治理記錄僅有標題、P2、`UR-TODO-009` dependency 與「部分完成」，未找到獨立 specification 或逐項 acceptance criteria，最初建立日期亦無法完整還原；因此不得描述為「所有原始驗收條件均已完成」。正式結論是：後續已進 Production 的 Rebalance Recommendation／Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center／Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary 與 Rebalance Decision Journal，已實質吸收可合理推定的產品意圖。現行 workflow 維持 advisory-only、data／liquidity fail closed、recommendation 與 execution eligibility 分離、無自動下單／holdings 修改，且 Decision Journal 不代表成交；未發現 UR-TODO-013 workflow dead-end。首頁固定下一步 CTA 與 Dip 納入 Action Center 排序僅保留為 future enhancement candidates，未自動建立新 Todo。此次 `git fetch --prune origin` 後實際 `origin/main` 為 `683c728107768d5a0848b5f445dccdd566065d65`；這是 PR #383 治理同步 merge 後的現行基線，不將 `4205e37…` 錯記為目前 HEAD。
 
 **UR-TODO-014 CLEC 規則歷史回測 Foundation 已完成／Production Verified；整體 UR-TODO-014 仍 OPEN。** PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 的 final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271` 已於 2026-08-18T02:24:01Z 由 `hyc640110` 以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。現行 `origin/main` 正式基線為 `4205e37b1583472e681dbb35d5db4ee8e580eb20`。PR CI Verification [run 32090616289](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32090616289) success；相同 head 的 Preview workflow_dispatch [run 32090745657](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32090745657) success。Merge 後 Deploy GitHub Pages [run 32091693042](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32091693042) 為 push/main、head 與 merge commit 一致，regression gate、Production build 與 Pages deploy 均 success；Production root HTTP 200、environment metadata=`production`，載入 `/family-universal-rebalance/assets/index-DFldBSkN.js`，未混用 Preview asset。Foundation 僅新增 caller-supplied historical-return、frictionless 的純 backtest library 與測試；target weights 重用 `deriveAllocationPresetPreview()`，full rebalance 僅依 `deriveClecStrategyRule()` 的 `recommendedAction === 'full_rebalance'`，無 App／route／UI／AppState／localStorage／JSON Backup／Ledger／attribution／Rebalance engine／market provider／Worker consumer wiring。`npm run test:ur-todo-014` 11/11 pass，且已被 `test:ci` 納入。**不代表整體 Todo 結案**：historical data source、真實歷史資料驗證、UI 與 transaction-cost model 仍須另行產品決策與授權。
 
@@ -4872,11 +4873,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-013 Investment Decision Workflow Integration
 
 - 優先級：P2
-- 狀態：**部分完成**（維持，2026-08-16 Review Mode 唯讀盤點重新核對，經使用者拍板不逕行標記完成）
+- 狀態：**CLOSED**（2026-08-18；absorbed by subsequent Production capabilities）
 - 前置依賴：UR-TODO-009
-- 2026-08-16 唯讀盤點結論：本項自建立以來僅有標題／優先級／依賴，從未記錄過逐項驗收條件（已核對歷史版本與 git log，確認無獨立規格文件可供逐項核對）。功能面比對：`dailyDecisionWorkflow.ts`、再平衡建議中心（`/tools/rebalance-recommendation`）、UR-TODO-062（工具導覽「真實建議／假設模擬」分組標籤）已將投資決策工具整合進具一致性的導覽與工作流程，並明確區分「會影響實際操作判斷」與「純假設情境」兩類工具，整合程度已相當可觀。
-- 因無正式逐項驗收條件可比對，無法直接判定「已全數滿足」，故維持「部分完成」，不逕行標記完成。
-- 建議：維持部分完成；若未來要正式關閉，需先補上明確驗收條件清單再逐項核對，或由使用者確認現有整合程度已達產品預期。
+- 原始可驗證歷史：僅有標題、P2、依賴 `UR-TODO-009` 與「部分完成」；未找到獨立 specification、逐項 acceptance criteria，亦無法由現有證據完整還原最初建立日期。
+- 2026-08-18 Review Mode Closeout Audit 結論：本項並非因「所有原始驗收條件均已完成」而關閉，因為原始 acceptance criteria 並不存在。後續更具體、已實作、已測試並已進入 Production 的 capabilities，已實質吸收其可合理推定的產品意圖：在 Household Liquidity 與資料品質安全邊界下，整合投資狀態、再平衡建議、CLEC 規則、執行資格、每日決策、行動導引、可解釋性與使用者決策紀錄，形成 advisory-only workflow。
+- 已吸收能力：Rebalance Recommendation、Rebalance Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center、Investment Action Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary，以及 Rebalance Decision Journal。
+- 現行產品邊界：advisory-only；data／liquidity fail closed；recommendation 與 execution eligibility 分離；不自動下單、不自動修改 holdings；Decision Journal 只記錄使用者決策意向，不代表成交。Closeout Audit 未發現屬於 UR-TODO-013 本身的 workflow dead-end。
+- Future enhancement candidates（非本 Todo 未完成範圍，未自動建立新 Todo）：首頁 Investment Intelligence 主卡固定下一步 CTA；Dip 提示獨立納入 Investment Action Center 排序模型。若未來需要，須另立新 Todo。
 
 ## P3－中長期投資功能
 
@@ -4969,6 +4972,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ---
 
 ## [Unreleased]
+
+**UR-TODO-013 Investment Decision Workflow Integration Governance Closeout（2026-08-18，pure governance）**：正式標記 **CLOSED**，closure reason = absorbed by subsequent Production capabilities；本次沒有新增功能或 production code。原始可驗證記錄只有標題、P2、`UR-TODO-009` dependency 與「部分完成」，未找到獨立 specification 或逐項 acceptance criteria，因此 Closeout 不宣稱「所有原始驗收條件均已完成」。Review Mode Closeout Audit 確認後續的 Rebalance Recommendation／Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center／Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary 及 Rebalance Decision Journal，已吸收其合理推定的 advisory-only 投資決策工作流意圖。現行 workflow 保持 data／liquidity fail closed、recommendation 與 execution eligibility 分離、無自動下單或 holdings 修改，Decision Journal 不代表成交；未發現本 Todo 的 workflow dead-end。`src/**`、`tests/**`、`package*.json`、`.github/**` 均為 0 diff。首頁固定下一步 CTA 與 Dip 納入 Action Center 排序僅為 future enhancement candidates，未自動建立新 Todo。
 
 **UR-TODO-040 Tool Center IA 與 contextual navigation（2026-08-18，CLOSED／Production Verified，PR #380）**：Tool Center 已由扁平目錄改為完整工具目錄下的四區 IA（今日決策／管理與追蹤／規劃與模擬／規劃中）；`ToolQuickNavigation` 現為「返回工具中心」加最多 3 個 contextual related tools，不再顯示完整 14～15 個工具目錄。`ToolNature` 僅保留真實建議／假設模擬的產品性質，不再充當 IA 分組；planned／non-routed tools 不進 Quick Navigation，undefined current fail closed。PR head `df9f03e987596c61a0a5ea164eb9af0883ad517f` 已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併，未使用 admin override；CI `32040880998`、Preview deployment `32041251407` 與 merge 後 Deploy GitHub Pages `32041768489` 均 success。Production source SHA 與 merge commit 一致，HTTP 200，bundle 已由舊 `index-DIAMR26i.js` 更新為 `index-DFldBSkN.js` 且與本次 build 一致。Desktop／390 × 844 人工 UX 驗收為同一 PR head 的 Preview 證據；Production 僅完成 automated smoke／contract verification，未假稱重新人工驗收。直接 server-side `/assets` 的既有 SPA deep-link 404 不視為本項 regression，驗證目標為 App 內 React Router + hash navigation。
 
@@ -5490,6 +5495,13 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-013 Investment Decision Workflow Integration（CLOSED，2026-08-18）
+
+- 正式結案：UR-TODO-013 已 CLOSED，closure reason = **absorbed by subsequent Production capabilities**。原始可驗證治理記錄僅有標題、P2、`UR-TODO-009` dependency 與「部分完成」；未找到獨立 specification 或逐項 acceptance criteria，最初建立日期亦無法完整還原。因此不得記為「所有原始驗收條件均已完成」。
+- Closeout Audit 結論：後續更具體、已實作、已測試並進入 Production 的 Rebalance Recommendation、Rebalance Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center、Investment Action Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary 與 Rebalance Decision Journal，已實質吸收本 Todo 可合理推定的投資決策工作流意圖。
+- 現行邊界：workflow 為 advisory-only，data／liquidity fail closed；recommendation 與 execution eligibility 分離；不自動下單、不自動修改 holdings；Decision Journal 只記錄使用者決策意向，不代表成交。Closeout Audit 未發現 UR-TODO-013 本身的 workflow dead-end。
+- 下一位 AI：UR-TODO-013 不再是 active、blocker 或 next Sprint candidate。首頁 Investment Intelligence 主卡固定下一步 CTA、Dip 提示獨立納入 Investment Action Center 排序模型只保留為 future enhancement candidates；不得回填為本 Todo 未完成範圍，也不得自動建立新 Todo 或開始 Sprint。
 
 ## 最新交接快照：UR-TODO-014 CLEC Historical Backtest Foundation（已完成／Production Verified，2026-08-18）
 

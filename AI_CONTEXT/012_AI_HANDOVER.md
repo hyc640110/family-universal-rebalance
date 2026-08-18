@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-013 Investment Decision Workflow Integration（CLOSED，2026-08-18）
+
+- 正式結案：UR-TODO-013 已 CLOSED，closure reason = **absorbed by subsequent Production capabilities**。原始可驗證治理記錄僅有標題、P2、`UR-TODO-009` dependency 與「部分完成」；未找到獨立 specification 或逐項 acceptance criteria，最初建立日期亦無法完整還原。因此不得記為「所有原始驗收條件均已完成」。
+- Closeout Audit 結論：後續更具體、已實作、已測試並進入 Production 的 Rebalance Recommendation、Rebalance Execution Eligibility、Investment Intelligence、Daily Decision Workflow、Investment Action Center、Investment Action Explainability、CLEC Strategy Rules、Household Liquidity integration、Investment Opportunities／Dip safety boundary 與 Rebalance Decision Journal，已實質吸收本 Todo 可合理推定的投資決策工作流意圖。
+- 現行邊界：workflow 為 advisory-only，data／liquidity fail closed；recommendation 與 execution eligibility 分離；不自動下單、不自動修改 holdings；Decision Journal 只記錄使用者決策意向，不代表成交。Closeout Audit 未發現 UR-TODO-013 本身的 workflow dead-end。
+- 下一位 AI：UR-TODO-013 不再是 active、blocker 或 next Sprint candidate。首頁 Investment Intelligence 主卡固定下一步 CTA、Dip 提示獨立納入 Investment Action Center 排序模型只保留為 future enhancement candidates；不得回填為本 Todo 未完成範圍，也不得自動建立新 Todo 或開始 Sprint。
+
 ## 最新交接快照：UR-TODO-014 CLEC Historical Backtest Foundation（已完成／Production Verified，2026-08-18）
 
 - 正式基線：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 已由使用者授權正常 Merge，merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20`（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`、`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；final head：`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；`mergedAt: 2026-08-18T02:24:01Z`；`mergedBy: hyc640110`；未使用 admin override）。`origin/main` 為該 merge commit。CI Verification `32090616289`、Preview workflow_dispatch `32090745657`、main Deploy GitHub Pages `32091693042` 都成功；最後一個 workflow 是 push/main、head 與 merge commit 相符，Production HTTP 200／metadata=`production`。
