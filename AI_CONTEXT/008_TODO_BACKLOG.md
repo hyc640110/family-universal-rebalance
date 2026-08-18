@@ -1842,8 +1842,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：OCR、圖片／掃描型 PDF、銀行專屬 parser、無明確方向的金額猜測、AI 自動分類、Loan／Investment／FX attribution、Financial Event Ledger、Transaction／Backup schema、Firebase、Worker。Production 已由 PR merge 的既有 main workflow 部署並完成唯讀驗證。
 
 ### UR-TODO-022 自動分類與重複交易偵測
-- 狀態：**部分完成**（維持，2026-08-16 範圍註明）
-- 2026-08-16 範圍註明：重複交易偵測（`duplicate: 'certain'`）與類別欄位對應已具備，但類別對應目前仍需使用者於匯入畫面手動指定／確認，非模型自動判斷；殘留範圍縮小聚焦為「全自動分類（無需人工欄位對應即可正確判定交易類別）」。
+- 狀態：**部分完成／OPEN**（2026-08-18 更新）
+- 2026-08-16 範圍註明：重複交易偵測（`duplicate: 'certain'`）與類別欄位對應已具備，但類別對應目前仍需使用者於匯入畫面手動指定／確認，非模型自動判斷；殘留範圍聚焦為「全自動分類（無需人工欄位對應即可正確判定交易類別）」。
+- 2026-08-18 **UR-TODO-022-A Rule-Assisted Category Suggestion Foundation 已完成／Production Verified**：PR [#385](https://github.com/hyc640110/family-universal-rebalance/pull/385) final head `492b85e99fa72df5389c8a6fe36c37e1990fa18d` 已以一般 2-parent merge commit `9628d8aed9a5875047eb86cdd98b28b7f580849b` 合併（parents：`aba0a9283035ba1e6fd3c55d01a24490aa62943f`／`492b85e99fa72df5389c8a6fe36c37e1990fa18d`；未使用 admin override）。verify `32096747958`、Preview workflow_dispatch `32096761194` 與 push/main Deploy GitHub Pages `32097751304` 均 success；後者 regression gate、Production build、Pages deploy success，Production source 為 merge commit，root HTTP 200／`environment=production`，bundle `index-UfIXOsXo.js` 已更新且未混用 Preview asset。相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收均通過；Production 證據僅為唯讀 deployment verification，未建立測試交易。
+- 022-A 契約：僅以 deterministic、high-confidence safe-whitelist 規則產生建議；high-risk semantic 一律 fail closed、conflict=`none`。suggestion metadata 僅存在 Import Preview/session，使用者必須明確按「套用建議」才改變 Preview category；無自動 transaction commit。既有 duplicate detection contract 未變，且不屬本次 remaining scope。
+- 明確仍未實作：fully automatic classification、historical learning、AI／LLM；亦未變更 schema、persistence、JSON Backup、Financial Event Ledger、attribution、Household Liquidity 公式或 Rebalance／AI Decision coupling。**022-A 完成不代表 UR-TODO-022 整體 CLOSED。**
 
 ### UR-TODO-023 月底自動對帳
 - 狀態：待開發
