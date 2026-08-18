@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-014 CLEC Historical Backtest Foundation（已完成／Production Verified，2026-08-18）
+
+- 正式基線：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 已由使用者授權正常 Merge，merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20`（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`、`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；final head：`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；`mergedAt: 2026-08-18T02:24:01Z`；`mergedBy: hyc640110`；未使用 admin override）。`origin/main` 為該 merge commit。CI Verification `32090616289`、Preview workflow_dispatch `32090745657`、main Deploy GitHub Pages `32091693042` 都成功；最後一個 workflow 是 push/main、head 與 merge commit 相符，Production HTTP 200／metadata=`production`。
+- 已完成範圍：`src/lib/clecHistoricalBacktest.ts` 為純、caller-supplied historical-return Foundation；百分點報酬、嚴格 period chronology、frictionless、正值 max drawdown、fail-closed validation。target weights 必須由 `deriveAllocationPresetPreview()` 取得，不維護第二套 442／433／703／5050 table；交易決策只委派予 `deriveClecStrategyRule()`，且只有 `recommendedAction === 'full_rebalance'` 才重配，`rebalance_consider` 不交易。`test:ur-todo-014` 11/11 pass 並納入 `test:ci`。
+- 明確不包含：無 App／route／UI／AppState consumer、無 localStorage／JSON Backup／schema／Financial Event Ledger／attribution、無 production Rebalance engine、market provider 或 Worker wiring；Production 不建立測試資料。本 Sprint 無 UI，未宣稱人工 UI 驗收。
+- 正確狀態與下一位 AI 邊界：**UR-TODO-014 是「Foundation completed／Production Verified」，整體仍 OPEN，絕不可標記 CLOSED。** 後續若要開始，必須先由使用者分別決定與授權正式 historical data source、真實歷史資料對 442／433／703／5050 的驗證、UI、或 transaction-cost model；不得把這些不同範圍自動合併為下一 Sprint。
+
 ## 最新交接快照：UR-TODO-040 Tool Center IA 與 contextual navigation（CLOSED／Production Verified，2026-08-18）
 
 - 正式結案：PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380) 已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（head `df9f03e987596c61a0a5ea164eb9af0883ad517f`；parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`；`mergedAt: 2026-08-17T15:15:39Z`；未使用 admin override）。本次 fetch 後 `origin/main` 為相同 SHA。

@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-18T01:36:03.187669+00:00
+Generated UTC: 2026-08-18T02:27:43.986459+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-18T01:36:03.187669+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2d7ebcf57ef49699fa3e0563582bdade36bc6567a3aaa0f035510b99e4e78a27`
-- `003_CURRENT_STATUS.md` — SHA-256 `1bd52e5916b405426b9f17359a83ced5f5d7e379d4beabf16e4e42adba7d2648`
+- `003_CURRENT_STATUS.md` — SHA-256 `e1324377621c403ebbe8a59f7bfdd2fa7bd08a39cbd68ffa51393ab9e5161ded`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `7c105778df2f7cb8050d91774e28a20e2169b66284457067431f992afcf00f09`
-- `009_CHANGELOG.md` — SHA-256 `ae769a28d0134c4e872a6c573d9fed84f8f75711a0866478d5577e9698f9a860`
+- `008_TODO_BACKLOG.md` — SHA-256 `1d111aa3fffbc3f9e4d34718e3f0c058e4eace99bcb0f5030c2f2bd4ffc0e0cd`
+- `009_CHANGELOG.md` — SHA-256 `58a1418b8746cd2d88f59a2fcd8fa197c24e692962a66f91afdb2408cfe22a63`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `d79d8e4c48aff79d3d5ec6c7b1d34a4d86c0e4898d15cd9788c4f67897ab3b1b`
+- `012_AI_HANDOVER.md` — SHA-256 `ffb0078d051a243a1796fe072de7eff7d875a251a39a57fdac98b449f8b55eb5`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -655,9 +655,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.26
+# Universal Rebalance Current Status v4.27
 
 最後更新：2026-08-18
+
+**UR-TODO-014 CLEC 規則歷史回測 Foundation 已完成／Production Verified；整體 UR-TODO-014 仍 OPEN。** PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 的 final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271` 已於 2026-08-18T02:24:01Z 由 `hyc640110` 以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。現行 `origin/main` 正式基線為 `4205e37b1583472e681dbb35d5db4ee8e580eb20`。PR CI Verification [run 32090616289](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32090616289) success；相同 head 的 Preview workflow_dispatch [run 32090745657](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32090745657) success。Merge 後 Deploy GitHub Pages [run 32091693042](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32091693042) 為 push/main、head 與 merge commit 一致，regression gate、Production build 與 Pages deploy 均 success；Production root HTTP 200、environment metadata=`production`，載入 `/family-universal-rebalance/assets/index-DFldBSkN.js`，未混用 Preview asset。Foundation 僅新增 caller-supplied historical-return、frictionless 的純 backtest library 與測試；target weights 重用 `deriveAllocationPresetPreview()`，full rebalance 僅依 `deriveClecStrategyRule()` 的 `recommendedAction === 'full_rebalance'`，無 App／route／UI／AppState／localStorage／JSON Backup／Ledger／attribution／Rebalance engine／market provider／Worker consumer wiring。`npm run test:ur-todo-014` 11/11 pass，且已被 `test:ci` 納入。**不代表整體 Todo 結案**：historical data source、真實歷史資料驗證、UI 與 transaction-cost model 仍須另行產品決策與授權。
+
+依 `007_GIT_WORKFLOW.md` §8.2「治理文件最終一致性」規則，補記本條目前已合併的 PR [#381](https://github.com/hyc640110/family-universal-rebalance/pull/381)：其以一般 merge commit `ec49099215847eb7242b3727ecb63f4ce423a717` 完成 UR-TODO-040 Production Verified 的治理／Bundle 同步；本條目以 `4205e37…` 為實際最新正式基線，不將 `ec490…` 或 `84b6859…` 錯記為目前 HEAD。
 
 **UR-TODO-040（工具中心資訊架構與 contextual navigation）已於 2026-08-18 正式 CLOSED／Production Verified。** PR [#380](https://github.com/hyc640110/family-universal-rebalance/pull/380) 的 head 為 `df9f03e987596c61a0a5ea164eb9af0883ad517f`，已由使用者以一般 2-parent merge commit `84b6859cd486fd4b8deccd87cca99df38cd28692` 合併（parents：`43fcca43782e103aad5b6dd362eb631c483d79eb`／`df9f03e987596c61a0a5ea164eb9af0883ad517f`；`mergedAt: 2026-08-17T15:15:39Z`；未使用 admin override）。本次 `git fetch --prune origin` 後，現行正式基線 `origin/main` 為 `84b6859cd486fd4b8deccd87cca99df38cd28692`。PR CI Verification [run 32040880998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32040880998) success；Preview deployment [run 32041251407](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041251407) success，使用者已完成相同 PR head 的 Desktop 與 390 × 844 Preview 人工驗收。merge 後 Deploy GitHub Pages [run 32041768489](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32041768489) 最終 success：regression gate、Production build 與 Pages deploy 均 success，Production source SHA 與 merge commit 一致；Production root HTTP 200，實際載入 `index-DFldBSkN.js`，部署前 `index-DIAMR26i.js` 已不再載入，且 bundle 與本次 Production build 產物一致。Production 自動 smoke／contract evidence 已確認 Tool Center 四區、ETF X-Ray／蒙地卡羅為 non-routed planned tools、Quick Navigation 僅 contextual related links（最多 3 個，`current` 未定義時 fail closed）以及 App 內 `/assets#transactions-section` React Router + hash navigation contract。直接 server-side 請求 `/assets` 的既有 SPA deep-link 404 不構成本 Todo regression。Production 本次未重新做人工瀏覽器視覺驗收；人工 UX 證據明確沿用同一 PR head 的 Preview Desktop／390 × 844 驗收，不得誤記為 Production 人工驗收。
 
@@ -4877,7 +4881,9 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ## P3－中長期投資功能
 
 ### UR-TODO-014 CLEC 規則本身之歷史回測
-- 狀態：待開發
+- 狀態：**OPEN（Foundation completed／Production Verified，2026-08-18；整體 Todo 未結案）**
+- 2026-08-18 Foundation 完成：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271` 已以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。PR CI Verification run `32090616289`、Preview workflow_dispatch run `32090745657`、merge 後 main Deploy GitHub Pages run `32091693042` 均 success；Production source 為該 merge commit，Production HTTP 200／metadata=`production`／asset namespace 正確。Foundation 新增純 `clecHistoricalBacktest` library：caller-supplied historical returns 採百分點、period 嚴格日期順序 propagation、frictionless、max drawdown 回傳正值跌幅、invalid input fail closed。Target weights 唯一來自 `deriveAllocationPresetPreview()`；full rebalance 唯一由 `deriveClecStrategyRule()` 且 `recommendedAction === 'full_rebalance'` 觸發；`rebalance_consider` 不交易。`test:ur-todo-014` 11/11 pass 並納入 `test:ci`。無 UI、App／route／AppState、localStorage、JSON Backup、schema、Financial Event Ledger、attribution、production rebalance engine、market provider 或 Worker coupling。
+- 明確保留後續決策：正式 historical data source、以真實歷史資料比較 442／433／703／5050、UI，以及 transaction-cost model；皆不得因本 Foundation 合併自動開始或視為已完成。
 - 2026-08-16 範圍縮小重新描述（原名「CLEC 歷史驗證與回測」）：聚焦**CLEC 442／433／703／5050 規則本身**的歷史回測驗證，即假設歷史期間依 CLEC 規則實際觸發邏輯進行再平衡，驗證規則本身的歷史績效與觸發時機。
 - 明確不包含：與 UR-TODO-058（`/tools/investment-backtest`，特定 3 資產 0050／00631L／00865B、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線，避免混淆或重複開發。
 
@@ -4951,6 +4957,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 009_CHANGELOG.md -->
 
 # Universal Rebalance Changelog
+
+**UR-TODO-014 CLEC Historical Backtest Foundation（2026-08-18，已 Merge／Production Verified；整體 Todo 仍 OPEN）**：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271`；parents `ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。CI Verification `32090616289`、Preview workflow_dispatch `32090745657`、main Deploy GitHub Pages `32091693042` 均 success，Production HTTP 200／`environment=production`。新增 caller-supplied、百分點報酬的純 CLEC historical backtest foundation；target weights 重用 `deriveAllocationPresetPreview()`，full rebalance 僅依 `deriveClecStrategyRule()` 回傳的 `recommendedAction === 'full_rebalance'`。無 consumer wiring、UI、state／persistence、Ledger、attribution、market provider 或 Worker；`test:ur-todo-014` 11/11 pass 且納入 `test:ci`。此完成的是 Foundation，不含正式資料來源、真實歷史驗證、UI 或交易成本模型，UR-TODO-014 維持 OPEN。
 
 **UR-TODO-066 退休提領規劃正式結案（2026-08-16）**：PR [#366](https://github.com/hyc640110/family-universal-rebalance/pull/366) 已 Merge，merge commit `83223498afb196179f24f66c7f3009644e006765`，一般 merge、未使用 admin override。新增 `/tools/retirement-planner`，以既有 `calculateRequiredMonthlyContribution()` 計算 FIRE 缺口投入，退休草稿以加法式 `retirementPlan` 保存並相容 localStorage／JSON Backup；工具導覽已由規劃中啟用。完成 Preview 驗收與 Production 唯讀驗證後，CI `31931191149`、Deploy `31931698419` 成功。開發期間修正滑桿 event 延遲讀取崩潰、零值金額輸入附加、以及把首次自動匯入詢問改成主動「從現金流匯入」按鈕（含覆蓋確認與空來源提示）。
 
@@ -5482,6 +5490,13 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-014 CLEC Historical Backtest Foundation（已完成／Production Verified，2026-08-18）
+
+- 正式基線：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) 已由使用者授權正常 Merge，merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20`（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`、`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；final head：`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；`mergedAt: 2026-08-18T02:24:01Z`；`mergedBy: hyc640110`；未使用 admin override）。`origin/main` 為該 merge commit。CI Verification `32090616289`、Preview workflow_dispatch `32090745657`、main Deploy GitHub Pages `32091693042` 都成功；最後一個 workflow 是 push/main、head 與 merge commit 相符，Production HTTP 200／metadata=`production`。
+- 已完成範圍：`src/lib/clecHistoricalBacktest.ts` 為純、caller-supplied historical-return Foundation；百分點報酬、嚴格 period chronology、frictionless、正值 max drawdown、fail-closed validation。target weights 必須由 `deriveAllocationPresetPreview()` 取得，不維護第二套 442／433／703／5050 table；交易決策只委派予 `deriveClecStrategyRule()`，且只有 `recommendedAction === 'full_rebalance'` 才重配，`rebalance_consider` 不交易。`test:ur-todo-014` 11/11 pass 並納入 `test:ci`。
+- 明確不包含：無 App／route／UI／AppState consumer、無 localStorage／JSON Backup／schema／Financial Event Ledger／attribution、無 production Rebalance engine、market provider 或 Worker wiring；Production 不建立測試資料。本 Sprint 無 UI，未宣稱人工 UI 驗收。
+- 正確狀態與下一位 AI 邊界：**UR-TODO-014 是「Foundation completed／Production Verified」，整體仍 OPEN，絕不可標記 CLOSED。** 後續若要開始，必須先由使用者分別決定與授權正式 historical data source、真實歷史資料對 442／433／703／5050 的驗證、UI、或 transaction-cost model；不得把這些不同範圍自動合併為下一 Sprint。
 
 ## 最新交接快照：UR-TODO-040 Tool Center IA 與 contextual navigation（CLOSED／Production Verified，2026-08-18）
 
