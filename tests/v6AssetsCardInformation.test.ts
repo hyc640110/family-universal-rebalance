@@ -35,6 +35,8 @@ test('V6.16 scopes mobile PnL wrapping and retains desktop card layout', () => {
 test('V6.16 hides average cost only in the mobile summary without leaving a blank grid slot', () => {
   const mobileStyles = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   assert.match(mobileStyles, /\.holding-card-average-cost\{display:none\}/);
-  assert.match(mobileStyles, /\.holding-card-shares\{grid-column:1\/-1\}/);
+  // UR-TODO-070: mobile summary reflow now uses `order` (股數|詳細, 現價|今日漲跌, 市值|未實現損益)
+  // instead of forcing shares onto its own full-width row.
+  assert.match(mobileStyles, /\.holding-card-shares\{order:1\}/);
   assert.doesNotMatch(styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)')), /\.holding-card-average-cost\{display:none\}/);
 });
