@@ -33,13 +33,40 @@ export const validateMappingPreset = (preset: ImportPreset, headers: string[]) =
 export const applyMappingPreset = (preset: ImportPreset, headers: string[]) => { const result = validateMappingPreset(preset, headers); return result.valid && result.preset ? { mapping: result.preset.mapping, dateFormat: result.preset.dateFormat, error: '' } : { mapping: {}, dateFormat: 'ymd' as const, error: `Preset 不相容：缺少 ${result.missing.join('、')}` }; };
 export const csvParse = (input: string): string[][] => { const rows: string[][] = []; let row: string[] = [], cell = '', quoted = false; const source = input.replace(/^\uFEFF/, ''); for (let i = 0; i < source.length; i += 1) { const c = source[i]; if (quoted) { if (c === '"' && source[i + 1] === '"') { cell += '"'; i += 1; } else if (c === '"') quoted = false; else cell += c; } else if (c === '"') quoted = true; else if (c === ',') { row.push(cell.trim()); cell = ''; } else if (c === '\n' || c === '\r') { if (c === '\r' && source[i + 1] === '\n') i += 1; row.push(cell.trim()); cell = ''; if (row.some(Boolean)) rows.push(row); row = []; } else cell += c; } if (quoted) throw new Error('CSV 引號欄位未正確結束'); row.push(cell.trim()); if (row.some(Boolean)) rows.push(row); return rows; };
 export const decodeXlsxRows = (rows: Array<Array<unknown>>) => rows.map(row => row.map(value => typeof value === 'string' ? decodeNumericHtmlEntities(value) : value));
+const normalizedHeader = (value: string) => value.normalize('NFKC').toLocaleLowerCase().replace(/[\s/_-]+/g, '').trim();
+type MappingTarget = Exclude<keyof ImportMapping, 'amountSign' | 'postedAt' | 'type' | 'currency'>;
+type HeaderAliases = { exact: readonly string[]; strong: readonly string[] };
+const importMappingAliases: Record<MappingTarget, HeaderAliases> = {
+  occurredAt: { exact: ['date', '交易日期', '交易日'], strong: ['transaction date', 'transactiondate', '消費日期', '消費日'] },
+  description: { exact: ['description', '描述'], strong: ['memo', '摘要', '說明', 'transaction description', '交易說明'] },
+  merchant: { exact: ['merchant', '商家'], strong: ['payee', '對象', '商家/對象', '特店', '店家', '交易對象'] },
+  amount: { exact: ['amount', '金額', '單一金額'], strong: ['transaction amount', '交易金額'] },
+  credit: { exact: ['credit', '收入'], strong: ['income', 'credit amount', '收入金額', '存入', '入帳金額', '貸方', 'deposit'] },
+  debit: { exact: ['debit', '支出'], strong: ['expense', 'debit amount', '支出金額', '提出', '扣款金額', '借方', 'withdrawal'] },
+  categoryId: { exact: ['category', '類別'], strong: ['category id', '分類'] },
+  externalId: { exact: ['external id', '外部id'], strong: ['transaction id', '交易編號', 'reference number', 'reference id', '交易序號', '流水號', 'transaction no'] },
+  note: { exact: ['note', '備註'], strong: ['remark', 'remarks', '附註'] }
+};
+const uniqueHeaderForAliases = (headers: ReadonlyArray<{ name: string; normalized: string }>, aliases: HeaderAliases) => {
+  for (const group of [aliases.exact, aliases.strong]) {
+    const accepted = new Set(group.map(normalizedHeader));
+    const candidates = headers.filter(header => accepted.has(header.normalized));
+    if (candidates.length === 1) return candidates[0].name;
+    if (candidates.length > 1) return undefined;
+  }
+  return undefined;
+};
 export const guessImportMapping = (names: string[]): ImportMapping => {
-  const find = (...terms: string[]) => names.find(name => terms.some(term => name.toLowerCase().includes(term)));
-  return {
-    occurredAt: find('date', '日期', '交易日'), description: find('description', '描述', '摘要', '說明'), merchant: find('merchant', '商家', '對象'),
-    amount: find('amount', '金額'), credit: find('credit', '收入'), debit: find('debit', '支出'), categoryId: find('category', '類別'),
-    note: find('note', '備註'), externalId: find('id', '序號')
-  };
+  const headers = names.map(name => ({ name, normalized: normalizedHeader(name) }));
+  const mapping = Object.fromEntries((Object.keys(importMappingAliases) as MappingTarget[]).map(target => [target, uniqueHeaderForAliases(headers, importMappingAliases[target])])) as ImportMapping;
+  if (mapping.credit && mapping.debit) mapping.amount = undefined;
+  const assigned = new Map<string, MappingTarget[]>();
+  for (const target of Object.keys(importMappingAliases) as MappingTarget[]) {
+    const source = mapping[target];
+    if (source) assigned.set(source, [...(assigned.get(source) || []), target]);
+  }
+  for (const [source, targets] of assigned) if (targets.length > 1) for (const target of targets) mapping[target] = undefined;
+  return mapping;
 };
 export type ImportRecord = { rowNumber: number; raw: Record<string, string> };
 export const rowsToRecords = (rows: Array<Array<unknown>>): ImportRecord[] => { if (!rows.length || !rows[0].some(value => text(value))) throw new Error('檔案缺少標題列'); const headers = rows[0].map(value => text(value)); if (new Set(headers).size !== headers.length || headers.some(header => !header)) throw new Error('標題列不可空白或重複'); return rows.slice(1).filter(row => row.some(value => text(value))).map((row, index) => ({ rowNumber: index + 2, raw: Object.fromEntries(headers.map((header, column) => [header, text(row[column])])) })); };
