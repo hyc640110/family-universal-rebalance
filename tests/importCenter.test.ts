@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { IMPORT_FILE_ACCEPT, applyMappingPreset, buildImportPreview, createImportTransactions, csvParse, decodeXlsxRows, detectImportFileType, guessImportMapping, normalizeMappingPresets, parseImportDate, parseMoney, rowsToRecords, updateImportPreviewRowCategory, validateMappingPreset } from '../src/lib/importCenter';
 
 const account = { id: 'bank', currency: 'TWD', isActive: true, type: 'bank' };
+const importCenterComponent = readFileSync(new URL('../src/components/import/ImportCenter.tsx', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 test('file-picker contract and parser gate allow CSV, XLSX, and PDF only', () => {
   assert.equal(IMPORT_FILE_ACCEPT, '.csv,.xlsx,.pdf');
   assert.equal(detectImportFileType('fixture.CSV'), 'csv');
@@ -74,4 +77,11 @@ test('accepted preview category reuses exact duplicate detection without changin
   assert.equal(again.duplicate, 'possible', 'existing possible-duplicate behavior is preserved until a suggestion is accepted');
   assert.equal(acceptedAgain.duplicate, 'certain');
   assert.equal(acceptedAgain.selected, false);
+});
+test('suggestion action has a responsive structure that stacks without changing its apply contract', () => {
+  assert.match(importCenterComponent, /className="import-preview-suggestion"/);
+  assert.match(importCenterComponent, /className="import-preview-suggestion-copy"/);
+  assert.match(importCenterComponent, /className="import-preview-category"/);
+  assert.match(styles, /\.import-preview-suggestion\{flex-direction:column;align-items:flex-start\}/);
+  assert.match(styles, /\.import-preview-category select\{min-width:0;max-width:100%\}/);
 });
