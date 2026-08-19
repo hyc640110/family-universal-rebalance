@@ -120,6 +120,10 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-card-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
 .holding-card-identity{display:flex;align-items:center;gap:9px;grid-column:1/-1;min-width:0}
 .holding-card-identity .holding-title{min-width:0}.holding-card-identity .holding-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holding-order-controls{display:flex;flex-direction:column;gap:3px;margin-left:auto;flex:0 0 auto}
+.holding-order-button{width:26px;height:26px;min-width:0;min-height:0;padding:0;display:grid;place-items:center;border:1px solid #315b8d;border-radius:6px;background:#173b66;color:#dbeafe;font-size:12px;line-height:1;box-shadow:none}
+.holding-order-button:hover:not(:disabled){background:#214f85;filter:none}
+.holding-order-button:disabled{opacity:.35;cursor:not-allowed}
 .holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}
 .holding-card-detail>span{display:block;margin-bottom:3px;color:#8da3bd;font-size:11px;font-weight:800;line-height:1.25}
 .holding-card-detail>strong{display:block;min-width:0;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
@@ -400,13 +404,23 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .stat small{font-size:.78rem;white-space:normal}
   .stat b{font-size:1.05rem!important;overflow-wrap:anywhere}
   .holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.decision-grid,.status-grid,.order-grid,.dip-alert-list,.dip-alert-fields,.dip-alert-result{grid-template-columns:1fr!important;gap:8px!important}
-  .holding{padding:12px;min-width:0}
-  .holding-compact{padding:10px 12px}
-  .holding-card-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .holding{padding:10px;min-width:0}
+  .holding-compact{padding:8px 10px}
+  .holding-card-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .holding-card-identity{flex-wrap:wrap}
   .holding-card-average-cost{display:none}
-  .holding-card-shares{grid-column:1/-1}
-  .holding-card-detail{padding:8px 9px}.holding-card-detail>strong{font-size:14px}
-  .holding-card-summary>.holding-edit-button{grid-column:1/-1;justify-self:stretch;min-height:36px}
+  .holding-card-shares{order:1}
+  .holding-card-price{order:2}
+  .holding-card-today-change{order:2}
+  .holding-card-market-value{order:3}
+  .holding-card-unrealized-pnl{order:3}
+  .holding-card-detail{padding:7px 8px}.holding-card-detail>strong{font-size:14px}
+  .holding-card-summary>.holding-edit-button{order:1;grid-column:auto;justify-self:stretch;min-height:36px}
+  /* UR-TODO-070 iPhone Preview round 1: horizontal ↑/↓ instead of stacked, so the header row
+     doesn't grow taller than it needs to; margin-left:auto (base rule) keeps it pinned to the
+     header's right edge. Button size stays a real touch target, not shrunk to fit. */
+  .holding-order-controls{flex-direction:row;gap:6px}
+  .holding-order-button{width:34px;height:34px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-weight{display:grid;place-items:center;align-content:center;width:46px;height:46px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
   .holding-mobile-weight strong{color:#eaf3ff;font-size:12px;white-space:nowrap}
