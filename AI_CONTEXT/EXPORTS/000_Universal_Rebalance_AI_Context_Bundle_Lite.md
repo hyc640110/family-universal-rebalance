@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-19T12:41:39.181316+00:00
+Generated UTC: 2026-08-19T14:39:31.109713+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `03b92310e8c7cca539ca1746bfc63d0d1dfaec17c7b17055cde296ab2a50a513`
-- `008_TODO_BACKLOG.md` — SHA-256 `e1b627403adc749b4a6b8bb4bd2207955f34d39599f1fa9fd5ae8f6c411679dd`
-- `012_AI_HANDOVER.md` — SHA-256 `3bbb93318b11ec857d9cd20309d59782f9f7a00a7f4502394460a1c99a0e8c09`
+- `003_CURRENT_STATUS.md` — SHA-256 `5290369be7653daf31d2722588418ac5af89604fb13f11c8dfc18e2475b9bb4b`
+- `008_TODO_BACKLOG.md` — SHA-256 `eaee688c106de132b35d65d8b3a657d3ce4db8a2857b4b0a6367fa48e7cf45ba`
+- `012_AI_HANDOVER.md` — SHA-256 `015d5471532587ecc402f2e20e775e86b223a0851b88fb706e866bf5dd657418`
 
 ---
 
@@ -425,13 +425,21 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.33
+# Universal Rebalance Current Status v4.34
 
 最後更新：2026-08-19
 
+**UR-TODO-071（Holding Card Drag Reorder）已於 2026-08-19 正式 CLOSED／Production Verified。** PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397) final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649` 已由 `hyc640110` 於 2026-08-19T14:27:33Z 以一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573` 合併（parents：`5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`；未使用 admin override）；現行正式基線為 `origin/main` `e39f8489e95bc90cf37e46e060f8250ef04d0573`。PR required CI Verification run `32262092171` success；相同 head 的 Preview workflow_dispatch run `32262111201` success，使用者已完成該 head 的 iPhone Safari Round 2 人工驗收，結論 PASS（first→last／last→first 長距離拖曳、正常卡片區 scrolling 不誤觸、refresh 後 `holdingDisplayOrder` 正確保留、財務資料拖曳前後無異常、☰ 三橫線 handle 正確、Safari 無異常文字選取／長按選單）。Merge 後 main push 觸發之 Deploy GitHub Pages run `32264138787` success，head 與 merge commit 一致，regression gate、Production build、Pages deploy 均 success。Production 已唯讀確認：HTTP 200、bundle 已更新為 `index-DTD1MPZn.css`／`index-YNeFg2N5.js`、console 無錯誤，`#/assets` 頁面 4 張 holding cards 皆為單一 ☰ handle（`role` 為 `null`，非 menu 語意）、`.holding-order-button` 舊控制項數量為 0，Desktop 1280px 實測 ☰ 位於整列最右側、詳細按鈕在其左側，390px 無 horizontal overflow；驗證全程僅用唯讀 DOM 查詢，未拖曳／未用 keyboard 排序 Production 使用者實際持股、未寫入 Production localStorage。
+
+以單一 ☰（`lucide-react` `Menu` icon，3 條水平線）drag handle 取代 UR-TODO-070 的 ↑/↓ 按鈕；`holdingDisplayOrder` 繼續作為唯一 display-order persistence，不重排 `AppState.holdings`、不 mutate `m.rows`、不影響 Rebalance／AI Decision／Financial Event Ledger／attribution／Firebase／財務公式。Native Pointer Events（Immediate Drag，無 long-press threshold，第一版不做 auto-scroll，未新增 drag-and-drop dependency）；Desktop（≥901px）handle 為整列最右側獨立操作區，Mobile（≤768px）與 identity 共用 header 第一列；Keyboard 沿用既有單步 `moveHoldingDisplayOrder()`，新增 `aria-live="polite"` 排序結果播報。
+
+開發期間經歷 2 輪 iPhone Safari Preview 人工驗收：**Round 1** 發現「上→下長距離拖曳失敗」與「handle 圖示為六點 grip、不符合核准的 ☰」兩項 blocking issue，判定 FAIL／Refinement Required。Root cause 定位為：原設計採 element-level `setPointerCapture`，被 capture 的 handle 在每次 live-reorder 皆會被 React 重新定位到新的 array index（DOM 位置改變），Safari 相較 Chromium 更容易在元素被重新定位時自動釋放 pointer capture，導致長距離（多次重新定位）的向下拖曳中途失效，短距離／相鄰交換則較容易「運氣好」躲過此問題，與回報的方向性不對稱現象吻合。**Round 2** 修正為 `document` 層級的 `pointermove`／`pointerup`／`pointercancel` listener（drag 開始時掛上、結束／取消／unmount 時卸除），完全不依賴 element pointer capture；icon 由 `GripVertical` 改為 `Menu`。修正後 `npm run test:ur-todo-071`（41 tests）／既有 `test:ur-todo-070`（25 tests）／完整 `test:ci`／typecheck／build 皆 pass，iPhone Safari 真機重新驗收 PASS。
+
+Final Review 記錄一項**已知低風險 follow-up observation**：`HoldingOrderHandle` 的 `handlePointerDown` 未防護「同一 handle 在前一次 drag 尚未 end/cancel 前又收到第二次 pointerdown」的情境（例如同一 handle 上的多點觸控），理論上可能造成該次 document listener 未被移除（記憶體洩漏，不影響排序資料正確性，因洩漏的 listener 僅回應已失效的舊 `pointerId`）。目前無 Production／iPhone 實際失敗證據，Round 2 真機驗收與 Production 唯讀驗證皆未觸發此情境；**目前無需另立新的 UR-TODO 編號**，後續若出現可重現問題再另行盤點。
+
 **UR-TODO-070（持股資產卡片 Mobile Compact + Manual Ordering）已於 2026-08-19 正式 CLOSED／Production Verified。** PR [#395](https://github.com/hyc640110/family-universal-rebalance/pull/395) final head `9110d78967ab14fa9c3357ad3f33729f4b391c0e` 已由 `hyc640110` 於 2026-08-19T12:30:04Z 以一般 2-parent merge commit `ddb019bb1ef9999d9b2a230e0d8dfed9d941fabd` 合併（parents：`e66d909696635d28534d3665fc49b3108e2bc6df`／`9110d78967ab14fa9c3357ad3f33729f4b391c0e`；未使用 admin override）；現行正式基線為 `origin/main` `ddb019bb1ef9999d9b2a230e0d8dfed9d941fabd`。PR required CI Verification run `32163151324` success；相同 head 的 Preview workflow_dispatch run `32163158998` success，使用者已完成該 head 的 iPhone Preview 人工驗收（320／390／430px 與 Desktop），結論 PASS。Merge 後 main push 觸發之 Deploy GitHub Pages run `32252977963` success，head 與 merge commit 一致，regression gate、Production build、Pages deploy 均 success。Production 已唯讀確認：HTTP 200、bundle 已更新為 `index-CbtuJHeC.css`／`index-SJ4eVLkB.js`（與本次 build 產物一致，未混用舊版本）、CSS 內含 `.holding-order-button`／`.holding-order-controls{flex-direction:row...}`／`.holding-card-shares{order:1}`，`#/assets` 頁面 4 張 holding cards、8 顆 ↑/↓ 排序按鈕正確渲染，390px 實測 identity 單列、無 horizontal overflow，console 無錯誤；驗證全程僅用唯讀 DOM 查詢，未點擊任何按鈕、未寫入 Production 使用者資料。新增 root-level `holdingDisplayOrder: SymbolCode[]`（純函式 `normalizeHoldingDisplayOrder`／`moveHoldingDisplayOrder`／`orderHoldingRows`，見 `src/lib/holdingDisplayOrder.ts`），**僅**控制資產頁 active holding cards 的顯示順序：不重排 `AppState.holdings`、不改變 `m.rows` 核心順序、不影響 Rebalance／AI Decision／成本／市值／損益／Financial Event Ledger／attribution／Firebase 任何財務語意。手機（≤768px）持股卡片改為「標題+↑/↓ ／ 股數|詳細 ／ 現價|今日漲跌 ／ 市值|未實現損益」精簡版面，↑/↓ 排序按鈕經第一輪 iPhone Preview 驗收後由垂直堆疊調整為水平排列（34×34px，維持合理 touch target）；Persistence 完整接入 `AppState`、`defaultState`、`normalizeState()`、localStorage、`backupPayload()`、`stateFromBackup()`，舊 Backup 缺少此欄位時 fallback 為 imported holdings 原始順序，不沿用匯入前本機偏好。`npm run test:ur-todo-070`（25 tests）與完整 `test:ci` 均 pass，`tsc -b`／`npm run build` 均成功。
 
-**已完成 UR-TODO-071（Holding Card Drag Reorder）Contract Audit（Review Mode，2026-08-19），正式新增為 OPEN／PLANNED，尚未開始開發。** 使用者已核准將現行 ↑/↓ 按鈕改為單一 drag handle 的方向，詳細範圍與已核准條件見 `008_TODO_BACKLOG.md` 正式條目；Contract Audit 結論 GO-with-conditions，推薦 Native Pointer Events（不新增 drag-and-dependency dependency）、`holdingDisplayOrder` 繼續作為唯一 display-order persistence、不重排 `AppState.holdings`。本次治理同步**僅建立 Backlog／Handover 記錄**，未建立任何功能 branch，未修改 `src/**`／`tests/**`。
+**（歷史記錄，已由本文件最上方 UR-TODO-071 CLOSED／Production Verified 條目取代）已完成 UR-TODO-071（Holding Card Drag Reorder）Contract Audit（Review Mode，2026-08-19），正式新增為 OPEN／PLANNED，尚未開始開發。** 使用者已核准將現行 ↑/↓ 按鈕改為單一 drag handle 的方向，詳細範圍與已核准條件見 `008_TODO_BACKLOG.md` 正式條目；Contract Audit 結論 GO-with-conditions，推薦 Native Pointer Events（不新增 drag-and-dependency dependency）、`holdingDisplayOrder` 繼續作為唯一 display-order persistence、不重排 `AppState.holdings`。本次治理同步**僅建立 Backlog／Handover 記錄**，未建立任何功能 branch，未修改 `src/**`／`tests/**`。
 
 **UR-TODO-022（自動分類與重複交易偵測）已於 2026-08-18 正式 CLOSED／Production Verified。** 使用者完成 Closeout Scope Review 後正式決定：022-A Rule-Assisted Category Suggestion Foundation、022-B Safe Column Auto-Mapping Hardening 與 022-C Batch-Aware Duplicate Reconciliation 已共同完成原始產品目的「安全的自動分類協助與重複交易偵測」。現行 Import Center 工作流為 file parsing → safe deterministic column auto-mapping → deterministic high-confidence category suggestion → explicit user confirmation → existing＋same-batch duplicate protection → preview → explicit import；Human-in-the-loop 類別確認是刻意保留的安全邊界，不是未完成缺陷。語意模糊或低信心情況維持 fail closed；整體契約維持 deterministic、high-confidence、preview-first、explicit user confirmation，且不會自動 transaction commit。022-A／B／C 各自的 Preview、Production 驗收與 workflow success 證據維持有效（#385／#387／#389）；本次治理基線為 PR [#390](https://github.com/hyc640110/family-universal-rebalance/pull/390) merge commit `2467ed7c19350134f105c8aa6e531ad7ced9cde3`。Historical mapping reuse、historical learning、fully automatic classification、AI／LLM classification 不再是 UR-TODO-022 closure requirement，統一列為 **Deferred／Future Enhancement**；未來如確定需要，必須另立新的獨立 UR-TODO，重新完成 Contract Audit、風險邊界與 acceptance criteria，不得直接重新開啟 UR-TODO-022。無 schema、persistence、localStorage、JSON Backup、Financial Event Ledger、duplicate formula、category suggestion、column mapping 或其他產品程式變更。
 
@@ -1211,13 +1219,15 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.96
+# Universal Rebalance Todo Backlog v1.97
 
 最後更新：2026-08-19
 
+2026-08-19 **UR-TODO-071（Holding Card Drag Reorder），狀態：CLOSED／Production Verified。** PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397) final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649` 已由 `hyc640110` 於 2026-08-19T14:27:33Z 以一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573` 合併（parents：`5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`；未使用 admin override）。PR required CI `32262092171` success，相同 head Preview workflow_dispatch `32262111201` success，使用者完成 iPhone Safari Round 2 人工驗收 PASS；merge 後 main Deploy GitHub Pages `32264138787` success，head 與 merge commit 一致。Production 已唯讀確認 HTTP 200、bundle 更新為本次 build 產物（`index-DTD1MPZn.css`／`index-YNeFg2N5.js`）、單一 ☰ handle 已上線、`.holding-order-button` 舊按鈕數為 0、無 console 錯誤。開發期間經歷 Round 1（FAIL：downward 長距離拖曳失敗＋icon 不符核准）→ Round 2（root cause：element-level `setPointerCapture` 在 handle 被 React 重新定位時遭 Safari 釋放，改用 document-level pointer listener 修正；icon 改為 `Menu` ☰）兩輪 iPhone Safari Preview 修正，詳見下方獨立條目。
+
 2026-08-19 **UR-TODO-070（持股資產卡片 Mobile Compact + Manual Ordering），狀態：CLOSED／Production Verified。** PR [#395](https://github.com/hyc640110/family-universal-rebalance/pull/395) final head `9110d78967ab14fa9c3357ad3f33729f4b391c0e` 已由 `hyc640110` 於 2026-08-19T12:30:04Z 以一般 2-parent merge commit `ddb019bb1ef9999d9b2a230e0d8dfed9d941fabd` 合併（parents：`e66d909696635d28534d3665fc49b3108e2bc6df`／`9110d78967ab14fa9c3357ad3f33729f4b391c0e`；未使用 admin override）。PR required CI `32163151324` success，相同 head Preview workflow_dispatch `32163158998` success，使用者完成 iPhone Preview 人工驗收 PASS；merge 後 main Deploy GitHub Pages `32252977963` success，head 與 merge commit 一致。Production 已唯讀確認 HTTP 200、bundle 更新為本次 build 產物、mobile compact CSS 與 ↑/↓ 排序按鈕已上線、無 console 錯誤。先前未正式登錄於本檔案，本次治理同步一併補登為正式條目，詳見下方獨立條目。
 
-2026-08-19 **新增 UR-TODO-071（Holding Card Drag Reorder），狀態：OPEN／PLANNED，尚未開始開發。** 延續 UR-TODO-070 的 Contract Audit（Review Mode，2026-08-19）結論，使用者已核准將現行 ↑/↓ 按鈕改為單一 drag handle 的方向；本次治理同步僅建立正式 Backlog 條目，**未建立任何功能 branch，未修改 `src/**`／`tests/**`**，詳見下方獨立條目。
+2026-08-19（歷史記錄，已由本文件最上方 UR-TODO-071 CLOSED／Production Verified 條目取代）**新增 UR-TODO-071（Holding Card Drag Reorder），狀態：OPEN／PLANNED，尚未開始開發。** 延續 UR-TODO-070 的 Contract Audit（Review Mode，2026-08-19）結論，使用者已核准將現行 ↑/↓ 按鈕改為單一 drag handle 的方向；本次治理同步僅建立正式 Backlog 條目，**未建立任何功能 branch，未修改 `src/**`／`tests/**`**，詳見下方獨立條目。
 
 2026-08-17 **UR-TODO-021 Electronic Statement Import Foundation，狀態：CLOSED／Production Verified。** PR [#377](https://github.com/hyc640110/family-universal-rebalance/pull/377) 已由使用者授權以一般 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2` 合併；PR verify `32036912584` 與 main Deploy GitHub Pages `32037454446` 均 success。使用者已完成本機隔離 Preview 的桌機／390px 人工驗收：正常文字型 PDF、多頁解析、收入／支出方向、bare-positive fail-closed 與 unknown-structure fail-closed 均通過。Production HTTP 200／`environment=production`，公開 bundle 已確認 `.csv,.xlsx,.pdf` picker contract 與文字型 PDF 支援；未建立測試交易。Contract Audit GO-B 結論維持：CSV／XLSX、mapping、preview、duplicate detection、user confirmation 與 transaction creation 下游契約沿用既有 Import Center；PDF 僅新增 lazy-loaded text extraction／pure adapter，明確方向的金額才接受，掃描／圖片型、無文字、裸正數、不完整或不明結構一律 fail closed。未加入 OCR、銀行專屬猜測、AI 自動分類、Loan／Investment／FX attribution、Ledger／Backup schema 或其他財務核心變更。
 
@@ -2290,8 +2300,28 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ### UR-TODO-071 Holding Card Drag Reorder
 
-- 優先級：待評估
-- 狀態：**OPEN／PLANNED（Contract Audit 已完成，2026-08-19；尚未開始開發，未建立功能 branch）**
+- 優先級：P3（延續 UR-TODO-070，使用者明確核准開發）
+- 狀態：**CLOSED（2026-08-19）／已完成、已 Merge、Production Verified**
+- 完成日期：2026-08-19
+- Merge 資訊：**PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397)**，final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649`，一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573`（parents `5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`），`mergedAt: 2026-08-19T14:27:33Z`，`mergedBy: hyc640110`，**未使用 admin override**。PR required CI Verification run [32262092171](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32262092171) success；相同 head 的 Preview workflow_dispatch run [32262111201](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32262111201) success，使用者已完成該 head 的 iPhone Safari Round 2 人工驗收，結論 PASS。merge 後 main push 觸發之 Deploy GitHub Pages run [32264138787](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32264138787) success，head 與 merge commit 一致，regression gate、Production build、Pages deploy 均 success。
+- **iPhone Safari 人工驗收證據（Round 2，通過項目）**：first→last 長距離拖曳 PASS；last→first 長距離拖曳 PASS；正常卡片區上下 scrolling 不會誤排序；refresh 後 `holdingDisplayOrder` 正確保留；財務資料拖曳前後無異常；☰ 三橫線 drag handle 正確；handle 操作正常；Safari 無異常文字選取／長按選單；directional drag bug 已確認真機修復。
+- **Production 唯讀驗證**：HTTP 200；bundle 更新為 `index-DTD1MPZn.css`／`index-YNeFg2N5.js`（與本次 build 產物一致）；console 無錯誤；`#/assets` 頁面 4 張 holding cards 皆為單一 ☰ handle（原生 `<button>`，`role` 為 `null`，非 menu/menuitem 語意）；`.holding-order-button` 舊控制項數量為 0；Desktop 1280px 實測 ☰ 位於整列最右側、詳細按鈕在其左側；1024px 維持 UR-TODO-070 既有、非本次引入的既存 overflow（未惡化）；390px 無 horizontal overflow。驗證全程僅用唯讀 DOM 查詢，未拖曳／未用 keyboard 排序 Production 使用者實際持股、未寫入 Production localStorage。
+- **開發歷程：Round 1 → Round 2 iPhone Safari 修正**：
+  - **Round 1**：初版實作（element-level `setPointerCapture`＋`GripVertical` 六點 icon）於 iPhone Safari Preview 人工驗收發現 2 項 blocking issue：(1) holding 由上往下長距離拖曳失敗（由下往上可正常）；(2) drag handle 圖示為六點 grip，不符合使用者核准的 ☰ 三橫線視覺要求。判定 Preview Manual QA = FAIL／Refinement Required。
+  - **Root cause 定位**：原設計使用 element-level `setPointerCapture`。被 capture 的 button 在每一次 live-reorder 都會被 React 重新定位到新的 array index（DOM 位置實際改變，非移除重建）。Pointer Events spec 對「capture 元素被搬移（非移除）時是否保留 capture」屬 implementation-defined，Safari 相較 Chromium 更容易在元素重新定位時自動釋放 capture；一旦 capture 遺失，後續 `pointermove` 只能靠正常 hit-testing 路由——只有指標仍實際位於 handle「新」位置正上方才會觸發。短距離／相鄰交換較容易「運氣好」躲過此問題，但需要多次重新定位的長距離拖曳（如 first→last）幾乎必然中途失效，與回報的方向性不對稱現象完全吻合。已用真實 React + jsdom harness（fine-grained／batched／large-jump 三種指標移動模式）驗證純函式層（`moveHoldingDisplayOrderToIndex`／`resolveDragTargetIndex`）本身邏輯完全正確，排除 index-space 計算錯誤的可能性，確認問題出在瀏覽器 pointer capture 與 DOM repositioning 的交互。
+  - **Round 2 修正**：`HoldingOrderHandle.tsx` 改用 `document` 層級的 `pointermove`／`pointerup`／`pointercancel` listener（`pointerdown` 時掛上、drag 結束／取消時卸除，並於元件 unmount 時保底清除），完全移除 `setPointerCapture`／`hasPointerCapture`／`releasePointerCapture`／`onLostPointerCapture` 的依賴；`document` 本身不會被搬移或移除，因此完全免疫於整類「被拖曳元素重新定位導致 capture 遺失」問題。Icon 由 `GripVertical`（六點）改為 `lucide-react` 既有已安裝的 `Menu`（3 條水平線，精確符合 ☰ 核准視覺）。
+  - **Round 2 後驗證**：`npm run test:ur-todo-071`（41 tests）／既有 `npm run test:ur-todo-070`（25 tests）／完整 `test:ci`／`npx tsc -b`／`npm run build` 皆 pass；iPhone Safari 真機重新驗收 PASS（見上方 Round 2 通過項目）。
+- **最終產品 Contract**：單一 ☰ drag handle 取代原 ↑/↓；Mobile／Desktop 共用同一套 interaction model（Desktop handle 為整列最右側獨立操作區，詳細按鈕在其左側；Mobile 與 identity 共用 header 第一列，不要求與 Desktop 相同視覺座標）；Native Pointer Events；Immediate Drag（無 long-press threshold）；第一版不做 auto-scroll；未新增 drag-and-drop dependency；Keyboard focus handle 後 ArrowUp／ArrowDown 沿用既有單步 `moveHoldingDisplayOrder()`；新增 `aria-live="polite"` 排序結果播報；`holdingDisplayOrder` 為唯一 ordering persistence，不重排 `AppState.holdings`、不 mutate `m.rows`、不改 Financial Event Ledger／attribution／Rebalance／AI Decision／Firebase／財務公式。
+- **已知低風險 follow-up observation**：Final Review 發現 `HoldingOrderHandle` 的 `handlePointerDown` 未防護「同一 handle 在前一次 drag 尚未 end/cancel 前又收到第二次 pointerdown」的情境（例如同一 handle 上的多點觸控或極快速連續按下）；理論上可能造成該次 document listener 未被移除。實際影響評估為記憶體洩漏而非資料錯亂（洩漏的 listener 只會回應其已失效的舊 `pointerId`，不會影響排序正確性）。**目前無 Production／iPhone 實際失敗證據**，Round 2 真機驗收與 Production 唯讀驗證皆未觸發此情境；**目前無需另立新的 UR-TODO 編號**，後續若出現可重現問題再另行盤點。
+- 新增測試：`tests/holdingCardDragReorder.test.ts`（純函式）、`tests/holdingOrderHandle.test.ts`（元件，含 document-level listener robustness 關鍵測試）、`tests/holdingCardDragReorderStructure.test.ts`（結構性回歸）、`tests/holdingCardDragReorderPersistence.test.ts`（persistence isolation），共 41 tests，已納入 `npm run test:ci`。
+- 明確不包含：新增任何 drag-and-drop dependency；auto-scroll（第一版）；修改 `AppState.holdings`／Rebalance／AI Decision／Financial Event Ledger／attribution／成本／市值／損益／holding identity／Firebase／schema version。
+- 依賴：UR-TODO-070（已 CLOSED，`holdingDisplayOrder` 基礎契約與 `HoldingCompactCard` 現行渲染路徑已具備）。
+- 驗收條件（已達成）：使用者已完成兩輪 iPhone Safari Preview 人工驗收（Round 1 FAIL → Round 2 PASS），Draft → Ready → Merge 依既有治理流程逐步完成，Production 唯讀驗證通過。
+
+---
+
+**以下為 Contract Audit 階段歷史記錄（已由上方 CLOSED 條目取代，保留供追溯）**：
+
 - 提出日期：2026-08-19
 - Contract Audit 完成日期：2026-08-19（Review Mode 唯讀盤點）
 - 背景：UR-TODO-070 完成並 Production Verified 後，使用者希望評估將現行兩顆 ↑/↓ 按鈕改為單一拖曳把手（drag handle），iPhone 長按／按住把手後可將整張持股卡向上或向下拖曳，放開後新順序寫入既有 `holdingDisplayOrder`。
@@ -3154,7 +3184,18 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-070 Governance Closeout（CLOSED／Production Verified，2026-08-19）／UR-TODO-071 新增 OPEN／PLANNED
+## 最新交接快照：UR-TODO-071 Governance Closeout（CLOSED／Production Verified，2026-08-19）
+
+- 正式決策：**UR-TODO-071（Holding Card Drag Reorder）= CLOSED／Production Verified。** PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397) final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649` 已由 `hyc640110` 於 2026-08-19T14:27:33Z 以一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573` 合併（parents：`5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`；未使用 admin override）。PR required CI `32262092171` success，相同 head Preview workflow_dispatch `32262111201` success，使用者完成 iPhone Safari Round 2 人工驗收 PASS；merge 後 main Deploy GitHub Pages `32264138787` success，head 與 merge commit 一致。
+- 已完成契約：單一 ☰（`lucide-react` `Menu` icon，3 條水平線）drag handle 取代 UR-TODO-070 的 ↑/↓ 按鈕；`holdingDisplayOrder` 繼續作為唯一 display-order persistence，不重排 `AppState.holdings`、不 mutate `m.rows`，不影響 Rebalance／AI Decision／Financial Event Ledger／attribution／Firebase／財務公式。Native Pointer Events（Immediate Drag，無 long-press threshold，第一版不做 auto-scroll，未新增 drag-and-drop dependency）；Desktop（≥901px）handle 為整列最右側獨立操作區，詳細按鈕在其左側；Mobile（≤768px）handle 與 identity 共用 header 第一列。Keyboard 沿用既有單步 `moveHoldingDisplayOrder()`，新增 `aria-live="polite"` 排序結果播報。
+- **開發歷程（Round 1 → Round 2 iPhone Safari 修正，重要實證，供未來類似 pointer/drag 功能參考）**：Round 1（element-level `setPointerCapture`＋`GripVertical` 六點 icon）於 iPhone Safari Preview 人工驗收發現 2 項 blocking issue：(1) 由上往下長距離拖曳失敗（由下往上正常）；(2) icon 不符核准的 ☰ 視覺要求，判定 FAIL／Refinement Required。**Root cause**：被 capture 的 handle 在每次 live-reorder 皆會被 React 重新定位到新的 array index（DOM 位置實際改變），Pointer Events spec 對「capture 元素被搬移（非移除）時是否保留 capture」屬 implementation-defined，Safari 相較 Chromium 更容易在元素重新定位時自動釋放 capture，導致長距離（多次重新定位）拖曳中途失效、短距離則較容易躲過此問題，與回報的方向性不對稱現象完全吻合。已用真實 React + jsdom harness 驗證純函式層本身邏輯完全正確，排除 index-space 計算錯誤的可能性。**Round 2 修正**：改用 `document` 層級的 `pointermove`／`pointerup`／`pointercancel` listener（`pointerdown` 時掛上、結束／取消／unmount 時卸除），完全不依賴 element pointer capture；icon 改為 `Menu`。Round 2 後 `npm run test:ur-todo-071`（41 tests）／`test:ur-todo-070`（25 tests）／完整 `test:ci`／typecheck／build 皆 pass，iPhone Safari 真機重新驗收 PASS。
+- Production 唯讀驗證：HTTP 200；bundle 更新為 `index-DTD1MPZn.css`／`index-YNeFg2N5.js`；console 無錯誤；`#/assets` 頁面 4 張 holding cards 皆為單一 ☰ handle（原生 `<button>`，`role` 為 `null`，非 menu 語意）；`.holding-order-button` 舊控制項數為 0；Desktop 1280px 實測 ☰ 位於整列最右側、詳細按鈕在其左側；390px 無 horizontal overflow；1024px 維持 UR-TODO-070 既有、非本次引入的既存 overflow（未惡化）。全程僅用唯讀 DOM 查詢，未拖曳／未用 keyboard 排序 Production 使用者實際持股、未寫入 Production localStorage。
+- **已知低風險 follow-up observation（非 blocking，供後續參考）**：`HoldingOrderHandle` 的 `handlePointerDown` 未防護「同一 handle 在前一次 drag 尚未 end/cancel 前又收到第二次 pointerdown」的情境（例如同一 handle 多點觸控），理論上可能造成該次 document listener 未被移除（記憶體洩漏，不影響排序資料正確性，因洩漏的 listener 只回應其已失效的舊 `pointerId`）。目前無 Production／iPhone 實際失敗證據，Round 2 真機驗收與 Production 唯讀驗證皆未觸發此情境；**目前無需另立新的 UR-TODO 編號**，後續若出現可重現問題再另行盤點。
+- 本輪治理同步邊界：**只更新 `003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`009_CHANGELOG.md`／`012_AI_HANDOVER.md` 與重新產生 Bundle，未修改 `src/**`／`tests/**`／`package*.json`／`.github/**`。**
+- Stash identity：永久識別僅使用 object SHA `e141af14273b76501c1b287ea018e8728099f1e5` 與 `4a0ddb208c5821f18fbb8e1a74a903abdddb22ba`；本輪未操作 stash，index 僅是可變暫時位置。
+- 下一位 AI：UR-TODO-070／UR-TODO-071 均已 CLOSED／Production Verified，兩者皆無剩餘待辦。若使用者提出與 duplicate-listener observation 相關的新需求，先確認是否有可重現的實際失敗證據，再決定是否需要建立新的獨立 UR-TODO；不得未經使用者要求就自行擴大範圍或搶先修正。
+
+## 最新交接快照：UR-TODO-070 Governance Closeout（CLOSED／Production Verified，2026-08-19）／UR-TODO-071 新增 OPEN／PLANNED（歷史快照，已由本文件最上方 UR-TODO-071 CLOSED 條目取代）
 
 - 正式決策：**UR-TODO-070（持股資產卡片 Mobile Compact + Manual Ordering）= CLOSED／Production Verified。** PR [#395](https://github.com/hyc640110/family-universal-rebalance/pull/395) final head `9110d78967ab14fa9c3357ad3f33729f4b391c0e` 已由 `hyc640110` 於 2026-08-19T12:30:04Z 以一般 2-parent merge commit `ddb019bb1ef9999d9b2a230e0d8dfed9d941fabd` 合併（parents：`e66d909696635d28534d3665fc49b3108e2bc6df`／`9110d78967ab14fa9c3357ad3f33729f4b391c0e`；未使用 admin override）。PR required CI `32163151324` success，相同 head Preview workflow_dispatch `32163158998` success，使用者完成 iPhone Preview 人工驗收（320／390／430px、Desktop）PASS；merge 後 main Deploy GitHub Pages `32252977963` success，head 與 merge commit 一致。
 - 已完成契約：新增 root-level `holdingDisplayOrder: SymbolCode[]`，**僅**控制資產頁 active holding cards 顯示順序；純函式 `normalizeHoldingDisplayOrder()`／`moveHoldingDisplayOrder()`／`orderHoldingRows()`（`src/lib/holdingDisplayOrder.ts`）不重排 `AppState.holdings`、不改 `m.rows` 核心順序，不影響 Rebalance／AI Decision／成本／市值／損益／Financial Event Ledger／attribution／Firebase。↑/↓ 手動排序按鈕（首/末筆與單一持股 disabled），第一輪 iPhone Preview 驗收後由垂直堆疊改為水平排列。Mobile（≤768px）compact 版面改為「標題+↑/↓ ／ 股數|詳細 ／ 現價|今日漲跌 ／ 市值|未實現損益」，CSS `order` 重排既有 DOM，desktop 不變。Persistence additive 接入 `AppState`／`normalizeState()`／localStorage／`backupPayload()`／`stateFromBackup()`；舊 Backup 缺此欄位 fallback 為 imported holdings 原始順序，不沿用匯入前本機偏好。
