@@ -123,7 +123,9 @@ import { deriveCreditCardAccountOptions, deriveCreditCardDueSoonReminders, previ
 import { deriveHomeFocusedAssetCard } from './lib/homeFocusedAssetCard';
 import { deriveHomeFocusedAssetLadder } from './lib/homeFocusedAssetLadderCard';
 import { normalizeFocusedSymbols, toggleFocusedSymbol as toggleFocusedSymbolInList } from './lib/focusedSymbols';
-import { moveHoldingDisplayOrder, normalizeHoldingDisplayOrder, orderHoldingRows } from './lib/holdingDisplayOrder';
+import { moveHoldingDisplayOrder, moveHoldingDisplayOrderToIndex, normalizeHoldingDisplayOrder, orderHoldingRows } from './lib/holdingDisplayOrder';
+import { resolveDragTargetIndex } from './lib/holdingCardDragGeometry';
+import HoldingOrderHandle from './components/HoldingOrderHandle';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -759,7 +761,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
-function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: {
+function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove, isDragging, onDragStart, onDragMove, onDragEnd, onDragCancel, onKeyboardMove, registerCardElement }: {
   row: ReturnType<typeof calculateMetrics>['rows'][number];
   totalAssets: number;
   dipSetting: DipAlertSetting;
@@ -770,23 +772,22 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing
   onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
   onToggleFocused: (symbol: SymbolCode) => void;
   onRemove: (symbol: SymbolCode) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
+  isDragging: boolean;
+  onDragStart: (clientY: number) => void;
+  onDragMove: (clientY: number) => void;
+  onDragEnd: () => void;
+  onDragCancel: () => void;
+  onKeyboardMove: (direction: 'up' | 'down') => void;
+  registerCardElement: (element: HTMLElement | null) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
   const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
-  return <article className={`holding holding-compact ${isEditing ? 'is-editing' : ''}`}>
+  return <article ref={registerCardElement} className={`holding holding-compact ${isEditing ? 'is-editing' : ''} ${isDragging ? 'is-dragging' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
         <p className="holding-mobile-weight" aria-label={`持有比例 ${compactWeight}`}><strong>{compactWeight}</strong></p>
         <h3 className="holding-title"><span className="holding-name" title={row.quote.name}>{row.quote.name}</span><span className="holding-symbol">{row.symbol}</span></h3>
-        <div className="holding-order-controls">
-          <button type="button" className="holding-order-button" aria-label={`${row.quote.name} 上移`} onClick={onMoveUp} disabled={!canMoveUp}>↑</button>
-          <button type="button" className="holding-order-button" aria-label={`${row.quote.name} 下移`} onClick={onMoveDown} disabled={!canMoveDown}>↓</button>
-        </div>
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>
       <p className="holding-card-detail holding-card-average-cost"><span>均價</span><strong>{row.avgCost.toFixed(2)} 元</strong></p>
@@ -795,6 +796,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing
       <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
       <p className={`holding-card-detail holding-card-unrealized-pnl holding-card-unrealized-pnl-${tone(row.pnl)}`}><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
       <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>
+      <HoldingOrderHandle label={row.quote.name} isDragging={isDragging} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onDragCancel={onDragCancel} onKeyboardMove={onKeyboardMove} />
     </div>
     {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
     {isEditing && <div className="holding-editor">
@@ -1947,11 +1949,69 @@ function App() {
   const toggleFocusedSymbol = (symbol: SymbolCode) => {
     setState(s => ({ ...s, focusedSymbols: toggleFocusedSymbolInList(s.focusedSymbols, symbol) }));
   };
-  // UR-TODO-070: display-only reordering of the asset page's active holding cards — only ever
+  // UR-TODO-070/071: display-only reordering of the asset page's active holding cards — only ever
   // writes `holdingDisplayOrder`, never `holdings` itself (setState → normalizeState still runs,
   // but sanitizeHolding/normalizedHoldings/derivedHoldings/calculateMetrics never read this field).
-  const moveHoldingDisplay = (symbol: SymbolCode, direction: 'up' | 'down') => {
+  // Keyboard reorder (Decision 3) deliberately reuses this exact single-step helper — no separate
+  // "keyboard move" data path exists, only a different UI trigger for the same setState call.
+  const moveHoldingDisplay = (symbol: SymbolCode, holdingName: string, direction: 'up' | 'down') => {
+    const currentOrder = state.holdingDisplayOrder;
+    const nextOrder = moveHoldingDisplayOrder(currentOrder, symbol, direction);
+    if (nextOrder === currentOrder) return; // first-item Up / last-item Down: no-op, nothing to announce
+    announceHoldingOrderChange(holdingName, symbol, nextOrder);
     setState(s => ({ ...s, holdingDisplayOrder: moveHoldingDisplayOrder(s.holdingDisplayOrder, symbol, direction) }));
+  };
+  // UR-TODO-071: pointer-drag reorder. `holdingCardElementsRef` tracks each rendered card's DOM
+  // node purely to read `getBoundingClientRect()` during a drag — this is a UI measurement
+  // concern only, never touches AppState/holdings/m.rows. `dragStartOrderRef` snapshots the order
+  // at drag-start so pointercancel can restore it verbatim (no corrupt/partial order left behind).
+  const holdingCardElementsRef = useRef(new Map<SymbolCode, HTMLElement>());
+  const dragStartOrderRef = useRef<SymbolCode[] | null>(null);
+  const [draggingHoldingSymbol, setDraggingHoldingSymbol] = useState<SymbolCode | null>(null);
+  const [holdingOrderAnnouncement, setHoldingOrderAnnouncement] = useState('');
+  const announceHoldingOrderChange = (holdingName: string, symbol: SymbolCode, order: SymbolCode[]) => {
+    const position = order.indexOf(normalizeSymbol(symbol)) + 1;
+    if (position > 0) setHoldingOrderAnnouncement(`${holdingName} 已移至第 ${position}／${order.length} 位`);
+  };
+  const registerHoldingCardElement = (symbol: SymbolCode) => (element: HTMLElement | null) => {
+    if (element) holdingCardElementsRef.current.set(symbol, element);
+    else holdingCardElementsRef.current.delete(symbol);
+  };
+  const startHoldingDrag = (symbol: SymbolCode) => {
+    dragStartOrderRef.current = state.holdingDisplayOrder;
+    setDraggingHoldingSymbol(symbol);
+  };
+  // Immediate Drag (Decision 1): every pointermove while dragging directly commits a live preview
+  // into `holdingDisplayOrder` (no separate "preview order" data structure) — simplest correct
+  // implementation for a single vertical list, and pointercancel's snapshot restore (below) is
+  // what keeps this safe rather than a two-phase commit.
+  const moveHoldingDragTo = (symbol: SymbolCode, clientY: number) => {
+    setState(s => {
+      const currentOrder = s.holdingDisplayOrder;
+      const siblingMidpoints = currentOrder
+        .filter(sym => sym !== normalizeSymbol(symbol))
+        .map(sym => holdingCardElementsRef.current.get(sym))
+        .filter((element): element is HTMLElement => Boolean(element))
+        .map(element => { const rect = element.getBoundingClientRect(); return rect.top + rect.height / 2; });
+      const targetIndex = resolveDragTargetIndex(clientY, siblingMidpoints);
+      const nextOrder = moveHoldingDisplayOrderToIndex(currentOrder, symbol, targetIndex);
+      return nextOrder === currentOrder ? s : { ...s, holdingDisplayOrder: nextOrder };
+    });
+  };
+  const endHoldingDrag = (symbol: SymbolCode, holdingName: string) => {
+    setDraggingHoldingSymbol(null);
+    dragStartOrderRef.current = null;
+    // Reads `stateRef.current` (synchronously updated inside setState, above `state`'s own React
+    // commit) rather than the `state` closure — a real drag's pointerup always follows its last
+    // pointermove-triggered setState by at least one browser event-loop tick, but reading the ref
+    // makes the announcement correct even without that guarantee, instead of relying on it.
+    announceHoldingOrderChange(holdingName, symbol, stateRef.current.holdingDisplayOrder);
+  };
+  const cancelHoldingDrag = () => {
+    const restoreOrder = dragStartOrderRef.current;
+    setDraggingHoldingSymbol(null);
+    dragStartOrderRef.current = null;
+    if (restoreOrder) setState(s => ({ ...s, holdingDisplayOrder: restoreOrder }));
   };
   const updateHolding = (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => setState(s => {
     const holdings = safeHoldings(s.holdings);
@@ -2150,8 +2210,9 @@ function App() {
           {targetWarning && <p className="warning-message">{targetWarning}</p>}
           {(quoteSummaryText === '部分標的非今日報價' || quoteSummaryText === '部分標的報價日期不明') && <p className="note holding-stale-notice">{quoteSummaryText}；今日漲跌僅供參考。</p>}
           <section className="asset-quote-provenance" aria-label="持股報價來源與新鮮度"><p><strong>更新狀態：</strong>{quoteStatus}</p><ul>{quotePresentation.map(quote => <li key={quote.symbol}><b>{quote.symbol}</b><span>{quote.statusLabel}</span><span>市場時間：{quote.marketTimestamp || '—'}</span><span>來源：{quote.source}</span><span>系統取得：{quote.receiptTimestamp || '—'}</span></li>)}</ul></section>
+          <p className="sr-only" role="status" aria-live="polite">{holdingOrderAnnouncement}</p>
           <div className="holdings">
-            {orderHoldingRows(m.rows, state.holdingDisplayOrder).map((row, index, orderedRows) => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(row.symbol)} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={confirmRemoveHoldingAsset} onMoveUp={() => moveHoldingDisplay(row.symbol, 'up')} onMoveDown={() => moveHoldingDisplay(row.symbol, 'down')} canMoveUp={index > 0} canMoveDown={index < orderedRows.length - 1} />)}
+            {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(row.symbol)} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={confirmRemoveHoldingAsset} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
           </div>
         </SectionCard>
         </div>

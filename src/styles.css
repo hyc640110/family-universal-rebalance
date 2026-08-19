@@ -45,6 +45,7 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .import-reconciliation-preview{min-width:0;overflow-wrap:anywhere}
 @media(max-width:700px){.import-preview-category,.import-preview-suggestion{display:flex;margin-top:6px}.import-preview-suggestion{flex-direction:column;align-items:flex-start}.import-preview-suggestion button{max-width:100%;align-self:flex-start}}
 .visually-hidden-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .danger{background:#7f1d1d}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .stat,.card,.holding{background:#102033;border:1px solid #1d3d66;border-radius:14px;padding:16px}
@@ -120,10 +121,10 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-card-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
 .holding-card-identity{display:flex;align-items:center;gap:9px;grid-column:1/-1;min-width:0}
 .holding-card-identity .holding-title{min-width:0}.holding-card-identity .holding-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.holding-order-controls{display:flex;flex-direction:column;gap:3px;margin-left:auto;flex:0 0 auto}
-.holding-order-button{width:26px;height:26px;min-width:0;min-height:0;padding:0;display:grid;place-items:center;border:1px solid #315b8d;border-radius:6px;background:#173b66;color:#dbeafe;font-size:12px;line-height:1;box-shadow:none}
-.holding-order-button:hover:not(:disabled){background:#214f85;filter:none}
-.holding-order-button:disabled{opacity:.35;cursor:not-allowed}
+.holding-order-handle{width:32px;height:32px;min-width:32px;min-height:0;padding:0;justify-self:end;align-self:center;display:grid;place-items:center;border:1px solid #315b8d;border-radius:6px;background:#173b66;color:#dbeafe;box-shadow:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.holding-order-handle:hover{background:#214f85;filter:none}
+.holding-order-handle:active,.holding-order-handle.is-dragging{cursor:grabbing;background:#2563eb;border-color:#5b8def}
+.holding-compact.is-dragging{opacity:.6;box-shadow:0 0 0 2px #5b8def inset}
 .holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}
 .holding-card-detail>span{display:block;margin-bottom:3px;color:#8da3bd;font-size:11px;font-weight:800;line-height:1.25}
 .holding-card-detail>strong{display:block;min-width:0;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
@@ -354,7 +355,7 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holdings{grid-template-columns:1fr;gap:0}
   .holding-compact{min-height:64px;padding:0 14px;background:transparent;border-width:0 0 1px;border-radius:0}
   .holding-compact:first-child{border-top:1px solid #1d3d66}
-  .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto;gap:8px;align-items:center;min-height:72px}
+  .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto auto;gap:6px;align-items:center;min-height:72px}
   .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:15px;white-space:nowrap}.holding-card-identity .holding-symbol{font-size:16px}
   .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{padding:4px 8px;border-radius:6px;border-left-width:3px;border-left-style:solid}
@@ -362,6 +363,22 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.1);border-left-color:#43d17a}
   .holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.07);border-left-color:#9fb3c8}
   .holding-card-summary>.holding-edit-button{justify-self:end;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
+  /* UR-TODO-071 Decision 2: handle is the row's own independent rightmost operation area — a 9th
+     grid track appended after the existing 8 (identity...詳細), never shrinking their minmax
+     floors, so financial-field readability is untouched. DOM already places the handle last (see
+     HoldingCompactCard JSX), so no explicit order/grid-column override is needed here.
+
+     KNOWN LIMITATION (not introduced by this change): even before this handle column existed,
+     the pre-existing 7-column financial layout's minmax floors already sum wider than the
+     available content width at exactly 1024px (~100px measured overflow on the currently-deployed
+     UR-TODO-070 Production build) — the app's `.app-content` max-width/sidebar math only clears
+     that floor sum starting somewhere between 1024 and 1280px. This handle column and the reduced
+     `gap` above (8px→6px, applied uniformly, not shrinking any single field) keep this Sprint's
+     own incremental contribution to that pre-existing overflow as small as possible, but do not
+     — and are not intended to — eliminate it, since fixing the pre-existing 7-column floors is
+     outside UR-TODO-071's declared scope (touching already-Production-verified UR-TODO-070
+     column widths). 1280px and 1440px are unaffected (verified: 0px overflow at both). */
+  .holding-order-handle{width:24px;height:24px;min-width:24px}
   .holding-mobile-summary{grid-template-columns:44px 64px minmax(72px,1.2fr) minmax(84px,.65fr) minmax(126px,1.15fr) minmax(66px,.55fr) minmax(96px,.85fr);gap:8px;min-height:64px}
   .holding-mobile-weight{width:44px;height:44px}
   .holding-mobile-weight strong{font-size:13px}
@@ -416,11 +433,17 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-card-unrealized-pnl{order:3}
   .holding-card-detail{padding:7px 8px}.holding-card-detail>strong{font-size:14px}
   .holding-card-summary>.holding-edit-button{order:1;grid-column:auto;justify-self:stretch;min-height:36px}
-  /* UR-TODO-070 iPhone Preview round 1: horizontal ↑/↓ instead of stacked, so the header row
-     doesn't grow taller than it needs to; margin-left:auto (base rule) keeps it pinned to the
-     header's right edge. Button size stays a real touch target, not shrunk to fit. */
-  .holding-order-controls{flex-direction:row;gap:6px}
-  .holding-order-button{width:34px;height:34px}
+  /* UR-TODO-071 Decision 2: the single drag handle replaces the old ↑/↓ pair. It's a sibling of
+     .holding-card-identity now (not nested inside it, to satisfy Desktop's "row's rightmost
+     independent operation area" requirement — see the ≥901px block), so on mobile it needs its
+     own placement: identity drops its full-row span (grid-column:1/-1 from the base rule) so the
+     handle can share row 1 with it as the second of the 2 mobile columns — no header height
+     penalty, no need for a 320px-only wrap fallback beyond the existing flex-wrap on identity's
+     own internal content (weight badge + title). Both keep their CSS `order` default (0), which
+     is what places them first, before shares/price/etc — no extra order rule needed here.
+     Touch target size carried over from UR-TODO-070's iPhone Preview round-1 verdict (34px). */
+  .holding-card-identity{grid-column:auto}
+  .holding-order-handle{width:34px;height:34px;min-width:34px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-weight{display:grid;place-items:center;align-content:center;width:46px;height:46px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
   .holding-mobile-weight strong{color:#eaf3ff;font-size:12px;white-space:nowrap}

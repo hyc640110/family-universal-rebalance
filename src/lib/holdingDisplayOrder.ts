@@ -60,6 +60,28 @@ export function moveHoldingDisplayOrder(order: SymbolCode[], symbol: SymbolCode,
 }
 
 /**
+ * UR-TODO-071: pure index-to-index reorder for the drag handle (and, via keyboard, the same
+ * single-step semantics as `moveHoldingDisplayOrder` remain the keyboard path — this helper is
+ * only for pointer-drag "move to arbitrary position"). Moves `symbol` to `targetIndex`, shifting
+ * everything between its old and new position; a no-op (returns `order` as-is) when `symbol` is
+ * not present in `order`, or `targetIndex` already equals its current index. `targetIndex` is
+ * clamped to `[0, order.length - 1]` rather than rejected, so a drag that overshoots the list's
+ * edge (e.g. the pointer moves past the last card) still resolves to a safe, valid order instead
+ * of failing the whole gesture. Never mutates `order`; deterministic for the same inputs.
+ */
+export function moveHoldingDisplayOrderToIndex(order: SymbolCode[], symbol: SymbolCode, targetIndex: number): SymbolCode[] {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const fromIndex = order.indexOf(normalizedSymbol);
+  if (fromIndex === -1) return order;
+  const clampedTargetIndex = Math.max(0, Math.min(order.length - 1, targetIndex));
+  if (clampedTargetIndex === fromIndex) return order;
+  const next = [...order];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(clampedTargetIndex, 0, moved);
+  return next;
+}
+
+/**
  * UR-TODO-070: applies a normalized display order to an already-computed row list (e.g.
  * `calculateMetrics(...).rows`) purely for rendering — never mutates `rows` and never reorders the
  * underlying `AppState.holdings`. Rows whose symbol is absent from `order` (e.g. a symbol just
