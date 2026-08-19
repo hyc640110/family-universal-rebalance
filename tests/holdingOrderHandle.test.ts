@@ -4,14 +4,17 @@ import { JSDOM } from 'jsdom';
 
 /**
  * UR-TODO-071: exercises the real `HoldingOrderHandle` component against real jsdom PointerEvents
- * (not fabricated callback invocations), so this fails against a broken pointer-capture guard or a
- * stray-pointerId leak and passes only when the actual component logic is correct.
+ * (not fabricated callback invocations), so this fails against a broken listener-lifecycle guard
+ * and passes only when the actual component logic is correct.
  *
- * jsdom (as of the version pinned in this repo) does not implement `setPointerCapture` /
- * `hasPointerCapture` / `releasePointerCapture` on Element — real browsers (including iOS Safari,
- * the target for this feature) do. This file polyfills a minimal, faithful-enough stub purely so
- * the component's actual pointer-capture *call pattern* (captures on down, checks/releases on
- * up/cancel) can be exercised here; it is a test-environment shim, not a change to the component.
+ * iPhone Preview round 2: the original design used element-level `setPointerCapture`, which turned
+ * out to be fragile precisely because the captured button MOVES in the DOM on every live-reorder
+ * step (Safari is more willing than Chromium to drop capture on reposition). The fix tracks a drag
+ * via `document`-level pointermove/pointerup/pointercancel listeners instead, which are immune to
+ * the element moving. The most important test below (`pointermove reaches onDragMove even when
+ * dispatched on a completely different element`) is what directly proves that fix — it's the
+ * scenario that would have failed under the old capture-based design once the button repositioned
+ * and the pointer was no longer physically over it.
  */
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { pretendToBeVisual: true });
 const { window } = dom;
@@ -24,20 +27,6 @@ Object.defineProperty(globalThis, 'navigator', { value: window.navigator, config
 (globalThis as unknown as { KeyboardEvent: typeof window.KeyboardEvent }).KeyboardEvent = window.KeyboardEvent;
 (globalThis as unknown as { requestAnimationFrame: typeof window.requestAnimationFrame }).requestAnimationFrame = window.requestAnimationFrame.bind(window);
 (globalThis as unknown as { cancelAnimationFrame: typeof window.cancelAnimationFrame }).cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
-
-type CaptureCarrier = { __capturedPointerId?: number };
-Object.defineProperty(window.HTMLElement.prototype, 'setPointerCapture', {
-  configurable: true,
-  value: function (this: HTMLElement & CaptureCarrier, pointerId: number) { this.__capturedPointerId = pointerId; }
-});
-Object.defineProperty(window.HTMLElement.prototype, 'hasPointerCapture', {
-  configurable: true,
-  value: function (this: HTMLElement & CaptureCarrier, pointerId: number) { return this.__capturedPointerId === pointerId; }
-});
-Object.defineProperty(window.HTMLElement.prototype, 'releasePointerCapture', {
-  configurable: true,
-  value: function (this: HTMLElement & CaptureCarrier, pointerId: number) { if (this.__capturedPointerId === pointerId) delete this.__capturedPointerId; }
-});
 
 const React = await import('react');
 const { act } = React;
@@ -72,44 +61,58 @@ test('UR-TODO-071 HoldingOrderHandle: renders an accessible, focusable button na
   assert.ok(button);
   assert.match(button.getAttribute('aria-label') || '', /富邦NASDAQ/);
   assert.match(button.getAttribute('aria-label') || '', /方向鍵/);
+  // Decision 3 explicit requirement: never a menu/menuitem role — a plain button describing reorder.
+  assert.equal(button.getAttribute('role'), null);
 });
 
-test('UR-TODO-071 HoldingOrderHandle: pointerdown on the handle captures the pointer and starts a drag', async () => {
+test('UR-TODO-071 HoldingOrderHandle: pointerdown on the handle starts a drag', async () => {
   const { calls, container, root, props } = renderHandle();
   await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
   const button = container.querySelector('button') as HTMLButtonElement;
   await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
   assert.deepEqual(calls.dragStart, [100]);
-  assert.equal((button as unknown as { hasPointerCapture: (id: number) => boolean }).hasPointerCapture(1), true);
 });
 
-test('UR-TODO-071 HoldingOrderHandle: pointermove with the captured pointerId reports the new clientY', async () => {
+test('UR-TODO-071 HoldingOrderHandle: pointermove with the active pointerId reports the new clientY', async () => {
   const { calls, container, root, props } = renderHandle();
   await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
   const button = container.querySelector('button') as HTMLButtonElement;
   await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 180, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 180, bubbles: true })); });
   assert.deepEqual(calls.dragMove, [180]);
 });
 
-test('UR-TODO-071 HoldingOrderHandle: pointermove from an uncaptured/stray pointerId is ignored', async () => {
-  const { calls, container, root, props } = renderHandle();
-  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
-  const button = container.querySelector('button') as HTMLButtonElement;
-  // No pointerdown happened for pointerId 1 at all — this simulates a stray/unrelated pointer event.
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 180, bubbles: true })); });
-  assert.deepEqual(calls.dragMove, []);
-});
-
-test('UR-TODO-071 HoldingOrderHandle: pointerup commits the drag (onDragEnd) and releases capture', async () => {
+test('UR-TODO-071 HoldingOrderHandle: CRITICAL — pointermove reaches onDragMove even when dispatched on a completely different, unrelated element (proves immunity to the button being repositioned mid-drag)', async () => {
   const { calls, container, root, props } = renderHandle();
   await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
   const button = container.querySelector('button') as HTMLButtonElement;
   await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 1, clientY: 200, bubbles: true })); });
+
+  // Simulate the exact failure mode from the iPhone repro: the handle has moved to a new DOM
+  // position (as it does on every live-reorder step) and the pointer is now physically over some
+  // completely unrelated element, not the handle at all. A capture-based design would silently
+  // drop this event; a document-level listener does not care what the target is.
+  const unrelated = window.document.createElement('article');
+  window.document.body.appendChild(unrelated);
+  await act(async () => { unrelated.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 260, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, [260]);
+});
+
+test('UR-TODO-071 HoldingOrderHandle: pointermove from an unrelated/stray pointerId (no matching pointerdown) is ignored', async () => {
+  const { calls, container, root, props } = renderHandle();
+  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 180, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, []);
+});
+
+test('UR-TODO-071 HoldingOrderHandle: pointerup commits the drag (onDragEnd), never onDragCancel', async () => {
+  const { calls, container, root, props } = renderHandle();
+  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
+  const button = container.querySelector('button') as HTMLButtonElement;
+  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 1, clientY: 200, bubbles: true })); });
   assert.equal(calls.dragEnd, 1);
   assert.equal(calls.dragCancel, 0);
-  assert.equal((button as unknown as { hasPointerCapture: (id: number) => boolean }).hasPointerCapture(1), false);
 });
 
 test('UR-TODO-071 HoldingOrderHandle: pointercancel aborts the drag (onDragCancel), never onDragEnd', async () => {
@@ -117,19 +120,38 @@ test('UR-TODO-071 HoldingOrderHandle: pointercancel aborts the drag (onDragCance
   await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
   const button = container.querySelector('button') as HTMLButtonElement;
   await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointercancel', { pointerId: 1, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointercancel', { pointerId: 1, bubbles: true })); });
   assert.equal(calls.dragCancel, 1);
   assert.equal(calls.dragEnd, 0);
 });
 
-test('UR-TODO-071 HoldingOrderHandle: pointerup/pointercancel is a no-op if it never started a drag on this handle', async () => {
+test('UR-TODO-071 HoldingOrderHandle: pointerup/pointermove after a drag already ended are no-ops (listeners are torn down)', async () => {
   const { calls, container, root, props } = renderHandle();
   await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
   const button = container.querySelector('button') as HTMLButtonElement;
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 9, bubbles: true })); });
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointercancel', { pointerId: 9, bubbles: true })); });
+  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 1, clientY: 200, bubbles: true })); });
+  assert.equal(calls.dragEnd, 1);
+  // A stray pointermove/pointerup for the SAME pointerId after the drag ended must not re-fire.
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 300, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 1, clientY: 300, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, []);
+  assert.equal(calls.dragEnd, 1);
+});
+
+test('UR-TODO-071 HoldingOrderHandle: a second, unrelated pointerId never affects an in-progress drag', async () => {
+  const { calls, container, root, props } = renderHandle();
+  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
+  const button = container.querySelector('button') as HTMLButtonElement;
+  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 99, clientY: 500, bubbles: true })); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: 99, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, []);
   assert.equal(calls.dragEnd, 0);
   assert.equal(calls.dragCancel, 0);
+  // The original pointerId's drag is still live and still works.
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 180, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, [180]);
 });
 
 test('UR-TODO-071 HoldingOrderHandle: ArrowUp/ArrowDown on the focused handle call onKeyboardMove with the right direction', async () => {
@@ -151,24 +173,6 @@ test('UR-TODO-071 HoldingOrderHandle: unrelated keys never trigger a reorder', a
   assert.deepEqual(calls.keyboardMove, []);
 });
 
-test('UR-TODO-071 HoldingOrderHandle: onDragStart still fires even if setPointerCapture throws (must never leave the caller\'s cancel-safety snapshot unset)', async () => {
-  const { calls, container, root, props } = renderHandle();
-  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
-  const button = container.querySelector('button') as HTMLButtonElement;
-  // setPointerCapture is defined non-writable on HTMLElement.prototype by this file's own
-  // top-of-file polyfill — shadow it on the instance via defineProperty, not plain assignment.
-  Object.defineProperty(button, 'setPointerCapture', {
-    configurable: true,
-    value: () => { throw new DOMException('No active pointer with the given id is found.', 'NotFoundError'); }
-  });
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 7, clientY: 50, bubbles: true })); });
-  assert.deepEqual(calls.dragStart, [50]);
-  // pointermove for the same pointerId must still be honored — activePointerId was set before the
-  // capture attempt, so a captureless drag still degrades gracefully rather than being abandoned.
-  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 7, clientY: 90, bubbles: true })); });
-  assert.deepEqual(calls.dragMove, [90]);
-});
-
 test('UR-TODO-071 HoldingOrderHandle: isDragging toggles a dragging-state class for minimal visual feedback', async () => {
   const idle = renderHandle({ isDragging: false });
   await act(async () => { idle.root.render(createElement(HoldingOrderHandle, idle.props)); });
@@ -179,4 +183,14 @@ test('UR-TODO-071 HoldingOrderHandle: isDragging toggles a dragging-state class 
   await act(async () => { dragging.root.render(createElement(HoldingOrderHandle, dragging.props)); });
   const draggingButton = dragging.container.querySelector('button') as HTMLButtonElement;
   assert.equal(draggingButton.className.includes('is-dragging'), true);
+});
+
+test('UR-TODO-071 HoldingOrderHandle: unmounting mid-drag tears down the document listeners (no leak, no late callbacks)', async () => {
+  const { calls, container, root, props } = renderHandle();
+  await act(async () => { root.render(createElement(HoldingOrderHandle, props)); });
+  const button = container.querySelector('button') as HTMLButtonElement;
+  await act(async () => { button.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: 1, clientY: 100, bubbles: true })); });
+  await act(async () => { root.unmount(); });
+  await act(async () => { window.document.dispatchEvent(new window.PointerEvent('pointermove', { pointerId: 1, clientY: 300, bubbles: true })); });
+  assert.deepEqual(calls.dragMove, []);
 });
