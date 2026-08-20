@@ -38,7 +38,8 @@ export type ClecTwReferenceFixture = {
   provenance: {
     corporateActions: {
       '0050': { split: ClecTwReferenceSplit; distributionsAppliedInThisDataset: ClecTwReferenceDistribution[] };
-      '00631L': { distributions: unknown[] };
+      /** `split` is only present once the corporate action falls inside the dataset window; UR-TODO-014-A2 embeds 00631L's 22:1 split. */
+      '00631L': { split?: ClecTwReferenceSplit; distributions: unknown[] };
       '00865B': { distributions: unknown[] };
     };
   };
@@ -107,11 +108,13 @@ function splitAdjustedPriceMap(rawPrices: ReadonlyArray<readonly [string, number
 export function deriveClecTwReferencePeriods(fixture: ClecTwReferenceFixture): ClecTwReferencePeriodsResult {
   const issues: string[] = [];
   const split0050 = fixture.provenance.corporateActions['0050'].split;
+  const split00631L = fixture.provenance.corporateActions['00631L'].split;
   const distributions0050 = fixture.provenance.corporateActions['0050'].distributionsAppliedInThisDataset;
+  const splitBySymbol: Partial<Record<'0050' | '00631L' | '00865B', ClecTwReferenceSplit>> = { '0050': split0050, '00631L': split00631L };
 
   const prices: Record<'0050' | '00631L' | '00865B', Map<string, number>> = {
     '0050': splitAdjustedPriceMap(fixture.rawPrices['0050'], split0050),
-    '00631L': priceMap(fixture.rawPrices['00631L']),
+    '00631L': splitAdjustedPriceMap(fixture.rawPrices['00631L'], split00631L),
     '00865B': priceMap(fixture.rawPrices['00865B'])
   };
 
@@ -123,7 +126,7 @@ export function deriveClecTwReferencePeriods(fixture: ClecTwReferenceFixture): C
       commonDates.push(date);
       continue;
     }
-    const allMissingAreSuspended = missing.every(symbol => symbol === '0050' && withinSplitSuspension(split0050, date));
+    const allMissingAreSuspended = missing.every(symbol => withinSplitSuspension(splitBySymbol[symbol], date));
     if (allMissingAreSuspended) continue;
     issues.push(`${date}: 官方應有交易資料但缺失（${missing.join('、')}），依 missing-data fail-closed 政策中止，不得插值或視為休市。`);
   }
