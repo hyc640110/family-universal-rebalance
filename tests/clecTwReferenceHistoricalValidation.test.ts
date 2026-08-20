@@ -18,7 +18,7 @@ const fixture: ClecTwReferenceFixture = JSON.parse(rawFixtureText);
 // UR-TODO-014-A2: window extended from 2025-08-29 to 2026-04-30 to embed 00631L's 22:1 split and
 // search for a real-history full_rebalance trigger (see AC1/AC2 tests below). All four numbers
 // changed because the window changed; the hash intentionally differs from the prior UR-TODO-014-A value.
-const EXPECTED_DATASET_HASH = 'a8d40a12c2ce3e840ee3671d014ddc040e0f28226ecb03f705fddb37b9c936ad';
+const EXPECTED_DATASET_HASH = '5c143ec124492934e6e1dcb115b68b5d71414691e252d9440601164ce2221c8c';
 const EXPECTED_COMMON_DATE_COUNT = 214;
 const EXPECTED_PERIOD_COUNT = 213;
 const EXPECTED_RUN = {
