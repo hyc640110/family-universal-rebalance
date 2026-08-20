@@ -1,6 +1,14 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-014-A2 / UR-TODO-014 Final Closeout（CLOSED／Production Verified，2026-08-20）
+## 最新交接快照：Backlog Consistency Closeout — UR-TODO-031 / 054 / 069（純治理修正，2026-08-21）
+
+- 本次為 Review Mode 唯讀稽核後的純治理修正，branch `docs/ur-todo-031-054-069-governance-sync` 自 `origin/main` `aba31d1d9a69b2f2419f469edac0ed8480d9b766` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Ledger／attribution 程式碼**。
+- **UR-TODO-031（投資健康度安全存量命名與說明）正式 CLOSED。** Closure reason = absorbed by subsequent Production capabilities／original consumer removed：原目標 consumer 首頁「投資健康度」（`dashboard-health-card`）已由 UR-TODO-063（2026-08-15，PR #349）整塊移除；「安全存量」語意已在 `src/lib/householdLiquidity.ts`／`aiDecision.ts`／`homeDecision.ts`／`riskMetrics.ts` 等 production modules 廣泛落地。歷史文件無法完整還原原始逐條驗收紀錄，**不宣稱原始所有 acceptance criteria 均逐條完成**。已知低優先度 observation：`src/styles.css` 仍殘留 `.dashboard-health-card` dead CSS selector，無 runtime 影響，未建立獨立 Todo。
+- **UR-TODO-069 為純 status consistency correction，非新完成工作。** 其自身章節狀態欄位先前殘留「開發中／Draft PR 待驗收」，與既有頁首 2026-08-17 CLOSED／Production Verified 條目（PR #373，merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74`）不一致，已追平一致，本 Todo 無剩餘項目。
+- **UR-TODO-054 父項狀態欄位** 由「開發中」校正為「子項已全數決議／目前無 active 開發（Deferred／Non-Priority）」：054-A（Loan Confirmation UI，2026-08-14 CLOSED）、054-B（FX Confirmation UI，2026-08-15 CLOSED，Production Producer gate 維持 OFF 為獨立、另行授權的 ADR-010／ADR-013 rollout 決策、非 054-B 未完成）均已 CLOSED；054-C（Generic Split Confirmation UI）維持 2026-08-15 Contract Audit 結論「沒有可消費的真實 candidate／producer」，待規劃／NO-GO，**未重新開啟**。UR-TODO-055／056 狀態本次未變動。
+- 下一位 AI／使用者：**UR-TODO-031／054／069 三項本次已達最新正確狀態，不得再視為需要重新盤點的 stale item。UR-TODO-054（含 054-C／055／056）仍維持 Deferred／Non-Priority，不得因本次治理同步而誤讀為重新開放或下一 Sprint candidate。** UR-TODO-007（Household Liquidity Provenance Consumer Wiring）留待下一輪獨立 Contract Audit，本次未處理。
+
+## 前一交接快照：UR-TODO-014-A2 / UR-TODO-014 Final Closeout（CLOSED／Production Verified，2026-08-20）
 
 - 正式決策：**UR-TODO-014-A2 = CLOSED／Production Verified；整體 UR-TODO-014 = CLOSED／Production Verified。Remaining closure requirement = NONE。**
 - Merge facts：PR [#401](https://github.com/hyc640110/family-universal-rebalance/pull/401) final head `d49bb441e1592136a25b92adcc16c3380ac2c2ea` 已由 `hyc640110` 於 `2026-08-20T14:55:07Z` 以一般 2-parent merge commit `3311973cbffe4910bbcc18870c3f9e41c15e4159` 合併（parents `2e1399ffaa6b4c41564e5a0ac46dc49a289358c7`／`d49bb441e1592136a25b92adcc16c3380ac2c2ea`；未使用 admin override）。`origin/main` 現行正式基線：`3311973cbffe4910bbcc18870c3f9e41c15e4159`，與 merge commit 完全一致。
