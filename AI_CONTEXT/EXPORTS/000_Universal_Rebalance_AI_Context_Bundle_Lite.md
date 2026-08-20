@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-20T15:07:03.124541+00:00
+Generated UTC: 2026-08-20T16:06:58.153620+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `a821f3022ad899802a6b5fcf0a11b8ce9396de8ae1b9d649b563321c4ba494e0`
-- `008_TODO_BACKLOG.md` — SHA-256 `47f9a2c5421ce587cf1476bfe582055bf7d06d888bbad3af334e5d921ff5f36a`
-- `012_AI_HANDOVER.md` — SHA-256 `39ae2dd4f4e722fd66b1febce35aa777be0b3c6f8216be3935c75cc27ba25201`
+- `003_CURRENT_STATUS.md` — SHA-256 `70cdcac5ff6894e08d828772c7550e43d960e5a6e6518776991c5c255a4a4a45`
+- `008_TODO_BACKLOG.md` — SHA-256 `22073eb7ba35174e759425696c92ebf0a0a482126bf6abb12af36b475cf12005`
+- `012_AI_HANDOVER.md` — SHA-256 `c40a7fc3f0c2385051b295ca3ee92197a28980b1a538d36c00f843db92a158c0`
 
 ---
 
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.38
+# Universal Rebalance Current Status v4.39
 
-最後更新：2026-08-20
+最後更新：2026-08-21
+
+**Backlog Consistency Closeout — UR-TODO-031 / 054 / 069（2026-08-21，純治理修正，無 production code 變更）。** Review Mode 唯讀稽核（`docs/ur-todo-031-054-069-governance-sync` branch，自 `origin/main` `aba31d1d9a69b2f2419f469edac0ed8480d9b766` 開出）發現並修正三項 `AI_CONTEXT/008_TODO_BACKLOG.md` 狀態欄位漂移：(1) **UR-TODO-031** 投資健康度安全存量命名與說明正式 CLOSED，closure reason = absorbed by subsequent Production capabilities／original consumer removed——原目標 consumer 首頁「投資健康度」（`dashboard-health-card`）已由 UR-TODO-063（2026-08-15）移除，「安全存量」語意已在 `householdLiquidity.ts`／`aiDecision.ts`／`homeDecision.ts`／`riskMetrics.ts` 等 production modules 落地；歷史文件無法完整還原原始逐條驗收紀錄，故不宣稱逐條完成。(2) **UR-TODO-069** 自身章節狀態欄位（先前寫「開發中／Draft PR 待驗收」）已追平為與頁首既有 2026-08-17 CLOSED／Production Verified 條目（PR #373）一致，純文件同步修正，非新完成工作。(3) **UR-TODO-054** 父項狀態欄位由「開發中」校正為「子項已全數決議／目前無 active 開發（Deferred／Non-Priority）」，反映 054-A／054-B 已 CLOSED、054-C 維持待規劃／NO-GO 的實際狀態；**未重新開啟 054-C、未變更 055／056、未變更任何 attribution contract**。本次 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Ledger／attribution 均為 0 diff，僅修改 `AI_CONTEXT/**` 治理文件。詳見 `008_TODO_BACKLOG.md` 各自正式條目。
+
+---
 
 **UR-TODO-014-A2 與整體 UR-TODO-014 已正式 CLOSED／Production Verified。** PR [#401](https://github.com/hyc640110/family-universal-rebalance/pull/401) final head `d49bb441e1592136a25b92adcc16c3380ac2c2ea` 已由 `hyc640110` 於 `2026-08-20T14:55:07Z` 以一般 2-parent merge commit `3311973cbffe4910bbcc18870c3f9e41c15e4159` 合併（parents：`2e1399ffaa6b4c41564e5a0ac46dc49a289358c7`／`d49bb441e1592136a25b92adcc16c3380ac2c2ea`；未使用 admin override）；`origin/main` 正式基線更新為 `3311973cbffe4910bbcc18870c3f9e41c15e4159`，與 merge commit 完全一致（此為自上一版本記錄的 `ab78fb2` 起始基線之後，經過本次治理同步 commit `7abb630`／`d49bb44` 追平的最終 SHA，未跳過任何中間治理落差）。Merge 後 main push 觸發之 Deploy GitHub Pages run [32383019454](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32383019454) success（`build` job 內 `npm run test:ci` regression gate 全鏈通過、`npm run build` 成功，headSha 與 merge commit 一致；`deploy` job success），Production 唯讀確認 HTTP 200、`environment=production`、bundle 為 `index-BZLdP2-T.js`／`index-DTD1MPZn.css`（與本次 build 產物一致）。
 延伸真實歷史驗證 window 至 `2025-06-02～2026-04-30`（214 個共同有效交易日、213 periods），沿用同一 TWSE 官方 `STOCK_DAY_AVG`／`ETF 分配收益` 唯讀 pipeline，將 00631L 22:1 分割正式納入主 backtest window；validation-only mapping 維持 prototype=0050／leveraged=00631L／cash-like=00865B；fixture `datasetVersion` 為 `2.0.0`，canonical SHA-256（git 實際儲存內容）為 `5c143ec124492934e6e1dcb115b68b5d71414691e252d9440601164ce2221c8c`。**AC1 已滿足並為 Production Verified 的正式證據**：`clec-5050` 於 `2025-09-12` 產生真實 `full_rebalance`（`2025-09-11` maxDrift≈9.818pp 為 `rebalance_consider`、未 rebalance；`2025-09-12` maxDrift≈10.354pp ≥ threshold 10pp、`recommendedAction=full_rebalance`、已 rebalance，trigger 後 portfolio 依既有 contract 精確 reset 至 target weights）；四組 preset 皆至少觸發一次：442／433 於 `2026-01-05`；703 於 `2025-10-07`／`2026-04-22`；5050 於 `2025-09-12`／`2026-01-27`。`rebalance_consider` 全程未被誤算為交易。`src/lib/clecHistoricalBacktest.ts`／`clecStrategyRules.ts`／`allocationPresets.ts` 三個 CLEC 核心檔案於 Foundation／014-A／014-A2 全程完全未修改。
@@ -1232,9 +1236,11 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v1.97
+# Universal Rebalance Todo Backlog v1.98
 
-最後更新：2026-08-19
+最後更新：2026-08-21
+
+2026-08-21 **Backlog Consistency & Closeout Audit——UR-TODO-031／054／069 純治理修正。** Review Mode 唯讀稽核（`docs/ur-todo-031-054-069-governance-sync` branch）確認三項狀態欄位漂移，逐項校正：(1) **UR-TODO-069** 自身章節狀態欄位先前仍寫「開發中／Draft PR 待驗收」，與頁首 2026-08-17 CLOSED／Production Verified 條目（PR #373）不一致，已校正為一致的 CLOSED／Production Verified；(2) **UR-TODO-031**（投資健康度安全存量命名與說明）正式 Closeout：原始目標 consumer 首頁「投資健康度」（`dashboard-health-card`）已由 UR-TODO-063（2026-08-15）移除，「安全存量」語意已在 `householdLiquidity.ts`／`aiDecision.ts`／`homeDecision.ts`／`riskMetrics.ts` 等 production modules 落地，closure reason 為 absorbed by subsequent Production capabilities／original consumer removed（歷史文件無法完整還原原始逐條驗收紀錄，不宣稱逐條完成）；(3) **UR-TODO-054** 父項狀態欄位由「開發中」校正為「子項已全數決議／目前無 active 開發（Deferred／Non-Priority）」，反映 054-A／054-B 已 CLOSED、054-C 維持待規劃／NO-GO 的實際治理終局狀態，**未重新開啟 054-C、未變更 055／056、未變更任何 attribution contract**。本次僅修改 `AI_CONTEXT/**` 治理文件，**未修改任何 `src/**`／`tests/**`／schema／persistence／Ledger／attribution 程式碼**。
 
 2026-08-19 **UR-TODO-071（Holding Card Drag Reorder），狀態：CLOSED／Production Verified。** PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397) final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649` 已由 `hyc640110` 於 2026-08-19T14:27:33Z 以一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573` 合併（parents：`5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`；未使用 admin override）。PR required CI `32262092171` success，相同 head Preview workflow_dispatch `32262111201` success，使用者完成 iPhone Safari Round 2 人工驗收 PASS；merge 後 main Deploy GitHub Pages `32264138787` success，head 與 merge commit 一致。Production 已唯讀確認 HTTP 200、bundle 更新為本次 build 產物（`index-DTD1MPZn.css`／`index-YNeFg2N5.js`）、單一 ☰ handle 已上線、`.holding-order-button` 舊按鈕數為 0、無 console 錯誤。開發期間經歷 Round 1（FAIL：downward 長距離拖曳失敗＋icon 不符核准）→ Round 2（root cause：element-level `setPointerCapture` 在 handle 被 React 重新定位時遭 Safari 釋放，改用 document-level pointer listener 修正；icon 改為 `Menu` ☰）兩輪 iPhone Safari Preview 修正，詳見下方獨立條目。
 
@@ -2211,7 +2217,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-054 Attribution Confirmation Lifecycle UI（FX／Loan／Generic Split）
 
 - 優先級：待評估
-- 狀態：**開發中**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發；**054-A、054-B 已於 2026-08-14／2026-08-15 分別正式 CLOSED；054-C（Generic Split）已於 2026-08-15 完成 Contract Audit，判定「沒有可消費的真實 candidate／producer」，維持待規劃、不建議現在開發**）
+- 狀態：**子項已全數決議／目前無 active 開發（Deferred／Non-Priority，2026-08-21 治理措辭校正）**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發：
+  - 054-A：**CLOSED**（2026-08-14）
+  - 054-B：**CLOSED**（2026-08-15）
+  - 054-C：**待規劃／NO-GO**——2026-08-15 Contract Audit 結論「沒有可消費的真實 candidate／producer」，需真實 producer／candidate／業務情境出現後才重新稽核，不建議現在開發
+  三個子項均已達本階段治理終局狀態，目前沒有任何子項正在開發中；此段落先前寫「開發中」與括號內容自相矛盾，本次僅校正措辭，**不重新開啟 054-C、不變更 055／056 狀態、不變更任何 attribution contract**）
 - 提出日期：2026-08-14
 - 背景：UR-TODO-046 已完成 FX（F2D）、Loan（046-L1）、Generic Split（046-L2A/L2B）三個 domain 的正式 attribution contract（identity、reconciliation candidate/matched、zero-effect 或明示 contribution、duplicate prevention、void/forward-only correction），但三者的正式確認（confirm）動作原本**皆只存在於函式庫層級**：`confirmFxConversionAndAppend()`（`fxConversionAttributionConfirmation.ts`）、`confirmLoanPaymentGroupAndAppend()`（Loan）等在 `App.tsx` 零呼叫，一般使用者無法透過畫面實際確認、撤銷（void）或重新確認（reconfirm）任何一筆這三個 domain 的正式記帳事件。既有唯一有 UI 入口的確認流程是 `RuntimeAttributionProvenanceCard` 的「確認並正式記帳」按鈕，但其 `confirmAttributionEvidence` handler 硬編碼只處理 `derivedEvidenceItems`（`safe-taxonomy-candidate` 專用），FX／Loan／Generic Split 的 candidate reason（`fx-conversion-contract-candidate`／`loan-payment-contract-candidate` 等）結構上不會進入此卡片。**Loan（054-A）已於 2026-08-14 正式完成並 Merge，FX（054-B）已於 2026-08-15 正式完成並 Merge，詳見下方 054-A／054-B 條目；兩者獨立驗證「各 domain 各自獨立 UI 元件、不共用 confirmation framework」為可行且已驗證的實作模式。**
 - 三個 domain 各自獨立唯讀盤點、產品決策與明確授權後才開始開發，不因其中一項完成而自動解鎖其餘子項；子項清單與現況見下方 054-A／054-B／054-C。
@@ -2444,7 +2454,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-069 退休規劃固定支出卡片精簡＋刪除圖示防誤觸
 
 - 優先級：P3（退休規劃頁面既有卡片在手機滑動距離過長，使用者拍板精簡布局）
-- 狀態：**PR #372 已 Merge；手機版 follow-up 開發中／Draft PR 待驗收；未經使用者明確授權不得 Merge**
+- 狀態：**CLOSED／Production Verified（2026-08-17，治理同步修正——本段落狀態欄位先前未隨頁首 2026-08-17 CLOSED 條目同步更新，已於本輪 Backlog Consistency Closeout 校正）**。PR [#373](https://github.com/hyc640110/family-universal-rebalance/pull/373) 手機版 follow-up 已以一般 2-parent merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74` 合併（mergedAt `2026-08-16T13:17:12Z`，mergedBy `hyc640110`）；PR verify [31948775856](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31948775856) success，merge 後 main Deploy GitHub Pages [31949386977](https://github.com/hyc640110/family-universal-rebalance/actions/runs/31949386977) completed/success，head 與 merge commit 一致；後續 PR #379 已完成本項 closeout governance sync。詳見頁首 2026-08-17 條目，本 Todo 無剩餘項目。
 - 提出日期：2026-08-16
 - 範圍：
   1. 固定支出卡片統一改為單欄：頂端工具列左側為「計入支出」勾選框，右側為既有 `lucide-react` `Trash2` 圖示按鈕；項目名稱與每月金額各自維持全寬獨立列，不以桌機／手機斷點分流。
@@ -2685,15 +2695,21 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 ### UR-TODO-031 投資健康度安全存量命名與說明
 - 優先級：P1
-- 狀態：已被架構吸收／待 UI 接線
+- 狀態：**CLOSED／Absorbed by subsequent Production capabilities（2026-08-21，Backlog Consistency Closeout）**
 - 提出日期：2026-07-19
 - 正式規格：
   - `013_Household_Liquidity_Model_Spec_v3.0.md`
 - 關聯 Todo：
   - UR-TODO-006～011
-- 驗收條件：
+- 驗收條件（原始）：
   - 不再使用易誤解的「現金安全」舊語意。
   - 顯示生活費＋負債還款的安全存量來源。
+- Closeout 說明（2026-08-21，Review Mode 唯讀稽核後結案，未修改任何 production code）：
+  - 原始意圖：不再使用易誤解的「現金安全」舊語意，改以「生活費＋負債還款」的安全存量來源呈現。
+  - 原始 UI consumer：提出當時（2026-07-19）目標 consumer 為首頁「投資健康度」相關呈現（`dashboard-health-card`）；該區塊已由 **UR-TODO-063**（2026-08-15，PR #349）整塊自首頁移除，內容改由 `/tools/risk-center`、`/tools/portfolio-risk` 提供更完整呈現。
+  - 現行 Production 語意：「安全存量」用語已在現行 production modules 廣泛落地，取代舊「現金安全」語意，包括 `src/lib/householdLiquidity.ts`、`src/lib/aiDecision.ts`、`src/lib/homeDecision.ts`、`src/lib/riskMetrics.ts` 及既有風險／決策相關 UI。
+  - Closure reason：原 consumer（`dashboard-health-card`）已不存在；原產品語意已被後續 Household Liquidity／Risk／Decision capabilities 吸收；沒有可驗證的剩餘 acceptance criteria；不再保留「待 UI 接線」作為未完成工作。**歷史文件無法完整還原原始逐條驗收紀錄，故不宣稱原始所有 acceptance criteria 均逐條完成，closure reason 為 absorbed by subsequent Production capabilities / original consumer removed。**
+  - Known low-priority observation：`src/styles.css` 仍殘留 `.dashboard-health-card` dead CSS selector，無 runtime 影響，未建立獨立 Todo。
 
 ### UR-TODO-032 資產頁更新股價入口與手機下拉更新盤點
 - 優先級：P1
@@ -3205,7 +3221,15 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-014-A2 / UR-TODO-014 Final Closeout（CLOSED／Production Verified，2026-08-20）
+## 最新交接快照：Backlog Consistency Closeout — UR-TODO-031 / 054 / 069（純治理修正，2026-08-21）
+
+- 本次為 Review Mode 唯讀稽核後的純治理修正，branch `docs/ur-todo-031-054-069-governance-sync` 自 `origin/main` `aba31d1d9a69b2f2419f469edac0ed8480d9b766` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Ledger／attribution 程式碼**。
+- **UR-TODO-031（投資健康度安全存量命名與說明）正式 CLOSED。** Closure reason = absorbed by subsequent Production capabilities／original consumer removed：原目標 consumer 首頁「投資健康度」（`dashboard-health-card`）已由 UR-TODO-063（2026-08-15，PR #349）整塊移除；「安全存量」語意已在 `src/lib/householdLiquidity.ts`／`aiDecision.ts`／`homeDecision.ts`／`riskMetrics.ts` 等 production modules 廣泛落地。歷史文件無法完整還原原始逐條驗收紀錄，**不宣稱原始所有 acceptance criteria 均逐條完成**。已知低優先度 observation：`src/styles.css` 仍殘留 `.dashboard-health-card` dead CSS selector，無 runtime 影響，未建立獨立 Todo。
+- **UR-TODO-069 為純 status consistency correction，非新完成工作。** 其自身章節狀態欄位先前殘留「開發中／Draft PR 待驗收」，與既有頁首 2026-08-17 CLOSED／Production Verified 條目（PR #373，merge commit `23416db7e575cbbac38abb67f3b72d94d9d28d74`）不一致，已追平一致，本 Todo 無剩餘項目。
+- **UR-TODO-054 父項狀態欄位** 由「開發中」校正為「子項已全數決議／目前無 active 開發（Deferred／Non-Priority）」：054-A（Loan Confirmation UI，2026-08-14 CLOSED）、054-B（FX Confirmation UI，2026-08-15 CLOSED，Production Producer gate 維持 OFF 為獨立、另行授權的 ADR-010／ADR-013 rollout 決策、非 054-B 未完成）均已 CLOSED；054-C（Generic Split Confirmation UI）維持 2026-08-15 Contract Audit 結論「沒有可消費的真實 candidate／producer」，待規劃／NO-GO，**未重新開啟**。UR-TODO-055／056 狀態本次未變動。
+- 下一位 AI／使用者：**UR-TODO-031／054／069 三項本次已達最新正確狀態，不得再視為需要重新盤點的 stale item。UR-TODO-054（含 054-C／055／056）仍維持 Deferred／Non-Priority，不得因本次治理同步而誤讀為重新開放或下一 Sprint candidate。** UR-TODO-007（Household Liquidity Provenance Consumer Wiring）留待下一輪獨立 Contract Audit，本次未處理。
+
+## 前一交接快照：UR-TODO-014-A2 / UR-TODO-014 Final Closeout（CLOSED／Production Verified，2026-08-20）
 
 - 正式決策：**UR-TODO-014-A2 = CLOSED／Production Verified；整體 UR-TODO-014 = CLOSED／Production Verified。Remaining closure requirement = NONE。**
 - Merge facts：PR [#401](https://github.com/hyc640110/family-universal-rebalance/pull/401) final head `d49bb441e1592136a25b92adcc16c3380ac2c2ea` 已由 `hyc640110` 於 `2026-08-20T14:55:07Z` 以一般 2-parent merge commit `3311973cbffe4910bbcc18870c3f9e41c15e4159` 合併（parents `2e1399ffaa6b4c41564e5a0ac46dc49a289358c7`／`d49bb441e1592136a25b92adcc16c3380ac2c2ea`；未使用 admin override）。`origin/main` 現行正式基線：`3311973cbffe4910bbcc18870c3f9e41c15e4159`，與 merge commit 完全一致。
