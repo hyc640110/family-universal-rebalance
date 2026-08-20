@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-19T14:39:31.109713+00:00
+Generated UTC: 2026-08-20T11:29:19.107060+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `5290369be7653daf31d2722588418ac5af89604fb13f11c8dfc18e2475b9bb4b`
-- `008_TODO_BACKLOG.md` — SHA-256 `eaee688c106de132b35d65d8b3a657d3ce4db8a2857b4b0a6367fa48e7cf45ba`
-- `012_AI_HANDOVER.md` — SHA-256 `015d5471532587ecc402f2e20e775e86b223a0851b88fb706e866bf5dd657418`
+- `003_CURRENT_STATUS.md` — SHA-256 `4825d72acf2c508a39a3f765140062c3a3039390daab3ee26f537e1630071762`
+- `008_TODO_BACKLOG.md` — SHA-256 `f79eaa885dda7ed0e319da63561e75ffb60f2f81d56ee6cd7d36965ba534e54d`
+- `012_AI_HANDOVER.md` — SHA-256 `ddedbe81e9a6278d7e22854bde37481e54f746f5247b97e0b03182626f096ef3`
 
 ---
 
@@ -425,9 +425,13 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.34
+# Universal Rebalance Current Status v4.35
 
-最後更新：2026-08-19
+最後更新：2026-08-20
+
+**UR-TODO-014-A（CLEC Taiwan Reference Historical Validation）已 implemented／verified，pending Closeout Audit；尚未 Merge，`origin/main` 正式基線不變。** Development Mode 於獨立 Sprint branch `feat/ur-todo-014-a-reference-historical-validation`（自 `origin/main` `35bb19a758f886ae2de57fc55a1bc860c65c5798` 開出，該 SHA 與本文件既有記錄的 `e39f8489e95bc90cf37e46e060f8250ef04d0573` 之後、`35bb19a` 是同一 HEAD）完成：新增純資料準備 pipeline `scripts/clecTwReferenceDataset.ts`＋versioned offline fixture `tests/fixtures/clecTwReferenceV1.json`（`clec-tw-reference-v1`，SHA-256 `d9c049f2f5b4045244bfa0842eea41e878839d1dfad0a116f20bd0202f36f338`）＋ 15 項新測試 `npm run test:ur-todo-014-a`，重用既有 Production-verified `runClecHistoricalBacktest()`（未修改），對 442／433／703／5050 四組 CLEC preset 執行真實官方歷史資料驗證。Reference Validation Portfolio v1（明文標示 validation-only，非 CLEC canonical mapping／Production 預設組合／AppState role mapping／使用者持股 mapping／UR-TODO-058 契約）：prototype=0050、leveraged=00631L、cash-like=00865B；股價與配息資料唯一來源為 TWSE 官方 `STOCK_DAY_AVG`／`ETF 分配收益`，2025-06-02～2025-08-29（60 共同有效交易日）完整正規化 0050 官方 4:1 分割與除息（distribution-inclusive return）、獨立驗證 00631L 官方 22:1 分割證據（該分割發生於 window 之外，未納入主 backtest）。四組 preset 於此 3 個月 window 內 rebalanceCount 皆為 0（真實計算結果，未達 full_rebalance 門檻，非人為挑選）。`npm run test:ur-todo-014`（既有 11/11）、`test:ur-todo-014-a`（新增 15/15）、`test:ci`、`build` 全數通過。**UI 與 transaction-cost model 已依 2026-08-20 Review Mode Contract Audit 拍板移出 UR-TODO-014 closure requirement（CONDITIONAL）。UR-TODO-014-A 完成 ≠ UR-TODO-014 CLOSED；整體 Todo 仍 OPEN，待正式 Closeout Audit。** 詳見 `008_TODO_BACKLOG.md` UR-TODO-014 正式條目。
+
+---
 
 **UR-TODO-071（Holding Card Drag Reorder）已於 2026-08-19 正式 CLOSED／Production Verified。** PR [#397](https://github.com/hyc640110/family-universal-rebalance/pull/397) final head `78f44f5b0a55e50ff4c9d9fb845831dde3940649` 已由 `hyc640110` 於 2026-08-19T14:27:33Z 以一般 2-parent merge commit `e39f8489e95bc90cf37e46e060f8250ef04d0573` 合併（parents：`5d45ccd55a1bd3ef357edefe5d7369f0f29a4e0b`／`78f44f5b0a55e50ff4c9d9fb845831dde3940649`；未使用 admin override）；現行正式基線為 `origin/main` `e39f8489e95bc90cf37e46e060f8250ef04d0573`。PR required CI Verification run `32262092171` success；相同 head 的 Preview workflow_dispatch run `32262111201` success，使用者已完成該 head 的 iPhone Safari Round 2 人工驗收，結論 PASS（first→last／last→first 長距離拖曳、正常卡片區 scrolling 不誤觸、refresh 後 `holdingDisplayOrder` 正確保留、財務資料拖曳前後無異常、☰ 三橫線 handle 正確、Safari 無異常文字選取／長按選單）。Merge 後 main push 觸發之 Deploy GitHub Pages run `32264138787` success，head 與 merge commit 一致，regression gate、Production build、Pages deploy 均 success。Production 已唯讀確認：HTTP 200、bundle 已更新為 `index-DTD1MPZn.css`／`index-YNeFg2N5.js`、console 無錯誤，`#/assets` 頁面 4 張 holding cards 皆為單一 ☰ handle（`role` 為 `null`，非 menu 語意）、`.holding-order-button` 舊控制項數量為 0，Desktop 1280px 實測 ☰ 位於整列最右側、詳細按鈕在其左側，390px 無 horizontal overflow；驗證全程僅用唯讀 DOM 查詢，未拖曳／未用 keyboard 排序 Production 使用者實際持股、未寫入 Production localStorage。
 
@@ -3096,9 +3100,10 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ## P3－中長期投資功能
 
 ### UR-TODO-014 CLEC 規則本身之歷史回測
-- 狀態：**OPEN（Foundation completed／Production Verified，2026-08-18；整體 Todo 未結案）**
+- 狀態：**OPEN（Foundation completed／Production Verified，2026-08-18；014-A implemented／verified，2026-08-20，pending Draft PR review — 尚未 Merge；整體 Todo 仍未結案，未經正式 Closeout Audit，不得視為 CLOSED）**
+- 2026-08-20 **UR-TODO-014-A（CLEC Taiwan Reference Historical Validation）implemented／verified，pending Closeout Audit。** 於獨立 Sprint branch `feat/ur-todo-014-a-reference-historical-validation`（自 `origin/main` `35bb19a758f886ae2de57fc55a1bc860c65c5798` 開出）新增 `scripts/clecTwReferenceDataset.ts`（純資料準備 pipeline，非 runtime provider；不在 `src/lib` 是因為它使用 `node:crypto`，`tsc -b` 的 `src` build 只允許瀏覽器安全程式碼）＋ versioned offline fixture `tests/fixtures/clecTwReferenceV1.json`（`datasetId: clec-tw-reference-v1`）＋ `tests/clecTwReferenceHistoricalValidation.test.ts`（15 tests，`npm run test:ur-todo-014-a`，已納入 `test:ci`）。**Reference Validation Portfolio v1（validation-only，非 CLEC canonical mapping、非 Production 預設組合、非 AppState role mapping、非使用者目前持股 mapping、非 UR-TODO-058 契約）**：prototype=0050、leveraged=00631L、cash-like=00865B。歷史股價唯一來源為 TWSE 官方 `STOCK_DAY_AVG`（與既有 Production 00631L／00865B 昨收價驗證機制同一官方來源）；配息資料唯一來源為 TWSE 官方 `ETF 分配收益`（`rwd/zh/ETF/etfDiv`）；皆以唯讀瀏覽器逐字擷取原始 JSON，非 AI 摘要、非第三方 adjusted close。Validation window：2025-06-02～2025-08-29（daily，Asia/Taipei，60 個共同有效交易日、59 個 period），完整涵蓋並正規化 0050 官方 4:1 股票分割（2025-06-10 最後交易日收盤 188.65、2025-06-11～06-17 停止交易、2025-06-18 回復交易 47.57，split-adjust 後單日報酬僅 +0.86%，非人工製造的 ~-75% 假跌幅）與 0050 官方除息（2025-07-21 除息，每受益權單位 0.36 元，distribution-inclusive return 採 `(P_t+D_t)/P_previous-1`）；00631L 官方 22:1 股票分割（2026-03-24 收盤 443.15、22:1 換算官方參考價 20.14，2026-03-31 回復交易；因發生於本 dataset window 之外，以獨立官方數值對做 split-normalization regression evidence，未納入主要 backtest period）。00631L／00865B 全歷史（2010-01-01～2026-08-20 查詢範圍）官方配息紀錄皆為 0 筆，00865B 並與其「本基金收益不分配」正式基金契約條款交叉核對一致，無衝突。重用既有 Production-verified Foundation `runClecHistoricalBacktest()`（未修改該檔案、未建立第二套 442／433／703／5050 規則表）跑出四組 preset 的實際歷史驗證結果（initialCapital=1,000,000、threshold={drift:5, significantMultiplier:2}）：442 totalReturnPct=25.13%／maxDrawdownPct=3.84%／rebalanceCount=0；433 totalReturnPct=21.30%／maxDrawdownPct=3.19%／rebalanceCount=0；703 totalReturnPct=29.68%／maxDrawdownPct=4.57%／rebalanceCount=0；5050 totalReturnPct=22.01%／maxDrawdownPct=3.32%／rebalanceCount=0（此 3 個月 window 內四組 preset 皆未達 full_rebalance 門檻，為真實計算結果，非人為挑選）。`npm run test:ur-todo-014`（既有 11/11，未改動）、`npm run test:ur-todo-014-a`（新增 15/15）、`npm run test:ci`、`npm run build` 全數通過。Fixture SHA-256：`d9c049f2f5b4045244bfa0842eea41e878839d1dfad0a116f20bd0202f36f338`。無 UI、無 route、無 AppState、無 persistence、無 localStorage、無 JSON Backup schema、無 Financial Event Ledger、無 attribution、無 Production CLEC symbol mapping、無 Production Rebalance、無 Household Liquidity、無 historical Worker endpoint、無 runtime historical provider、與 UR-TODO-058 無耦合、無 transaction-cost／slippage／next-day execution model 變更。**尚未 Merge**：Draft PR 待建立／待使用者審查，本次治理同步僅記錄「已實作、已驗證、待 Closeout Audit」，UR-TODO-014 整體維持 OPEN，不因本輪自動關閉。
 - 2026-08-18 Foundation 完成：PR [#382](https://github.com/hyc640110/family-universal-rebalance/pull/382) final head `b0d37c3244eabf08bcb5ff60dae2dd0145033271` 已以一般 2-parent merge commit `4205e37b1583472e681dbb35d5db4ee8e580eb20` 合併（parents：`ec49099215847eb7242b3727ecb63f4ce423a717`／`b0d37c3244eabf08bcb5ff60dae2dd0145033271`；未使用 admin override）。PR CI Verification run `32090616289`、Preview workflow_dispatch run `32090745657`、merge 後 main Deploy GitHub Pages run `32091693042` 均 success；Production source 為該 merge commit，Production HTTP 200／metadata=`production`／asset namespace 正確。Foundation 新增純 `clecHistoricalBacktest` library：caller-supplied historical returns 採百分點、period 嚴格日期順序 propagation、frictionless、max drawdown 回傳正值跌幅、invalid input fail closed。Target weights 唯一來自 `deriveAllocationPresetPreview()`；full rebalance 唯一由 `deriveClecStrategyRule()` 且 `recommendedAction === 'full_rebalance'` 觸發；`rebalance_consider` 不交易。`test:ur-todo-014` 11/11 pass 並納入 `test:ci`。無 UI、App／route／AppState、localStorage、JSON Backup、schema、Financial Event Ledger、attribution、production rebalance engine、market provider 或 Worker coupling。
-- 明確保留後續決策：正式 historical data source、以真實歷史資料比較 442／433／703／5050、UI，以及 transaction-cost model；皆不得因本 Foundation 合併自動開始或視為已完成。
+- 明確保留後續決策：UI、transaction-cost model 已於 2026-08-20 Review Mode Contract Audit 拍板為可移出 UR-TODO-014 closure requirement（CONDITIONAL，需與正式 Closeout Audit 一併確認）；正式 historical data source 已於 014-A 完成（見上）。
 - 2026-08-16 範圍縮小重新描述（原名「CLEC 歷史驗證與回測」）：聚焦**CLEC 442／433／703／5050 規則本身**的歷史回測驗證，即假設歷史期間依 CLEC 規則實際觸發邏輯進行再平衡，驗證規則本身的歷史績效與觸發時機。
 - 明確不包含：與 UR-TODO-058（`/tools/investment-backtest`，特定 3 資產 0050／00631L／00865B、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線，避免混淆或重複開發。
 
@@ -3183,6 +3188,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-014-A CLEC Taiwan Reference Historical Validation（implemented／verified，pending Closeout Audit，2026-08-20）
+
+- 狀態：**Development Mode 已完成實作與驗證。UR-TODO-014-A ≠ UR-TODO-014 CLOSED。整體 UR-TODO-014 仍 OPEN，未經正式 Closeout Audit 不得標記 CLOSED。**
+- Branch：`feat/ur-todo-014-a-reference-historical-validation`，獨立 `git worktree`（`E:/2026_CodeX/worktrees/family-universal-rebalance-ur-todo-014-a-reference-historical-validation`），自 `origin/main` `35bb19a758f886ae2de57fc55a1bc860c65c5798` 開出。
+- 新增檔案：`scripts/clecTwReferenceDataset.ts`（純資料準備 pipeline：`deriveClecTwReferencePeriods()`／`runClecTwReferenceValidation()`／`computeDatasetHash()`；放在 `scripts/` 而非 `src/lib/` 是因為使用 `node:crypto`，`tsconfig.app.json` 的 `src` include 只允許瀏覽器安全程式碼，放 `src/lib` 會讓 `tsc -b` production build 失敗——已實測驗證此限制，未來若要新增類似資料準備模組請沿用 `scripts/` 慣例）、`tests/fixtures/clecTwReferenceV1.json`（versioned fixture，含完整 provenance）、`tests/clecTwReferenceHistoricalValidation.test.ts`（15 tests）。`package.json` 新增 `test:ur-todo-014-a` 並接入 `test:ci`。**未修改 `src/lib/clecHistoricalBacktest.ts`（既有 Foundation 原封不動重用）。**
+- Reference Validation Portfolio v1（明文 validation-only，非 CLEC canonical／非 Production 預設／非 AppState role mapping／非使用者持股／非 UR-TODO-058）：prototype=0050、leveraged=00631L、cash-like=00865B。
+- 官方資料來源與存取方式：TWSE `STOCK_DAY_AVG`（股價，`https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG?response=json&stockNo={symbol}&date={YYYYMM01}`）與 TWSE `ETF 分配收益`（配息，`https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo={symbol}&startDate={YYYYMMDD}&endDate={YYYYMMDD}&response=json`）。兩者皆透過 Browser pane 唯讀 `navigate`＋`get_page_text` 逐字取得原始 JSON（非 AI 摘要、非第三方 adjusted close）；本機 shell `curl` 在此環境無法連外網，Browser pane 工具可連通，此為本輪解除上一輪 STOP 狀態的關鍵技術路徑，供未來類似歷史資料取得任務參考。
+- Validation window：2025-06-02～2025-08-29，daily，Asia/Taipei，60 個共同有效交易日、59 個 period。0050 官方 4:1 分割（last trading day 2025-06-10 收盤 188.65、suspension 2025-06-11～06-17、resumed 2025-06-18 收盤 47.57）已 split-adjust 正規化，2025-06-18 period return 僅 +0.86%（非人工製造的巨大單日跌幅）。0050 官方除息（2025-07-21，每受益權單位 0.36 元）採 distribution-inclusive return `(P_t+D_t)/P_previous-1`。00631L 官方 22:1 分割（2026-03-24 收盤 443.15、22:1 換算官方參考價 20.14、2026-03-31 回復交易）發生於本 dataset window 之外，未納入主 backtest periods，改以官方數值對做獨立 split-normalization regression evidence。00631L／00865B 全歷史（2010-01-01～2026-08-20 查詢範圍）官方配息紀錄皆為 0 筆；00865B 並與其正式基金契約「本基金收益不分配」條款交叉核對一致，無衝突，00631L 亦無衝突。
+- 四組 CLEC preset 實際驗證結果（initialCapital=1,000,000、threshold={drift:5, significantMultiplier:2}）：442 totalReturnPct=25.13%／maxDrawdownPct=3.84%／rebalanceCount=0；433 totalReturnPct=21.30%／maxDrawdownPct=3.19%／rebalanceCount=0；703 totalReturnPct=29.68%／maxDrawdownPct=4.57%／rebalanceCount=0；5050 totalReturnPct=22.01%／maxDrawdownPct=3.32%／rebalanceCount=0。**四組 preset 於此 3 個月 window 內皆未觸發 full_rebalance，這是真實計算結果，不是人為篩選或期待值——未來若延長 validation window，這些數字預期會改變，屆時應重新執行 pipeline 而非手動修改測試期望值。**
+- Fixture SHA-256：`d9c049f2f5b4045244bfa0842eea41e878839d1dfad0a116f20bd0202f36f338`（`computeDatasetHash()` 對 `tests/fixtures/clecTwReferenceV1.json` 原始檔案位元組計算，非對物件做 canonical JSON stringify）。
+- 驗證結果：`npm run test:ur-todo-014`（既有 11/11，未改動）、`npm run test:ur-todo-014-a`（新增 15/15）、`npm run test:ci`（全數 pass）、`npm run build`（`tsc -b` 與 `vite build` 皆成功）。本輪 build 產生的本機 `dist/` 已用 `git checkout -- dist/` 還原，未污染 working tree。
+- 明確不包含（本輪 Scope Guard，未觸碰）：UI、route、AppState、persistence、localStorage、JSON Backup schema、Financial Event Ledger、attribution、Production CLEC symbol mapping、Production Rebalance、Household Liquidity、historical Worker endpoint、runtime historical provider、UR-TODO-058、transaction-cost／slippage／next-day execution model。
+- 下一位 AI／使用者：若要繼續，下一步是 Commit → Push → 建立 Draft PR（不得 Ready for Review／Merge／Deploy，除非使用者另行明確授權）。若要延長 validation window 或新增其他 corporate action，必須重新執行 `scripts/clecTwReferenceDataset.ts` 的資料準備 pipeline 產生新 fixture 版本並重新鎖定測試期望值，不得手動編輯 `tests/fixtures/clecTwReferenceV1.json` 內的計算結果。UR-TODO-014 整體收斂為 CLOSED 前，仍需使用者／ChatGPT 另行完成正式 Closeout Audit。
 
 ## 最新交接快照：UR-TODO-071 Governance Closeout（CLOSED／Production Verified，2026-08-19）
 

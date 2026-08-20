@@ -1,0 +1,135 @@
+{
+  "datasetId": "clec-tw-reference-v1",
+  "datasetVersion": "1.0.0",
+  "preparedAt": "2026-08-20T00:00:00.000Z",
+  "startDate": "2025-06-02",
+  "endDate": "2025-08-29",
+  "frequency": "daily",
+  "timezone": "Asia/Taipei",
+  "priceBasis": "official market closing price (TWSE STOCK_DAY_AVG)",
+  "returnSemantics": "simple close-to-close return, percentage points; split-adjusted for pre-split 0050 prices; distribution-inclusive on 0050's official ex-dividend date only (cash-distribution-inclusive investor return, (P_t + D_t) / P_previous - 1)",
+  "executionAssumption": "same-period-close decision + frictionless close execution. This is a validation assumption reused from the existing clecHistoricalBacktest.ts Foundation; it is not a real, tradable execution model.",
+  "missingDataPolicy": "fail-closed; no interpolation, no forward-fill, no synthetic price. A date is only a valid common period if all three reference symbols have an official TWSE closing price for that date.",
+  "referencePortfolio": {
+    "prototype": "0050",
+    "leveraged": "00631L",
+    "cash-like": "00865B"
+  },
+  "mappingSemantics": "validation-only. This mapping is the UR-TODO-014 historical validation reference portfolio ONLY. It is NOT the CLEC canonical symbol mapping, NOT a Production default portfolio, NOT an AppState role mapping, NOT the user's current holdings mapping, and NOT the UR-TODO-058 (three-strategy comparison) contract.",
+  "provenance": {
+    "priceSource": {
+      "name": "TWSE STOCK_DAY_AVG",
+      "endpointTemplate": "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG?response=json&stockNo={symbol}&date={YYYYMM01}",
+      "retrievedVia": "read-only browser fetch of the official TWSE OpenAPI JSON endpoint (raw JSON text, not AI-summarized)",
+      "retrievedAt": "2026-08-20T00:00:00.000Z",
+      "notes": "Same official TWSE per-symbol daily closing price API already used in this repository's Production 00631L/00865B previous-close verification (see README.md 台股盤後 Yahoo API 昨收價防呆機制說明)."
+    },
+    "distributionSource": {
+      "name": "TWSE ETF 分配收益 (ETF Distribution List)",
+      "endpoint": "https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo={symbol}&startDate={YYYYMMDD}&endDate={YYYYMMDD}&response=json",
+      "retrievedVia": "read-only browser fetch of the official TWSE OpenAPI JSON endpoint (raw JSON text)",
+      "retrievedAt": "2026-08-20T00:00:00.000Z"
+    },
+    "corporateActions": {
+      "0050": {
+        "split": {
+          "ratio": "4:1",
+          "lastTradingDayPreSplit": "2025-06-10",
+          "lastTradingDayPreSplitOfficialClose": 188.65,
+          "suspensionStart": "2025-06-11",
+          "suspensionEnd": "2025-06-17",
+          "resumedTradingDay": "2025-06-18",
+          "resumedTradingDayOfficialClose": 47.57,
+          "evidence": "TWSE STOCK_DAY_AVG for 0050 shows the last close of 188.65 on 2025-06-10, no rows for 2025-06-11 through 2025-06-17, and resumed trading at 47.57 on 2025-06-18 (188.65 / 4 = 47.1625, consistent with a 4:1 split reference basis; the small remaining gap to the actual 47.57 close reflects normal first-day post-split trading, not a data error)."
+        },
+        "distributions": [
+          { "exDividendDate": "2024-01-17", "recordDate": "2024-01-23", "paymentDate": "2024-02-21", "amountPerUnit": 3.0 },
+          { "exDividendDate": "2024-07-16", "recordDate": "2024-07-22", "paymentDate": "2024-08-09", "amountPerUnit": 1.0 },
+          { "exDividendDate": "2025-01-17", "recordDate": "2025-01-25", "paymentDate": "2025-02-20", "amountPerUnit": 2.7 },
+          { "exDividendDate": "2025-07-21", "recordDate": "2025-07-27", "paymentDate": "2025-08-08", "amountPerUnit": 0.36 },
+          { "exDividendDate": "2026-01-22", "recordDate": "2026-01-28", "paymentDate": "2026-02-11", "amountPerUnit": 1.0 },
+          { "exDividendDate": "2026-07-21", "recordDate": "2026-07-27", "paymentDate": "2026-08-10", "amountPerUnit": 0.6 }
+        ],
+        "distributionsAppliedInThisDataset": [
+          { "exDividendDate": "2025-07-21", "amountPerUnit": 0.36, "reason": "Only in-window (2025-06-02 ~ 2025-08-29) official ex-dividend date for 0050." }
+        ],
+        "note": "Full official distribution list (2024-01-17 through 2026-07-21) retrieved from TWSE ETF 分配收益 for stkNo=0050 (6 records total, 2010-01-01~2026-08-20 startDate/endDate query window; earliest record returned by TWSE for this query range was 2024-01-17). Only the 2025-07-21 record falls inside this dataset's validation window and is applied."
+      },
+      "00631L": {
+        "split": {
+          "ratio": "22:1",
+          "lastTradingDayPreSplit": "2026-03-24",
+          "lastTradingDayPreSplitOfficialClose": 443.15,
+          "suspensionStart": "2026-03-25",
+          "suspensionEnd": "2026-03-30",
+          "resumedTradingDay": "2026-03-31",
+          "resumedTradingDayOfficialClose": 19.26,
+          "officialReferencePriceOnResume": 20.14,
+          "evidence": "TWSE STOCK_DAY_AVG for 00631L shows the last close of 443.15 on 2026-03-24, no rows for 2026-03-25 through 2026-03-30, and resumed trading at an actual close of 19.26 on 2026-03-31. 443.15 / 22 = 20.1432 (rounds to 20.14), which is the officially reported post-split reference/base price for the resumption day; the 19.26 actual close is where trading settled that day within the reference-price-anchored limit-up/down band. Both values are officially sourced from TWSE; they are not in conflict — reference price and closing price are two distinct, both-legitimate TWSE fields.",
+          "usedForNormalization": "This dataset's validation window (2025-06-02 ~ 2025-08-29) does not include 2026-03, so this split is NOT embedded in the main backtest periods. It is validated as a standalone split-normalization regression using this officially-sourced price pair, per the test list in tests/clecTwReferenceHistoricalValidation.test.ts."
+        },
+        "distributions": [],
+        "distributionQueryWindow": { "startDate": "2010-01-01", "endDate": "2026-08-20" },
+        "note": "TWSE ETF 分配收益 for stkNo=00631L returned zero rows across the full queried history (2010-01-01 ~ 2026-08-20). Preserved as a 'zero official distribution records' provenance fact, not an omission."
+      },
+      "00865B": {
+        "distributions": [],
+        "distributionQueryWindow": { "startDate": "2010-01-01", "endDate": "2026-08-20" },
+        "fundContractPolicy": "本基金收益不分配 (fund contract: income is not distributed).",
+        "crossCheck": "TWSE ETF 分配收益 for stkNo=00865B returned zero rows across the full queried history (2010-01-01 ~ 2026-08-20), consistent with (not conflicting with) the fund contract's no-distribution policy. No cash-distribution adjustment is applied to 00865B in this dataset."
+      }
+    }
+  },
+  "rawPrices": {
+    "0050": [
+      ["2025-06-02", 175.90], ["2025-06-03", 177.15], ["2025-06-04", 181.30], ["2025-06-05", 181.65], ["2025-06-06", 181.95],
+      ["2025-06-09", 183.70], ["2025-06-10", 188.65],
+      ["2025-06-18", 47.57], ["2025-06-19", 47.10], ["2025-06-20", 47.03], ["2025-06-23", 46.64], ["2025-06-24", 47.49],
+      ["2025-06-25", 48.18], ["2025-06-26", 48.24], ["2025-06-27", 48.29], ["2025-06-30", 48.36],
+      ["2025-07-01", 48.64], ["2025-07-02", 48.65], ["2025-07-03", 49.32], ["2025-07-04", 48.86], ["2025-07-07", 48.57],
+      ["2025-07-08", 48.35], ["2025-07-09", 48.85], ["2025-07-10", 49.41], ["2025-07-11", 49.62], ["2025-07-14", 49.33],
+      ["2025-07-15", 50.00], ["2025-07-16", 50.40], ["2025-07-17", 50.70], ["2025-07-18", 51.45], ["2025-07-21", 50.90],
+      ["2025-07-22", 50.55], ["2025-07-23", 50.70], ["2025-07-24", 51.00], ["2025-07-25", 50.90], ["2025-07-28", 51.05],
+      ["2025-07-29", 50.45], ["2025-07-30", 51.00], ["2025-07-31", 51.55],
+      ["2025-08-01", 51.10], ["2025-08-04", 50.80], ["2025-08-05", 51.45], ["2025-08-06", 51.00], ["2025-08-07", 52.45],
+      ["2025-08-08", 52.45], ["2025-08-11", 52.85], ["2025-08-12", 52.90], ["2025-08-13", 53.35], ["2025-08-14", 53.15],
+      ["2025-08-15", 53.15], ["2025-08-18", 53.30], ["2025-08-19", 53.20], ["2025-08-20", 51.70], ["2025-08-21", 52.00],
+      ["2025-08-22", 51.75], ["2025-08-25", 52.70], ["2025-08-26", 52.75], ["2025-08-27", 53.00], ["2025-08-28", 52.50],
+      ["2025-08-29", 52.50]
+    ],
+    "00631L": [
+      ["2025-06-02", 183.70], ["2025-06-03", 186.15], ["2025-06-04", 195.70], ["2025-06-05", 196.00], ["2025-06-06", 196.70],
+      ["2025-06-09", 199.10], ["2025-06-10", 206.80], ["2025-06-11", 210.60], ["2025-06-12", 209.00], ["2025-06-13", 204.15],
+      ["2025-06-16", 205.25], ["2025-06-17", 206.50], ["2025-06-18", 209.50], ["2025-06-19", 205.10], ["2025-06-20", 203.90],
+      ["2025-06-23", 200.50], ["2025-06-24", 209.30], ["2025-06-25", 213.75], ["2025-06-26", 212.70], ["2025-06-27", 212.20],
+      ["2025-06-30", 213.50],
+      ["2025-07-01", 217.55], ["2025-07-02", 217.90], ["2025-07-03", 223.95], ["2025-07-04", 219.20], ["2025-07-07", 216.35],
+      ["2025-07-08", 214.85], ["2025-07-09", 218.90], ["2025-07-10", 221.65], ["2025-07-11", 224.80], ["2025-07-14", 220.75],
+      ["2025-07-15", 226.70], ["2025-07-16", 230.65], ["2025-07-17", 234.25], ["2025-07-18", 238.85], ["2025-07-21", 237.40],
+      ["2025-07-22", 232.95], ["2025-07-23", 236.85], ["2025-07-24", 239.65], ["2025-07-25", 238.20], ["2025-07-28", 240.60],
+      ["2025-07-29", 235.60], ["2025-07-30", 240.10], ["2025-07-31", 245.20],
+      ["2025-08-01", 240.90], ["2025-08-04", 238.85], ["2025-08-05", 244.65], ["2025-08-06", 241.10], ["2025-08-07", 253.20],
+      ["2025-08-08", 252.70], ["2025-08-11", 256.75], ["2025-08-12", 257.30], ["2025-08-13", 260.25], ["2025-08-14", 259.30],
+      ["2025-08-15", 259.95], ["2025-08-18", 262.85], ["2025-08-19", 260.30], ["2025-08-20", 246.65], ["2025-08-21", 251.10],
+      ["2025-08-22", 248.90], ["2025-08-25", 259.10], ["2025-08-26", 258.95], ["2025-08-27", 263.90], ["2025-08-28", 259.40],
+      ["2025-08-29", 259.35]
+    ],
+    "00865B": [
+      ["2025-06-02", 44.01], ["2025-06-03", 43.99], ["2025-06-04", 44.02], ["2025-06-05", 43.88], ["2025-06-06", 43.86],
+      ["2025-06-09", 43.98], ["2025-06-10", 43.94], ["2025-06-11", 43.91], ["2025-06-12", 43.62], ["2025-06-13", 43.51],
+      ["2025-06-16", 43.44], ["2025-06-17", 43.35], ["2025-06-18", 43.37], ["2025-06-19", 43.43], ["2025-06-20", 43.48],
+      ["2025-06-23", 43.66], ["2025-06-24", 43.46], ["2025-06-25", 43.29], ["2025-06-26", 42.99], ["2025-06-27", 44.00],
+      ["2025-06-30", 43.00],
+      ["2025-07-01", 43.01], ["2025-07-02", 42.88], ["2025-07-03", 42.60], ["2025-07-04", 42.64], ["2025-07-07", 42.73],
+      ["2025-07-08", 42.78], ["2025-07-09", 42.85], ["2025-07-10", 43.02], ["2025-07-11", 43.06], ["2025-07-14", 43.07],
+      ["2025-07-15", 43.22], ["2025-07-16", 43.25], ["2025-07-17", 43.35], ["2025-07-18", 43.34], ["2025-07-21", 43.40],
+      ["2025-07-22", 43.35], ["2025-07-23", 43.24], ["2025-07-24", 43.21], ["2025-07-25", 43.36], ["2025-07-28", 43.50],
+      ["2025-07-29", 43.82], ["2025-07-30", 43.85], ["2025-07-31", 44.19],
+      ["2025-08-01", 44.35], ["2025-08-04", 44.24], ["2025-08-05", 44.26], ["2025-08-06", 44.28], ["2025-08-07", 44.13],
+      ["2025-08-08", 44.15], ["2025-08-11", 44.21], ["2025-08-12", 44.30], ["2025-08-13", 44.38], ["2025-08-14", 44.30],
+      ["2025-08-15", 44.45], ["2025-08-18", 44.41], ["2025-08-19", 44.47], ["2025-08-20", 44.73], ["2025-08-21", 45.07],
+      ["2025-08-22", 45.25], ["2025-08-25", 45.04], ["2025-08-26", 45.10], ["2025-08-27", 45.25], ["2025-08-28", 45.21],
+      ["2025-08-29", 45.26]
+    ]
+  }
+}
