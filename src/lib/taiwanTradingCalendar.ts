@@ -4,10 +4,16 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 // Source: TWSE annual market holiday schedules. Keep the supported years explicit:
 // an uncovered year must never be treated as a normal trading day by default.
+// UR-TODO-014-A2 2025 completeness correction: 2025-09-29 and 2025-10-24 were added per the
+// government's official 2025 makeup-holiday schedule (both are compensatory non-trading days for
+// a holiday that fell on a weekend, not the holiday's own calendar date):
+//   - 2025-09-29 (Mon): 孔子誕辰紀念日／教師節 falls on 2025-09-28 (Sun); makeup day observed 2025-09-29.
+//   - 2025-10-24 (Fri): 臺灣光復暨金門古寧頭大捷紀念日 falls on 2025-10-25 (Sat); makeup day observed 2025-10-24.
 const CLOSED_DATES_BY_YEAR: Record<number, readonly string[]> = {
   2025: [
     '2025-01-01', '2025-01-23', '2025-01-24', '2025-01-27', '2025-01-28', '2025-01-29', '2025-01-30', '2025-01-31',
-    '2025-02-28', '2025-04-03', '2025-04-04', '2025-05-01', '2025-05-30', '2025-10-06', '2025-10-10', '2025-12-25',
+    '2025-02-28', '2025-04-03', '2025-04-04', '2025-05-01', '2025-05-30', '2025-09-29', '2025-10-06', '2025-10-10',
+    '2025-10-24', '2025-12-25',
   ],
   2026: [
     '2026-01-01', '2026-02-12', '2026-02-13', '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20',

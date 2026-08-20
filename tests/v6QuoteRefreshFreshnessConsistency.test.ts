@@ -14,6 +14,20 @@ test('calendar has explicit multiple-year coverage and rejects dates outside it'
   assert.equal(taiwanTradingCalendarStatus('2027-01-02'), 'unavailable');
 });
 
+// UR-TODO-014-A2: 2025 completeness correction. 2025-09-29 (Confucius'/Teachers' Day makeup, since
+// 2025-09-28 falls on a Sunday) and 2025-10-24 (Taiwan Retrocession Day makeup, since 2025-10-25
+// falls on a Saturday) are official government-designated non-trading makeup days, confirmed
+// against TWSE STOCK_DAY_AVG returning no row for any of the three UR-TODO-014-A reference symbols
+// (0050 / 00631L / 00865B) on either date.
+test('2025 makeup-holiday completeness: 2025-09-29 and 2025-10-24 are closed; adjacent trading days unaffected', () => {
+  assert.equal(taiwanTradingCalendarStatus('2025-09-29'), 'closed');
+  assert.equal(taiwanTradingCalendarStatus('2025-10-24'), 'closed');
+  assert.equal(taiwanTradingCalendarStatus('2025-09-26'), 'trading');
+  assert.equal(taiwanTradingCalendarStatus('2025-09-30'), 'trading');
+  assert.equal(taiwanTradingCalendarStatus('2025-10-23'), 'trading');
+  assert.equal(taiwanTradingCalendarStatus('2025-10-27'), 'trading');
+});
+
 test('newer market quotes replace older quotes while late older responses cannot overwrite them', () => {
   const older = quote({ price: 100, quoteTime: '13:20:00' });
   const newer = quote({ price: 102, quoteTime: '13:30:00' });
