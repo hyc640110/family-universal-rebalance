@@ -1,6 +1,16 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：Backlog Consistency Closeout — UR-TODO-031 / 054 / 069（純治理修正，2026-08-21）
+## 最新交接快照：UR-TODO-007 Final Closeout Governance Sync（CLOSED，2026-08-21，不宣稱 Production Verified）
+
+- 本次為 Review Mode Consumer Contract Audit 後的純治理修正，branch `docs/ur-todo-007-final-closeout` 自 `origin/main` `2a50e8fb784a2c071e833dc6fb315a11c9f07325` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
+- **正式決策：UR-TODO-007 = CLOSED。Remaining correctness gap = NONE。Production Verified = 本次不宣稱。**
+- Closure reason：Foundation and provenance semantics completed; downstream consumer integration was subsequently completed through UR-TODO-008／UR-TODO-009／UR-TODO-010 using Household Liquidity SSOT derived outputs. Direct downstream reads of raw `liquidityRole`／`linkedLoanId` are intentionally prohibited to preserve the single-source-of-truth architecture.
+- Evidence 摘要：`liquidityRole`／`linkedLoanId` 已透過 `src/lib/householdLiquidityInputAdapter.ts` 的 `cashFlowRole()` 進入 `deriveHouseholdLiquidity()` SSOT；Rebalance（UR-TODO-008，PR #116/#118/#120/#122/#124）、Risk／AI／Home Decision（UR-TODO-009，PR #137/#143/#145）、CLEC／Simulator（UR-TODO-010，PR #150/#152/#154/#156/#157）均已透過 SSOT 衍生值正確接線；經 grep 驗證 `rebalanceOrderHelper.ts`／`rebalanceRecommendation.ts`／`riskMetrics.ts`／`aiDecision.ts`／`homeDecision.ts`／`clecStrategyRules.ts`／Simulator 相關檔案對 raw provenance 欄位零直接讀取。2026-07-28 mini-sprint（PR #167／#169／#171）補齊 diagnostics（`ORPHAN_LOAN_LINK`／`DUPLICATE_LOAN_LINK`／`DEBT_PAYMENT_AMBIGUOUS`）與 Producer UI（`CashFlowPage.tsx`）。Plan Input UI Entry Point 殘餘已由 UR-TODO-036（2026-08-01 已完成）解決。
+- **正式 architecture boundary（新規則，適用於所有未來 AI／使用者）**：不得為了「補完 UR-TODO-007」讓 Rebalance／Risk／AI／CLEC／Simulator 直接讀取 raw `liquidityRole`／`linkedLoanId`；直接讀取會建立與 adapter 平行、可能互相矛盾的第二套分類路徑。任何新的 provenance 使用情境（例如需要以 loan ID 查詢金額的新 consumer）必須另立獨立 Contract Audit，不得沿用本次結案自動授權。
+- **2026-07-28 歷史 walkthrough 記錄（下方「家庭流動性資料關聯與診斷子 PR」相關舊快照）**：其記載的「三頁代表性 diagnostics 資料 Production 互動驗收」待盤點紀錄**予以保留、不改寫**，僅為歷史驗收 observation，**不構成 UR-TODO-007 correctness reopening**。此後未見正式後續驗收證據追記，因此本次 UR-TODO-007 結案**不宣稱 Production Verified**。未來若要補驗，應獨立進行 Review／Contract Audit，且不得因此讓任何 downstream module 直接讀取 raw provenance。
+- 下一位 AI／使用者：**UR-TODO-007 已達最終治理狀態，不得再視為待開發或待接線項目，也不得因「零 consumer」舊描述已被修正就誤讀為需要新增直接 provenance consumer。** UR-TODO-031／054／069（見下方交接快照）與 UR-TODO-007 三輪治理修正皆已完成，目前無已知的 stale governance status 待處理。
+
+## 前一交接快照：Backlog Consistency Closeout — UR-TODO-031 / 054 / 069（純治理修正，2026-08-21）
 
 - 本次為 Review Mode 唯讀稽核後的純治理修正，branch `docs/ur-todo-031-054-069-governance-sync` 自 `origin/main` `aba31d1d9a69b2f2419f469edac0ed8480d9b766` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Ledger／attribution 程式碼**。
 - **UR-TODO-031（投資健康度安全存量命名與說明）正式 CLOSED。** Closure reason = absorbed by subsequent Production capabilities／original consumer removed：原目標 consumer 首頁「投資健康度」（`dashboard-health-card`）已由 UR-TODO-063（2026-08-15，PR #349）整塊移除；「安全存量」語意已在 `src/lib/householdLiquidity.ts`／`aiDecision.ts`／`homeDecision.ts`／`riskMetrics.ts` 等 production modules 廣泛落地。歷史文件無法完整還原原始逐條驗收紀錄，**不宣稱原始所有 acceptance criteria 均逐條完成**。已知低優先度 observation：`src/styles.css` 仍殘留 `.dashboard-health-card` dead CSS selector，無 runtime 影響，未建立獨立 Todo。
