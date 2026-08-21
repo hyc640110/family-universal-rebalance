@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-21T15:03:08.583249+00:00
+Generated UTC: 2026-08-21T15:22:17.208317+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `e87d0d8a4ae7645623e5d3448abcd2c1be3b84f03798f3dafee5cc98359b1a67`
-- `008_TODO_BACKLOG.md` — SHA-256 `64c5bc2e4428a68513e5fc26152d36c78d24c48bf9826cc2a0d8eb59001963a1`
-- `012_AI_HANDOVER.md` — SHA-256 `16e72c7280940f292f6960059fa7838490de7aaa94bd51d2e71722f67c51121a`
+- `003_CURRENT_STATUS.md` — SHA-256 `b7022be74a749ba56258f55dd7dcc14ee3caf1513b55bd85213f87543968eeb2`
+- `008_TODO_BACKLOG.md` — SHA-256 `eb618ed19c93e5f1f8bf10ff3f730b25954693238f9466976b3d5ab9fd657c45`
+- `012_AI_HANDOVER.md` — SHA-256 `007fdc54a936563affcf6ee9a9db14d286080b7a03b42b7be1eb79ba5ef4a9e7`
 
 ---
 
@@ -425,11 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.42
+# Universal Rebalance Current Status v4.43
 
 最後更新：2026-08-21
 
-**UR-TODO-072 Holding Card Detail Modal/Sheet 開發完成，PR Draft 待驗收（2026-08-21）。** Maintenance Mode 生效後第一個由真實 iPhone Production UX friction 觸發的 Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 sheet）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／persistence／`holdingDisplayOrder`／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均 0 diff。Preview 測試發現並修正焦點還原造成頁面跳動的缺陷（改用 `focus({ preventScroll: true })`）。新增 19 tests（`test:ci` 已納入 `test:ur-todo-072`），`tsc -b`／`build`／`git diff --check` 皆通過；`test:ur-todo-070`／`071` 重新執行無回歸。**PR 為 Draft，待使用者 iPhone Safari 真機驗收後才可 Ready／Merge，AI 未自行 Merge。** 詳見 `008_TODO_BACKLOG.md` UR-TODO-072 正式條目。
+**UR-TODO-072 Holding Card Detail Modal/Sheet 已正式 CLOSED／Production Verified（2026-08-21）。** PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `5e939433c272d87f2a794554f9ec1373a50d4bf3`。PR CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success，同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成 **iPhone Safari 真機人工驗收，結論 PASS**；merge 後 main Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致。Production 已唯讀確認 HTTP 200、`environment=github-pages`、deployment sha 一致、持股卡片維持 compact 版面、`.holding-editor` inline 展開區塊零殘留、「詳細」入口正確開啟對應 Dialog、console 無錯誤，驗證全程未寫入任何 Production 使用者資料。Maintenance Mode 生效後第一個由真實 iPhone Production UX friction 觸發的 Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 sheet）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／persistence／`holdingDisplayOrder`／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均 0 diff。Preview 測試發現並修正焦點還原造成頁面跳動的缺陷（改用 `focus({ preventScroll: true })`）。新增 19 tests（`test:ci` 已納入 `test:ur-todo-072`）；`test:ur-todo-070`／`071` 重新執行無回歸。詳見 `008_TODO_BACKLOG.md` UR-TODO-072 正式條目。
 
 **Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21，純治理修正，無 production code 變更）。** Review Mode 完整掃描最新版 `008_TODO_BACKLOG.md` 剩餘所有非 CLOSED 項目後確認：**ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發，因此**沒有值得立即啟動的新 Feature Sprint**。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：
 
@@ -1252,11 +1252,13 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v2.1
+# Universal Rebalance Todo Backlog v2.2
 
 最後更新：2026-08-21
 
-2026-08-21 **新增 UR-TODO-072（Holding Card Detail Modal/Sheet），狀態：開發完成／PR Draft 待驗收。** Maintenance / Real-Use-Case Driven Mode 生效後第一個由真實 iPhone Production 使用 UX friction 觸發的 Sprint（見同日稍早條目）：持股卡片「詳細」按鈕原地 inline 展開大量編輯欄位、推長頁面、增加捲動負擔，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet，同一元件純 CSS 切換）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，未建立第二套資料更新邏輯；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 手動測試發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時若用純 `.focus()` 會把觸發按鈕捲入可視範圍、造成頁面跳動，已改用 `.focus({ preventScroll: true })` 修正。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`npx tsc -b`／`npm run build`／`git diff --check` 全數通過；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。**PR 尚為 Draft，未經使用者 iPhone Safari 真機驗收與明確授權，不得 Merge。**
+2026-08-21 **UR-TODO-072（Holding Card Detail Modal/Sheet）正式 CLOSED／Production Verified。** PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `5e939433c272d87f2a794554f9ec1373a50d4bf3`。PR required CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success，同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成 **iPhone Safari 真機人工驗收，結論 PASS**；merge 後 main Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致，Production 已唯讀確認 HTTP 200、`environment=github-pages`、deployment sha 一致、持股卡片維持 compact、「詳細」入口正確開啟對應 Dialog，console 無錯誤，未寫入任何 Production 使用者資料。持股卡片「詳細」由 inline 展開改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet），完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 階段發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時純 `.focus()` 會把觸發按鈕捲入可視範圍造成頁面跳動，已改用 `.focus({ preventScroll: true })`。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。
+
+2026-08-21（歷史記錄，已由上方 CLOSED／Production Verified 條目取代）**新增 UR-TODO-072（Holding Card Detail Modal/Sheet），狀態：開發完成／PR Draft 待驗收。** Maintenance / Real-Use-Case Driven Mode 生效後第一個由真實 iPhone Production 使用 UX friction 觸發的 Sprint（見同日稍早條目）：持股卡片「詳細」按鈕原地 inline 展開大量編輯欄位、推長頁面、增加捲動負擔，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet，同一元件純 CSS 切換）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，未建立第二套資料更新邏輯；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 手動測試發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時若用純 `.focus()` 會把觸發按鈕捲入可視範圍、造成頁面跳動，已改用 `.focus({ preventScroll: true })` 修正。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`npx tsc -b`／`npm run build`／`git diff --check` 全數通過；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。**PR 尚為 Draft，未經使用者 iPhone Safari 真機驗收與明確授權，不得 Merge。**
 
 2026-08-21 **Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode 生效。** Review Mode 完整掃描最新版剩餘所有非 CLOSED Backlog（`docs/maintenance-mode-backlog-closeout` branch），確認 **ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發四項條件。逐項校正措辭為明確現況分類（不再使用模糊的「待開發」）：**UR-TODO-012**（Rebalance Scenario Simulator）DEFERRED／LOW PRIORITY；**UR-TODO-015**（股票質押／LTV）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-017**（股息預估模型）OPEN／DEFERRED／CURRENT PRODUCT NON-GOAL（與 `DividendCenterPage` 既有明文聲明「不提供未來收益預估」一致）；**UR-TODO-018／019**（全球指數／經濟事件資料來源）OPEN／NEEDS CONTRACT AUDIT／DATA SOURCE DECISION／NOT ACTIVE（架構已完整設計並對齊，純缺一個資料來源授權決策，無任何頁面因此降級）；**UR-TODO-020**（Gmail 通知解析）OPEN／DEFERRED／NEEDS REAL USE CASE（OAuth broker foundation 存在但已主動下架，不採 sunk-cost reasoning）；**UR-TODO-024**（多家庭成員）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-025**（保險保單追蹤）OPEN／DEFERRED／DEPENDS ON REAL HOUSEHOLD USE CASE；**UR-TODO-054（父項）**CLOSED AS UMBRELLA／FOLLOW-UPS RESOLVED（明確澄清不代表 054-C 已完成，054-C 本身維持 DEFERRED／NO-GO／NEEDS REAL CONSUMER）；**UR-TODO-055／056** 措辭強化為 DEFERRED／NO-GO／NON-PRIORITY。每項均附正式 REOPEN TRIGGER。同時完成 `019_Idea_Pool.md` IDEA-001 正式評估（見該文件），`002_MASTER_ROADMAP.md` 確認無誤導性內容、本次未修改。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：新 Development Sprint 須由 Production bug／correctness regression、真實使用 UX friction、財務安全／風險控制缺口、既有資料或流程無法完成真實工作、使用者明確新需求、或 Deferred Todo 的 REOPEN TRIGGER 真正成立六者之一觸發；Deferred／NEEDS CONTRACT AUDIT 項目不得再被 AI 自動推薦為下一 Sprint，除非其 REOPEN TRIGGER 成立。本次僅修改 `AI_CONTEXT/**` 治理文件，**未修改任何 `src/**`／`tests/**`／`scripts/**`／`package*.json`／`.github/**`／`workers/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
 
@@ -2356,7 +2358,10 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-072 Holding Card Detail Modal/Sheet
 
 - 優先級：P3（Maintenance / Real-Use-Case Driven Mode 下由真實 iPhone Production 使用 UX friction 觸發，使用者明確授權開發）
-- 狀態：**開發完成，PR Draft 待驗收；未經使用者明確授權不得 Merge**
+- 狀態：**CLOSED（2026-08-21）／已完成、已 Merge、Production Verified**
+- 完成日期：2026-08-21
+- Merge 資訊：**PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406)**，final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f`，一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3`（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`），`mergedAt: 2026-08-21T15:16:18Z`，`mergedBy: hyc640110`，**未使用 admin override**。PR required CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success；同 head 之 Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成該 head 的 **iPhone Safari 真機人工驗收，結論 PASS**。merge 後 main push 觸發之 Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致，regression gate、Production build、Pages deploy 均 success。
+- **Production 唯讀驗證**：HTTP 200；deployment API 確認 sha=`5e939433c272d87f2a794554f9ec1373a50d4bf3`、`environment=github-pages`、`state=success`；console 無錯誤；`#/assets` 頁面 4 張 holding cards 皆維持 compact 版面、`.holding-editor` inline 展開區塊零殘留、「詳細」按鈕存在（4 個）；唯讀點擊其中一顆確認 Dialog 正確開啟（`role="dialog"`／`aria-modal="true"`，標題正確對應該持股）、`body` scroll lock 生效，隨即關閉、未輸入或修改任何欄位。驗證全程僅用唯讀 DOM 查詢與一次不涉及資料變更的開關互動，未寫入 Production 使用者資料、未修改 holding／focused symbol／dip alert／archive 狀態或 localStorage。
 - 提出日期：2026-08-21
 - 背景：使用者於 iPhone Production 實際使用時發現，點擊持股卡片「詳細」後會在卡片下方 inline 展開大量編輯欄位（總股數、成交均價、目標比例、資產分類、波段最高價、逢低提醒、重點標的、封存已清倉），造成卡片高度大幅增加、頁面被推長，查看下一檔持股需大量捲動。此為 Maintenance Mode 下明確的真實使用 UX friction（見 016 Product_Decisions 觸發條件第 2 項），非技術完整性驅動。
 - 完成內容：
@@ -2373,7 +2378,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 新增測試：`tests/holdingDetailDialog.test.ts`（8 tests，`HoldingDetailDialog` shell 真實 jsdom + react-dom render——dialog 語意、close button、Escape、backdrop 點擊 vs 內容點擊、body scroll lock、focus）、`tests/holdingDetailDialogStructure.test.ts`（11 tests，App.tsx 原始碼結構檢驗，比照既有 `holdingCardDragReorderStructure.test.ts` 慣例——因 App.tsx 因 `import.meta.env` 無法被 test import）。既有 `tests/v6MobileSimplifiedExperience.test.ts` 一處斷言（原檢查 `editingHoldingSymbol === row.symbol` 字面字串）同步更新為 `selectedHoldingDetailSymbol === row.symbol`，語意不變、僅追隨改名。共新增 19 tests＋更新 1 個既有斷言，已納入 `npm run test:ci`（新增 `npm run test:ur-todo-072`）。
 - 明確不包含：`Holding` schema／`AppState` 財務語意／localStorage schema／JSON Backup contract／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution／quote provider／市值／損益／成本公式／資產分類語意／逢低加碼演算法——原本資料與計算結果完全一致，純 presentation／interaction restructuring。未修改 `tests/holdingCardDragReorder*.test.ts`／`tests/holdingOrderHandle.test.ts`（UR-TODO-071 拖曳排序契約），已重新執行確認 25＋41 tests 全數通過、無回歸。
 - 依賴：UR-TODO-070／UR-TODO-071（皆已 CLOSED，`HoldingCompactCard`／`holdingDisplayOrder`／`HoldingOrderHandle` 現行渲染與拖曳排序路徑已具備，本次未變動）。
-- 驗收條件（Preview 唯讀驗證已完成，iPhone Safari 真機驗收待使用者執行）：
+- 驗收條件（**已達成**，Preview 唯讀驗證＋使用者 iPhone Safari 真機人工驗收 PASS）：
   1. 持股卡片維持 compact，點擊「詳細」後改為獨立 Sheet／Modal，不再於原卡片下方展開。
   2. Sheet／Modal 內容涵蓋原 inline editor 全部欄位，功能語意 100% 不變。
   3. Mobile 近全高 Sheet、Desktop 置中 Modal，皆無 horizontal overflow，Bottom Navigation 不遮擋內容。
@@ -3313,7 +3318,33 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（開發完成，PR Draft 待驗收，2026-08-21）
+## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
+
+### 正式決策
+**UR-TODO-072 = CLOSED／Production Verified。** iPhone Safari 真機人工驗收 PASS；PR #406 已 Merge；Production Deploy 成功並完成唯讀驗證。
+
+### Merge facts
+PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）。`origin/main` 現行正式基線：`5e939433c272d87f2a794554f9ec1373a50d4bf3`。
+
+### Verification facts
+- PR CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success。
+- 同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success；使用者於此 head 完成 **iPhone Safari 真機人工驗收，結論 PASS**。
+- merge 後 main push 觸發之 Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致，regression gate／Production build／Pages deploy 均 success。
+- Production 唯讀驗證：HTTP 200；deployment API 確認 sha=`5e939433c272d87f2a794554f9ec1373a50d4bf3`、`environment=github-pages`、`state=success`；console 無錯誤；持股卡片維持 compact、`.holding-editor` inline 展開區塊零殘留、「詳細」按鈕正確開啟對應 Dialog（`role="dialog"`／`aria-modal="true"`，標題正確對應該持股）；驗證全程僅唯讀查詢與一次不涉資料變更的開關互動，未寫入任何 Production 使用者資料。
+
+### 主要 UX 結果
+- inline details 完全移除（原 `HoldingCompactCard` 內 `isEditing && <div className="holding-editor">` 區塊）。
+- Mobile（≤768px）改為 96dvh 近全高 bottom sheet；Desktop 改為 `max-width:680px` 置中 modal；同一 `HoldingDetailDialog` 元件純 CSS 切換。
+- 關閉後 scroll position 精確保留（Preview 階段發現並修正一項真實缺陷：純 `.focus()` 會把觸發按鈕捲入可視範圍造成頁面跳動，已改用 `.focus({ preventScroll: true })`）。
+- 既有財務／persistence 語意完全未修改：`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder`／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均 0 diff。
+
+### Governance closeout
+`008_TODO_BACKLOG.md`／`003_CURRENT_STATUS.md`／`012_AI_HANDOVER.md`（本快照）已同步更新為 CLOSED／Production Verified；Full／Lite Bundle 已重新產生。本次治理 closeout（branch `docs/ur-todo-072-closeout`）範圍僅限 `AI_CONTEXT/**/*.md` 與 Bundle exports，屬 007_GIT_WORKFLOW §8.1 純治理文件同步範圍，依既有授權可由 AI 自行 Ready／Merge。
+
+### 下一位 AI／使用者
+UR-TODO-072 已無任何未完成範圍。**Universal Rebalance 仍處於 Maintenance / Real-Use-Case Driven Mode**（見前一交接快照）：預設不要再執行「盤點下一個舊 Todo」，新功能須由真實痛點／bug／明確需求／既有 Deferred Todo 的 REOPEN TRIGGER 觸發，不得自行從 Deferred Queue 挑一項開發。
+
+## 前一交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（開發完成，PR Draft 待驗收，2026-08-21）
 
 ### 工作主題
 Maintenance Mode 生效後第一個由真實使用 UX friction 觸發的 Development Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 Detail Modal（Desktop）／Sheet（Mobile）。Branch `feat/ur-todo-072-holding-detail-dialog` 自 `origin/main` `614771ffd8013ad7eb8b238fa3cec439c338f54c` 開出。
