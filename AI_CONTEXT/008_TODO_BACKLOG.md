@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v1.99
+# Universal Rebalance Todo Backlog v2.0
 
 最後更新：2026-08-21
+
+2026-08-21 **Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode 生效。** Review Mode 完整掃描最新版剩餘所有非 CLOSED Backlog（`docs/maintenance-mode-backlog-closeout` branch），確認 **ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發四項條件。逐項校正措辭為明確現況分類（不再使用模糊的「待開發」）：**UR-TODO-012**（Rebalance Scenario Simulator）DEFERRED／LOW PRIORITY；**UR-TODO-015**（股票質押／LTV）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-017**（股息預估模型）OPEN／DEFERRED／CURRENT PRODUCT NON-GOAL（與 `DividendCenterPage` 既有明文聲明「不提供未來收益預估」一致）；**UR-TODO-018／019**（全球指數／經濟事件資料來源）OPEN／NEEDS CONTRACT AUDIT／DATA SOURCE DECISION／NOT ACTIVE（架構已完整設計並對齊，純缺一個資料來源授權決策，無任何頁面因此降級）；**UR-TODO-020**（Gmail 通知解析）OPEN／DEFERRED／NEEDS REAL USE CASE（OAuth broker foundation 存在但已主動下架，不採 sunk-cost reasoning）；**UR-TODO-024**（多家庭成員）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-025**（保險保單追蹤）OPEN／DEFERRED／DEPENDS ON REAL HOUSEHOLD USE CASE；**UR-TODO-054（父項）**CLOSED AS UMBRELLA／FOLLOW-UPS RESOLVED（明確澄清不代表 054-C 已完成，054-C 本身維持 DEFERRED／NO-GO／NEEDS REAL CONSUMER）；**UR-TODO-055／056** 措辭強化為 DEFERRED／NO-GO／NON-PRIORITY。每項均附正式 REOPEN TRIGGER。同時完成 `019_Idea_Pool.md` IDEA-001 正式評估（見該文件），`002_MASTER_ROADMAP.md` 確認無誤導性內容、本次未修改。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：新 Development Sprint 須由 Production bug／correctness regression、真實使用 UX friction、財務安全／風險控制缺口、既有資料或流程無法完成真實工作、使用者明確新需求、或 Deferred Todo 的 REOPEN TRIGGER 真正成立六者之一觸發；Deferred／NEEDS CONTRACT AUDIT 項目不得再被 AI 自動推薦為下一 Sprint，除非其 REOPEN TRIGGER 成立。本次僅修改 `AI_CONTEXT/**` 治理文件，**未修改任何 `src/**`／`tests/**`／`scripts/**`／`package*.json`／`.github/**`／`workers/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
 
 2026-08-21 **UR-TODO-007 Final Closeout Governance Sync——正式 CLOSED，不宣稱 Production Verified。** Review Mode Consumer Contract Audit（`docs/ur-todo-007-final-closeout` branch）確認 UR-TODO-007 舊狀態「部分完成」與「尚未接入任何正式 consumer」文字已過期：`liquidityRole`／`linkedLoanId` 早已透過 `src/lib/householdLiquidityInputAdapter.ts` 進入 Household Liquidity SSOT，Rebalance（UR-TODO-008）、Risk／AI／Home Decision（UR-TODO-009）、CLEC／Simulator（UR-TODO-010）均已透過 SSOT 衍生值正確接線，且經 grep 驗證下游模組對 raw provenance 欄位零直接讀取；2026-07-28 mini-sprint（PR #167／#169／#171）補齊 diagnostics／producer UI；Plan Input UI Entry Point 殘餘已由 UR-TODO-036 解決。**UR-TODO-007 正式 CLOSED，remaining correctness gap = NONE。** 新增正式 architecture boundary：未來不得為了「補完 UR-TODO-007」讓任何 downstream module 直接讀取 raw `liquidityRole`／`linkedLoanId`，新的 provenance 使用情境須另立獨立 Contract Audit。2026-07-28 diagnostics Production 互動驗收的歷史「待盤點」紀錄予以保留、不重新開啟本 Todo，因缺正式後續驗收證據，本次**不宣稱 Production Verified**。本次僅修改 `AI_CONTEXT/**` 治理文件，**未修改任何 `src/**`／`tests/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
 
@@ -988,11 +990,11 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-054 Attribution Confirmation Lifecycle UI（FX／Loan／Generic Split）
 
 - 優先級：待評估
-- 狀態：**子項已全數決議／目前無 active 開發（Deferred／Non-Priority，2026-08-21 治理措辭校正）**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發：
+- 狀態：**CLOSED AS UMBRELLA / FOLLOW-UPS RESOLVED（2026-08-21，Remaining Backlog Governance Closeout）**（自 UR-TODO-046 Final Audit／Closeout，2026-08-14 拆出；2026-08-14 正式拆分為 054-A／054-B／054-C 三個子項，各自獨立唯讀盤點、產品決策與明確授權後才開始開發：
   - 054-A：**CLOSED**（2026-08-14）
   - 054-B：**CLOSED**（2026-08-15）
-  - 054-C：**待規劃／NO-GO**——2026-08-15 Contract Audit 結論「沒有可消費的真實 candidate／producer」，需真實 producer／candidate／業務情境出現後才重新稽核，不建議現在開發
-  三個子項均已達本階段治理終局狀態，目前沒有任何子項正在開發中；此段落先前寫「開發中」與括號內容自相矛盾，本次僅校正措辭，**不重新開啟 054-C、不變更 055／056 狀態、不變更任何 attribution contract**）
+  - 054-C：**DEFERRED／NO-GO／NEEDS REAL CONSUMER**——2026-08-15 Contract Audit 結論「沒有可消費的真實 candidate／producer」，需真實 producer／candidate／業務情境出現後才重新稽核，不建議現在開發
+  三個子項均已達本階段治理終局狀態，父項 umbrella 治理程序本身已完成（三個子項各自都已有明確、終局的獨立決策），故父項標記為 CLOSED AS UMBRELLA。**明確澄清：父項 CLOSED 僅代表「umbrella governance 已完成」，不代表 UR-TODO-054-C 已實作或完成——054-C 本身維持 DEFERRED／NO-GO 狀態，見下方獨立條目。不重新開啟 054-C、不變更 055／056 狀態、不變更任何 attribution contract。**）
 - 提出日期：2026-08-14
 - 背景：UR-TODO-046 已完成 FX（F2D）、Loan（046-L1）、Generic Split（046-L2A/L2B）三個 domain 的正式 attribution contract（identity、reconciliation candidate/matched、zero-effect 或明示 contribution、duplicate prevention、void/forward-only correction），但三者的正式確認（confirm）動作原本**皆只存在於函式庫層級**：`confirmFxConversionAndAppend()`（`fxConversionAttributionConfirmation.ts`）、`confirmLoanPaymentGroupAndAppend()`（Loan）等在 `App.tsx` 零呼叫，一般使用者無法透過畫面實際確認、撤銷（void）或重新確認（reconfirm）任何一筆這三個 domain 的正式記帳事件。既有唯一有 UI 入口的確認流程是 `RuntimeAttributionProvenanceCard` 的「確認並正式記帳」按鈕，但其 `confirmAttributionEvidence` handler 硬編碼只處理 `derivedEvidenceItems`（`safe-taxonomy-candidate` 專用），FX／Loan／Generic Split 的 candidate reason（`fx-conversion-contract-candidate`／`loan-payment-contract-candidate` 等）結構上不會進入此卡片。**Loan（054-A）已於 2026-08-14 正式完成並 Merge，FX（054-B）已於 2026-08-15 正式完成並 Merge，詳見下方 054-A／054-B 條目；兩者獨立驗證「各 domain 各自獨立 UI 元件、不共用 confirmation framework」為可行且已驗證的實作模式。**
 - 三個 domain 各自獨立唯讀盤點、產品決策與明確授權後才開始開發，不因其中一項完成而自動解鎖其餘子項；子項清單與現況見下方 054-A／054-B／054-C。
@@ -1044,6 +1046,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   4. `RuntimeAttributionProvenanceCard` 確認不適用，但與 Loan／FX 的「已確認不適用」性質不同：Loan／FX 是「有 derived evidence 路徑、需要明確排除邏輯避免誤判」；Generic Split 是**連 derived evidence 或 candidate 都不存在**，全庫搜尋 `derivedAttributionEvidence.ts`／`runtimeAttributionPresentation.ts` 對 Generic Split 相關字串同樣零命中——不是「需要排除」，是「目前根本沒有資料會出現」。
   5. **與 054-A（Loan，已 CLOSED）的關鍵差異**：底層 atomic contract 概念可部分重用（group-level 卡片、`voidFinancialEventAndAppend()`、confirm／void／reconfirm 互動流程），但 054-A 開始開發前已有 Loan Producer 與 `paymentId` candidate 存在；054-C 目前連 production domain、candidate producer、使用者輸入來源都不存在，範圍明顯大於單純的 Confirmation UI 開發（等同於要先做一個全新的 Producer，才有東西可以「確認」）。
 - **結論：目前沒有實際使用場景需要這個 UI；阻礙是「沒有可消費的真實 candidate／producer」，不是 UI 實作細節。維持待規劃狀態，不建議現在開發。** 若未來要啟動，需要先有具體業務需求（使用者實際會拆分什麼類型的交易，例如一筆帳單同時含多個分類）才能定義 Producer 與 component mapping，不建議在沒有真實需求前先做 UI。
+- **REOPEN TRIGGER**（2026-08-21）：出現真實 Generic Split candidate／producer。
 - 明確不包含：在沒有具體業務需求與對應 Producer 設計前開始開發；修改既有 attribution 核心 contract；修改 `genericSplitAllocation.ts`／`appendGenericSplitAllocationGroup()`／`resolveActiveGenericSplitAllocationGroups()` 本身。
 - 依賴：UR-TODO-046（已 CLOSED，contract 基礎已具備）；054-A（已 CLOSED，group-level 卡片架構可供未來參考，但不可直接套用，因為 054-C 缺少 054-A 開發前就已具備的 Producer／candidate 前提）。
 - 驗收條件（待正式排入時另訂）
@@ -1051,7 +1054,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-055 Loan／Investment Delivery Mapping（UI／CSV／Import Center）
 
 - 優先級：待評估
-- 狀態：**待規劃（Contract Audit 已完成，2026-08-15，判定暫不建議開發——非「不可行」，而是「目前無記錄在案的急迫使用需求，且範圍比原始描述更大更複雜」，比照 054-C 的判定邏輯）**
+- 狀態：**DEFERRED／NO-GO／NON-PRIORITY（2026-08-21 治理措辭強化；Contract Audit 已完成，2026-08-15，判定暫不建議開發——非「不可行」，而是「目前無記錄在案的急迫使用需求，且範圍比原始描述更大更複雜」，比照 054-C 的判定邏輯）**
 - 提出日期：2026-08-14
 - Contract Audit 完成日期：2026-08-15（Review Mode 唯讀盤點）
 - 背景：UR-TODO-046 歷次治理紀錄（046-I1／046-L1 完成條目、FX-A3 條目）持續將「Loan UI／CSV／Import Center producer mapping」列為 Remaining Boundary，但從未列為 046 本身的驗收條件——即 Loan／Investment 的正式 attribution contract（identity、component group、fail-safe）已完成，缺口在於「如何讓使用者透過既有 Import Center 或專屬 UI，把外部資料（銀行對帳單、券商交易紀錄等）安全映射成符合正式 contract 的 `loanAttribution`／`investmentAttribution`」，這是交付／匯入層的工作，不是 attribution 核心邏輯缺口。
@@ -1067,11 +1070,12 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：修改既有 attribution 核心 contract；FX（見 UR-TODO-056）；在沒有具體業務需求前開始開發。
 - 依賴：UR-TODO-046（已 CLOSED，Loan／Investment contract 基礎已具備）；UR-TODO-054-A（已 CLOSED，Loan Producer 已存在，Investment 對應的 Producer 不存在，是本次盤點的關鍵發現）。
 - 驗收條件（待正式排入時另訂，且需先有具體業務情境）
+- **REOPEN TRIGGER**（2026-08-21）：Investment 側出現真實 producer／workflow blocker，或使用者明確要求 delivery mapping。
 
 ### UR-TODO-056 FX Enhancement Bundle（Valuation Attribution／其他貨幣對／自動配對／進階 Fee）
 
 - 優先級：待評估
-- 狀態：**待規劃**（Contract Audit 已於 2026-08-15 完成，四項皆判定不建議現在開發；**實作時仍須拆成獨立子 Sprint，不得合併成單一大 PR**）
+- 狀態：**DEFERRED／NO-GO／NON-PRIORITY（2026-08-21 治理措辭強化；Contract Audit 已於 2026-08-15 完成，四項皆判定不建議現在開發；實作時仍須拆成獨立子 Sprint，不得合併成單一大 PR）**
 - 提出日期：2026-08-14
 - 背景：UR-TODO-046 FX 序列（F2D）已完成 conversion principal 的 attribution foundation，並已用測試明確證明 principal contribution 與 FX 匯率波動對既有部位的估值效果（FX-A3 valuation）完全分離。以下項目從未被列為 046 的驗收條件，歷次治理紀錄一貫將其記錄為獨立、未來階段：
   1. **FX valuation attribution**：USD 部位因匯率波動產生的 realized／unrealized gain/loss，目前仍留在 `unexplainedResidual`，未有正式 attribution contract
@@ -1088,6 +1092,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   - **若未來啟動的建議**：先確認具體業務情境；各自獨立走 Contract Audit（不得合併成單一 PR，本次盤點確認四者架構上也確實彼此獨立，適合分開稽核）；automated pairing 需先定義具體場景才能稽核，優先順序低於其餘三項。
 - 明確不包含：修改既有 conversion principal attribution（已完成，不得重新開放）；Production Producer enable（獨立 rollout 決策，見下方）
 - 依賴：UR-TODO-046（已 CLOSED，F2D principal/valuation 分離基礎已具備）
+- **REOPEN TRIGGER**（2026-08-21）：出現真實 JPY／EUR 或其他 FX 使用情境，或現行 TWD／USD 流程出現實際 attribution 缺口。不得因技術完整性主動重新開發 FX valuation／automated pairing／advanced fee attribution。
 - 驗收條件（待正式排入時另訂）
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
@@ -1880,6 +1885,8 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   2. UR-TODO-058（`/tools/investment-backtest`）已提供針對**特定三資產（0050／00631L／00865B）**、三套 Excel 來源固定策略（聰明再平衡／無腦再平衡／比率再平衡）的歷史回測比較，屬時間序列模擬，但資產組合與策略邏輯皆為寫死，非通用參數化。
   3. 兩者合計已滿足「再平衡情境模擬」標題下的**部分**產品期待（特定資產組合的假設配置與歷史回測），但**未涵蓋**任意資產組合、可調整再平衡頻率／閾值參數的通用情境模擬——這是原標題可能暗示、但從未有正式驗收條件明文要求的開放範圍，因無法逐項核對，故不逕行標記完成。
 - 明確不包含（縮小後）：任意資產組合、可調整再平衡頻率／閾值的通用參數化模擬（已被 048／058 覆蓋的固定樣板／固定策略範圍不重複開發）。
+- **現況分類（2026-08-21，Remaining Backlog Governance Closeout）：DEFERRED / LOW PRIORITY**。Repository 無任何真實使用需求證據支持通用參數化模擬，不主動排入近期 Sprint。
+- **REOPEN TRIGGER**：出現具體真實使用情境，需要超出現有 UR-TODO-048／058 能力的任意資產組合、可調頻率或可調閾值 Scenario Simulator。
 - 建議：不關閉，範圍縮小為「通用參數化再平衡情境模擬」；目前無記錄在案的急迫使用需求，維持 P2 但不主動排程，待具體業務情境出現後另行 Contract Audit。
 
 ### UR-TODO-013 Investment Decision Workflow Integration
@@ -1911,7 +1918,12 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 明確不包含：與 UR-TODO-058（`/tools/investment-backtest`，特定 3 資產 0050／00631L／00865B、Excel 來源固定策略比較，非 CLEC 規則觸發邏輯）明確劃清界線，避免混淆或重複開發。
 
 ### UR-TODO-015 股票質押與 LTV 壓力測試
-- 狀態：待開發
+- 狀態：**OPEN / DEFERRED / NEEDS REAL USE CASE**（2026-08-21，Contract Audit 後正式措辭校正）
+- Contract Audit 核心結論（2026-08-21，Review Mode 唯讀盤點）：
+  1. 股票質押借款的 collateral／LTV（借款金額對抵押持股市值的比率，隨股價波動、觸及維持率會被追繳／斷頭）是現有 `LoanItem`／`RiskLoan`／`HouseholdLoan` 與 Risk Center `isLeveragedAsset()`（僅偵測產品內建槓桿，如 00631L）皆未吸收的獨立金融概念——全庫搜尋確認無任何欄位將 Loan 連結至特定持股、無 pledge ratio、無維持率門檻、無斷頭門檻。
+  2. `git log --all` 對「質押」／「pledge」／「LTV」／「margin call」等關鍵字搜尋 **NONE FOUND**——無任何真實使用需求證據。
+  3. 不因 placeholder 存在就主動新增 schema／persistence／UI；技術上 GO WITH CONDITIONS，但產品面因無真實情境暫緩。
+- **REOPEN TRIGGER**：使用者實際開始使用股票質押／以持股為擔保的借款，需要追蹤 LTV／維持率／價格衝擊風險。
 
 ### UR-TODO-016 再平衡歷史與決策紀錄
 - 狀態：**CLOSED**（2026-08-17）
@@ -1921,18 +1933,39 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 驗收：使用者已完成 Preview／本機 Desktop 與 390 × 844 手機人工驗收；tabs、決策表單、三種選項、備註 textarea、提交／取消、Recommendation Snapshot、決策紀錄卡與 mobile bottom navigation 均正常，無明顯 horizontal overflow。已實測 `canRecommend=true` 建立決策、Ctrl+R 持久化、JSON Backup Export → Import round-trip；確認沒有 Transaction／Financial Event／holdings side effect。
 
 ### UR-TODO-017 股息預估模型
-- 狀態：待開發
+- 狀態：**OPEN / DEFERRED / CURRENT PRODUCT NON-GOAL**（2026-08-21，Contract Audit 後正式措辭校正）
+- Contract Audit 核心結論（2026-08-21，Review Mode 唯讀盤點）：
+  1. `DividendCenterPage.tsx` 現行產品聲明（逐字）：「只整理已實際收到的股息紀錄；不提供外部配息資料或未來收益預估。」——這不是遺留的未完成缺口，而是產品已經做出的明確設計決定；「今年預估股息」卡片固定顯示 `'—'` 與此聲明完全一致。
+  2. Household Liquidity 邊界（`013_HOUSEHOLD_LIQUIDITY_SPEC.md` line 1149）：「預期股息不得在入帳前加入可投資現金。」
+  3. 現有股息資料無官方來源（純使用者手動輸入）、無 per-share 金額、無配息頻率、無 split 感知，資料品質不支持真正的預估模型，只支持最簡單的 trailing-sum。
+  4. `git log` 無任何嘗試實作預估功能的紀錄，無使用者需求證據。
+- **明確不得**：把 UR-TODO-014-A／A2 的 CLEC validation fixture（TWSE 官方 ETF 分配收益資料）偷偷升格成 Production dividend provider——兩者是完全不相關、零程式耦合的獨立子系統。
+- **REOPEN TRIGGER**：使用者明確要求重新引入前瞻股息估算，並重新完成資料來源、估算方法與資訊性呈現的 Contract Audit。
 
 ### UR-TODO-018 全球主要指數正式資料來源
-- 狀態：待開發
+- 狀態：**OPEN / NEEDS CONTRACT AUDIT / DATA SOURCE DECISION / NOT ACTIVE**（2026-08-21，Contract Audit 後正式措辭校正）
+- Repository 現況（2026-08-21 盤點）：UI consumer（`MarketIntelligencePage.tsx`）、`src/lib/marketSections.ts` registry、`workers/market-data/src/index.js` 的 `globalItems()` stub 三端已完整設計並互相對齊，`GLOBAL_PLACEHOLDERS`（`src/lib/marketData.ts`）明文聲明「本版不使用授權或時間語意未確認的指數資料」——這是刻意的 Foundation 階段停止點，非未完成疏漏。`enabled: false` 使該區塊完全不對使用者顯示，無任何頁面因此降級或損壞。
+- 真正缺口：一個經授權驗證、時間語意清楚、可信賴的正式全球指數資料來源決策，不是架構設計工作。
+- 不構成近期 Development Sprint：目前沒有任何使用流程因缺少此資料而被阻塞。
+- **REOPEN TRIGGER**：出現明確產品需求，且找到符合授權、freshness、時間語意與可靠性要求的正式全球指數資料來源。
 
 ### UR-TODO-019 重要經濟事件正式資料來源
-- 狀態：待開發
+- 狀態：**OPEN / NEEDS CONTRACT AUDIT / DATA SOURCE DECISION / NOT ACTIVE**（2026-08-21，Contract Audit 後正式措辭校正）
+- Repository 現況：與 UR-TODO-018 共用同一 registry 與 Worker 檔案架構——`marketSections.ts` 的 `event` 區塊 `enabled: false`，`workers/market-data/src/index.js` 的 `eventItems()` 明文聲明「官方事件資料 adapter 尚未設定；不以硬編碼數值替代」，同樣是刻意的 Foundation 階段停止點。無任何頁面消費此資料，無降級或損壞。
+- 真正缺口：官方或可正式驗證、授權清楚的經濟事件資料來源決策。**不得把「資料會更完整」當成 ACTIVE 理由。**
+- **REOPEN TRIGGER**：出現明確產品需求，且找到官方或可正式驗證、授權清楚的經濟事件資料來源。
 
 ## P4－家庭財富管理長期項目
 
 ### UR-TODO-020 Gmail 銀行／信用卡通知解析
-- 狀態：待開發
+- 狀態：**OPEN / DEFERRED / NEEDS REAL USE CASE**（2026-08-21，Contract Audit 後正式措辭校正）
+- Contract Audit 核心結論（2026-08-21，Review Mode 唯讀盤點）：
+  1. `workers/gmail-oauth/` 已存在完整 OAuth 連線基礎設施（PKCE、CSRF、Durable Object session、AES-GCM token 加密），僅 Preview 啟用，`GmailOAuthSettings.tsx` 已於 2026-08-15（commit `3cbf6b4`）自 `App.tsx` 移除掛載，標記為「未完成」而主動下架。
+  2. 真正產生價值的一半——讀取／解析 Gmail 訊息、Gmail→`ImportRecord[]` adapter——從未開始建置。
+  3. Google sensitive scope（`gmail.readonly`）verification 尚未完成；pending→posted（授權通知 vs 正式入帳通知）reconciliation 路徑尚未解決；銀行專屬通知範本解析無現有先例（不像 CSV／PDF 是使用者可控格式）。
+  4. 無使用者需求證據。**不使用 sunk-cost reasoning（「OAuth 已經做了一半」）推薦繼續開發。**
+- 若重啟，架構上可比照既有 PDF adapter（UR-TODO-021）模式，接入不變的 `buildImportPreview()`／`createImportTransactions()` pipeline，不需建立第二套 ingestion 架構。
+- **REOPEN TRIGGER**：使用者明確需要 Gmail 自動匯入，並接受 OAuth sensitive scope 驗證、銀行專屬 parser 與 transaction lifecycle（pending→posted）的開發成本。
 
 ### UR-TODO-021 銀行 CSV／Excel／電子帳單整合
 - 狀態：**已完成／Production Verified**（2026-08-17 Electronic Statement Import Foundation，PR #377 merge commit `f0b57c038c0a19c86deeee7a0a73872ac94231e2`）
@@ -1959,17 +1992,20 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - **Not required for UR-TODO-023 closeout**：balance reconciliation UI／flow、reconciliation history persistence、schema version bump、persistence migration、JSON Backup reconciliation history extension、Financial Event Ledger wiring、reconciliation debug／observability UI、UR-TODO-023-B、UR-TODO-023-C。balance reconciliation 未建立，因 Statement import contract 沒有 authoritative opening／closing／running balance，App account balance 可能為 manual 或 transaction-derived，Financial Event Ledger reconciliation 語意不同，net-worth snapshot 不能替代 account-specific Statement balance；未來若需 balance certification，應另立新產品需求與資料契約。history persistence 未建立，因現有 comparison 為 ephemeral／local／read-only；若未來需要可重現且長期稽核，必須先另定 Statement source／hash、mapping、account、period、transaction identity／snapshot strategy、algorithm version、invalidation semantics、retention policy。此前持久化 summary 會造成 duplicated state、stale state、migration burden、localStorage／JSON Backup complexity 與 ambiguous SSOT。未來若出現真實需求，必須另立新的獨立 TODO／Sprint 並重新 scope review，不得重新解釋為 023 的未完成範圍。
 
 ### UR-TODO-024 多家庭成員
-- 狀態：待開發
+- 狀態：**OPEN / DEFERRED / NEEDS REAL USE CASE**（2026-08-21，Contract Audit 後正式措辭校正）
 - 2026-08-16 範圍縮小重新描述（原名「多帳戶與多家庭成員」）：多帳戶部分已由 `src/lib/financialAccounts.ts` 既有 8 種帳戶類型的多帳戶架構滿足，**正式標記完成**，自本次更新起自本條目移出；本條目聚焦剩餘缺口「多家庭成員」（成員歸屬、各自報表／彙總），全庫搜尋確認目前無任何成員歸屬欄位或資料結構。
 - 已完成（移出範圍）：多帳戶——`FinancialAccountType` 涵蓋 8 種帳戶類型，UR-TODO-066 完成筆記已提及此既有能力。
+- 2026-08-21 Contract Audit 確認：`grep -rniE "ownerId|memberId|familyMember|household.*member"` 全 `src/` 零命中；完整支援需要 member 實體、per-account／per-holding／per-loan ownership 欄位、既有資料 migration、Backup schema version bump，以及重新推導 Dashboard／Risk／Rebalance／CLEC 等所有現行視「家庭」為單一整體的下游聚合——這是基礎 schema 變更，非 UI 功能。無真實多人使用需求證據。**不現在建立 member ownership schema。**
+- **REOPEN TRIGGER**：實際出現第二位家庭成員，需要獨立的 account／holding／loan ownership、分析或報表。
 
 ### UR-TODO-025 保險保單追蹤與保障缺口分析
-- 狀態：待開發
+- 狀態：**OPEN / DEFERRED / DEPENDS ON REAL HOUSEHOLD USE CASE**（2026-08-21，Contract Audit 後正式措辭校正）
 - 2026-08-16 範圍縮小重新描述（原名「保險、退休與家庭淨資產規劃」）：退休子範圍已由 **UR-TODO-066（CLOSED，退休提領規劃）**完整吸收（FIRE 目標、提領率、達成率、缺口投入反推），家庭淨資產趨勢已由既有 `netWorthHistory`／`WealthGoalPage.tsx`（財富目標）覆蓋單一使用者視角；本條目聚焦剩餘缺口：
   1. **保險保單追蹤**：目前保險僅為 `retirementPlanner.ts` 內單一欄位 `insuranceFee`（年度大額支出金額），完全沒有保單類型、保額、受益人、繳費期別、續保提醒等追蹤能力。
   2. **保障缺口分析**：目前無任何機制比對既有保障與家庭財務缺口。
 - 依賴：UR-TODO-024（多家庭成員）——若「家庭」淨資產與保障規劃需涵蓋多成員各自資料，需待 024 完成多家庭成員資料結構後才能延伸；本條目與 024 共用同一「家庭成員」資料缺口，不得各自獨立重複定義成員資料結構。
 - 明確不包含：退休提領規劃（見 UR-TODO-066，已 CLOSED，不重新開放討論）；單一使用者視角的淨資產歷史／財富目標既有功能修改。
+- **REOPEN TRIGGER**：UR-TODO-024 的多人／ownership 需求成立，且使用者明確需要保單追蹤與保障缺口分析。
 
 ## 已完成並關閉
 

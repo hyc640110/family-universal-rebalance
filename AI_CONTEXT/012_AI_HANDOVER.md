@@ -1,6 +1,41 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-007 Final Closeout Governance Sync（CLOSED，2026-08-21，不宣稱 Production Verified）
+## 最新交接快照：Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21）
+
+### 工作主題
+Remaining Backlog Governance Closeout / Maintenance Mode。純治理修正，branch `docs/maintenance-mode-backlog-closeout` 自 `origin/main` `d3e9effffcb9b662860f28e79b131a640deeab79` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／`package*.json`／`.github/**`／`workers/**`／schema／persistence／Financial Event Ledger／Household Liquidity／Rebalance／CLEC／AI Decision**。
+
+### 已確認決策
+- **ACTIVE = 0**——完整掃描最新版 `008_TODO_BACKLOG.md` 剩餘所有非 CLOSED 項目後，沒有任何一項同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發。
+- **Maintenance / Real-Use-Case Driven Mode 正式生效**：不再從舊 placeholder 自動挑功能；新 Sprint 必須由 Production bug／correctness regression、真實使用 UX friction、財務安全／風險控制缺口、既有資料或流程無法完成真實工作、使用者明確新需求、或 Deferred Todo 的 REOPEN TRIGGER 真正成立六者之一觸發。
+
+### Deferred Summary（各附 REOPEN TRIGGER）
+- **UR-TODO-012** Rebalance Scenario Simulator — 出現具體真實使用情境，需要超出 UR-TODO-048／058 能力的任意資產組合、可調頻率或可調閾值 Scenario Simulator
+- **UR-TODO-015** 股票質押／LTV — 使用者實際開始使用股票質押／以持股為擔保的借款，需要追蹤 LTV／維持率／價格衝擊風險
+- **UR-TODO-017** 股息預估模型 — 使用者明確要求重新引入前瞻股息估算，並重新完成資料來源、估算方法與資訊性呈現的 Contract Audit
+- **UR-TODO-020** Gmail 銀行／信用卡通知解析 — 使用者明確需要 Gmail 自動匯入，並接受 OAuth sensitive scope 驗證、銀行專屬 parser 與 transaction lifecycle 成本
+- **UR-TODO-024** 多家庭成員 — 實際出現第二位家庭成員，需要獨立的 account／holding／loan ownership、分析或報表
+- **UR-TODO-025** 保險保單追蹤 — UR-TODO-024 的多人／ownership 需求成立，且使用者明確需要保單追蹤與保障缺口分析
+- **UR-TODO-054-C** Generic Split Confirmation UI — 出現真實 Generic Split candidate／producer
+- **UR-TODO-055** Loan／Investment Delivery Mapping — Investment 側出現真實 producer／workflow blocker，或使用者明確要求 delivery mapping
+- **UR-TODO-056** FX Enhancement Bundle — 出現真實 JPY／EUR 或其他 FX 使用情境，或現行 TWD／USD 流程出現實際 attribution 缺口
+
+### Data-source Decision Items（獨立分類，非一般 Deferred）
+- **UR-TODO-018** 全球主要指數正式資料來源
+- **UR-TODO-019** 重要經濟事件正式資料來源
+
+狀態：**NEEDS CONTRACT AUDIT / DATA SOURCE DECISION / NOT ACTIVE**——架構（UI consumer、registry、Worker stub）已完整設計並三端對齊，純缺一個經授權驗證、時間語意清楚的正式資料來源決策；目前沒有任何頁面因缺少此資料而降級或損壞，不構成近期 Sprint。REOPEN TRIGGER：出現明確產品需求，且找到符合授權／freshness／時間語意要求的正式資料來源。
+
+### UR-TODO-054（父項）Umbrella 狀態
+父項標記 **CLOSED AS UMBRELLA / FOLLOW-UPS RESOLVED**——054-A／054-B 已 CLOSED，054-C 已有終局的 DEFERRED／NO-GO 決策，umbrella 治理程序本身已完成。**明確澄清：父項 CLOSED 不代表 054-C 已實作或完成**，054-C 本身仍維持 DEFERRED／NO-GO／NEEDS REAL CONSUMER。
+
+### IDEA-001（`019_Idea_Pool.md`）評估結果
+`REVIEWED / DO NOT PROMOTE TO UR-TODO`（已檢討次數由 0 更新為 1）。原始三項檢核點已由現有 Production 程式碼證實滿足：(1) `householdLiquidity.ts:286` `minimumSafetyCash = safeProduct(monthlyEssentialExpenses, 6)`，完整反映六個月生活費安全存量；(2) `householdLiquidity.ts:329` `investableCash` 確認建立在扣除 `protectedSafetyCash` 之後；(3) UR-TODO-007 Consumer Contract Audit（2026-08-21）已用 grep 逐一驗證 Rebalance／Risk／AI／Home Decision／CLEC／Simulator 全數透過同一 Household Liquidity SSOT 衍生值讀取，零直接讀取／零各自重算。IDEA-001 關切的收斂盤點目的已透過 UR-TODO-008／009／010／046 的自然開發過程實質達成，即使從未被當作獨立 Sprint 執行。
+
+### 下一位 AI 的直接起點
+**預設不要再執行「盤點下一個舊 Todo」。** 若使用者沒有新痛點／bug／明確需求，保持 Maintenance Mode。新功能必須由實際需求觸發，不得因 ACTIVE=0 而自行從 Deferred Queue 挑一項開發。
+
+## 前一交接快照：UR-TODO-007 Final Closeout Governance Sync（CLOSED，2026-08-21，不宣稱 Production Verified）
 
 - 本次為 Review Mode Consumer Contract Audit 後的純治理修正，branch `docs/ur-todo-007-final-closeout` 自 `origin/main` `2a50e8fb784a2c071e833dc6fb315a11c9f07325` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
 - **正式決策：UR-TODO-007 = CLOSED。Remaining correctness gap = NONE。Production Verified = 本次不宣稱。**

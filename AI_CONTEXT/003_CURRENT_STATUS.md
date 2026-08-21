@@ -1,6 +1,18 @@
-# Universal Rebalance Current Status v4.40
+# Universal Rebalance Current Status v4.41
 
 最後更新：2026-08-21
+
+**Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21，純治理修正，無 production code 變更）。** Review Mode 完整掃描最新版 `008_TODO_BACKLOG.md` 剩餘所有非 CLOSED 項目後確認：**ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發，因此**沒有值得立即啟動的新 Feature Sprint**。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：
+
+新 Development Sprint 必須由以下之一觸發，才可視為合理起點：
+1. Production bug／correctness regression
+2. 真實使用 UX friction
+3. 財務安全／風險控制缺口
+4. 既有資料或流程無法完成真實工作
+5. 使用者明確提出新的產品需求
+6. 既有 Deferred Todo 的 REOPEN TRIGGER 真正成立
+
+**Deferred／NEEDS CONTRACT AUDIT 的 Todo（UR-TODO-012／015／017／018／019／020／024／025／054-C／055／056）不得再被 AI 自動推薦為「下一 Sprint」，除非其 REOPEN TRIGGER 已經成立。** 詳細分類、理由與各項 REOPEN TRIGGER 見 `008_TODO_BACKLOG.md` 各自正式條目；`019_Idea_Pool.md` IDEA-001 本次一併完成正式評估。
 
 **UR-TODO-007 Final Closeout（2026-08-21，純治理修正，Production code 0 diff）。** Status: **CLOSED**。Remaining correctness gap: **NONE**。Review Mode Consumer Contract Audit（`docs/ur-todo-007-final-closeout` branch）確認舊「部分完成／尚未接入任何正式 consumer」文字已過期——`liquidityRole`／`linkedLoanId` 已透過 `householdLiquidityInputAdapter.ts` 進入 Household Liquidity SSOT，consumer integration 實際已被 **UR-TODO-008**（Rebalance）／**UR-TODO-009**（Risk、AI／Home Decision）／**UR-TODO-010**（CLEC／Simulator）吸收完成，四個下游模組經 grep 驗證對 raw provenance 欄位零直接讀取。**Direct raw provenance consumer = intentionally NO-GO**（維持單一事實來源架構，未來任何新 provenance 使用情境須另立獨立 Contract Audit）。2026-07-28 diagnostics Production 互動驗收的歷史「待盤點」紀錄予以保留、**不視為已完成**，因缺正式後續驗收證據，**本次不宣稱 Production Verified**，此歷史 observation 亦不重新開啟本 Todo 的 correctness scope。本次僅修改 `AI_CONTEXT/**` 治理文件，`src/**`／`tests/**`／`scripts/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約均為 0 diff。
 
