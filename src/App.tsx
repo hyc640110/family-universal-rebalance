@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode, SetStateAction } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, SetStateAction } from 'react';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
@@ -126,6 +126,7 @@ import { normalizeFocusedSymbols, toggleFocusedSymbol as toggleFocusedSymbolInLi
 import { moveHoldingDisplayOrder, moveHoldingDisplayOrderToIndex, normalizeHoldingDisplayOrder, orderHoldingRows } from './lib/holdingDisplayOrder';
 import { resolveDragTargetIndex } from './lib/holdingCardDragGeometry';
 import HoldingOrderHandle from './components/HoldingOrderHandle';
+import HoldingDetailDialog from './components/HoldingDetailDialog';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -761,17 +762,11 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
     </div>
   </div>;
 }
-function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing, onToggleEdit, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove, isDragging, onDragStart, onDragMove, onDragEnd, onDragCancel, onKeyboardMove, registerCardElement }: {
+function HoldingCompactCard({ row, totalAssets, isDetailOpen, onOpenDetail, isDragging, onDragStart, onDragMove, onDragEnd, onDragCancel, onKeyboardMove, registerCardElement }: {
   row: ReturnType<typeof calculateMetrics>['rows'][number];
   totalAssets: number;
-  dipSetting: DipAlertSetting;
-  isFocused: boolean;
-  isEditing: boolean;
-  onToggleEdit: () => void;
-  onUpdate: (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => void;
-  onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
-  onToggleFocused: (symbol: SymbolCode) => void;
-  onRemove: (symbol: SymbolCode) => void;
+  isDetailOpen: boolean;
+  onOpenDetail: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   isDragging: boolean;
   onDragStart: (clientY: number) => void;
   onDragMove: (clientY: number) => void;
@@ -783,7 +778,7 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
   const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
-  return <article ref={registerCardElement} className={`holding holding-compact ${isEditing ? 'is-editing' : ''} ${isDragging ? 'is-dragging' : ''}`}>
+  return <article ref={registerCardElement} className={`holding holding-compact ${isDragging ? 'is-dragging' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
         <p className="holding-mobile-weight" aria-label={`持有比例 ${compactWeight}`}><strong>{compactWeight}</strong></p>
@@ -795,28 +790,47 @@ function HoldingCompactCard({ row, totalAssets, dipSetting, isFocused, isEditing
       <p className="holding-card-detail holding-card-today-change"><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
       <p className="holding-card-detail holding-card-market-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
       <p className={`holding-card-detail holding-card-unrealized-pnl holding-card-unrealized-pnl-${tone(row.pnl)}`}><span>未實現損益</span><strong className={tone(row.pnl)}><span>{signedMoney(row.pnl)}</span><span>{signedPct(pnlPct)}</span></strong></p>
-      <button type="button" className="holding-edit-button" aria-expanded={isEditing} onClick={onToggleEdit}>{isEditing ? '收合' : '詳細'}</button>
+      <button type="button" className="holding-edit-button" aria-expanded={isDetailOpen} aria-haspopup="dialog" onClick={onOpenDetail}>詳細</button>
       <HoldingOrderHandle label={row.quote.name} isDragging={isDragging} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} onDragCancel={onDragCancel} onKeyboardMove={onKeyboardMove} />
     </div>
     {row.quote.error && <p className="note holding-quote-error">{quoteRefreshErrorLabel(row.quote.error)}</p>}
-    {isEditing && <div className="holding-editor">
-      <div className="holding-editor-summary" aria-label="持股詳細資料">
-        <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
-        <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
-        <p><span>目前比例</span><strong>{compactWeight}</strong></p>
-      </div>
-      <div className="holding-editor-grid">
-        <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
-        <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
-        <label>目標比例 %<DraftInput inputMode="decimal" value={row.targetWeight ?? ''} onCommit={value => onUpdate(row.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(row.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
-        <label>資產分類<select value={row.assetClass} onChange={event => { const value = event.currentTarget.value; onUpdate(row.symbol, 'assetClass', normalizeAssetClass(value)); }}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
-        <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
-        <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
-        <label className="holding-focus-toggle"><span>重點標的</span><input type="checkbox" checked={isFocused} onChange={() => onToggleFocused(row.symbol)} /> 設為首頁重點標的</label>
-      </div>
-      <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button>
-    </div>}
   </article>;
+}
+/** UR-TODO-072: the holding "詳細" content, rendered once (not per-card) inside HoldingDetailDialog
+ * for whichever symbol is currently selected. Reuses the exact same handlers (updateHolding,
+ * updateDipAlert, toggleFocusedSymbol, confirmRemoveHoldingAsset) the old inline editor called —
+ * no second data-update path. `row` is read fresh from `m.rows` on every render (see
+ * `selectedHoldingDetailRow` below), never copied into separate editable state, so the dialog can
+ * never show a stale snapshot. */
+function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove }: {
+  row: ReturnType<typeof calculateMetrics>['rows'][number];
+  totalAssets: number;
+  dipSetting: DipAlertSetting;
+  isFocused: boolean;
+  onUpdate: (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => void;
+  onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
+  onToggleFocused: (symbol: SymbolCode) => void;
+  onRemove: (symbol: SymbolCode) => void;
+}) {
+  const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
+  const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
+  return <div className="holding-editor">
+    <div className="holding-editor-summary" aria-label="持股詳細資料">
+      <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
+      <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
+      <p><span>目前比例</span><strong>{compactWeight}</strong></p>
+    </div>
+    <div className="holding-editor-grid">
+      <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
+      <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
+      <label>目標比例 %<DraftInput inputMode="decimal" value={row.targetWeight ?? ''} onCommit={value => onUpdate(row.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(row.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
+      <label>資產分類<select value={row.assetClass} onChange={event => { const value = event.currentTarget.value; onUpdate(row.symbol, 'assetClass', normalizeAssetClass(value)); }}><option value="growth">成長資產</option><option value="defensive">防守資產</option></select><small>分類會立即影響資產配置、再平衡與交易建議。</small></label>
+      <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
+      <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
+      <label className="holding-focus-toggle"><span>重點標的</span><input type="checkbox" checked={isFocused} onChange={() => onToggleFocused(row.symbol)} /> 設為首頁重點標的</label>
+    </div>
+    <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button>
+  </div>;
 }
 /** UR-TODO-048 phase B: allocationPreset is always 'custom' now (see coerceAllocationPresetToCustom); this is read-only display only, no write path. */
 function AllocationPresetSummary({ preset }: { preset: AllocationPreset }) {
@@ -1261,7 +1275,26 @@ function App() {
   const [quoteStatus, setQuoteStatus] = useState('尚未更新股價');
   const [newSymbolDraft, setNewSymbolDraft] = useState('');
   const [assetMessage, setAssetMessage] = useState('');
-  const [editingHoldingSymbol, setEditingHoldingSymbol] = useState<SymbolCode | null>(null);
+  /** UR-TODO-072: which holding's "詳細" is open in the standalone HoldingDetailDialog (replaces the
+   * old in-card inline expand). `holdingDetailTriggerRef` remembers the 詳細 button that opened it so
+   * focus can return there on close, per the dialog's accessibility contract. */
+  const [selectedHoldingDetailSymbol, setSelectedHoldingDetailSymbol] = useState<SymbolCode | null>(null);
+  const holdingDetailTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const openHoldingDetail = (symbol: SymbolCode) => (event: ReactMouseEvent<HTMLButtonElement>) => {
+    holdingDetailTriggerRef.current = event.currentTarget;
+    setSelectedHoldingDetailSymbol(symbol);
+  };
+  const closeHoldingDetail = () => {
+    setSelectedHoldingDetailSymbol(null);
+    // preventScroll: focus() defaults to scrolling the target into view, which would jump the
+    // Assets page away from wherever the user was scrolled to before opening the dialog — exactly
+    // the page-jump this Sprint's scroll-position requirement rules out.
+    holdingDetailTriggerRef.current?.focus({ preventScroll: true });
+  };
+  /** UR-TODO-072: derived fresh from `m.rows` every render — never a copied/editable snapshot, so the
+   * dialog can never show stale data after an update elsewhere. `m.rows` already excludes archived
+   * holdings, so a symbol just archived from inside the dialog naturally stops matching here too. */
+  const selectedHoldingDetailRow = selectedHoldingDetailSymbol ? m.rows.find(row => row.symbol === selectedHoldingDetailSymbol) ?? null : null;
   const [startupWarning, setStartupWarning] = useState<StartupIssue | null>(() => startupIssue);
   /** UR-TODO: backup/export/import/reset feedback is deliberately independent of runtime sync status. */
   const [backupFeedback, setBackupFeedback] = useState<{ tone: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
@@ -2046,7 +2079,7 @@ function App() {
     // holding (0% target weight) until the user separately clears the toggle.
     setState(s => { const dipAlerts = { ...(s.dipAlerts || {}) }; delete dipAlerts[normalizedSymbol]; return { ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: true, targetWeight: 0 } : h), dipAlerts, focusedSymbols: s.focusedSymbols.filter(sym => sym !== normalizedSymbol) }; });
     setQuotes(current => { const next = { ...current }; delete next[normalizedSymbol]; return next; });
-    setEditingHoldingSymbol(current => current === normalizedSymbol ? null : current);
+    setSelectedHoldingDetailSymbol(current => current === normalizedSymbol ? null : current);
     setAssetMessage(`${normalizedSymbol} 已封存為已清倉資產；不會納入投資計算或股價更新，股息中心仍可選取。`);
   };
   const restoreHoldingAsset = (symbol: SymbolCode) => {
@@ -2054,10 +2087,15 @@ function App() {
     setState(s => ({ ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: false } : h) }));
     setAssetMessage(`${normalizedSymbol} 已恢復為目前持股。`);
   };
-  const confirmRemoveHoldingAsset = (symbol: SymbolCode) => {
+  /** UR-TODO-072: returns whether the holding was actually archived, so HoldingDetailDialog can
+   * auto-close itself only on success (kept open — with the existing warning message — when shares
+   * still remain, or when the user cancels the window.confirm). The list-row 封存 button (Analytics)
+   * ignores the return value, same as before. */
+  const confirmRemoveHoldingAsset = (symbol: SymbolCode): boolean => {
     const holding = safeHoldings(stateRef.current.holdings).find(item => normalizeSymbol(item.symbol) === normalizeSymbol(symbol));
-    if ((holding?.shares || 0) > 0) { setAssetMessage(`${normalizeSymbol(symbol)} 仍有持股，請先將總股數調整為 0 後才能封存。`); return; }
-    if (window.confirm(`確定將 ${normalizeSymbol(symbol)} 封存為已清倉資產嗎？股息歷史會保留，且不會再納入投資計算或更新股價。`)) removeHoldingAsset(symbol);
+    if ((holding?.shares || 0) > 0) { setAssetMessage(`${normalizeSymbol(symbol)} 仍有持股，請先將總股數調整為 0 後才能封存。`); return false; }
+    if (window.confirm(`確定將 ${normalizeSymbol(symbol)} 封存為已清倉資產嗎？股息歷史會保留，且不會再納入投資計算或更新股價。`)) { removeHoldingAsset(symbol); return true; }
+    return false;
   };
   const exportBackup = () => {
     try {
@@ -2212,8 +2250,11 @@ function App() {
           <section className="asset-quote-provenance" aria-label="持股報價來源與新鮮度"><p><strong>更新狀態：</strong>{quoteStatus}</p><ul>{quotePresentation.map(quote => <li key={quote.symbol}><b>{quote.symbol}</b><span>{quote.statusLabel}</span><span>市場時間：{quote.marketTimestamp || '—'}</span><span>來源：{quote.source}</span><span>系統取得：{quote.receiptTimestamp || '—'}</span></li>)}</ul></section>
           <p className="sr-only" role="status" aria-live="polite">{holdingOrderAnnouncement}</p>
           <div className="holdings">
-            {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[row.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(row.symbol)} isEditing={editingHoldingSymbol === row.symbol} onToggleEdit={() => setEditingHoldingSymbol(current => current === row.symbol ? null : row.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={confirmRemoveHoldingAsset} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
+            {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} isDetailOpen={selectedHoldingDetailSymbol === row.symbol} onOpenDetail={openHoldingDetail(row.symbol)} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
           </div>
+          {selectedHoldingDetailRow && <HoldingDetailDialog titleId="holding-detail-dialog-title" title={<>{selectedHoldingDetailRow.quote.name} <span className="holding-symbol">{selectedHoldingDetailRow.symbol}</span></>} onClose={closeHoldingDetail}>
+            <HoldingDetailContent row={selectedHoldingDetailRow} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[selectedHoldingDetailRow.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(selectedHoldingDetailRow.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }} />
+          </HoldingDetailDialog>}
         </SectionCard>
         </div>
         <SectionCard className="page-card for-assets" id="accounts-section" title="帳戶管理" isMobile={isMobile} collapsible open={sectionOpen('cash')} onToggle={() => toggleSection('cash')} summary={`可用現金 ${money(m.cash)}｜${state.accounts.filter(account => account.isActive).length} 個啟用帳戶`}>

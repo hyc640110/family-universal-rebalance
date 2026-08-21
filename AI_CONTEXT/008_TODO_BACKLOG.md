@@ -1,6 +1,8 @@
-# Universal Rebalance Todo Backlog v2.0
+# Universal Rebalance Todo Backlog v2.1
 
 最後更新：2026-08-21
+
+2026-08-21 **新增 UR-TODO-072（Holding Card Detail Modal/Sheet），狀態：開發完成／PR Draft 待驗收。** Maintenance / Real-Use-Case Driven Mode 生效後第一個由真實 iPhone Production 使用 UX friction 觸發的 Sprint（見同日稍早條目）：持股卡片「詳細」按鈕原地 inline 展開大量編輯欄位、推長頁面、增加捲動負擔，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet，同一元件純 CSS 切換）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，未建立第二套資料更新邏輯；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 手動測試發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時若用純 `.focus()` 會把觸發按鈕捲入可視範圍、造成頁面跳動，已改用 `.focus({ preventScroll: true })` 修正。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`npx tsc -b`／`npm run build`／`git diff --check` 全數通過；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。**PR 尚為 Draft，未經使用者 iPhone Safari 真機驗收與明確授權，不得 Merge。**
 
 2026-08-21 **Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode 生效。** Review Mode 完整掃描最新版剩餘所有非 CLOSED Backlog（`docs/maintenance-mode-backlog-closeout` branch），確認 **ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發四項條件。逐項校正措辭為明確現況分類（不再使用模糊的「待開發」）：**UR-TODO-012**（Rebalance Scenario Simulator）DEFERRED／LOW PRIORITY；**UR-TODO-015**（股票質押／LTV）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-017**（股息預估模型）OPEN／DEFERRED／CURRENT PRODUCT NON-GOAL（與 `DividendCenterPage` 既有明文聲明「不提供未來收益預估」一致）；**UR-TODO-018／019**（全球指數／經濟事件資料來源）OPEN／NEEDS CONTRACT AUDIT／DATA SOURCE DECISION／NOT ACTIVE（架構已完整設計並對齊，純缺一個資料來源授權決策，無任何頁面因此降級）；**UR-TODO-020**（Gmail 通知解析）OPEN／DEFERRED／NEEDS REAL USE CASE（OAuth broker foundation 存在但已主動下架，不採 sunk-cost reasoning）；**UR-TODO-024**（多家庭成員）OPEN／DEFERRED／NEEDS REAL USE CASE；**UR-TODO-025**（保險保單追蹤）OPEN／DEFERRED／DEPENDS ON REAL HOUSEHOLD USE CASE；**UR-TODO-054（父項）**CLOSED AS UMBRELLA／FOLLOW-UPS RESOLVED（明確澄清不代表 054-C 已完成，054-C 本身維持 DEFERRED／NO-GO／NEEDS REAL CONSUMER）；**UR-TODO-055／056** 措辭強化為 DEFERRED／NO-GO／NON-PRIORITY。每項均附正式 REOPEN TRIGGER。同時完成 `019_Idea_Pool.md` IDEA-001 正式評估（見該文件），`002_MASTER_ROADMAP.md` 確認無誤導性內容、本次未修改。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：新 Development Sprint 須由 Production bug／correctness regression、真實使用 UX friction、財務安全／風險控制缺口、既有資料或流程無法完成真實工作、使用者明確新需求、或 Deferred Todo 的 REOPEN TRIGGER 真正成立六者之一觸發；Deferred／NEEDS CONTRACT AUDIT 項目不得再被 AI 自動推薦為下一 Sprint，除非其 REOPEN TRIGGER 成立。本次僅修改 `AI_CONTEXT/**` 治理文件，**未修改任何 `src/**`／`tests/**`／`scripts/**`／`package*.json`／`.github/**`／`workers/**`／schema／persistence／Household Liquidity／Rebalance／Risk／AI／CLEC／Simulator 契約**。
 
@@ -1096,6 +1098,35 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 - 驗收條件（待正式排入時另訂）
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
+
+### UR-TODO-072 Holding Card Detail Modal/Sheet
+
+- 優先級：P3（Maintenance / Real-Use-Case Driven Mode 下由真實 iPhone Production 使用 UX friction 觸發，使用者明確授權開發）
+- 狀態：**開發完成，PR Draft 待驗收；未經使用者明確授權不得 Merge**
+- 提出日期：2026-08-21
+- 背景：使用者於 iPhone Production 實際使用時發現，點擊持股卡片「詳細」後會在卡片下方 inline 展開大量編輯欄位（總股數、成交均價、目標比例、資產分類、波段最高價、逢低提醒、重點標的、封存已清倉），造成卡片高度大幅增加、頁面被推長，查看下一檔持股需大量捲動。此為 Maintenance Mode 下明確的真實使用 UX friction（見 016 Product_Decisions 觸發條件第 2 項），非技術完整性驅動。
+- 完成內容：
+  1. 新增 `src/components/HoldingDetailDialog.tsx`——通用、無 holding-specific 資料耦合的 accessible dialog/sheet shell（`role="dialog"`／`aria-modal="true"`／`aria-labelledby`），同一 DOM 結構純以 CSS media query 在 Desktop 呈現置中 modal、Mobile（≤768px）呈現近全高（96dvh）bottom sheet。Backdrop 點擊（僅限點擊 backdrop 本身，不含冒泡）、Escape 鍵、明確 Close 按鈕三種方式關閉；掛載時 body scroll lock（`document.body.style.overflow='hidden'`）、卸載時還原；掛載時 focus 進入 Close 按鈕。
+  2. `HoldingCompactCard` 移除 `isEditing && <div className="holding-editor">...}` inline 展開區塊與相關 `dipSetting`／`isFocused`／`onUpdate`／`onUpdateDipAlert`／`onToggleFocused`／`onRemove` props（不再需要，因為這些只被舊 inline editor 使用）；「詳細」按鈕改為 `onOpenDetail`，恆顯示「詳細」文字（不再有「收合」狀態），`aria-expanded`／`aria-haspopup="dialog"` 反映對應 dialog 是否開啟。
+  3. 新增 `HoldingDetailContent`（App.tsx 內，因需要 `DraftInput`／`parsePositive`／`clampTarget`／`assetClassLabel`／`normalizeAssetClass` 等現有 App.tsx-local 純函式，抽出獨立檔案需額外 export 多個內部工具，判斷不值得為此增加風險——詳見下方架構決策）——承載原 inline editor 100% 相同的欄位與語意，**完全重用既有** `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，不建立第二套資料更新邏輯。
+  4. State：`editingHoldingSymbol` 改名為 `selectedHoldingDetailSymbol: SymbolCode | null`；新增 `holdingDetailTriggerRef` 記錄開啟時的觸發按鈕，關閉時以 `.focus({ preventScroll: true })` 還原焦點（`preventScroll` 是必要修正——純 `.focus()` 預設會把觸發按鈕捲入可視範圍，導致 Assets 頁面跳動，違反下方驗收條件 6，已由 Preview 手動測試發現並修正）。Dialog 內容 `selectedHoldingDetailRow` 每次 render 皆從 `m.rows.find(...)` 重新取得（`m` 為既有 `calculateMetrics()` memo 結果），從未複製成獨立 editable state，故不可能顯示 stale 資料；持股在 Dialog 內被封存後，`m.rows` 自然不再含該 symbol（既有 `derivedHoldings()`／`uniqueSymbols()` 已排除 `isArchived`），Dialog 自動消失。
+  5. `confirmRemoveHoldingAsset` 回傳型別改為 `boolean`（是否實際封存成功），Dialog 內封存呼叫改為 `symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }`——只有成功才關閉 Dialog，股數未歸零或使用者取消 `window.confirm` 時維持開啟並顯示既有錯誤訊息。既有 Analytics 列表「封存」按鈕（非本次範圍）呼叫方式不變，忽略新的回傳值。
+  6. CSS：新增 `.holding-detail-backdrop`／`.holding-detail-dialog`／`.holding-detail-header`／`.holding-detail-close`／`.holding-detail-body`（`z-index:200`，高於既有 desktop-sidebar 70 與 mobile-page-nav 80，確保 Dialog 不被 Bottom Navigation 遮擋），`@media (max-width:768px)` 內覆寫為 bottom sheet 樣式並處理 `env(safe-area-inset-top/bottom)`。`.holding-editor`／`.holding-editor-summary`／`.holding-editor-grid` 等既有欄位樣式完全重用、未修改語意，只調整外層 margin/padding（不再需要卡片內分隔線，改由 Dialog header 承擔視覺分隔）。移除死碼 `.holding-compact.is-editing{grid-column:1/-1}`（inline 展開機制已不存在）。
+- **架構決策：`HoldingDetailContent` 保留在 App.tsx 而非抽成獨立元件檔**——雖然 Dialog shell 本身（`HoldingDetailDialog.tsx`）已抽出至 `src/components/`（比照既有 `HoldingOrderHandle.tsx` 先例），但欄位內容需要的 `DraftInput`／`parsePositive`／`clampTarget`／`assetClassLabel`／`normalizeAssetClass` 等約 8 個純函式目前皆為 App.tsx module-scope 私有（無 `export`），且被 App.tsx 內其他多處元件（`FinancialAccountList`／`LoanList` 等）共用；為單一新元件檔新增這麼多 export 會擴大不必要的 diff／風險面。`HoldingCompactCard` 本身也一直是 App.tsx-local 元件（非抽出至 `components/`），故此決策與既有架構慣例一致。
+- Scroll 行為驗證（Preview，桌機 1280×800／1000×800 與 iPhone 尺寸 320/390/430×viewport 皆測試）：開啟前設定 `scrollY=400` → 開啟 Dialog（`position:fixed` overlay，不佔用文件流，頁面高度不變）→ 關閉 Dialog（`preventScroll:true` 焦點還原）→ 確認 `scrollY` 精確回到 400，無跳動。
+- Accessibility 驗證：`role="dialog"`／`aria-modal="true"`／`aria-labelledby` 正確指向持股名稱＋symbol 標題；Close 按鈕於掛載時取得 focus；Escape 鍵關閉（Desktop／Mobile 皆測試）；backdrop 點擊關閉，但點擊 Dialog body 內容不會誤觸關閉；`body` scroll lock 於掛載/卸載正確加上/移除。
+- Responsive 驗證（Preview 唯讀 DOM／computed style 查驗，非 iPhone 真機）：Mobile 320px／390px 皆無 horizontal overflow，Sheet 高度 96dvh，`z-index:200` 高於 `.mobile-page-nav`（80），最後一項「封存已清倉」按鈕可捲動至完整可視／可操作；Desktop 1000px 置中 modal（左右留白對稱、`max-width:680px`）、背景 9-column card grid（UR-TODO-071 契約）未變。
+- 新增測試：`tests/holdingDetailDialog.test.ts`（8 tests，`HoldingDetailDialog` shell 真實 jsdom + react-dom render——dialog 語意、close button、Escape、backdrop 點擊 vs 內容點擊、body scroll lock、focus）、`tests/holdingDetailDialogStructure.test.ts`（11 tests，App.tsx 原始碼結構檢驗，比照既有 `holdingCardDragReorderStructure.test.ts` 慣例——因 App.tsx 因 `import.meta.env` 無法被 test import）。既有 `tests/v6MobileSimplifiedExperience.test.ts` 一處斷言（原檢查 `editingHoldingSymbol === row.symbol` 字面字串）同步更新為 `selectedHoldingDetailSymbol === row.symbol`，語意不變、僅追隨改名。共新增 19 tests＋更新 1 個既有斷言，已納入 `npm run test:ci`（新增 `npm run test:ur-todo-072`）。
+- 明確不包含：`Holding` schema／`AppState` 財務語意／localStorage schema／JSON Backup contract／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution／quote provider／市值／損益／成本公式／資產分類語意／逢低加碼演算法——原本資料與計算結果完全一致，純 presentation／interaction restructuring。未修改 `tests/holdingCardDragReorder*.test.ts`／`tests/holdingOrderHandle.test.ts`（UR-TODO-071 拖曳排序契約），已重新執行確認 25＋41 tests 全數通過、無回歸。
+- 依賴：UR-TODO-070／UR-TODO-071（皆已 CLOSED，`HoldingCompactCard`／`holdingDisplayOrder`／`HoldingOrderHandle` 現行渲染與拖曳排序路徑已具備，本次未變動）。
+- 驗收條件（Preview 唯讀驗證已完成，iPhone Safari 真機驗收待使用者執行）：
+  1. 持股卡片維持 compact，點擊「詳細」後改為獨立 Sheet／Modal，不再於原卡片下方展開。
+  2. Sheet／Modal 內容涵蓋原 inline editor 全部欄位，功能語意 100% 不變。
+  3. Mobile 近全高 Sheet、Desktop 置中 Modal，皆無 horizontal overflow，Bottom Navigation 不遮擋內容。
+  4. 關閉後畫面維持原 scroll position，不跳動、不回頁首。
+  5. 切換不同持股的「詳細」，Dialog 內容正確對應該持股，無 stale 資料。
+  6. Dialog 內封存已清倉成功後自動關閉，不留下 orphan modal。
+  7. `test:ur-todo-070`／`test:ur-todo-071`／`test:ur-todo-072`／`test:ci`／`npx tsc -b`／`npm run build`／`git diff --check` 全數通過。
 
 ### UR-TODO-071 Holding Card Drag Reorder
 

@@ -22,8 +22,10 @@ test('V6.15 removes mobile compact/full controls while retaining desktop setting
 test('V6.15 uses effective compact defaults for independent SectionCards on mobile', () => {
   assert.match(app, /const defaultSectionsForMode = effectiveDisplayMode === 'full' \? FULL_UI_SECTIONS : DEFAULT_UI_STATE\.sections/);
   assert.match(app, /const defaults = effectiveDisplayMode === 'full' \? FULL_UI_SECTIONS : DEFAULT_UI_STATE\.sections/);
-  assert.match(app, /editingHoldingSymbol === row\.symbol/);
-  assert.match(app, /current === row\.symbol \? null : row\.symbol/);
+  // UR-TODO-072: holding "詳細" moved from an in-card inline toggle (editingHoldingSymbol) to a
+  // standalone dialog (selectedHoldingDetailSymbol) — updated in lockstep, see
+  // holdingDetailDialogStructure.test.ts for the full contract on the new behavior.
+  assert.match(app, /selectedHoldingDetailSymbol === row\.symbol/);
 });
 
 test('V6.15 preserves quote refresh and assets pull-to-refresh boundaries', () => {

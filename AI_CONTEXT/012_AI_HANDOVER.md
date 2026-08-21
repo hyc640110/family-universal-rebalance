@@ -1,6 +1,31 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21）
+## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（開發完成，PR Draft 待驗收，2026-08-21）
+
+### 工作主題
+Maintenance Mode 生效後第一個由真實使用 UX friction 觸發的 Development Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 Detail Modal（Desktop）／Sheet（Mobile）。Branch `feat/ur-todo-072-holding-detail-dialog` 自 `origin/main` `614771ffd8013ad7eb8b238fa3cec439c338f54c` 開出。
+
+### 狀態
+**開發完成，PR 為 Draft，尚未 Preview 部署／人工 iPhone Safari 真機驗收。AI 不得自行 Merge 或轉 Ready for review。**
+
+### 完成內容摘要
+- 新增 `src/components/HoldingDetailDialog.tsx`：通用 accessible dialog/sheet shell，無 holding-specific 資料耦合，同一 DOM 結構純 CSS 切換 Desktop 置中 modal／Mobile 96dvh bottom sheet。
+- `HoldingCompactCard` 移除 inline `holding-editor` 展開區塊；新增 `HoldingDetailContent`（App.tsx 內，因需要 `DraftInput` 等 App.tsx-local 私有工具函式，判斷不值得為此新增多個 export——詳見 008_TODO_BACKLOG.md UR-TODO-072 條目的架構決策說明）。
+- State 由 `editingHoldingSymbol` 改名為 `selectedHoldingDetailSymbol`；新增 `holdingDetailTriggerRef` 供關閉時焦點還原。
+- **Preview 手動測試發現並修正一項真實缺陷**：關閉 Dialog 時純 `.focus()` 會把觸發按鈕捲入可視範圍、造成 Assets 頁面 scroll position 跳動，違反本 Sprint「關閉後維持原 scroll position」的核心驗收條件；已修正為 `.focus({ preventScroll: true })`。此為 Contract Audit／程式碼審查無法發現、只有實際瀏覽器互動測試才能抓到的問題，值得記錄供未來類似 focus-restore 場景參考。
+- 完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`confirmRemoveHoldingAsset` 回傳型別改為 `boolean`，Dialog 內封存成功才自動關閉。
+- 新增 19 tests（`test:ur-todo-072`，已納入 `test:ci`）；`v6MobileSimplifiedExperience.test.ts` 一處斷言同步改名。
+
+### Scope Guard（已驗證）
+`Holding` schema／`AppState` 財務語意／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution／quote provider／市值／損益／成本公式／資產分類語意／逢低加碼演算法均為 0 diff，純 presentation／interaction restructuring。`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。
+
+### Preview 驗證（唯讀 DOM／computed style，本 session 完成，非 iPhone 真機）
+Desktop 1280×800／1000×800：置中 modal、`max-width:680px`、背景 9-column card grid 未變、`z-index:200`。Mobile 390×844／320×700：96dvh bottom sheet、無 horizontal overflow、`z-index:200` 高於 `.mobile-page-nav`（80）、最後一項「封存已清倉」按鈕可完整捲動可見。role="dialog"／aria-modal／aria-labelledby 正確；Escape／backdrop 點擊／Close 按鈕三種關閉方式皆驗證；body scroll lock 掛載/卸載正確；scrollY 開關前後精確一致（修正 preventScroll bug 後）。
+
+### 下一位 AI／使用者的直接起點
+**待使用者在 iPhone Safari 真機完成人工驗收**（見 008_TODO_BACKLOG.md UR-TODO-072 條目列出的驗收情境 A-D）。驗收通過後才可將 PR 轉 Ready for review，仍需使用者明確 Merge 授權，AI 不得自行 Merge 或部署 Production。
+
+## 前一交接快照：Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21）
 
 ### 工作主題
 Remaining Backlog Governance Closeout / Maintenance Mode。純治理修正，branch `docs/maintenance-mode-backlog-closeout` 自 `origin/main` `d3e9effffcb9b662860f28e79b131a640deeab79` 開出，**未修改任何 `src/**`／`tests/**`／`scripts/**`／`package*.json`／`.github/**`／`workers/**`／schema／persistence／Financial Event Ledger／Household Liquidity／Rebalance／CLEC／AI Decision**。
