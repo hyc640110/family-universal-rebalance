@@ -1,6 +1,8 @@
-# Universal Rebalance Current Status v4.41
+# Universal Rebalance Current Status v4.42
 
 最後更新：2026-08-21
+
+**UR-TODO-072 Holding Card Detail Modal/Sheet 開發完成，PR Draft 待驗收（2026-08-21）。** Maintenance Mode 生效後第一個由真實 iPhone Production UX friction 觸發的 Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 sheet）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／persistence／`holdingDisplayOrder`／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均 0 diff。Preview 測試發現並修正焦點還原造成頁面跳動的缺陷（改用 `focus({ preventScroll: true })`）。新增 19 tests（`test:ci` 已納入 `test:ur-todo-072`），`tsc -b`／`build`／`git diff --check` 皆通過；`test:ur-todo-070`／`071` 重新執行無回歸。**PR 為 Draft，待使用者 iPhone Safari 真機驗收後才可 Ready／Merge，AI 未自行 Merge。** 詳見 `008_TODO_BACKLOG.md` UR-TODO-072 正式條目。
 
 **Remaining Backlog Governance Closeout — Maintenance / Real-Use-Case Driven Mode（2026-08-21，純治理修正，無 production code 變更）。** Review Mode 完整掃描最新版 `008_TODO_BACKLOG.md` 剩餘所有非 CLOSED 項目後確認：**ACTIVE = 0**——沒有任何項目同時具備真實產品問題、明確 consumer、尚未被吸收、ROI 足以支持近期開發，因此**沒有值得立即啟動的新 Feature Sprint**。**Universal Rebalance 正式進入 Maintenance / Real-Use-Case Driven Mode**：
 
