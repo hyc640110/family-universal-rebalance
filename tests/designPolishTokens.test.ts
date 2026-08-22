@@ -203,26 +203,27 @@ test('UR-TODO-073 third refinement round root-cause fix: the allocation ring tra
   assert.doesNotMatch(ringRule, /var\(--bg-surface-2\) 0\)/, 'the track color must not be --bg-surface-2 again (near-invisible against the --bg-surface hole)');
 });
 
-test('UR-TODO-073 third refinement round: mobile Holding Card is restructured into an investment-summary layout (ring/name header, prominent value+P&L, demoted price/today-change, Secondary 詳細) via grid-template-areas — every previously-visible data point remains available somewhere (股數/均價 in 詳細, 現價/今日漲跌 stay on the compact card)', () => {
+test('UR-TODO-074: mobile Holding Card is restructured into a 3-row layout (identity/handle, value/pnl, detail/pnl) via grid-template-areas — every previously-visible data point remains available somewhere (股數/均價/現價/今日漲跌 all move to the 詳細 Sheet, none are deleted)', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   assert.match(mobileBlock, /grid-template-areas:/);
   for (const [cls, area] of [
     ['.holding-card-identity', 'identity'],
     ['.holding-card-market-value', 'value'],
     ['.holding-card-unrealized-pnl', 'pnl'],
-    ['.holding-card-price', 'meta'],
-    ['.holding-card-today-change', 'meta2'],
     ['.holding-order-handle', 'handle'],
   ]) {
     assert.match(mobileBlock, new RegExp(cls.replace('.', '\\.') + '\\{grid-area:' + area));
   }
   assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail/);
-  assert.match(mobileBlock, /\.holding-card-shares,\.holding-card-average-cost\{display:none\}/);
+  // UR-TODO-074: 現價/今日漲跌 no longer get their own grid-area — they are hidden in the compact
+  // summary (no other field duplicates them, so a display line was added to HoldingDetailContent
+  // instead, see the App.tsx test below) alongside the already-hidden 股數/均價.
+  assert.match(mobileBlock, /\.holding-card-shares,\.holding-card-average-cost,\.holding-card-price,\.holding-card-today-change\{display:none\}/);
 });
 
-test('UR-TODO-073 third refinement round: the ≤420px breakpoint\'s generic .holding-card-detail padding no longer silently re-pads the demoted 現價/今日漲跌 row back up (the exact class of bug caught once already this Sprint)', () => {
+test('UR-TODO-074: the ≤420px breakpoint no longer carries a generic .holding-card-detail{padding:8px} shorthand, which would silently reset the 60px padding-left/margin-left the ≤768px block relies on to align 市值/詳細 with the name text past the absolutely-positioned ring', () => {
   const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('/* V3.1 application navigation */'));
-  assert.match(narrowBlock, /\.holding-card-price,\.holding-card-today-change\{padding:0\}/);
+  assert.doesNotMatch(narrowBlock, /\.holding-card-detail\{padding:8px\}/);
 });
 
 test('UR-TODO-073 third refinement round: UR-TODO-070/071/072 field data and interaction wiring in App.tsx are completely untouched (CSS-only presentation change)', () => {
@@ -255,8 +256,153 @@ test('UR-TODO-073 fourth refinement round: unrealized P/L is percentage-primary 
   assert.match(card, /holding-card-unrealized-pnl[\s\S]*<span>\{signedMoney\(row\.pnl\)\}<\/span><span>\{signedPct\(pnlPct\)\}<\/span>/);
 });
 
-test('UR-TODO-073 fourth refinement round: 市值/P&L now share one row (grid-area "value pnl pnl") instead of two full-width stacked rows — a further compactness step, still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
+test('UR-TODO-074: 市值 shares a row with the top half of P&L\'s percentage, and 詳細 shares a row with the bottom half of P&L\'s label — the pnl grid-area spans both rows as one contiguous area (same DOM as before, no JSX change), so the percentage lines up with 市值 and 未實現損益 lines up with 詳細 — still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileBlock, /"value pnl pnl"/);
+  assert.match(mobileBlock, /"value {2,}pnl"/);
+  assert.match(mobileBlock, /"detail {2,}pnl"/);
   assert.match(mobileBlock, /\.holding-card-unrealized-pnl-up,\.holding-card-unrealized-pnl-down,\.holding-card-unrealized-pnl-hold\{background:transparent!important;border:0!important\}/);
+});
+
+test('UR-TODO-074: 詳細 is a compact Secondary action (auto width, not a full-width bar) and the allocation ring is absolutely positioned inside .holding-card-identity so it visually overlaps the rows below it without inflating row 1\'s height or changing the summary\'s direct-child count (which the ≥901px desktop 9-column row, UR-TODO-071\'s contract, depends on)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:start;align-self:center;width:auto/);
+  assert.doesNotMatch(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:stretch/);
+  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:92px/);
+  assert.match(mobileBlock, /\.holding-mobile-weight\{position:absolute;top:0;left:0;width:76px;height:76px\}/);
+  const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
+  assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\)/, 'the ≥901px desktop 9-column row template must be untouched by this Sprint');
+});
+
+test('UR-TODO-074 ring-size refinement: allocation ring is enlarged (not left at the original 52px badge size) at every mobile bucket, and every bucket\'s punch-hole is large enough that realistic single-holding percentage strings (up to 5 characters, e.g. 67.4%/10.7%/48.8%) fit inside the CIRCLE (verified via chord-width at the text\'s actual rendered height, not just width-vs-diameter — a rectangle narrower than a circle\'s diameter can still poke past its curved edge near the corners), with matching text-alignment offsets so 市值/詳細 keep lining up under the name text', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('@media (max-width: 360px)'));
+  const narrowestBlock = styles.slice(styles.indexOf('@media (max-width: 360px)'), styles.indexOf('/* V3.1 application navigation */'));
+  // UR-TODO-074 round 2 (iPhone Preview acceptance): outer diameters unchanged from round 1 — only
+  // the inset (stroke/ring-band thickness) was thinned per feedback that the ring read as "big
+  // circle, thick band" rather than the target's "big circle, thin band". A thinner inset only
+  // enlarges the punch-hole, so the chord-width fit check below still holds with more margin.
+  const buckets = [
+    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 6, font: 16, offset: 92, offsetSelectors: true },
+    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 5, font: 15, offset: 86, offsetSelectors: true },
+    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 5, font: 14, offset: 78, offsetSelectors: true },
+  ];
+  // A monospace-ish digit/percent glyph is comfortably covered by treating each character as
+  // ~0.62em wide (verified against real rendered widths during this Sprint's Preview testing, which
+  // measured 42.8-49px for 5-character strings at 14-16px font — this constant stays conservatively
+  // above that per-character average so the regression guard doesn't rely on live font metrics).
+  const CHAR_WIDTH_EM = 0.62;
+  const LINE_HEIGHT = 1.1;
+  for (const { label, block, ring, inset, font, offset } of buckets) {
+    assert.match(block, new RegExp(`\\.holding-mobile-weight\\{(position:absolute;top:0;left:0;)?width:${ring}px;height:${ring}px\\}`), `${label}: ring size`);
+    assert.match(block, new RegExp(`\\.holding-mobile-weight::before\\{inset:${inset}px\\}`), `${label}: punch-hole inset`);
+    assert.match(block, new RegExp(`\\.holding-mobile-weight strong\\{font-size:${font}px\\}`), `${label}: percentage font-size`);
+    assert.match(block, new RegExp(`\\.holding-card-identity\\{(grid-area:identity;position:relative;)?padding-left:${offset}px`), `${label}: identity offset must match ring+gap`);
+    assert.match(block, new RegExp(`\\.holding-card-market-value\\{(grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;)?padding-left:${offset}px`), `${label}: market-value offset must match ring+gap`);
+    assert.match(block, new RegExp(`margin-left:${offset}px`), `${label}: 詳細 button offset must match ring+gap`);
+    assert.ok(ring > 52, `${label}: ring size ${ring}px must be larger than the pre-refinement 52px badge`);
+    const holeDiameter = ring - 2 * inset;
+    const textHeight = font * LINE_HEIGHT;
+    const textWidth = '67.4%'.length * font * CHAR_WIDTH_EM;
+    const chordWidth = 2 * Math.sqrt(Math.max(0, (holeDiameter / 2) ** 2 - (textHeight / 2) ** 2));
+    assert.ok(textWidth <= chordWidth, `${label}: a 5-character percentage (~${textWidth.toFixed(1)}px) must fit the ${holeDiameter}px punch-hole's chord width at this text height (${chordWidth.toFixed(1)}px), not just its diameter`);
+  }
+  // the underlying conic-gradient/ring-value mechanism (real allocation % fill) is untouched by any
+  // of the size overrides above — only width/height/inset/font-size/offsets change per breakpoint.
+  assert.match(styles, /background:conic-gradient\(var\(--primary\) calc\(var\(--ring-value,0\)\*1%\),var\(--border\) 0\)/);
+});
+
+test('UR-TODO-074 round 2 (iPhone Preview acceptance): 詳細 is a visibly wider compact Secondary button (min-width ≥80px, not the round-1 ~56px), and 未實現損益 sits tightly grouped under its percentage (a small explicit gap, not `justify-content:space-between` stretching them to opposite ends of the tall pnl area)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const buttonRule = /\.holding-card-summary>\.holding-edit-button\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '';
+  const minWidthMatch = /min-width:(\d+)px/.exec(buttonRule);
+  assert.ok(minWidthMatch, '詳細 button must declare an explicit min-width');
+  assert.ok(Number(minWidthMatch[1]) >= 80, `詳細 button min-width (${minWidthMatch[1]}px) must be ≥80px, clearly wider than the round-1 ~56px`);
+  assert.doesNotMatch(buttonRule, /justify-self:stretch/, '詳細 must stay a compact button, not a full-width bar');
+  const pnlRule = /\.holding-card-unrealized-pnl\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '';
+  assert.match(pnlRule, /flex-direction:column-reverse/, 'percentage-primary/label-secondary stacking order must be unchanged');
+  assert.doesNotMatch(pnlRule, /justify-content:space-between/, 'space-between stretches percentage and label to opposite ends of the tall pnl area — the exact bug reported in this round');
+  const gapMatch = /gap:(\d+)px/.exec(pnlRule);
+  assert.ok(gapMatch, 'pnl percentage/label must have an explicit small gap so they read as one group');
+  assert.ok(Number(gapMatch[1]) <= 5, `pnl gap (${gapMatch[1]}px) must be small (≤5px) so 未實現損益 reads as tightly grouped with its percentage`);
+});
+
+test('UR-TODO-074 round 2 (iPhone Preview acceptance): dark surface tokens are darkened/more-neutral than the UR-TODO-073 baseline while keeping the page→surface→surface-2 three-layer hierarchy distinct and --border still subtle (not a bright frame)', () => {
+  const bgPage = /--bg-page:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface = /--bg-surface:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface2 = /--bg-surface-2:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const border = /--border:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  for (const [name, hex] of [['--bg-page', bgPage], ['--bg-surface', bgSurface], ['--bg-surface-2', bgSurface2], ['--border', border]]) {
+    assert.ok(hex, `${name} must be defined`);
+  }
+  const luminance = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 0xff) + 0.7152 * ((n >> 8) & 0xff) + 0.0722 * (n & 0xff);
+  };
+  // must not have regressed back to (or past) the UR-TODO-073 baseline lightness for the two
+  // surfaces the user flagged as "still blue-gray" — this round must be darker, not just re-hued.
+  assert.ok(luminance(bgPage) < luminance('#0b0f14'), '--bg-page must be darker than the UR-TODO-073 baseline (#0b0f14)');
+  assert.ok(luminance(bgSurface) < luminance('#111827'), '--bg-surface must be darker than the UR-TODO-073 baseline (#111827)');
+  assert.ok(luminance(bgSurface2) < luminance('#151d2a'), '--bg-surface-2 must be darker than the UR-TODO-073 baseline (#151d2a)');
+  // three-layer hierarchy: each step must still be visibly distinct (not collapsed together).
+  assert.ok(luminance(bgSurface) > luminance(bgPage), '--bg-surface must remain visibly lighter than --bg-page (layering preserved)');
+  assert.ok(luminance(bgSurface2) > luminance(bgSurface), '--bg-surface-2 must remain visibly lighter than --bg-surface (layering preserved)');
+  assert.notEqual(bgPage.toLowerCase(), '#000000', '--bg-page must not be flattened to OLED pure black');
+  // --border must stay subtle: not equal to a full text-contrast color, and darker than --text-primary/-secondary.
+  assert.ok(luminance(border) < luminance('#a7b0bf'), '--border must stay darker/less prominent than --text-secondary (subtle, not a bright frame)');
+});
+
+test('UR-TODO-074 round 3 (iPhone Preview acceptance, site-wide root cause): the three dark surface tokens are darker than the round-2 values AND less blue-hued (B channel no longer far above R/G) — the compounding blue push across many nested surface-2-on-surface boxes (Home/Analysis/Tools/Rebalance) was the actual reason those pages still read "blue-gray" while the Holding Card looked fine', () => {
+  const bgPage = /--bg-page:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface = /--bg-surface:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface2 = /--bg-surface-2:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const luminance = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 0xff) + 0.7152 * ((n >> 8) & 0xff) + 0.0722 * (n & 0xff);
+  };
+  const blueBias = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+    return b - Math.max(r, g);
+  };
+  // round 2 -> round 3: darker still (not just re-hued).
+  assert.ok(luminance(bgPage) <= luminance('#07090c'), '--bg-page must be no lighter than the round-2 value (#07090c)');
+  assert.ok(luminance(bgSurface) <= luminance('#0d1218'), '--bg-surface must be no lighter than the round-2 value (#0d1218)');
+  assert.ok(luminance(bgSurface2) <= luminance('#121924'), '--bg-surface-2 must be no lighter than the round-2 value (#121924)');
+  // round 2's blue channel sat 6-11pt above red/green (e.g. #0d1218: B24 vs R13 -> bias 11); round 3
+  // must cut that bias down meaningfully so the surfaces read as neutral charcoal, not blue-gray.
+  assert.ok(blueBias(bgSurface) <= 6, `--bg-surface's blue-vs-red/green bias (${blueBias(bgSurface)}) must be ≤6 (round-2's #0d1218 was 11)`);
+  assert.ok(blueBias(bgSurface2) <= 6, `--bg-surface-2's blue-vs-red/green bias (${blueBias(bgSurface2)}) must be ≤6 (round-2's #121924 was 12)`);
+});
+
+test('UR-TODO-074 round 3: the site-wide hardcoded blue-navy background leaks found by this round\'s audit (predating the UR-TODO-073 token pass, on plain structural surfaces rather than semantic status badges) are retokenized', () => {
+  for (const hex of ['#0a1524', '#0b2138', '#0b1f36', '#102f52']) {
+    assert.doesNotMatch(styles, new RegExp(`background:${hex}\\b`, 'i'), `${hex} must no longer appear as a hardcoded background (found outside the semantic status-badge palette this Sprint deliberately leaves alone)`);
+  }
+  assert.match(styles, /\.order-section\.order-muted\{border-color:var\(--border\);background:var\(--bg-page\)\}/);
+  assert.match(styles, /\.rebalance-group \.group-main\{background:var\(--bg-surface-2\)\}/);
+});
+
+test('UR-TODO-074 round 3: the mobile Holding Card name is enlarged (20px) via a scoped selector, not the shared --font-name token, so the ≥901px desktop row and the Detail Sheet header (which also consume --font-name) are unaffected', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-identity \.holding-name\{font-size:20px\}/);
+  assert.match(styles, /--font-name:18px/, '--font-name token itself must stay 18px (unchanged) so Desktop/Detail Sheet consumers are unaffected');
+  const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
+  assert.match(desktopBlock, /\.holding-card-identity \.holding-name\{font-size:var\(--font-name\)/, 'desktop must keep consuming the unchanged --font-name token, not the mobile-only 20px override');
+});
+
+test('UR-TODO-074 round 3: ring-to-content gap widened (from the round-1/2 8px gap to 14-16px) at every mobile bucket — offsets are still exactly ring-size + gap, so 市值/詳細 keep lining up under the (now-wider) gap past the ring', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('@media (max-width: 360px)'));
+  const narrowestBlock = styles.slice(styles.indexOf('@media (max-width: 360px)'), styles.indexOf('/* V3.1 application navigation */'));
+  const buckets = [
+    { label: '421-768px', block: mobileBlock, ring: 76, offset: 92 },
+    { label: '≤420px', block: narrowBlock, ring: 70, offset: 86 },
+    { label: '≤360px', block: narrowestBlock, ring: 64, offset: 78 },
+  ];
+  for (const { label, block, ring, offset } of buckets) {
+    const gap = offset - ring;
+    assert.ok(gap >= 14, `${label}: ring-to-content gap (${gap}px) must be ≥14px (was 8px pre-round-3)`);
+    assert.match(block, new RegExp(`padding-left:${offset}px`), `${label}: identity/market-value offset`);
+    assert.match(block, new RegExp(`margin-left:${offset}px`), `${label}: 詳細 button offset`);
+  }
 });

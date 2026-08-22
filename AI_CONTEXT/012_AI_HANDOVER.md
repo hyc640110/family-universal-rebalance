@@ -1,6 +1,31 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-073 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
+## 最新交接快照：UR-TODO-074 iPhone Preview 驗收 PASS — Ready for Review（2026-08-22）
+
+### 正式決策
+**UR-TODO-074 = IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED。尚未 Merge、尚未 Production Verified。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `eeb2178f0682b687b51a1387e0587bd3d78ba371`，Branch `feat/ur-todo-074-holding-card-compact-layout` 自 `origin/main` `9c979acfc2ae070be49152b57932b1b2d176129f` 開出，本輪治理 closeout 後已由 Draft **轉為 Ready for review**（依使用者本輪明確指示）。**AI 未自行 Merge、未部署 Production、未使用 admin override。**
+
+### 四輪迭代摘要（完整內容見 `008_TODO_BACKLOG.md` UR-TODO-074 條目）
+1. Mobile Holding Card 由 4 列收斂為 3 列（現價／今日漲跌移至 HoldingDetailContent，未刪除資料），Ring 改用 `position:absolute` 避免變動 `.holding-card-summary` 直接子元素數量（保護 UR-TODO-071 桌面 9-column row 依賴）。
+2. Ring 外徑放大（52px→320px:64/390px:70/430px:76px），以圓弧弦寬幾何驗證percentage文字不溢出。
+3. 環厚變薄、詳細按鈕加寬（min-width 88px）、P&L 百分比與 label 間距收緊為 3px、深色 token 加深降藍。
+4. Ring-內容間距加大至 14–16px、股票名稱 Mobile-only 放大 20px、root-cause 稽核修正 4 處全站遺留硬編碼藍灰 surface、深色 token 再加深並將藍色 hue bias 由約 10–15 降至 3 以內。
+
+**使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED）。**
+
+### Scope boundary（重要，供下一位 AI／開發者遵守）
+1. **UI 已通過驗收，不得再修改** Holding Card／Ring／詳細按鈕／P&L 排版／dark surface tokens，除非使用者明確重新提出新一輪需求。
+2. 下一步僅能是等待使用者明確授權 Merge PR #410；未經明確「開始開發」／「Merge」指示，AI 不得自行 Merge、不得部署 Production、不得建立新功能 Branch。
+3. `stash@{0}`～`stash@{9}` 全程未被 pop／apply／drop／修改，維持原狀。
+
+### Governance closeout（本次快照）
+`003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`（本快照）已同步更新記錄 iPhone 驗收 PASS 與 Ready for review 轉換；Full／Lite Bundle 已重新產生。本次治理 commit 僅修改 `AI_CONTEXT/**` 與 Bundle exports，`src/**`／`tests/**`／`package*.json`／`workers/**`／`.github/**` 均 0 diff（本輪為純治理 closeout，UI 相關程式碼變更皆已於前幾輪 commit 完成並經驗收）。
+
+### 下一位 AI／使用者
+- **等待使用者明確 Merge 授權**，AI 不得自行 Merge PR #410、不得部署 Production。
+- Merge 後應另行進行 Production 唯讀驗證，並在 `003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md` 補記 UR-TODO-074 正式 CLOSED／Production Verified（本次快照僅為 Preview 驗收 closeout，非最終 Production 驗證）。
+
+## 前一交接快照：UR-TODO-073 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
 
 ### 正式決策
 **UR-TODO-073 = CLOSED／Production Verified。** 使用者於 Phase 1 Closeout 快照之後明確授權 Merge：PR [#408](https://github.com/hyc640110/family-universal-rebalance/pull/408)（final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`）已由 `hyc640110` 於 `2026-08-22T04:22:58Z` 以一般 2-parent merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`（parents `ef65d42c7a121a2bfd06b4fae48aee39ce2d7a44`／`1a8c4f7941b23ccab0754385ae69798fa8c6108f`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `d348372599c4bdcfba8d5b4d5fb21722366bc33e`。

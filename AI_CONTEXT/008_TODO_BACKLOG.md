@@ -1156,7 +1156,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-074 Holding Card Compact Information Layout Refinement
 
 - 優先級：P3（UR-TODO-073 Phase 1 的直接 follow-up，由使用者 iPhone Safari 真機驗收後明確提出）
-- 狀態：**OPEN／PLANNED（治理建檔完成，2026-08-22；尚未開始開發，未建立功能 Branch，未修改 `src/**`／`tests/**`）**
+- 狀態：**IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED（2026-08-22）。尚未 Merge、尚未 Production Verified。**
 - 提出日期：2026-08-22
 - 背景／觸發依據：使用者於 UR-TODO-073 Phase 1 第四輪 Preview 真機驗收後確認整體 dark design language（背景層次、字體、共用元件、Navigation、全站色彩一致性）已可接受並結束 073 範圍，但認為 Holding Card 的資訊編排（市值／未實現損益／現價／今日漲跌的實際排列方式與卡片高度）仍有精修空間，明確要求另開小型 Sprint 處理，避免持續擴大 PR #408 範圍。
 - 產品目標：在不改變任何既有資料欄位、財務語意與互動契約的前提下，以使用者提供的參考圖為 visual direction，進一步精修 Holding Card 的 compact information layout，讓 iPhone 單一 viewport 可看到更多持股，同時維持字體清晰可讀。
@@ -1179,7 +1179,15 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
   5. `test:ci`／`npx tsc -b`／`npm run build`／`git diff --check` 全數通過。
   6. **iPhone Safari Preview 真機人工驗收為 Merge 前必要條件**。
   7. **Production 不得在人工驗收前部署**。
-- 本次治理建檔僅記錄 Todo 條目，**未開始開發、未建立功能 Branch、未修改任何 `src/**`／`tests/**`**。
+
+**實作與驗收記錄（2026-08-22，PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410)，final head `eeb2178f0682b687b51a1387e0587bd3d78ba371`，Branch `feat/ur-todo-074-holding-card-compact-layout` 自 `origin/main` `9c979acfc2ae070be49152b57932b1b2d176129f` 開出）**：經四輪迭代開發與 Preview iPhone Safari 真機驗收：
+
+1. **第一輪**：Mobile Holding Card 由 UR-TODO-073 收尾時的 4 列版面（identity／value+pnl／meta+meta2／detail）收斂為 3 列（identity+handle／value+pnl／detail+pnl），現價／今日漲跌自摘要卡隱藏並改於 HoldingDetailContent 新增顯示（與股數／均價相同模式，未刪除任何資料），純 CSS grid-template-areas 重排，App.tsx 僅新增一段 HoldingDetailContent 顯示欄位，`HoldingCompactCard` JSX 零變動。Allocation Ring 因巢狀於 `.holding-card-identity` 內，改以 `position:absolute` 達成視覺跨列效果，避免變動 `.holding-card-summary` 直接子元素數量（UR-TODO-071 桌面 9-column row 依賴穩定子元素順序）。
+2. **第二輪**（iPhone 驗收回報 Ring 過小）：Ring 外徑由 52px 放大為 320px:64px／390px:70px／430px:76px，並以圓弧弦寬（chord-width，非僅外接矩形寬度）幾何驗證確認各長度百分比字串（67.4%／10.7%／48.8%）完整落於圓形挖空區內。
+3. **第三輪**（iPhone 驗收回報環厚過粗、詳細按鈕過窄、P&L 間距過遠、全站深色底色偏藍灰）：Ring punch-hole inset 縮小（環變細，外徑不變）；「詳細」按鈕加寬至 min-width 88px／高度 37px；未實現損益百分比與 label 間距由 `justify-content:space-between`（推至整個 pnl 區域頂/底端）改為 `justify-content:center;gap:3px`（緊密成組）；`--bg-page`／`--bg-surface`／`--bg-surface-2` 深色 token 加深並降低藍色 hue 偏移。
+4. **第四輪**（iPhone 驗收回報 Ring 與右側內容間距過近、股票名稱可再放大、深色底色仍只在 Holding Card 區域明顯生效）：Ring 與內容間距由 8px 加大為 14–16px；股票名稱於 Mobile 範圍化放大為 20px（透過 `.holding-card-identity .holding-name` 選擇器，不動全域 `--font-name` token，桌面／Detail Sheet header 不受影響）；root-cause 稽核找出全站仍有 4 處 UR-TODO-073 之前遺留、未 token 化的硬編碼藍灰色結構性 surface（`.order-section.order-muted`、`.rebalance-group .group-main`、`.runtime-attribution-derived-evidence-item`、`.household-liquidity-diagnostics-toggle`）並改為既有 token；`--bg-page`／`--bg-surface`／`--bg-surface-2`／`--border` 進一步加深並將藍色 hue bias 由約 10–15 降至 3 以內，同時維持 page→surface→surface-2 三層可辨識層次。
+
+**使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED）。** `financial semantic diff = 0`、`persistence semantic diff = 0`：`src/lib/**`、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet/Modal interaction contract（UR-TODO-072）、Navigation IA 全程 0 diff（UR-TODO-070／071／072／073 既有 regression test 全數持續 pass，並新增本 Todo 專屬 regression test 鎖定 ring 尺寸/inset/gap、詳細按鈕寬度、P&L 間距、dark token 層次與硬編碼洩漏修正）。台股「上漲＝紅、下跌＝綠」市場色彩契約全程未反轉。CI Verification run [32560902583](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560902583) success；同 head 之 Preview workflow_dispatch run [32560979984](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560979984) success。**本次結論不宣稱 Production Verified 或 CLOSED——PR #410 尚未 Merge、尚未部署 Production，正式驗證留待 Merge 後另行記錄。**
 
 ### UR-TODO-072 Holding Card Detail Modal/Sheet
 
