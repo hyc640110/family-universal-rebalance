@@ -1,5 +1,13 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：Mobile Bottom Navigation Icon Refinement（MERGED／Production Verified，2026-08-22）
+
+- 正式狀態：PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) 已 MERGED／Production Verified；final head `c49f11f85451d629c71424a7677fda4c4059bbd3`，merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6`（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`，一般 2-parent merge，未使用 admin override），mergedAt `2026-08-22T14:30:40Z`，mergedBy `hyc640110`。
+- 最終 UI contract：僅 Mobile Bottom Navigation icon metadata 更新。首頁 `House`、資產 `BriefcaseBusiness`、分析 `ChartColumnBig` = `fill=none`／`stroke=currentColor`／`strokeWidth=2.5`；市場 `LineChart`、工具 `Wrench`、設定 `Cog` 維持既有 metadata。六項順序、label、routing、active／inactive styling、layout／高度均不可因本次成果而改變；Desktop Sidebar 繼續使用原本 NAV_ITEMS icon。
+- Preview 證據：Deploy Isolated Preview run [32578703258](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578703258) success，Preview deployment commit `f42e174dc034b2ad71bf5278917e445b6e9f4b80`；[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) `environment=preview`，390×844 PASS、無 horizontal overflow、console 無 error，Production 未受影響。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32578914193](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578914193) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CWU7xl9o.js`、CSS `index-BdoQJe4A.css` 正常；390×844 PASS、無 horizontal overflow，Desktop Sidebar 未受影響。
+- 邊界與下一步：#416 已完成，後續若要再調整 Bottom Navigation，必須由使用者提出獨立需求；不得回改 #416 的 UI，也不得將 isolated Preview Infrastructure、workflow、schema、persistence、Ledger／attribution、Rebalance 或 AI Decision 混入本成果。此治理 closeout 僅同步 active AI_CONTEXT 與 Bundle，既有 stash／untracked 不得操作。
+
 ## 最新交接快照：Isolated Preview Infrastructure Final Closeout（MERGED／Infrastructure Installed／Isolated Remote Preview Verified，2026-08-22）
 
 - 正式狀態：PR [#413](https://github.com/hyc640110/family-universal-rebalance/pull/413) 已 MERGED；final head `248b667ea8fe5c1a7ac43a4a69035bb3564142d1`，merge commit `e24b3d0bf60078d7e62e0fc88e347bc347add5e3`（parents `7dc9219c2c82d23e4c486058ca88130a372df906`／`248b667ea8fe5c1a7ac43a4a69035bb3564142d1`，一般 2-parent merge，未使用 admin override）。
