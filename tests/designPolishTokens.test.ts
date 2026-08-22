@@ -154,16 +154,16 @@ test('UR-TODO-073 second refinement round: Bottom Navigation active/inactive ico
   assert.doesNotMatch(nav, /color=["'#]/, 'icons must not hardcode a color prop — they rely on inherited currentColor');
 });
 
-test('Bottom Navigation icon refinement B keeps canonical desktop icons while Mobile uses the approved solid/linear icon contract', () => {
+test('Bottom Navigation icon refinement keeps canonical desktop icons while Mobile uses the approved heavier linear icon contract', () => {
   const navItems = readFileSync(new URL('../src/components/layout/navItems.ts', import.meta.url), 'utf8');
   const mobileNav = readFileSync(new URL('../src/components/layout/MobileBottomNav.tsx', import.meta.url), 'utf8');
   const desktopNav = readFileSync(new URL('../src/components/layout/DesktopSidebar.tsx', import.meta.url), 'utf8');
 
   const labels = [...navItems.matchAll(/label: '([^']+)'/g)].map(match => match[1]);
   assert.deepEqual(labels, ['首頁', '資產', '分析', '市場', '工具', '設定']);
-  assert.match(navItems, /mobileIcon: House,[\s\S]*?mobileIconProps: \{ fill: 'currentColor', strokeWidth: 2\.25 \}/);
-  assert.match(navItems, /mobileIcon: BriefcaseBusiness,[\s\S]*?mobileIconProps: \{ fill: 'currentColor' \}/);
-  assert.match(navItems, /mobileIcon: ChartColumnBig,[\s\S]*?mobileIconProps: \{ fill: 'currentColor' \}/);
+  assert.match(navItems, /mobileIcon: House,[\s\S]*?mobileIconProps: \{ fill: 'none', stroke: 'currentColor', strokeWidth: 2\.5 \}/);
+  assert.match(navItems, /mobileIcon: BriefcaseBusiness,[\s\S]*?mobileIconProps: \{ fill: 'none', stroke: 'currentColor', strokeWidth: 2\.5 \}/);
+  assert.match(navItems, /mobileIcon: ChartColumnBig,[\s\S]*?mobileIconProps: \{ fill: 'none', stroke: 'currentColor', strokeWidth: 2\.5 \}/);
   assert.match(navItems, /mobileIcon: LineChart,[\s\S]*?mobileIconProps: \{ fill: 'none', strokeWidth: 2\.25 \}/);
   assert.match(navItems, /mobileIcon: Wrench,[\s\S]*?mobileIconProps: \{ fill: 'currentColor' \}/);
   assert.match(navItems, /mobileIcon: Cog,[\s\S]*?mobileIconProps: \{ fill: 'none', strokeWidth: 2\.75 \}/);
