@@ -819,11 +819,17 @@ function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdat
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
+  // UR-TODO-074: 現價／今日漲跌 no longer show in the compact mobile summary card (see
+  // .holding-card-price/.holding-card-today-change display:none in styles.css); this is their one
+  // remaining display surface, same pattern as 股數／均價 already had before this Sprint.
+  const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <div className="holding-editor">
     <div className="holding-editor-summary" aria-label="持股詳細資料">
       <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
       <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
       <p><span>目前比例</span><strong>{compactWeight}</strong></p>
+      <p><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
+      <p><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
     </div>
     <div className="holding-editor-grid">
       <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>

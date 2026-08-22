@@ -70,10 +70,13 @@ test('UR-TODO-071 the drag handle has touch-action:none and user-select:none sco
 test('UR-TODO-071 Mobile: holding-card-identity shares row 1 with the handle, not a full-row span', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   // UR-TODO-073 round 3: the mobile summary reflow switched from `order`+`grid-column:auto` to named
-  // grid-template-areas — identity now occupies the "identity identity handle" row's first two
-  // (of three) columns, with the handle in the third, which is the same "share row 1, not full-row"
-  // placement this test originally locked, just expressed via the new mechanism.
-  assert.match(mobileBlock, /"identity identity handle"/);
+  // grid-template-areas — identity shares row 1 with the handle, which is the same "share row 1, not
+  // full-row" placement this test originally locked, just expressed via the new mechanism.
+  // UR-TODO-074: the summary grid dropped from 3 columns to 2 (main content column + a side column
+  // reused by handle/pnl), so row 1 is now "identity handle" instead of "identity identity handle" —
+  // identity still occupies only its own column, handle still gets a dedicated one, so the
+  // underlying guarantee (identity does not span the full row over the handle) is unchanged.
+  assert.match(mobileBlock, /"identity handle"/);
   assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity/);
   assert.match(mobileBlock, /\.holding-order-handle\{grid-area:handle/);
 });

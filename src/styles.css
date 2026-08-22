@@ -502,56 +502,57 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.decision-grid,.status-grid,.order-grid,.dip-alert-list,.dip-alert-fields,.dip-alert-result{grid-template-columns:1fr!important;gap:8px!important}
   .holding{padding:10px;min-width:0}
   .holding-compact{padding:8px 10px}
-  /* UR-TODO-073 refinement round 3: mobile compact card restructured into an "investment summary
-     card" per the approved reference mockup — ring+name/symbol header, one prominent market-value/
-     unrealized-P&L block, one demoted price/today-change row, then a full-width Secondary 詳細
-     button — instead of a 6-field data-table spread evenly across a 2-column grid. Achieved purely
-     via grid-template-areas remapping the EXISTING DOM children (no JSX/DOM change, no data
-     removed): 股數／均價 already have a second display surface (HoldingDetailContent's 總股數／成交均價
-     fields), so they're hidden here rather than shown twice; 現價／今日漲跌 have no other display
-     surface anywhere in the app, so they stay visible, just demoted into one compact row instead of
-     two separately-boxed tiles. This keeps every previously-visible data point available somewhere
-     in the UI — nothing is removed, only reprioritized. */
+  /* UR-TODO-074: further compaction per the approved reference layout (ring | name/value/detail |
+     pnl%-then-label), replacing UR-TODO-073's 4-row "investment summary card" with a 3-row one.
+     Zero JSX/DOM changes: identity/value/detail/pnl are the exact same children as before, just
+     re-mapped via grid-template-areas. The ring is taken out of normal flow (position:absolute
+     inside .holding-card-identity) instead of made a real spanned grid column, since it is nested
+     one level inside .holding-card-identity in the DOM — grid-area only applies to direct children
+     of the grid container, and pulling it out to a direct sibling would change the summary's DOM
+     child count, which the ≥901px desktop 9-column row (UR-TODO-071 contract, implicit source-order
+     placement) depends on being stable. Because the ring is absolutely positioned it does not
+     inflate identity's own (row 1) track height, so it visually overlaps down into the value/detail
+     rows below it (its 52px height vs. row 1's ~22px text line) without pushing them down — this is
+     the intended "ring beside the compact text block" look. value/detail get a matching
+     padding-left/margin-left so their text starts where the name text starts (not under the ring).
+     現價／今日漲跌 have no other display surface in the app, so — unlike 股數／均價, which already had
+     one in HoldingDetailContent — a compact quote line is added there (see App.tsx) before they are
+     hidden here, keeping every previously-visible data point reachable somewhere; nothing is deleted. */
   .holding-card-summary{
     display:grid;
-    grid-template-columns:1fr 1fr auto;
+    grid-template-columns:1fr auto;
     grid-template-areas:
-      "identity identity handle"
-      "value pnl pnl"
-      "meta meta2 ."
-      "detail detail detail";
-    gap:6px;
+      "identity handle"
+      "value    pnl"
+      "detail   pnl";
+    column-gap:10px;
+    row-gap:3px;
   }
-  .holding-card-identity{grid-area:identity;flex-wrap:wrap}
-  .holding-card-shares,.holding-card-average-cost{display:none}
-  .holding-card-market-value,.holding-card-unrealized-pnl{padding-top:4px!important;padding-bottom:4px!important}
-  /* UR-TODO-073 round 4: 市值 label+amount must render on the SAME row/line (hard acceptance
-     criterion) — was previously `display:block` label above amount, stacked. Reusing the existing
-     span+strong DOM, just laid out as a row instead of a column. */
-  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0}
+  .holding-card-identity{grid-area:identity;position:relative;padding-left:60px;flex-wrap:wrap}
+  .holding-card-shares,.holding-card-average-cost,.holding-card-price,.holding-card-today-change{display:none}
+  /* 市值 label+amount stay on the SAME row/line (hard acceptance criterion, unchanged since UR-TODO-073
+     round 4) — reusing the existing span+strong DOM, laid out as a row not a column. */
+  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;padding-left:60px}
   .holding-card-market-value>span{flex:0 0 auto;margin-bottom:0}
   .holding-card-market-value>strong{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  /* P/L becomes the right-side "percentage primary, label secondary" block: same DOM (label span
-     first, amount+pct strong second) with column-reverse so the bolder percentage sits on top and
-     the 未實現損益 caption sits below it, right-aligned — matches the approved reference layout
-     without touching the underlying calculation or JSX. The absolute NT$ amount (still fully shown
-     in the 詳細 Sheet's own summary strip) is hidden here only to keep this compact area to a single
-     short percentage line; nothing is deleted, only not duplicated in two places at once. */
-  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:center;text-align:right}
+  /* P/L stays the "percentage primary, label secondary" block (same DOM, column-reverse) as UR-TODO-073
+     established; now it spans the pnl grid-area across both the value and detail rows (contiguous
+     same-named area), so the percentage visually lines up with 市值 and the 未實現損益 caption visually
+     lines up with 詳細 below it — matching the target layout without any JSX change. */
+  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:space-between;text-align:right}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{background:transparent!important;border:0!important}
   .holding-card-unrealized-pnl strong>span:first-child{display:none}
-  .holding-card-price{grid-area:meta}
-  .holding-card-today-change{grid-area:meta2;text-align:right}
-  .holding-card-price>span,.holding-card-today-change>span{display:inline;margin-right:4px}
-  .holding-card-price,.holding-card-today-change{padding:0}
-  .holding-card-price>strong,.holding-card-today-change>strong{display:inline;font-size:12px}
   .holding-card-detail>strong{font-size:14px}
-  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:stretch;min-height:36px}
+  /* 詳細 becomes a compact Secondary action (not a full-width bar): auto width, left-aligned under
+     the name/value column, matching the reference's small pill button. */
+  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;margin-left:60px;min-height:30px;padding:5px 12px}
   /* UR-TODO-071 Decision 2 (unchanged contract): single drag handle, own top-right placement. Named
      grid-area (not `order`) now drives visual placement, so the handle simply gets its own area. */
-  .holding-order-handle{grid-area:handle;width:34px;height:34px;min-width:34px;align-self:start}
+  .holding-order-handle{grid-area:handle;width:30px;height:30px;min-width:30px;align-self:start;justify-self:end}
+  /* Ring: absolutely positioned per the note above; 52px keeps it a real focal element (per the
+     UR-TODO-073 round-3 fix for track/hole contrast) without competing with the holding name. */
+  .holding-mobile-weight{position:absolute;top:0;left:0;width:52px;height:52px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
-  .holding-mobile-weight{width:46px;height:46px}
   .holding-mobile-core{min-width:0}
   .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
   .holding-mobile-core .holding-symbol{flex:0 0 auto;font-size:17px}
@@ -622,18 +623,13 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-metrics{grid-template-columns:1fr}
   .holding-snapshot{grid-template-columns:1fr 1fr}
   .holding-mobile-summary{grid-template-columns:44px minmax(0,1fr) auto;gap:7px}
-  /* UR-TODO-073 round 3: keep the ring reasonably prominent even at very narrow widths (320px)
-     rather than shrinking it all the way down with the rest of the legacy .holding-mobile-* set. */
-  .holding-mobile-weight{width:52px;height:52px}
   .holding-mobile-quote{font-size:13px;gap:4px}
   .holding-mobile-quote .holding-quote-change{font-size:13px}
   .holding-mobile-value>strong{max-width:78px;font-size:17px}
-  .holding-card-detail{padding:8px}.holding-card-detail>strong{font-size:13px}
-  /* UR-TODO-073 round 3: this block's generic .holding-card-detail{padding:8px} above (pre-existing,
-     applies to every field) was quietly re-padding the compact 現價／今日漲跌 meta row back up at
-     narrow widths, undoing the ≤768px block's padding:0 for that specific pair — re-assert it here
-     so it wins by source order at this narrower breakpoint too. */
-  .holding-card-price,.holding-card-today-change{padding:0}
+  /* UR-TODO-074: .holding-card-detail>strong font-size only here (not the shorthand `padding:8px`
+     used pre-UR-TODO-074 — that would have reset the 60px padding-left/margin-left the ≤768px block
+     now relies on to align 市值/詳細 with the name text past the absolutely-positioned ring). */
+  .holding-card-detail>strong{font-size:13px}
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
 }
 

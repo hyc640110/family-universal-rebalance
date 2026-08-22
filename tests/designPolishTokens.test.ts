@@ -203,26 +203,27 @@ test('UR-TODO-073 third refinement round root-cause fix: the allocation ring tra
   assert.doesNotMatch(ringRule, /var\(--bg-surface-2\) 0\)/, 'the track color must not be --bg-surface-2 again (near-invisible against the --bg-surface hole)');
 });
 
-test('UR-TODO-073 third refinement round: mobile Holding Card is restructured into an investment-summary layout (ring/name header, prominent value+P&L, demoted price/today-change, Secondary 詳細) via grid-template-areas — every previously-visible data point remains available somewhere (股數/均價 in 詳細, 現價/今日漲跌 stay on the compact card)', () => {
+test('UR-TODO-074: mobile Holding Card is restructured into a 3-row layout (identity/handle, value/pnl, detail/pnl) via grid-template-areas — every previously-visible data point remains available somewhere (股數/均價/現價/今日漲跌 all move to the 詳細 Sheet, none are deleted)', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   assert.match(mobileBlock, /grid-template-areas:/);
   for (const [cls, area] of [
     ['.holding-card-identity', 'identity'],
     ['.holding-card-market-value', 'value'],
     ['.holding-card-unrealized-pnl', 'pnl'],
-    ['.holding-card-price', 'meta'],
-    ['.holding-card-today-change', 'meta2'],
     ['.holding-order-handle', 'handle'],
   ]) {
     assert.match(mobileBlock, new RegExp(cls.replace('.', '\\.') + '\\{grid-area:' + area));
   }
   assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail/);
-  assert.match(mobileBlock, /\.holding-card-shares,\.holding-card-average-cost\{display:none\}/);
+  // UR-TODO-074: 現價/今日漲跌 no longer get their own grid-area — they are hidden in the compact
+  // summary (no other field duplicates them, so a display line was added to HoldingDetailContent
+  // instead, see the App.tsx test below) alongside the already-hidden 股數/均價.
+  assert.match(mobileBlock, /\.holding-card-shares,\.holding-card-average-cost,\.holding-card-price,\.holding-card-today-change\{display:none\}/);
 });
 
-test('UR-TODO-073 third refinement round: the ≤420px breakpoint\'s generic .holding-card-detail padding no longer silently re-pads the demoted 現價/今日漲跌 row back up (the exact class of bug caught once already this Sprint)', () => {
+test('UR-TODO-074: the ≤420px breakpoint no longer carries a generic .holding-card-detail{padding:8px} shorthand, which would silently reset the 60px padding-left/margin-left the ≤768px block relies on to align 市值/詳細 with the name text past the absolutely-positioned ring', () => {
   const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('/* V3.1 application navigation */'));
-  assert.match(narrowBlock, /\.holding-card-price,\.holding-card-today-change\{padding:0\}/);
+  assert.doesNotMatch(narrowBlock, /\.holding-card-detail\{padding:8px\}/);
 });
 
 test('UR-TODO-073 third refinement round: UR-TODO-070/071/072 field data and interaction wiring in App.tsx are completely untouched (CSS-only presentation change)', () => {
@@ -255,8 +256,19 @@ test('UR-TODO-073 fourth refinement round: unrealized P/L is percentage-primary 
   assert.match(card, /holding-card-unrealized-pnl[\s\S]*<span>\{signedMoney\(row\.pnl\)\}<\/span><span>\{signedPct\(pnlPct\)\}<\/span>/);
 });
 
-test('UR-TODO-073 fourth refinement round: 市值/P&L now share one row (grid-area "value pnl pnl") instead of two full-width stacked rows — a further compactness step, still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
+test('UR-TODO-074: 市值 shares a row with the top half of P&L\'s percentage, and 詳細 shares a row with the bottom half of P&L\'s label — the pnl grid-area spans both rows as one contiguous area (same DOM as before, no JSX change), so the percentage lines up with 市值 and 未實現損益 lines up with 詳細 — still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileBlock, /"value pnl pnl"/);
+  assert.match(mobileBlock, /"value {2,}pnl"/);
+  assert.match(mobileBlock, /"detail {2,}pnl"/);
   assert.match(mobileBlock, /\.holding-card-unrealized-pnl-up,\.holding-card-unrealized-pnl-down,\.holding-card-unrealized-pnl-hold\{background:transparent!important;border:0!important\}/);
+});
+
+test('UR-TODO-074: 詳細 is a compact Secondary action (auto width, not a full-width bar) and the allocation ring is absolutely positioned inside .holding-card-identity so it visually overlaps the rows below it without inflating row 1\'s height or changing the summary\'s direct-child count (which the ≥901px desktop 9-column row, UR-TODO-071\'s contract, depends on)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:start;align-self:center;width:auto/);
+  assert.doesNotMatch(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:stretch/);
+  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:60px/);
+  assert.match(mobileBlock, /\.holding-mobile-weight\{position:absolute;top:0;left:0;width:52px;height:52px\}/);
+  const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
+  assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\)/, 'the ≥901px desktop 9-column row template must be untouched by this Sprint');
 });

@@ -32,15 +32,17 @@ test('V6.16 scopes mobile PnL wrapping and retains desktop card layout', () => {
   assert.match(styles, /@media \(max-width: 768px\)[\s\S]*\.holding-card-summary/);
 });
 
-test('V6.16 hides average cost (and, since UR-TODO-073 round 3, shares — both remain visible via 詳細/HoldingDetailContent) in the mobile summary without leaving a blank grid slot', () => {
+test('V6.16 hides average cost, shares, price and today-change (all remain visible via 詳細/HoldingDetailContent) in the mobile summary without leaving a blank grid slot', () => {
   const mobileStyles = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileStyles, /\.holding-card-shares,\.holding-card-average-cost\{display:none\}/);
-  // UR-TODO-073 round 3: mobile summary reflow now uses named grid-template-areas (identity/value/
-  // pnl/meta/meta2/detail/handle) instead of the old `order`-based reflow — hidden elements simply
-  // have no area assigned, so there is no blank slot by construction (no `order` rules needed here).
-  // UR-TODO-073 round 4: 市值 (value) and 未實現損益 (pnl) now share one row instead of two
-  // full-width stacked rows — a further compactness step; still named grid-template-areas, no
-  // `order` rules re-introduced, and average-cost/shares stay hidden with no blank grid slot.
-  assert.match(mobileStyles, /grid-template-areas:\s*\n\s*"identity identity handle"\s*\n\s*"value pnl pnl"\s*\n\s*"meta meta2 \."\s*\n\s*"detail detail detail"/);
+  // UR-TODO-074: 現價/今日漲跌 join 股數/均價 as hidden-in-summary fields — none have their own
+  // display surface anywhere else except HoldingDetailContent (see App.tsx), which now shows all four.
+  assert.match(mobileStyles, /\.holding-card-shares,\.holding-card-average-cost,\.holding-card-price,\.holding-card-today-change\{display:none\}/);
+  // UR-TODO-073 round 3 / UR-TODO-074: mobile summary reflow uses named grid-template-areas
+  // (identity/value/pnl/detail/handle) instead of `order`-based reflow — hidden elements simply have
+  // no area assigned, so there is no blank slot by construction (no `order` rules needed here).
+  // UR-TODO-074 collapses the previous 4-row layout (identity / value+pnl / meta+meta2 / detail) into
+  // 3 rows by dropping the meta/meta2 (現價/今日漲跌) row entirely and letting pnl span both remaining
+  // content rows (value, detail) as one contiguous area.
+  assert.match(mobileStyles, /grid-template-areas:\s*\n\s*"identity handle"\s*\n\s*"value {2,}pnl"\s*\n\s*"detail {2,}pnl"/);
   assert.doesNotMatch(styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)')), /\.holding-card-average-cost\{display:none\}/);
 });
