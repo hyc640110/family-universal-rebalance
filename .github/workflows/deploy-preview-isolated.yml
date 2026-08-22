@@ -40,8 +40,18 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 1
 
-      - name: Verify requested ref resolved to a commit
-        run: git rev-parse --verify HEAD^{commit}
+      - name: Reject Preview refs that resolve to the current Production main commit
+        run: |
+          PREVIEW_SHA="$(git rev-parse --verify HEAD^{commit})"
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ -z "$MAIN_SHA" ]; then
+            echo "Unable to resolve the current main commit."
+            exit 1
+          fi
+          if [ "$PREVIEW_SHA" = "$MAIN_SHA" ]; then
+            echo "Preview ref must not resolve to the current main commit."
+            exit 1
+          fi
 
       - name: Verify Preview deploy credential is present
         env:

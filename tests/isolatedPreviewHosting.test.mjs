@@ -28,3 +28,12 @@ test('isolated Preview deployment fails closed for missing, main, and unresolved
   assert.match(source, /git rev-parse --verify HEAD\^\{commit\}/);
   assert.match(source, /Preview deploy credential is required/);
 });
+
+test('isolated Preview deployment rejects a resolved commit that is the current main tip', () => {
+  const source = workflow();
+  assert.match(source, /PREVIEW_SHA="\$\(git rev-parse --verify HEAD\^\{commit\}\)"/);
+  assert.match(source, /MAIN_SHA="\$\(git ls-remote origin refs\/heads\/main \| awk '\{print \$1\}'\)"/);
+  assert.match(source, /if \[ -z "\$MAIN_SHA" \]; then/);
+  assert.match(source, /if \[ "\$PREVIEW_SHA" = "\$MAIN_SHA" \]; then/);
+  assert.match(source, /Preview ref must not resolve to the current main commit/);
+});
