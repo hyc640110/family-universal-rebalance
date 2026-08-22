@@ -38,6 +38,9 @@ test('V6.16 hides average cost (and, since UR-TODO-073 round 3, shares — both 
   // UR-TODO-073 round 3: mobile summary reflow now uses named grid-template-areas (identity/value/
   // pnl/meta/meta2/detail/handle) instead of the old `order`-based reflow — hidden elements simply
   // have no area assigned, so there is no blank slot by construction (no `order` rules needed here).
-  assert.match(mobileStyles, /grid-template-areas:\s*\n\s*"identity identity handle"\s*\n\s*"value value value"\s*\n\s*"pnl pnl pnl"\s*\n\s*"meta meta2 \."\s*\n\s*"detail detail detail"/);
+  // UR-TODO-073 round 4: 市值 (value) and 未實現損益 (pnl) now share one row instead of two
+  // full-width stacked rows — a further compactness step; still named grid-template-areas, no
+  // `order` rules re-introduced, and average-cost/shares stay hidden with no blank grid slot.
+  assert.match(mobileStyles, /grid-template-areas:\s*\n\s*"identity identity handle"\s*\n\s*"value pnl pnl"\s*\n\s*"meta meta2 \."\s*\n\s*"detail detail detail"/);
   assert.doesNotMatch(styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)')), /\.holding-card-average-cost\{display:none\}/);
 });

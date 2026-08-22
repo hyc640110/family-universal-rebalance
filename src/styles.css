@@ -517,19 +517,29 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
     grid-template-columns:1fr 1fr auto;
     grid-template-areas:
       "identity identity handle"
-      "value value value"
-      "pnl pnl pnl"
+      "value pnl pnl"
       "meta meta2 ."
       "detail detail detail";
     gap:6px;
   }
   .holding-card-identity{grid-area:identity;flex-wrap:wrap}
   .holding-card-shares,.holding-card-average-cost{display:none}
-  /* full-width (not side-by-side) so a long NT$ amount or a wrapped +amount/+pct pair never forces
-     extra line-wrap height — compactness instead comes from tighter vertical padding below. */
   .holding-card-market-value,.holding-card-unrealized-pnl{padding-top:4px!important;padding-bottom:4px!important}
-  .holding-card-market-value{grid-area:value}
-  .holding-card-unrealized-pnl{grid-area:pnl}
+  /* UR-TODO-073 round 4: 市值 label+amount must render on the SAME row/line (hard acceptance
+     criterion) — was previously `display:block` label above amount, stacked. Reusing the existing
+     span+strong DOM, just laid out as a row instead of a column. */
+  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0}
+  .holding-card-market-value>span{flex:0 0 auto;margin-bottom:0}
+  .holding-card-market-value>strong{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* P/L becomes the right-side "percentage primary, label secondary" block: same DOM (label span
+     first, amount+pct strong second) with column-reverse so the bolder percentage sits on top and
+     the 未實現損益 caption sits below it, right-aligned — matches the approved reference layout
+     without touching the underlying calculation or JSX. The absolute NT$ amount (still fully shown
+     in the 詳細 Sheet's own summary strip) is hidden here only to keep this compact area to a single
+     short percentage line; nothing is deleted, only not duplicated in two places at once. */
+  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:center;text-align:right}
+  .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{background:transparent!important;border:0!important}
+  .holding-card-unrealized-pnl strong>span:first-child{display:none}
   .holding-card-price{grid-area:meta}
   .holding-card-today-change{grid-area:meta2;text-align:right}
   .holding-card-price>span,.holding-card-today-change>span{display:inline;margin-right:4px}

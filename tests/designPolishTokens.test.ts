@@ -235,3 +235,28 @@ test('UR-TODO-073 third refinement round: UR-TODO-070/071/072 field data and int
   assert.match(card, /<HoldingOrderHandle label=\{row\.quote\.name\} isDragging=\{isDragging\} onDragStart=\{onDragStart\} onDragMove=\{onDragMove\} onDragEnd=\{onDragEnd\} onDragCancel=\{onDragCancel\} onKeyboardMove=\{onKeyboardMove\} \/>/);
   assert.match(card, /className="holding-edit-button" aria-expanded=\{isDetailOpen\} aria-haspopup="dialog" onClick=\{onOpenDetail\}/);
 });
+
+test('UR-TODO-073 fourth refinement round (hard acceptance criterion): 市值 label + amount render on the SAME row — flex row on the existing span+strong DOM, not the previous stacked block layout', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const valueRule = /\.holding-card-market-value\{grid-area:value;display:flex;align-items:baseline[^}]*\}/.exec(mobileBlock)?.[0];
+  assert.ok(valueRule, '.holding-card-market-value must be display:flex (same-row), not display:block (stacked)');
+  assert.match(mobileBlock, /\.holding-card-market-value>span\{flex:0 0 auto/);
+  assert.match(mobileBlock, /\.holding-card-market-value>strong\{flex:1 1 auto/);
+});
+
+test('UR-TODO-073 fourth refinement round: unrealized P/L is percentage-primary (visually above), 未實現損益 label secondary (visually below, right-aligned) — same DOM, column-reverse flex; the absolute NT$ amount is hidden here only (still shown once in the 詳細 Sheet summary strip)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl\{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end/);
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl strong>span:first-child\{display:none\}/);
+  // The pct span (signedPct) must remain the only visible child of <strong> — verified against the
+  // live App.tsx JSX contract (two <span> children: amount first, pct second) in the previous test.
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function HoldingDetailContent'));
+  assert.match(card, /holding-card-unrealized-pnl[\s\S]*<span>\{signedMoney\(row\.pnl\)\}<\/span><span>\{signedPct\(pnlPct\)\}<\/span>/);
+});
+
+test('UR-TODO-073 fourth refinement round: 市值/P&L now share one row (grid-area "value pnl pnl") instead of two full-width stacked rows — a further compactness step, still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /"value pnl pnl"/);
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl-up,\.holding-card-unrealized-pnl-down,\.holding-card-unrealized-pnl-hold\{background:transparent!important;border:0!important\}/);
+});
