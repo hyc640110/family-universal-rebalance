@@ -37,3 +37,14 @@ test('isolated Preview deployment rejects a resolved commit that is the current 
   assert.match(source, /if \[ "\$PREVIEW_SHA" = "\$MAIN_SHA" \]; then/);
   assert.match(source, /Preview ref must not resolve to the current main commit/);
 });
+
+test('isolated Preview deployment fast-forwards an existing preview branch without force-pushing', () => {
+  const source = workflow();
+  assert.match(source, /git -C preview-target ls-remote --exit-code --heads origin preview/);
+  assert.match(source, /git -C preview-target fetch origin preview:refs\/remotes\/origin\/preview/);
+  assert.match(source, /git -C preview-target checkout -B preview origin\/preview/);
+  assert.match(source, /git -C preview-target checkout -B preview\r?\n/);
+  assert.match(source, /git -C preview-target push origin preview/);
+  assert.doesNotMatch(source, /git -C preview-target push .*--force/);
+  assert.doesNotMatch(source, /force-with-lease/);
+});
