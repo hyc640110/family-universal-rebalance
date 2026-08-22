@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T13:13:14.545884+00:00
+Generated UTC: 2026-08-22T15:01:17.781296+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `68a44d7fefc25a70ccb03901c2f393ac9cbe2ebff252bc9852c93053463069d3`
+- `003_CURRENT_STATUS.md` — SHA-256 `a3f28dfd9b6a2f599b47ff23e71906a93f6f1197f19b8865bbd82455fbcff9de`
 - `008_TODO_BACKLOG.md` — SHA-256 `d11ccbaaa85e08e3d3c51be222ad195209c1f50dfc1f7eee25bd14aaea4d1a86`
-- `012_AI_HANDOVER.md` — SHA-256 `ec18dfe15f283bb848735bb9783ebb4304a2712d62fd370d7c5ff2579e4bce70`
+- `012_AI_HANDOVER.md` — SHA-256 `d8a6b054e5006b72451bb04320712235ad8fb926d52d9a1fb1ae45b86addf9f9`
 
 ---
 
@@ -428,6 +428,8 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 # Universal Rebalance Current Status v4.50
 
 最後更新：2026-08-22
+
+**Mobile Bottom Navigation Icon Refinement 已正式 MERGED／Production Verified（2026-08-22）。** PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) final head `c49f11f85451d629c71424a7677fda4c4059bbd3` 已由 `hyc640110` 於 `2026-08-22T14:30:40Z` 以一般 2-parent merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6` 合併（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`；未使用 admin override）。main push 自動觸發 Deploy GitHub Pages run [32578914193](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578914193) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CWU7xl9o.js`、CSS `index-BdoQJe4A.css` 正常。390×844 驗證 PASS、無 horizontal overflow，Desktop Sidebar 未受影響。Mobile Bottom Navigation 最終採 Lucide 線性 icon：首頁 `House`、資產 `BriefcaseBusiness`、分析 `ChartColumnBig` 均為 `fill=none`、`stroke=currentColor`、`strokeWidth=2.5`；市場 `LineChart`、工具 `Wrench`、設定 `Cog` 維持既有 metadata。六項順序、label、routing、active／inactive styling、layout／高度均未變，Desktop Sidebar 維持原本 icon 設定。isolated Preview run [32578703258](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578703258) success，Preview deployment commit `f42e174dc034b2ad71bf5278917e445b6e9f4b80` 已於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 `environment=preview`、390×844、console 無 error 驗收，Production 完全未受影響。本次僅調整 Mobile Bottom Navigation icon metadata 與 regression tests；未變更 UI layout、runtime／workflow、Preview Infrastructure、schema、persistence、Ledger／attribution、Rebalance 或 AI Decision。
 
 **Isolated Preview Infrastructure 已正式 INSTALLED／ISOLATED REMOTE PREVIEW VERIFIED（2026-08-22）。** PR [#413](https://github.com/hyc640110/family-universal-rebalance/pull/413) final head `248b667ea8fe5c1a7ac43a4a69035bb3564142d1` 已由 `hyc640110` 於 `2026-08-22T12:48:33Z` 以一般 2-parent merge commit `e24b3d0bf60078d7e62e0fc88e347bc347add5e3` 合併（parents `7dc9219c2c82d23e4c486058ca88130a372df906`／`248b667ea8fe5c1a7ac43a4a69035bb3564142d1`；未使用 admin override）。main push 自動觸發既有 Deploy GitHub Pages run [32573997202](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32573997202) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CABEEP71.js`、CSS `index-BdoQJe4A.css` 均未改變。首次手動 Deploy Isolated Preview run [32574245054](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32574245054) success，以非 main source commit `202f96572d50e1c612854fa89c9ed6adda9b64de` 建置，僅寫入 `hyc640110/family-universal-rebalance-preview` 的 `preview` branch（deployment commit `cdea4e4576bd325cda7590b49cb0517b43a99b78`）。使用者手動設定 Preview Pages `preview`／`/(root)` 後，遠端 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) HTTP 200、`environment=preview`、base `/family-universal-rebalance-preview/`、JS `index-CyU7SXEZ.js`、CSS `index-BdoQJe4A.css`、390×844 無 horizontal overflow、Bottom Navigation／Assets／Holding Detail 與 console 均正常。未觸發新的 Production deploy；Preview HTML 無 Production base 或舊 `/preview/` base。未來 Preview 驗收正式路徑為 source repo → Deploy Isolated Preview（必須明確提供非 main branch／commit／SHA，且保留 main 字串與 resolved main SHA fail-closed）→ Preview repo `preview` branch → Preview Pages；不得再以舊 Production Pages combined `/preview/` 路徑作為標準 Preview。
 
@@ -3434,6 +3436,14 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：Mobile Bottom Navigation Icon Refinement（MERGED／Production Verified，2026-08-22）
+
+- 正式狀態：PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) 已 MERGED／Production Verified；final head `c49f11f85451d629c71424a7677fda4c4059bbd3`，merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6`（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`，一般 2-parent merge，未使用 admin override），mergedAt `2026-08-22T14:30:40Z`，mergedBy `hyc640110`。
+- 最終 UI contract：僅 Mobile Bottom Navigation icon metadata 更新。首頁 `House`、資產 `BriefcaseBusiness`、分析 `ChartColumnBig` = `fill=none`／`stroke=currentColor`／`strokeWidth=2.5`；市場 `LineChart`、工具 `Wrench`、設定 `Cog` 維持既有 metadata。六項順序、label、routing、active／inactive styling、layout／高度均不可因本次成果而改變；Desktop Sidebar 繼續使用原本 NAV_ITEMS icon。
+- Preview 證據：Deploy Isolated Preview run [32578703258](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578703258) success，Preview deployment commit `f42e174dc034b2ad71bf5278917e445b6e9f4b80`；[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) `environment=preview`，390×844 PASS、無 horizontal overflow、console 無 error，Production 未受影響。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32578914193](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578914193) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CWU7xl9o.js`、CSS `index-BdoQJe4A.css` 正常；390×844 PASS、無 horizontal overflow，Desktop Sidebar 未受影響。
+- 邊界與下一步：#416 已完成，後續若要再調整 Bottom Navigation，必須由使用者提出獨立需求；不得回改 #416 的 UI，也不得將 isolated Preview Infrastructure、workflow、schema、persistence、Ledger／attribution、Rebalance 或 AI Decision 混入本成果。此治理 closeout 僅同步 active AI_CONTEXT 與 Bundle，既有 stash／untracked 不得操作。
 
 ## 最新交接快照：Isolated Preview Infrastructure Final Closeout（MERGED／Infrastructure Installed／Isolated Remote Preview Verified，2026-08-22）
 

@@ -1,5 +1,12 @@
 # Universal Rebalance Changelog
 
+## Mobile Bottom Navigation Icon Refinement（2026-08-22，MERGED／Production Verified）
+
+- PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) final head `c49f11f85451d629c71424a7677fda4c4059bbd3` 已由 `hyc640110` 於 `2026-08-22T14:30:40Z` 以一般 2-parent merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6` 合併（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`；未使用 admin override）。
+- Mobile Bottom Navigation 最終採較粗、清楚且一致的 Lucide 線性 icon：`House`、`BriefcaseBusiness`、`ChartColumnBig` 為 `fill=none`、`stroke=currentColor`、`strokeWidth=2.5`；`LineChart`、`Wrench`、`Cog` 維持既有 metadata。六項順序、label、routing、active／inactive styling、layout／高度與 Desktop Sidebar 均未變。
+- 驗證：isolated Preview run [32578703258](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578703258) success，deployment commit `f42e174dc034b2ad71bf5278917e445b6e9f4b80` 於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 的 `environment=preview`、390×844、console 無 error 驗收 PASS。main push Deploy GitHub Pages run [32578914193](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578914193) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CWU7xl9o.js`、CSS `index-BdoQJe4A.css` 正常，無 horizontal overflow，Desktop Sidebar 未受影響。
+- 邊界：未變更 Bottom Navigation layout、runtime／workflow、Preview Infrastructure、schema、persistence、Financial Event Ledger、attribution、Rebalance 或 AI Decision。
+
 ## Isolated Preview Infrastructure Final Closeout（2026-08-22，MERGED／Infrastructure Installed／Isolated Remote Preview Verified）
 
 - PR [#413](https://github.com/hyc640110/family-universal-rebalance/pull/413) final head `248b667ea8fe5c1a7ac43a4a69035bb3564142d1` 已由 `hyc640110` 於 `2026-08-22T12:48:33Z` 以一般 2-parent merge commit `e24b3d0bf60078d7e62e0fc88e347bc347add5e3` 合併（parents `7dc9219c2c82d23e4c486058ca88130a372df906`／`248b667ea8fe5c1a7ac43a4a69035bb3564142d1`；未使用 admin override）。
