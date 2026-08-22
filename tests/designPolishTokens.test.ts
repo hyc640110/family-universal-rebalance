@@ -267,7 +267,7 @@ test('UR-TODO-074: 詳細 is a compact Secondary action (auto width, not a full-
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:start;align-self:center;width:auto/);
   assert.doesNotMatch(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:stretch/);
-  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:84px/);
+  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:92px/);
   assert.match(mobileBlock, /\.holding-mobile-weight\{position:absolute;top:0;left:0;width:76px;height:76px\}/);
   const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
   assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\)/, 'the ≥901px desktop 9-column row template must be untouched by this Sprint');
@@ -282,9 +282,9 @@ test('UR-TODO-074 ring-size refinement: allocation ring is enlarged (not left at
   // circle, thick band" rather than the target's "big circle, thin band". A thinner inset only
   // enlarges the punch-hole, so the chord-width fit check below still holds with more margin.
   const buckets = [
-    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 6, font: 16, offset: 84, offsetSelectors: true },
-    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 5, font: 15, offset: 78, offsetSelectors: true },
-    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 5, font: 14, offset: 72, offsetSelectors: true },
+    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 6, font: 16, offset: 92, offsetSelectors: true },
+    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 5, font: 15, offset: 86, offsetSelectors: true },
+    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 5, font: 14, offset: 78, offsetSelectors: true },
   ];
   // A monospace-ish digit/percent glyph is comfortably covered by treating each character as
   // ~0.62em wide (verified against real rendered widths during this Sprint's Preview testing, which
@@ -349,4 +349,60 @@ test('UR-TODO-074 round 2 (iPhone Preview acceptance): dark surface tokens are d
   assert.notEqual(bgPage.toLowerCase(), '#000000', '--bg-page must not be flattened to OLED pure black');
   // --border must stay subtle: not equal to a full text-contrast color, and darker than --text-primary/-secondary.
   assert.ok(luminance(border) < luminance('#a7b0bf'), '--border must stay darker/less prominent than --text-secondary (subtle, not a bright frame)');
+});
+
+test('UR-TODO-074 round 3 (iPhone Preview acceptance, site-wide root cause): the three dark surface tokens are darker than the round-2 values AND less blue-hued (B channel no longer far above R/G) — the compounding blue push across many nested surface-2-on-surface boxes (Home/Analysis/Tools/Rebalance) was the actual reason those pages still read "blue-gray" while the Holding Card looked fine', () => {
+  const bgPage = /--bg-page:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface = /--bg-surface:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface2 = /--bg-surface-2:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const luminance = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 0xff) + 0.7152 * ((n >> 8) & 0xff) + 0.0722 * (n & 0xff);
+  };
+  const blueBias = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+    return b - Math.max(r, g);
+  };
+  // round 2 -> round 3: darker still (not just re-hued).
+  assert.ok(luminance(bgPage) <= luminance('#07090c'), '--bg-page must be no lighter than the round-2 value (#07090c)');
+  assert.ok(luminance(bgSurface) <= luminance('#0d1218'), '--bg-surface must be no lighter than the round-2 value (#0d1218)');
+  assert.ok(luminance(bgSurface2) <= luminance('#121924'), '--bg-surface-2 must be no lighter than the round-2 value (#121924)');
+  // round 2's blue channel sat 6-11pt above red/green (e.g. #0d1218: B24 vs R13 -> bias 11); round 3
+  // must cut that bias down meaningfully so the surfaces read as neutral charcoal, not blue-gray.
+  assert.ok(blueBias(bgSurface) <= 6, `--bg-surface's blue-vs-red/green bias (${blueBias(bgSurface)}) must be ≤6 (round-2's #0d1218 was 11)`);
+  assert.ok(blueBias(bgSurface2) <= 6, `--bg-surface-2's blue-vs-red/green bias (${blueBias(bgSurface2)}) must be ≤6 (round-2's #121924 was 12)`);
+});
+
+test('UR-TODO-074 round 3: the site-wide hardcoded blue-navy background leaks found by this round\'s audit (predating the UR-TODO-073 token pass, on plain structural surfaces rather than semantic status badges) are retokenized', () => {
+  for (const hex of ['#0a1524', '#0b2138', '#0b1f36', '#102f52']) {
+    assert.doesNotMatch(styles, new RegExp(`background:${hex}\\b`, 'i'), `${hex} must no longer appear as a hardcoded background (found outside the semantic status-badge palette this Sprint deliberately leaves alone)`);
+  }
+  assert.match(styles, /\.order-section\.order-muted\{border-color:var\(--border\);background:var\(--bg-page\)\}/);
+  assert.match(styles, /\.rebalance-group \.group-main\{background:var\(--bg-surface-2\)\}/);
+});
+
+test('UR-TODO-074 round 3: the mobile Holding Card name is enlarged (20px) via a scoped selector, not the shared --font-name token, so the ≥901px desktop row and the Detail Sheet header (which also consume --font-name) are unaffected', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-identity \.holding-name\{font-size:20px\}/);
+  assert.match(styles, /--font-name:18px/, '--font-name token itself must stay 18px (unchanged) so Desktop/Detail Sheet consumers are unaffected');
+  const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
+  assert.match(desktopBlock, /\.holding-card-identity \.holding-name\{font-size:var\(--font-name\)/, 'desktop must keep consuming the unchanged --font-name token, not the mobile-only 20px override');
+});
+
+test('UR-TODO-074 round 3: ring-to-content gap widened (from the round-1/2 8px gap to 14-16px) at every mobile bucket — offsets are still exactly ring-size + gap, so 市值/詳細 keep lining up under the (now-wider) gap past the ring', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('@media (max-width: 360px)'));
+  const narrowestBlock = styles.slice(styles.indexOf('@media (max-width: 360px)'), styles.indexOf('/* V3.1 application navigation */'));
+  const buckets = [
+    { label: '421-768px', block: mobileBlock, ring: 76, offset: 92 },
+    { label: '≤420px', block: narrowBlock, ring: 70, offset: 86 },
+    { label: '≤360px', block: narrowestBlock, ring: 64, offset: 78 },
+  ];
+  for (const { label, block, ring, offset } of buckets) {
+    const gap = offset - ring;
+    assert.ok(gap >= 14, `${label}: ring-to-content gap (${gap}px) must be ≥14px (was 8px pre-round-3)`);
+    assert.match(block, new RegExp(`padding-left:${offset}px`), `${label}: identity/market-value offset`);
+    assert.match(block, new RegExp(`margin-left:${offset}px`), `${label}: 詳細 button offset`);
+  }
 });

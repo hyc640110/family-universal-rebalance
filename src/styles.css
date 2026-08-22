@@ -10,9 +10,17 @@
      values still read as "blue-gray" rather than the target reference's near-black. The
      page→surface→surface-2 layering (each still a visibly distinct step) and --border's role as a
      subtle (not bright) separator are both preserved — only the absolute lightness/saturation of
-     each token moved, no selector needed a compensating override. */
-  --bg-page:#07090c;--bg-surface:#0d1218;--bg-surface-2:#121924;--bg-surface-inset:#080b0f;
-  --border:#232d3a;--border-subtle:rgba(148,163,184,.10);--border-strong:#334152;
+     each token moved, no selector needed a compensating override.
+     UR-TODO-074 round 3 (iPhone Preview acceptance, site-wide root cause): round 2 darkened these
+     tokens but kept a real blue push (B channel notably higher than R/G — e.g. #0d1218 is R13/G18/
+     B24). That reads as fine on the Holding Card's single large surface, but compounds visibly across
+     pages with many nested --bg-surface-2-on---bg-surface boxes side by side (Home/Analysis/Tools/
+     Rebalance etc., see the round-3 feedback screenshots) — many slightly-blue rectangles next to
+     each other read collectively as "blue-gray" even though each swatch alone looks fine. Shifted to
+     a near-neutral charcoal (B channel only a few points above R/G, not ~10-15) while keeping the
+     same three-step lightness ladder and every consumer's contrast math intact. */
+  --bg-page:#07080a;--bg-surface:#0c0f11;--bg-surface-2:#131619;--bg-surface-inset:#050607;
+  --border:#23272b;--border-subtle:rgba(148,163,184,.10);--border-strong:#363c42;
   --text-primary:#f1f5f9;--text-secondary:#a7b0bf;--text-muted:#7f8a9a;
   --primary:#2d7bff;--primary-hover:#4a90ff;--primary-soft:rgba(45,123,255,.14);--primary-soft-strong:rgba(45,123,255,.24);
   --warning:#f59e0b;--warning-soft:rgba(245,158,11,.14);
@@ -318,7 +326,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
 .decision-callout p{margin:8px 0;color:var(--text-secondary);line-height:1.55;overflow-wrap:anywhere}
 .order-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
 .order-section{background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:12px;padding:14px;min-width:0}
-.order-section.order-muted{border-color:#34445c;background:#0a1524}
+/* UR-TODO-074 round 3: was a hardcoded blue-navy (#34445c border/#0a1524 background) predating the
+   UR-TODO-073 token pass — one of the site-wide "still blue-gray" leaks found by this round's audit. */
+.order-section.order-muted{border-color:var(--border);background:var(--bg-page)}
 .order-section h3{margin:0 0 12px;color:var(--text-primary)}
 .order-list{display:flex;flex-direction:column;gap:10px}
 .order-item{display:grid;grid-template-columns:38px 1fr;gap:12px;background:var(--bg-surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;min-width:0}
@@ -364,7 +374,8 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
 .row.head{background:var(--bg-surface-2);color:var(--primary-hover);font-weight:800}
 .rebalance-group{display:flex;flex-direction:column;gap:0;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:12px;overflow:hidden}
 .rebalance-group .row{border-radius:0;background:transparent}
-.rebalance-group .group-main{background:#0b2138}
+/* UR-TODO-074 round 3: was a hardcoded blue-navy (#0b2138) predating the UR-TODO-073 token pass. */
+.rebalance-group .group-main{background:var(--bg-surface-2)}
 .rebalance-group .sub-row{margin-left:18px;border-left:3px solid var(--border);background:var(--bg-surface-2);color:#cbd5e1}
 .rebalance-group .sub-row span:first-child{color:var(--primary-hover)}
 .params{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -535,13 +546,21 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
     column-gap:10px;
     row-gap:3px;
   }
-  .holding-card-identity{grid-area:identity;position:relative;padding-left:84px;flex-wrap:wrap}
+  /* UR-TODO-074 round 3: offset widened from 84px (ring 76px + 8px gap) to 92px (ring 76px + 16px
+     gap) per feedback that the ring sat too close to the name/value/詳細 column. Same reasoning
+     applies to the narrower buckets below (≤420px, ≤360px). */
+  .holding-card-identity{grid-area:identity;position:relative;padding-left:92px;flex-wrap:wrap}
   .holding-card-shares,.holding-card-average-cost,.holding-card-price,.holding-card-today-change{display:none}
   /* 市值 label+amount stay on the SAME row/line (hard acceptance criterion, unchanged since UR-TODO-073
      round 4) — reusing the existing span+strong DOM, laid out as a row not a column. */
-  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;padding-left:84px}
+  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;padding-left:92px}
   .holding-card-market-value>span{flex:0 0 auto;margin-bottom:0}
   .holding-card-market-value>strong{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* UR-TODO-074 round 3: mobile-only name enlargement (scoped to this selector, not the shared
+     --font-name token, so the ≥901px desktop row and the Detail Sheet header — which also consume
+     --font-name — are unaffected) per feedback that the name should read closer to the reference's
+     hierarchy now that there is more breathing room next to the ring. */
+  .holding-card-identity .holding-name{font-size:20px}
   /* P/L stays the "percentage primary, label secondary" block (same DOM, column-reverse) as UR-TODO-073
      established; now it spans the pnl grid-area across both the value and detail rows (contiguous
      same-named area), so the percentage visually lines up with 市值 and the 未實現損益 caption visually
@@ -561,7 +580,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      reference's wider pill button. UR-TODO-074 round 2: widened from ~56px to a min-width of 88px
      per iPhone Preview acceptance feedback (the original width read as too narrow next to the
      reference), height bumped 30px→37px to stay proportional. */
-  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;min-width:88px;margin-left:84px;min-height:37px;padding:6px 16px}
+  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;min-width:88px;margin-left:92px;min-height:37px;padding:6px 16px}
   /* UR-TODO-071 Decision 2 (unchanged contract): single drag handle, own top-right placement. Named
      grid-area (not `order`) now drives visual placement, so the handle simply gets its own area. */
   .holding-order-handle{grid-area:handle;width:30px;height:30px;min-width:30px;align-self:start;justify-self:end}
@@ -664,9 +683,11 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      down slightly from the ≤768px 76px default, with matching offsets so 市值/詳細 still align under
      the name text; inset/font-size verified via the same chord-width fit check as the default
      bucket above (67.4%/10.7%/48.8% all fit the circular punch-hole with a few px of margin). */
-  .holding-card-identity{padding-left:78px}
-  .holding-card-market-value{padding-left:78px}
-  .holding-card-summary>.holding-edit-button{margin-left:78px}
+  /* UR-TODO-074 round 3: offset widened from 78px (ring 70px + 8px gap) to 86px (ring 70px + 16px
+     gap), matching the wider gap applied to the default bucket above. */
+  .holding-card-identity{padding-left:86px}
+  .holding-card-market-value{padding-left:86px}
+  .holding-card-summary>.holding-edit-button{margin-left:86px}
   .holding-mobile-weight{width:70px;height:70px}
   /* UR-TODO-074 round 2: outer diameter unchanged, inset thinned (8px→5px) per the same "thinner
      ring band" feedback as the 421-768px bucket above. */
@@ -679,9 +700,11 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      clearly larger than the pre-refinement 52px, with offsets/inset/font verified via the same
      chord-width fit check so 67.4%-length percentages keep fitting inside the circular punch-hole
      (not just its square bounding box) without overflowing the ring. */
-  .holding-card-identity{padding-left:72px}
-  .holding-card-market-value{padding-left:72px}
-  .holding-card-summary>.holding-edit-button{margin-left:72px}
+  /* UR-TODO-074 round 3: offset widened from 72px (ring 64px + 8px gap) to 78px (ring 64px + 14px
+     gap) — slightly less gap than the wider buckets since 320px has the least room to spare. */
+  .holding-card-identity{padding-left:78px}
+  .holding-card-market-value{padding-left:78px}
+  .holding-card-summary>.holding-edit-button{margin-left:78px}
   .holding-mobile-weight{width:64px;height:64px}
   /* UR-TODO-074 round 2: outer diameter unchanged, inset thinned (7px→5px) per the same "thinner
      ring band" feedback as the wider buckets above. */
@@ -798,10 +821,10 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
 /* UR-TODO-041: standalone loan-data-staleness warning — visually distinct (amber, own icon-free badge) from the unrelated "資料可信度" confidence indicator elsewhere on this page, so the two are never mistaken for the same signal. */
 .risk-loan-stale-warning{margin-top:8px;padding:9px;border:1px solid var(--warning);border-radius:9px;background:var(--warning-soft)}.risk-loan-stale-warning p{margin:0;color:#fde68a;font-size:12px;line-height:1.5}.risk-loan-stale-warning button{margin-top:8px;min-height:38px}.risk-priority-list{display:grid;gap:9px;padding:0;margin:12px 0 0;list-style:none}.risk-priority-list li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;padding:12px;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:11px}.risk-priority-list li>b{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--primary);color:white}.risk-priority-list strong,.risk-priority-list span,.risk-priority-list em,.risk-priority-list a{display:block}.risk-priority-list strong{color:var(--text-primary)}.risk-priority-list span,.risk-priority-list em{color:var(--text-secondary);line-height:1.45;margin-top:3px;font-size:13px}.risk-priority-list em{color:var(--text-secondary);font-style:normal}.risk-priority-list a{color:var(--primary-hover);margin-top:6px;font-size:13px;font-weight:800}.risk-notes{padding:0;overflow:hidden}.risk-notes .section-content{padding:0 16px 14px}.risk-notes .section-content p{color:var(--text-secondary);line-height:1.55}
 .defensive-configuration-card{display:grid;gap:14px;min-width:0}.defensive-configuration-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.defensive-configuration-heading .eyebrow{margin:0 0 5px;font-size:11px}.defensive-configuration-heading h2{margin:0;color:var(--text-primary);font-size:19px}.defensive-configuration-heading p:not(.eyebrow){margin:6px 0 0;color:var(--text-secondary);font-size:13px;line-height:1.5}.defensive-configuration-execution{flex:0 0 auto;padding:6px 9px;border:1px solid var(--border);border-radius:999px;background:var(--bg-surface-2);color:var(--primary-hover);font-size:12px}.defensive-configuration-execution.blocked{border-color:var(--warning);background:var(--warning-soft);color:#fde68a}.defensive-configuration-execution.unavailable{border-color:var(--text-muted);background:var(--bg-surface);color:#cbd5e1}.defensive-configuration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.defensive-configuration-grid article,.defensive-configuration-execution-detail p{min-width:0;margin:0;padding:12px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-surface-2)}.defensive-configuration-grid small,.defensive-configuration-execution-detail span{display:block;color:var(--text-secondary);font-size:12px}.defensive-configuration-grid strong,.defensive-configuration-execution-detail strong{display:block;margin-top:6px;color:var(--text-primary);overflow-wrap:anywhere}.defensive-configuration-grid span{display:block;margin-top:5px;color:#fcd34d;font-size:12px;line-height:1.45}.defensive-configuration-execution-detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.defensive-configuration-blocking{padding:12px;border:1px solid var(--warning);border-radius:11px;background:var(--warning-soft)}.defensive-configuration-blocking>strong{display:block;color:#fde68a}.defensive-configuration-blocking ul{display:grid;gap:7px;padding:0;margin:9px 0 0;list-style:none}.defensive-configuration-blocking li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;color:#fef3c7;font-size:13px;line-height:1.45}.defensive-configuration-blocking b{padding:2px 5px;border:1px solid var(--warning);border-radius:5px;font-size:11px;overflow-wrap:anywhere}.defensive-configuration-blocking span{overflow-wrap:anywhere}
-.household-liquidity-diagnostics{display:grid;gap:9px;padding:12px;border:1px solid var(--border);border-radius:11px;background:var(--bg-surface-2);min-width:0}.household-liquidity-diagnostics>strong{color:var(--primary-hover)}.household-liquidity-diagnostics ul{display:grid;gap:8px;padding:0;margin:0;list-style:none}.household-liquidity-diagnostics li{display:grid;gap:4px;color:var(--text-secondary);font-size:13px;line-height:1.5;min-width:0}.household-liquidity-diagnostics li span{overflow-wrap:anywhere}.household-liquidity-diagnostics a{color:var(--primary-hover);font-weight:800;overflow-wrap:anywhere}.household-liquidity-diagnostics-toggle{display:inline-flex;align-items:center;gap:6px;justify-self:start;max-width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:#102f52;color:var(--primary-hover);font-weight:800;overflow-wrap:anywhere}
+.household-liquidity-diagnostics{display:grid;gap:9px;padding:12px;border:1px solid var(--border);border-radius:11px;background:var(--bg-surface-2);min-width:0}.household-liquidity-diagnostics>strong{color:var(--primary-hover)}.household-liquidity-diagnostics ul{display:grid;gap:8px;padding:0;margin:0;list-style:none}.household-liquidity-diagnostics li{display:grid;gap:4px;color:var(--text-secondary);font-size:13px;line-height:1.5;min-width:0}.household-liquidity-diagnostics li span{overflow-wrap:anywhere}.household-liquidity-diagnostics a{color:var(--primary-hover);font-weight:800;overflow-wrap:anywhere}.household-liquidity-diagnostics-toggle{display:inline-flex;align-items:center;gap:6px;justify-self:start;max-width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);color:var(--primary-hover);font-weight:800;overflow-wrap:anywhere}
 /* UR-TODO-046-C3C-A/B: read-only runtime attribution provenance card (Ledger / derived / unexplained residual), plus a session-only "mark as reasonable" toggle per derived evidence row (component-local React state only, no persistence). */
 .runtime-attribution-card{display:grid;gap:14px;min-width:0}
-.runtime-attribution-derived-evidence{padding:12px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-surface-2)}.runtime-attribution-derived-evidence>strong{display:block;color:var(--primary-hover)}.runtime-attribution-derived-evidence-note{margin:6px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.5}.runtime-attribution-derived-evidence ul{display:grid;gap:9px;padding:0;margin:10px 0 0;list-style:none}.runtime-attribution-derived-evidence-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:9px;border:1px solid var(--border-subtle);border-radius:9px;background:#0b1f36;color:var(--text-secondary);font-size:13px;line-height:1.4}.runtime-attribution-derived-evidence-item>span:nth-child(2){overflow-wrap:anywhere}.runtime-attribution-derived-evidence-item>strong{color:var(--text-primary);white-space:nowrap}.runtime-attribution-mark-toggle{min-height:36px;padding:6px 11px;border:1px solid var(--border);border-radius:999px;background:var(--bg-surface-2);color:var(--primary-hover);font-size:12px;font-weight:800;white-space:nowrap}.runtime-attribution-mark-toggle.active{border-color:#2f855a;background:#0f2e21;color:#9ae6b4}
+.runtime-attribution-derived-evidence{padding:12px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-surface-2)}.runtime-attribution-derived-evidence>strong{display:block;color:var(--primary-hover)}.runtime-attribution-derived-evidence-note{margin:6px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.5}.runtime-attribution-derived-evidence ul{display:grid;gap:9px;padding:0;margin:10px 0 0;list-style:none}.runtime-attribution-derived-evidence-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:9px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--bg-surface);color:var(--text-secondary);font-size:13px;line-height:1.4}.runtime-attribution-derived-evidence-item>span:nth-child(2){overflow-wrap:anywhere}.runtime-attribution-derived-evidence-item>strong{color:var(--text-primary);white-space:nowrap}.runtime-attribution-mark-toggle{min-height:36px;padding:6px 11px;border:1px solid var(--border);border-radius:999px;background:var(--bg-surface-2);color:var(--primary-hover);font-size:12px;font-weight:800;white-space:nowrap}.runtime-attribution-mark-toggle.active{border-color:#2f855a;background:#0f2e21;color:#9ae6b4}
 /* UR-TODO-046-C3C-C: the "confirm and post" action is deliberately NOT pill-shaped and NOT blue/green like the C3C-B session-only toggle above — solid amber fill + square corners signal "this is a heavier, less reversible action", so the two buttons are never visually confused. */
 .runtime-attribution-confirm-button{min-height:36px;padding:6px 12px;border:1px solid var(--warning);border-radius:8px;background:#7c5a12;color:#fff7e6;font-size:12px;font-weight:900;white-space:nowrap}.runtime-attribution-confirm-button:hover{background:#8f6816}.runtime-attribution-confirm-button.confirmed{border-color:#2f855a;background:#0f2e21;color:#9ae6b4;font-weight:800}.runtime-attribution-void-button{min-height:36px;padding:6px 12px;border:1px solid var(--danger);border-radius:8px;background:var(--danger-strong);color:#fee2e2;font-size:12px;font-weight:900;white-space:nowrap}.runtime-attribution-void-button:hover{background:#932525}.runtime-attribution-confirm-error{margin:0;padding:9px 11px;border:1px solid var(--danger);border-radius:9px;background:var(--danger-soft);color:#fecaca;font-size:12px;line-height:1.5}.runtime-attribution-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.runtime-attribution-heading .eyebrow{margin:0 0 5px;font-size:11px}.runtime-attribution-heading h2{margin:0;color:var(--text-primary);font-size:19px}.runtime-attribution-heading p:not(.eyebrow){margin:6px 0 0;color:var(--text-secondary);font-size:13px;line-height:1.5}.runtime-attribution-quality{flex:0 0 auto;padding:6px 9px;border:1px solid var(--border);border-radius:999px;background:var(--bg-surface-2);color:var(--primary-hover);font-size:12px}.runtime-attribution-quality.reconciled{border-color:#2f855a;background:#0f2e21;color:#9ae6b4}.runtime-attribution-quality.partial{border-color:var(--warning);background:var(--warning-soft);color:#fde68a}.runtime-attribution-quality.unavailable{border-color:var(--text-muted);background:var(--bg-surface);color:#cbd5e1}.runtime-attribution-period-note{margin:0;padding:9px 11px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--bg-surface-2);color:var(--text-secondary);font-size:13px}.runtime-attribution-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.runtime-attribution-grid article{min-width:0;margin:0;padding:12px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-surface-2)}.runtime-attribution-grid small{display:block;margin-top:6px;color:var(--text-secondary);font-size:12px}.runtime-attribution-grid strong{display:block;margin-top:4px;color:var(--text-primary);overflow-wrap:anywhere}.runtime-attribution-tag{display:inline-block;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:800;border:1px solid var(--border);background:var(--bg-surface-2);color:var(--primary-hover)}.runtime-attribution-tag.ledger{border-color:#2f855a;background:#0f2e21;color:#9ae6b4}.runtime-attribution-tag.derived{border-color:#7c6f1f;background:#2e2a0f;color:#fde68a}.runtime-attribution-tag.residual{border-color:var(--text-muted);background:var(--bg-surface);color:#cbd5e1}.runtime-attribution-reconciled-note{margin:0;padding:12px;border:1px solid var(--warning);border-radius:11px;background:var(--warning-soft);color:#fde68a;font-size:13px;line-height:1.5}.runtime-attribution-zero-contribution,.runtime-attribution-fx-excluded{padding:12px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-surface-2)}.runtime-attribution-zero-contribution>strong,.runtime-attribution-fx-excluded>strong{display:block;color:var(--primary-hover)}.runtime-attribution-zero-contribution ul,.runtime-attribution-fx-excluded ul{display:grid;gap:8px;padding:0;margin:9px 0 0;list-style:none}.runtime-attribution-zero-contribution li,.runtime-attribution-fx-excluded li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;color:var(--text-secondary);font-size:13px;line-height:1.45}.runtime-attribution-zero-contribution span:last-child,.runtime-attribution-fx-excluded span:last-child{overflow-wrap:anywhere}
 
