@@ -6,7 +6,7 @@
    deliberately a separate axis from --success/--danger (UI outcome semantics), never to be conflated. */
 :root{
   --bg-page:#0b0f14;--bg-surface:#111827;--bg-surface-2:#151d2a;--bg-surface-inset:#0c141d;
-  --border:#2b3748;--border-subtle:rgba(148,163,184,.16);--border-strong:#3a4a61;
+  --border:#2b3748;--border-subtle:rgba(148,163,184,.10);--border-strong:#3a4a61;
   --text-primary:#f1f5f9;--text-secondary:#a7b0bf;--text-muted:#7f8a9a;
   --primary:#2d7bff;--primary-hover:#4a90ff;--primary-soft:rgba(45,123,255,.14);--primary-soft-strong:rgba(45,123,255,.24);
   --warning:#f59e0b;--warning-soft:rgba(245,158,11,.14);
@@ -15,7 +15,7 @@
   --market-up:#ff5b5b;--market-down:#43d17a;
   --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;
-  --shadow-card:0 1px 2px rgba(0,0,0,.28);--shadow-modal:0 24px 64px rgba(0,0,0,.6);
+  --shadow-card:0 2px 8px rgba(0,0,0,.4);--shadow-modal:0 24px 64px rgba(0,0,0,.6);
   --font-name:18px;--font-symbol:13px;--font-amount:19px;--font-pnl:18px;--font-button:15px;
   /* .ai-decision-* (AiDecisionCenterPage) referenced --muted/--card/--line/--accent below with no
      :root definition anywhere in this file prior to this Sprint -- an undefined custom property that
@@ -167,9 +167,17 @@ button.ghost:hover{background:var(--bg-surface-2);color:var(--text-primary);filt
 .holding-order-handle:hover{background:var(--primary-soft);filter:none}
 .holding-order-handle:active,.holding-order-handle.is-dragging{cursor:grabbing;background:var(--primary);border-color:var(--primary-hover);color:#fff}
 .holding-compact.is-dragging{opacity:.6;box-shadow:0 0 0 2px var(--primary-hover) inset}
-.holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface-2)}
-.holding-card-detail>span{display:block;margin-bottom:3px;color:var(--text-secondary);font-size:11px;font-weight:700;line-height:1.25}
+/* UR-TODO-073 refinement: no per-field box — desktop (901px+) was already borderless/flat; this
+   drops the mobile-only bordered/tinted box so hierarchy comes from spacing and typography instead
+   of framing every field (shares/price/value/pnl) in its own outlined tile. */
+.holding-card-detail{min-width:0;margin:0;padding:2px 0;border:0;background:transparent}
+.holding-card-detail>span{display:block;margin-bottom:2px;color:var(--text-secondary);font-size:11px;font-weight:600;line-height:1.25}
 .holding-card-detail>strong{display:block;min-width:0;color:var(--text-primary);font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+/* market value and unrealized P/L are the card's headline numbers — sized above the other four
+   (shares/avgCost/price/today-change) fields via a same-element compound-class selector, which wins
+   regardless of source order against .holding-card-detail>strong at every breakpoint (no !important
+   needed). */
+.holding-card-detail.holding-card-market-value>strong,.holding-card-detail.holding-card-unrealized-pnl>strong{font-size:var(--font-amount);font-weight:700}
 .holding-card-price>strong.up{color:var(--market-up)}
 .holding-card-price>strong.down{color:var(--market-down)}
 .holding-card-price>strong.hold{color:var(--text-secondary)}
@@ -180,19 +188,23 @@ button.ghost:hover{background:var(--bg-surface-2);color:var(--text-primary);filt
 .holding-card-unrealized-pnl{min-width:0}
 .holding-card-unrealized-pnl strong{display:flex;flex-wrap:wrap;gap:2px 5px;white-space:normal;overflow-wrap:anywhere;font-size:var(--font-pnl);font-weight:700}
 /* UR-TODO-002 item 5: distinguish 未實現損益 from 今日漲跌 via container weight (tint + accent border), not a new color family. */
-.holding-card-unrealized-pnl-up{background:rgba(255,91,91,.12);border-color:var(--market-up);border-left-width:3px}
-.holding-card-unrealized-pnl-down{background:rgba(67,209,122,.12);border-color:var(--market-down);border-left-width:3px}
-.holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.08);border-color:var(--border);border-left-width:3px}
+.holding-card-unrealized-pnl-up{background:rgba(255,91,91,.08);border-color:var(--market-up);border-left-width:2px}
+.holding-card-unrealized-pnl-down{background:rgba(67,209,122,.08);border-color:var(--market-down);border-left-width:2px}
+.holding-card-unrealized-pnl-hold{background:transparent;border-color:transparent;border-left-width:2px}
 .holding-card-summary>.holding-edit-button{justify-self:end;min-height:32px;padding:5px 10px}
 .holding-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .holding-snapshot>div{min-width:0;padding:10px;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm)}
 .holding-snapshot span{display:block;color:var(--text-secondary);font-size:12px;margin-bottom:5px}
 .holding-snapshot strong{display:block;color:var(--text-primary);font-size:14px;line-height:1.35;overflow-wrap:anywhere}
 .holding-snapshot strong.up{color:var(--market-up)}.holding-snapshot strong.down{color:var(--market-down)}.holding-snapshot strong.hold{color:var(--text-secondary)}
-/* UR-TODO-073: track/border toned down (--border instead of a saturated blue) so this circle no
-   longer competes with .holding-name for visual weight -- see section 8C in the Sprint brief. */
-.holding-mobile-weight{display:grid;place-items:center;align-content:center;width:48px;height:48px;margin:0;border:2px solid var(--border);border-radius:50%;background:var(--bg-surface-2);text-align:center;line-height:1.1}
-.holding-mobile-weight strong{color:var(--text-primary);font-size:12px;white-space:nowrap}
+/* UR-TODO-073 refinement: the badge becomes a real proportional ring (conic-gradient fill driven by
+   the same marketValue/totalAssets ratio compactWeight already renders as text — see ringPercent in
+   App.tsx), not just a static bordered circle. --primary is deliberately the only fill color (an
+   "accent", per the Sprint brief's Primary-blue-for-accents rule) and stays visually lighter than
+   .holding-name via size (48px badge vs the name's own font-size) and a muted center hole. */
+.holding-mobile-weight{position:relative;display:grid;place-items:center;align-content:center;width:48px;height:48px;margin:0;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--ring-value,0)*1%),var(--bg-surface-2) 0);text-align:center;line-height:1.1}
+.holding-mobile-weight::before{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--bg-surface)}
+.holding-mobile-weight strong{position:relative;z-index:1;color:var(--text-primary);font-size:12px;white-space:nowrap}
 .holding-mobile-core{min-width:0}
 .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
 .holding-mobile-core .holding-symbol{flex:0 0 auto;font-size:18px}
@@ -206,10 +218,10 @@ button.ghost:hover{background:var(--bg-surface-2);color:var(--text-primary);filt
 .holding-mobile-value>strong{max-width:108px;color:#eaf3ff;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .holding-mobile-value .holding-edit-button{min-height:28px;padding:3px 8px;border-radius:7px;font-size:11px}
 .holding-editor{margin:0}
-.holding-editor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.holding-editor-summary p{min-width:0;margin:0;padding:10px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface-2)}
+.holding-editor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 16px}
+.holding-editor-summary p{min-width:0;margin:0;padding:0;border:0;background:transparent}
 .holding-editor-summary span{display:block;color:var(--text-secondary);font-size:11px}
-.holding-editor-summary strong{display:block;margin-top:4px;color:var(--text-primary);font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holding-editor-summary strong{display:block;margin-top:4px;color:var(--text-primary);font-size:16px;font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .holding-editor-summary strong.up{color:var(--market-up)}.holding-editor-summary strong.down{color:var(--market-down)}.holding-editor-summary strong.hold{color:var(--text-secondary)}
 .holding-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
 .holding-editor-grid label{margin:0}.holding-editor-grid .holding-dip-toggle,.holding-editor-grid .holding-focus-toggle{display:flex;flex-direction:row;align-items:center;align-self:end;min-height:44px;color:var(--text-primary);font-weight:700}
@@ -419,9 +431,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:var(--font-name);white-space:nowrap}.holding-card-identity .holding-symbol{font-size:var(--font-symbol)}
   .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{padding:4px 8px;border-radius:6px;border-left-width:3px;border-left-style:solid}
-  .holding-card-unrealized-pnl-up{background:rgba(255,91,91,.1);border-left-color:var(--market-up)}
-  .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.1);border-left-color:var(--market-down)}
-  .holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.07);border-left-color:var(--border)}
+  .holding-card-unrealized-pnl-up{background:rgba(255,91,91,.08);border-left-color:var(--market-up)}
+  .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.08);border-left-color:var(--market-down)}
+  .holding-card-unrealized-pnl-hold{background:transparent;border-left-color:transparent}
   .holding-card-summary>.holding-edit-button{justify-self:end;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
   /* UR-TODO-071 Decision 2: handle is the row's own independent rightmost operation area — a 9th
      grid track appended after the existing 8 (identity...詳細), never shrinking their minmax
@@ -505,8 +517,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-card-identity{grid-column:auto}
   .holding-order-handle{width:34px;height:34px;min-width:34px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
-  .holding-mobile-weight{display:grid;place-items:center;align-content:center;width:46px;height:46px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
-  .holding-mobile-weight strong{color:#eaf3ff;font-size:12px;white-space:nowrap}
+  .holding-mobile-weight{width:46px;height:46px}
   .holding-mobile-core{min-width:0}
   .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
   .holding-mobile-core .holding-symbol{flex:0 0 auto;font-size:17px}
@@ -521,11 +532,8 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-mobile-value>strong{max-width:92px;color:#eaf3ff;font-size:17px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .holding-mobile-value .holding-edit-button{min-height:26px;padding:3px 7px;border-radius:7px;font-size:11px}
   .holding-editor{margin-top:10px;padding-top:10px}
-  .holding-editor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
-  .holding-editor-summary p{min-width:0;margin:0;padding:7px;border:1px solid #1d3d66;border-radius:8px;background:#09182a}
-  .holding-editor-summary span{display:block;color:#8da3bd;font-size:10px}
-  .holding-editor-summary strong{display:block;margin-top:3px;color:#eaf3ff;font-size:11px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .holding-editor-summary strong.up{color:#ff5b5b}.holding-editor-summary strong.down{color:#43d17a}.holding-editor-summary strong.hold{color:#9fb3c8}
+  .holding-editor-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+  .holding-editor-summary strong{font-size:14px}
   .quote-summary{align-items:flex-start;flex-direction:column;gap:4px}
   .quote-summary strong{text-align:left}
   .quote{align-items:flex-start;flex-direction:column;gap:6px;font-size:1.2rem}

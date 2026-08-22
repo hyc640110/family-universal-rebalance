@@ -107,6 +107,34 @@ test('UR-TODO-073 the AiDecisionCenterPage --muted/--card/--line/--accent refere
   assert.match(root, /--accent:var\(--primary\)/);
 });
 
+test('UR-TODO-073 refinement: no per-field box on .holding-card-detail — hierarchy comes from spacing/typography, not a border+background tile around every field', () => {
+  assert.match(styles, /\.holding-card-detail\{min-width:0;margin:0;padding:2px 0;border:0;background:transparent\}/);
+  // market value and unrealized P/L stay the card's two headline numbers, sized above shares/avgCost/price/today-change.
+  assert.match(styles, /\.holding-card-detail\.holding-card-market-value>strong,\.holding-card-detail\.holding-card-unrealized-pnl>strong\{font-size:var\(--font-amount\);font-weight:700\}/);
+});
+
+test('UR-TODO-073 refinement: allocation ring is a real proportional conic-gradient fill (not just a static bordered circle), and stays behind holding-name in visual weight', () => {
+  const ringRule = /\.holding-mobile-weight\{[^}]*\}/.exec(styles)?.[0] ?? '';
+  assert.match(ringRule, /background:conic-gradient\(var\(--primary\)/);
+  assert.doesNotMatch(ringRule, /border:2px solid/, 'the old static border ring must be gone, replaced by the conic-gradient fill');
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /const ringPercent = Number\.isFinite\(row\.marketValue\)/);
+  assert.match(app, /className="holding-mobile-weight" style=\{\{ '--ring-value': ringPercent \} as CSSProperties\}/);
+});
+
+test('UR-TODO-073 refinement: the ≤768px mobile override no longer reverts .holding-mobile-weight / .holding-editor-summary to pre-token hardcoded hex (regression caught after the first Preview round)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  // Scoped to just these two selectors' own rule text — the same block also legitimately still
+  // contains unrelated hardcoded hex on out-of-scope/dead classes (.mobile-row-toolbar,
+  // .holding-mobile-value, etc.) that this Sprint never touched.
+  const weightRule = /\.holding-mobile-weight\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '(rule not found)';
+  const summaryBlock = mobileBlock.slice(mobileBlock.indexOf('.holding-editor-summary'), mobileBlock.indexOf('.quote-summary'));
+  for (const hex of ['#315b8d', '#09182a', '#1d3d66', '#eaf3ff', '#8da3bd', '#ff5b5b', '#43d17a', '#9fb3c8']) {
+    assert.doesNotMatch(weightRule, new RegExp(hex), `${hex} must not reappear on .holding-mobile-weight in the ≤768px override`);
+    assert.doesNotMatch(summaryBlock, new RegExp(hex), `${hex} must not reappear on .holding-editor-summary in the ≤768px override`);
+  }
+});
+
 test('UR-TODO-073 no financial/persistence source files were touched by this Sprint (visual-only diff)', () => {
   // holdingDisplayOrder / rebalance / clec / household liquidity libs must not import or reference any
   // of the new CSS custom properties — this Sprint never touches src/lib/**.
