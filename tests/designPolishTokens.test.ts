@@ -277,10 +277,14 @@ test('UR-TODO-074 ring-size refinement: allocation ring is enlarged (not left at
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('@media (max-width: 360px)'));
   const narrowestBlock = styles.slice(styles.indexOf('@media (max-width: 360px)'), styles.indexOf('/* V3.1 application navigation */'));
+  // UR-TODO-074 round 2 (iPhone Preview acceptance): outer diameters unchanged from round 1 — only
+  // the inset (stroke/ring-band thickness) was thinned per feedback that the ring read as "big
+  // circle, thick band" rather than the target's "big circle, thin band". A thinner inset only
+  // enlarges the punch-hole, so the chord-width fit check below still holds with more margin.
   const buckets = [
-    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 9, font: 16, offset: 84, offsetSelectors: true },
-    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 8, font: 15, offset: 78, offsetSelectors: true },
-    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 7, font: 14, offset: 72, offsetSelectors: true },
+    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 6, font: 16, offset: 84, offsetSelectors: true },
+    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 5, font: 15, offset: 78, offsetSelectors: true },
+    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 5, font: 14, offset: 72, offsetSelectors: true },
   ];
   // A monospace-ish digit/percent glyph is comfortably covered by treating each character as
   // ~0.62em wide (verified against real rendered widths during this Sprint's Preview testing, which
@@ -305,4 +309,44 @@ test('UR-TODO-074 ring-size refinement: allocation ring is enlarged (not left at
   // the underlying conic-gradient/ring-value mechanism (real allocation % fill) is untouched by any
   // of the size overrides above — only width/height/inset/font-size/offsets change per breakpoint.
   assert.match(styles, /background:conic-gradient\(var\(--primary\) calc\(var\(--ring-value,0\)\*1%\),var\(--border\) 0\)/);
+});
+
+test('UR-TODO-074 round 2 (iPhone Preview acceptance): 詳細 is a visibly wider compact Secondary button (min-width ≥80px, not the round-1 ~56px), and 未實現損益 sits tightly grouped under its percentage (a small explicit gap, not `justify-content:space-between` stretching them to opposite ends of the tall pnl area)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const buttonRule = /\.holding-card-summary>\.holding-edit-button\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '';
+  const minWidthMatch = /min-width:(\d+)px/.exec(buttonRule);
+  assert.ok(minWidthMatch, '詳細 button must declare an explicit min-width');
+  assert.ok(Number(minWidthMatch[1]) >= 80, `詳細 button min-width (${minWidthMatch[1]}px) must be ≥80px, clearly wider than the round-1 ~56px`);
+  assert.doesNotMatch(buttonRule, /justify-self:stretch/, '詳細 must stay a compact button, not a full-width bar');
+  const pnlRule = /\.holding-card-unrealized-pnl\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '';
+  assert.match(pnlRule, /flex-direction:column-reverse/, 'percentage-primary/label-secondary stacking order must be unchanged');
+  assert.doesNotMatch(pnlRule, /justify-content:space-between/, 'space-between stretches percentage and label to opposite ends of the tall pnl area — the exact bug reported in this round');
+  const gapMatch = /gap:(\d+)px/.exec(pnlRule);
+  assert.ok(gapMatch, 'pnl percentage/label must have an explicit small gap so they read as one group');
+  assert.ok(Number(gapMatch[1]) <= 5, `pnl gap (${gapMatch[1]}px) must be small (≤5px) so 未實現損益 reads as tightly grouped with its percentage`);
+});
+
+test('UR-TODO-074 round 2 (iPhone Preview acceptance): dark surface tokens are darkened/more-neutral than the UR-TODO-073 baseline while keeping the page→surface→surface-2 three-layer hierarchy distinct and --border still subtle (not a bright frame)', () => {
+  const bgPage = /--bg-page:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface = /--bg-surface:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const bgSurface2 = /--bg-surface-2:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  const border = /--border:(#[0-9a-fA-F]{6})/.exec(root)?.[1];
+  for (const [name, hex] of [['--bg-page', bgPage], ['--bg-surface', bgSurface], ['--bg-surface-2', bgSurface2], ['--border', border]]) {
+    assert.ok(hex, `${name} must be defined`);
+  }
+  const luminance = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 0xff) + 0.7152 * ((n >> 8) & 0xff) + 0.0722 * (n & 0xff);
+  };
+  // must not have regressed back to (or past) the UR-TODO-073 baseline lightness for the two
+  // surfaces the user flagged as "still blue-gray" — this round must be darker, not just re-hued.
+  assert.ok(luminance(bgPage) < luminance('#0b0f14'), '--bg-page must be darker than the UR-TODO-073 baseline (#0b0f14)');
+  assert.ok(luminance(bgSurface) < luminance('#111827'), '--bg-surface must be darker than the UR-TODO-073 baseline (#111827)');
+  assert.ok(luminance(bgSurface2) < luminance('#151d2a'), '--bg-surface-2 must be darker than the UR-TODO-073 baseline (#151d2a)');
+  // three-layer hierarchy: each step must still be visibly distinct (not collapsed together).
+  assert.ok(luminance(bgSurface) > luminance(bgPage), '--bg-surface must remain visibly lighter than --bg-page (layering preserved)');
+  assert.ok(luminance(bgSurface2) > luminance(bgSurface), '--bg-surface-2 must remain visibly lighter than --bg-surface (layering preserved)');
+  assert.notEqual(bgPage.toLowerCase(), '#000000', '--bg-page must not be flattened to OLED pure black');
+  // --border must stay subtle: not equal to a full text-contrast color, and darker than --text-primary/-secondary.
+  assert.ok(luminance(border) < luminance('#a7b0bf'), '--border must stay darker/less prominent than --text-secondary (subtle, not a bright frame)');
 });

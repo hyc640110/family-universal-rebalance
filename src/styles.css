@@ -5,8 +5,14 @@
    preserve the existing Taiwan-market red-up/green-down convention (see .up/.down below); they are
    deliberately a separate axis from --success/--danger (UI outcome semantics), never to be conflated. */
 :root{
-  --bg-page:#0b0f14;--bg-surface:#111827;--bg-surface-2:#151d2a;--bg-surface-inset:#0c141d;
-  --border:#2b3748;--border-subtle:rgba(148,163,184,.10);--border-strong:#3a4a61;
+  /* UR-TODO-074 round 2 (iPhone Preview acceptance): the three surfaces are darkened and shifted
+     toward a more neutral near-black (less blue-gray saturation) per feedback that the previous
+     values still read as "blue-gray" rather than the target reference's near-black. The
+     page→surface→surface-2 layering (each still a visibly distinct step) and --border's role as a
+     subtle (not bright) separator are both preserved — only the absolute lightness/saturation of
+     each token moved, no selector needed a compensating override. */
+  --bg-page:#07090c;--bg-surface:#0d1218;--bg-surface-2:#121924;--bg-surface-inset:#080b0f;
+  --border:#232d3a;--border-subtle:rgba(148,163,184,.10);--border-strong:#334152;
   --text-primary:#f1f5f9;--text-secondary:#a7b0bf;--text-muted:#7f8a9a;
   --primary:#2d7bff;--primary-hover:#4a90ff;--primary-soft:rgba(45,123,255,.14);--primary-soft-strong:rgba(45,123,255,.24);
   --warning:#f59e0b;--warning-soft:rgba(245,158,11,.14);
@@ -540,13 +546,22 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      established; now it spans the pnl grid-area across both the value and detail rows (contiguous
      same-named area), so the percentage visually lines up with 市值 and the 未實現損益 caption visually
      lines up with 詳細 below it — matching the target layout without any JSX change. */
-  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:space-between;text-align:right}
+  /* UR-TODO-074 refinement (iPhone Preview acceptance round 2): percentage + 未實現損益 label are one
+     semantic group and must read as one, not as two disconnected numbers — `justify-content:
+     space-between` previously pushed them to the opposite ends of the tall pnl area (which spans the
+     value+detail rows), which is what created the oversized gap. `center` + a small explicit `gap`
+     keeps them tightly grouped; they no longer individually align with the value/detail rows, which
+     this round's acceptance criteria explicitly deprioritizes in favor of the tight grouping. */
+  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:center;gap:3px;text-align:right}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{background:transparent!important;border:0!important}
   .holding-card-unrealized-pnl strong>span:first-child{display:none}
   .holding-card-detail>strong{font-size:14px}
-  /* 詳細 becomes a compact Secondary action (not a full-width bar): auto width, left-aligned under
-     the name/value column, matching the reference's small pill button. */
-  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;margin-left:84px;min-height:30px;padding:5px 12px}
+  /* 詳細 becomes a compact Secondary action (not a full-width bar): auto width (with a min-width so it
+     reads as a real button, not a tight pill) left-aligned under the name/value column, matching the
+     reference's wider pill button. UR-TODO-074 round 2: widened from ~56px to a min-width of 88px
+     per iPhone Preview acceptance feedback (the original width read as too narrow next to the
+     reference), height bumped 30px→37px to stay proportional. */
+  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;min-width:88px;margin-left:84px;min-height:37px;padding:6px 16px}
   /* UR-TODO-071 Decision 2 (unchanged contract): single drag handle, own top-right placement. Named
      grid-area (not `order`) now drives visual placement, so the handle simply gets its own area. */
   .holding-order-handle{grid-area:handle;width:30px;height:30px;min-width:30px;align-self:start;justify-self:end}
@@ -558,9 +573,13 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      text box can be narrower than the hole's diameter and still poke past the curved edge near its
      corners, so the fit was verified via chord-width at the text's actual height, not a naive
      width-vs-diameter comparison; each bucket keeps a few px of margin. Narrower buckets below
-     override all three further (≤420px, ≤360px). */
+     override all three further (≤420px, ≤360px).
+     UR-TODO-074 round 2 (iPhone Preview acceptance): outer diameter is unchanged this round — only
+     the inset (stroke/ring width) is thinned per feedback that the ring read as "big circle, thick
+     band" rather than the target's "big circle, thin band"; the fit margin above still holds (a
+     smaller inset only enlarges the punch-hole, never shrinks it). */
   .holding-mobile-weight{position:absolute;top:0;left:0;width:76px;height:76px}
-  .holding-mobile-weight::before{inset:9px}
+  .holding-mobile-weight::before{inset:6px}
   .holding-mobile-weight strong{font-size:16px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-core{min-width:0}
@@ -649,7 +668,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-card-market-value{padding-left:78px}
   .holding-card-summary>.holding-edit-button{margin-left:78px}
   .holding-mobile-weight{width:70px;height:70px}
-  .holding-mobile-weight::before{inset:8px}
+  /* UR-TODO-074 round 2: outer diameter unchanged, inset thinned (8px→5px) per the same "thinner
+     ring band" feedback as the 421-768px bucket above. */
+  .holding-mobile-weight::before{inset:5px}
   .holding-mobile-weight strong{font-size:15px}
 }
 
@@ -662,7 +683,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-card-market-value{padding-left:72px}
   .holding-card-summary>.holding-edit-button{margin-left:72px}
   .holding-mobile-weight{width:64px;height:64px}
-  .holding-mobile-weight::before{inset:7px}
+  /* UR-TODO-074 round 2: outer diameter unchanged, inset thinned (7px→5px) per the same "thinner
+     ring band" feedback as the wider buckets above. */
+  .holding-mobile-weight::before{inset:5px}
   .holding-mobile-weight strong{font-size:14px}
 }
 
