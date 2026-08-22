@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T09:06:24.992603+00:00
+Generated UTC: 2026-08-22T11:56:52.487683+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `a9f30853246a3d08fd6d06da0c0e60b1b26b4f17dfc75766f6d716a2fae6859b`
-- `008_TODO_BACKLOG.md` — SHA-256 `acba59a0f0a6144dbc4ee907810008626e9bb35a8f381c33cf7db4aed473a7a1`
-- `012_AI_HANDOVER.md` — SHA-256 `9c5ade5a5725794ae37faabdbc44564a76c89c6e182419822be0726667857dc8`
+- `003_CURRENT_STATUS.md` — SHA-256 `f230625a6202eea086ee49b5400da3395986b7de66d31df02ecbe356242e4d61`
+- `008_TODO_BACKLOG.md` — SHA-256 `f349c1c3c024add20577f966cce85c2e67e326a4aaa0b35097a0cce010a42271`
+- `012_AI_HANDOVER.md` — SHA-256 `d0690323fc1f7ee202b1babfa4b05312825c05911d8768662e47390a19ed2ef5`
 
 ---
 
@@ -425,11 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.48
+# Universal Rebalance Current Status v4.49
 
 最後更新：2026-08-22
 
-**UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（2026-08-22，Development Mode）。** 使用者明確提出新的持股詳細頁 UX 需求並拍板方案 B：詳細頁先呈現持股摘要、基本／損益／配置資訊，投資設定預設收合，資產管理危險操作獨立置底。唯讀 Contract Audit 確認既有 `HoldingDetailContent` 已直接重用 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，本 Sprint 只重整 presentation，不建立第二套 update path 或 editable snapshot。已由最新 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d` 建立獨立 branch `feat/ur-todo-075-holding-detail-ia`；TDD 新增 5 項資訊架構 regression test 並掛入 `test:ci`。`test:ur-todo-075` 5/5、`test:ur-todo-072` 19/19、完整 `test:ci`、TypeScript、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 均通過；本機 390px／1280px Preview 無 horizontal overflow，投資設定預設收合且可展開。Draft PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) 已建立，CI 與使用者 Preview 驗收待確認；尚未 Merge，未部署 Production。 `src/lib/**`、schema、persistence、localStorage／JSON Backup、Ledger／attribution、Rebalance／AI／CLEC／Household Liquidity 均為 0 diff。
+**UR-TODO-075 Holding Detail Information Architecture & Visual Refinement 已正式 CLOSED／Production Verified（2026-08-22）。** 使用者完成本機 Preview 人工驗收 PASS 後，PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) final head `202f96572d50e1c612854fa89c9ed6adda9b64de` 已由 `hyc640110` 於 `2026-08-22T11:48:49Z` 以一般 2-parent merge commit `696ea2f4d1d9b5ae8fafcc192046a00a2301cb37` 合併（parents `7e479636f7245b1cd0d8102db5a8b95f5822016d`／`202f96572d50e1c612854fa89c9ed6adda9b64de`；未使用 admin override，非 squash／非 rebase）。merge 後 main push 觸發之 Deploy GitHub Pages run [32571291838](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32571291838) success，`event=push`、`headSha=696ea2f4d1d9b5ae8fafcc192046a00a2301cb37`，build／deploy 均成功。Production 唯讀驗證 PASS：HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `/family-universal-rebalance/assets/index-CABEEP71.js` 與 CSS `/family-universal-rebalance/assets/index-BdoQJe4A.css` 均為 HTTP 200，未混入 `/preview/`。資產頁、持股列表 elevated gray surface、Holding Detail 新版 full-screen layout、Ring summary card、基本／損益／配置資訊、預設收合投資設定、資產管理與返回操作均正常；390×844 無 horizontal overflow，console 無 error，未寫入 Production 使用者資料。此 Sprint 僅變更 presentation／tests；`src/lib/**`、schema、persistence、localStorage／JSON Backup、Financial Event Ledger／attribution、Rebalance、AI Decision、CLEC、Household Liquidity、`environmentBoundary`、Preview Infrastructure 與 Production Deployment Policy 均未變更。PR #413 為獨立 Infrastructure follow-up，非本 Todo 的 blocking item。
 
 **UR-TODO-074 Holding Card Compact Information Layout Refinement 已正式 CLOSED／Production Verified（2026-08-22）。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `5f6a3a316e431945c424301d57bea8dc99c407c5` 已由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87` 合併（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`；**未使用 admin override**）；`origin/main` 正式基線更新為 `0d1cdacad30df11fa8a8074333a70ff8d877ee87`。merge 後 main push 觸發之 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114) success（`event=push`，headSha 與 merge commit 一致），`build`／`deploy` 兩個 job 皆 success。Production 已唯讀確認：HTTP 200、deployment sha 一致（`environment=github-pages`，`state=success`）、公開 CSS/JS asset 為本次新 build（`index-DraZnquv.css`／`index-C3FwlKw8.js`）、body/page 背景 `rgb(7,8,10)`／card 背景 `rgb(12,15,17)` 為本輪加深後的 dark token、Holding Card Allocation Ring 尺寸與環厚（320px:64px／390px:70px／430px:76px，inset 5–6px）與 Preview 驗收版本一致、Ring 與內容間距 16px、「詳細」按鈕 88×37px、drag handle 存在、Holding Detail Dialog 可正確開啟並顯示新增之現價／今日漲跌欄位、以 Escape 正確關閉（`role="dialog"`／`aria-modal="true"`）、台股上漲紅（`#ff5b5b`）／下跌綠（`#43d17a`）未反轉，320／390／430／1000／1280／1600 六組寬度於 Assets 頁與 Home／Analysis／Market／Tools／Settings 頁皆無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint UI 變更無關的既有 rate-limiting，非本次引入之 regression）外無新增錯誤。Production 該帳號 4 檔既有真實持股（00662／00670L／00865B／00631L）ring 顯示 0% 為使用者帳戶既有真實 0 股狀態（與 UR-TODO-073 Production 驗證時相同，非本次 Sprint 缺陷），驗證全程僅唯讀查詢與一次不涉資料變更的 Dialog 開關互動，未寫入任何 Production 使用者資料。
 
@@ -1271,15 +1271,15 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 ### UR-TODO-075 Holding Detail Information Architecture & Visual Refinement
 
 - 優先級：P3（使用者於 Production 實際使用後提出的新持股詳細頁 UX／資訊層級需求）
-- 狀態：**DRAFT PR #412／本機驗證完成，CI 與使用者 Preview 驗收待確認**
+- 狀態：**CLOSED／Production Verified（PR #412）**
 - 提出／開發日期：2026-08-22
 - 問題：UR-TODO-072 的 Detail Dialog 已解決 inline 展開造成的頁面過長，但詳細頁第一屏仍以大量輸入欄位為主，難以快速查看持股狀態、損益與配置。
 - 目標：以既有 Production 詳細頁全部功能為基準，改為「摘要卡（Allocation Ring、名稱、symbol、市值、未實現損益）→ 基本資訊 → 損益資訊 → 配置資訊 → 預設收合投資設定 → 獨立資產管理危險操作區」。資產占比只保留一個 denominator；以既有目前比例與目標比例即時計算配置偏離，不新增持久化欄位。
 - 已確認互動：方案 B——`<details>` 的「投資設定」預設收合；展開後保留總股數、成交均價、目標比例、資產分類、波段最高價、逢低提醒與首頁重點標的全部既有 handler。封存已清倉維持最底部獨立區塊及原確認流程。
 - 明確不包含：Holding schema／AppState、財務公式、報價或 P&L 語意、Rebalance／AI Decision／CLEC／Household Liquidity、Financial Event Ledger／attribution、holdingDisplayOrder、localStorage／JSON Backup、Firebase／sync；台股上漲紅／下跌綠市場色彩契約不得反轉。
 - Contract Audit：`HoldingDetailContent` 由 `m.rows` 每次 render 取最新 row，沿用 `updateHolding`、`updateDipAlert`、`toggleFocusedSymbol`、`confirmRemoveHoldingAsset`；不得建立第二套資料更新或 editable snapshot。當總資產無法推導目前比例時，Ring 顯示 `—`、配置偏離顯示 `—`，不得把未知值轉為 0。
-- 驗收證據：`test:ur-todo-075` 5/5、`test:ur-todo-072` 19/19、完整 `test:ci`、TypeScript、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 均通過；390px 與 1280px 本機 Preview 無 horizontal overflow，設定預設收合且展開可操作。Draft PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) 已建立；不得自行 Merge 或部署 Production。
-- Branch：`feat/ur-todo-075-holding-detail-ia`，基線 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d`。
+- 驗收與正式結案：使用者本機 Preview 人工驗收 PASS；`test:ur-todo-073` 34/34、`test:ur-todo-075` 9/9、TypeScript、Production／Preview build 與 `git diff --check` 均通過。Windows 本機 `test:ci` 的唯一 CRLF/LF 失敗為既有 `clecTwReferenceHistoricalValidation.test.ts:186` 環境差異，該 test 與對應 source 相對 `origin/main` 均為 0 diff，非本 Sprint regression；相同 final head 的 GitHub required `verify` 為 success。PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) final head `202f96572d50e1c612854fa89c9ed6adda9b64de` 已由 `hyc640110` 於 `2026-08-22T11:48:49Z` 合併為一般 2-parent merge commit `696ea2f4d1d9b5ae8fafcc192046a00a2301cb37`（parents `7e479636f7245b1cd0d8102db5a8b95f5822016d`／`202f96572d50e1c612854fa89c9ed6adda9b64de`；未使用 admin override）。main push Deploy GitHub Pages run [32571291838](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32571291838) success。Production HTTP 200／`environment=production`／base `/family-universal-rebalance/`、JS `index-CABEEP71.js`、CSS `index-BdoQJe4A.css` 均驗證正常；新版 Holding Detail、持股列表 elevated gray surface 與 390×844 無 horizontal overflow 的 smoke check PASS。
+- 正式邊界：PR #412 未包含 PR #413、isolated Preview infrastructure、Production Deployment Policy Hardening、`environmentBoundary`、schema、persistence、Financial Event Ledger、attribution、Rebalance 或 AI Decision。PR #413 如需追蹤，僅為獨立 Infrastructure follow-up，非 UR-TODO-075 blocking item。
 
 2026-08-21 **UR-TODO-072（Holding Card Detail Modal/Sheet）正式 CLOSED／Production Verified。** PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `5e939433c272d87f2a794554f9ec1373a50d4bf3`。PR required CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success，同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成 **iPhone Safari 真機人工驗收，結論 PASS**；merge 後 main Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致，Production 已唯讀確認 HTTP 200、`environment=github-pages`、deployment sha 一致、持股卡片維持 compact、「詳細」入口正確開啟對應 Dialog，console 無錯誤，未寫入任何 Production 使用者資料。持股卡片「詳細」由 inline 展開改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet），完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 階段發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時純 `.focus()` 會把觸發按鈕捲入可視範圍造成頁面跳動，已改用 `.focus({ preventScroll: true })`。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。
 
@@ -3433,14 +3433,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（IN PROGRESS，2026-08-22）
+## 最新交接快照：UR-TODO-075 Final Closeout — Merge／Production Verified（CLOSED，2026-08-22）
 
-- Branch／基線：`feat/ur-todo-075-holding-detail-ia` 自 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d` 建立於隔離 worktree；原正式 checkout 的未追蹤檔與 stash 均未操作。
-- 已確認決策：方案 B，投資設定預設收合。摘要卡、基本資訊、損益資訊、配置資訊均為唯讀 presentation；所有既有設定 handler 與封存確認流程原樣重用。
-- 安全邊界：未知目前比例／偏離顯示 `—`；不得寫入 0。不得變更財務公式、schema、localStorage／JSON Backup、Ledger／attribution、Rebalance、AI Decision、CLEC、Household Liquidity 或 `holdingDisplayOrder`。
-- 已完成證據：`test:ur-todo-075` 5/5 pass；`test:ur-todo-072` 19/19 baseline pass；本機 Preview 390px 與 1280px 均無 horizontal overflow，投資設定預設收合且展開後可見 6 個既有 input／toggle。
-- 已完成驗證：完整 `test:ci`、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 全數通過。
-- Draft PR：[PR #412](https://github.com/hyc640110/family-universal-rebalance/pull/412)（Draft）；尚待 CI 與使用者 Preview 驗收。不得自行 Merge 或部署 Production。
+- 正式決策：**UR-TODO-075 = CLOSED／Production Verified。** 使用者本機 Preview 人工驗收 PASS 後，PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) final head `202f96572d50e1c612854fa89c9ed6adda9b64de` 已由 `hyc640110` 於 `2026-08-22T11:48:49Z` 以一般 2-parent merge commit `696ea2f4d1d9b5ae8fafcc192046a00a2301cb37` 合併（parents `7e479636f7245b1cd0d8102db5a8b95f5822016d`／`202f96572d50e1c612854fa89c9ed6adda9b64de`；未使用 admin override，非 squash／非 rebase）。
+- Production Deploy／驗證：main push 觸發 Deploy GitHub Pages run [32571291838](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32571291838) success，`event=push`、`headSha` 與 merge commit 一致。Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CABEEP71.js`、CSS `index-BdoQJe4A.css` 均驗證正常，未混用 Preview path；console 無 error，驗證全程未寫入 Production 使用者資料。
+- 功能 Smoke：新版 Holding Detail full-screen layout、Ring summary card、基本／損益／配置資訊、投資設定預設收合、資產管理與返回均正常；持股列表 elevated gray surface 已上線；390×844 無 horizontal overflow。帳號持股為 0 股時 Ring／比例維持 `—`，未將未知值轉為 0。
+- Scope boundary：只包含 Holding Detail presentation／responsive behavior、持股列表 surface、必要 regression tests 與 script。`src/lib/**`、schema、persistence、localStorage／JSON Backup、Ledger／attribution、Rebalance、AI Decision、CLEC、Household Liquidity、`environmentBoundary`、Preview Infrastructure、Production Deployment Policy 均未變更。PR #413 是獨立 Infrastructure follow-up，並非阻擋。
+- 本次治理 closeout：獨立 branch `docs/ur-todo-075-final-closeout` 自 merge 後 `origin/main` `696ea2f4d1d9b5ae8fafcc192046a00a2301cb37` 建立；僅同步 active AI_CONTEXT／Bundle，不建立下一個產品 Sprint。既有 stash 與 untracked 全程未操作。
 
 ## 最新交接快照：UR-TODO-074 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
 
