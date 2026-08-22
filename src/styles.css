@@ -201,10 +201,17 @@ button.ghost:hover{background:var(--bg-surface-2);color:var(--text-primary);filt
    the same marketValue/totalAssets ratio compactWeight already renders as text — see ringPercent in
    App.tsx), not just a static bordered circle. --primary is deliberately the only fill color (an
    "accent", per the Sprint brief's Primary-blue-for-accents rule) and stays visually lighter than
-   .holding-name via size (48px badge vs the name's own font-size) and a muted center hole. */
-.holding-mobile-weight{position:relative;display:grid;place-items:center;align-content:center;width:48px;height:48px;margin:0;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--ring-value,0)*1%),var(--bg-surface-2) 0);text-align:center;line-height:1.1}
-.holding-mobile-weight::before{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--bg-surface)}
-.holding-mobile-weight strong{position:relative;z-index:1;color:var(--text-primary);font-size:12px;white-space:nowrap}
+   .holding-name via size and a muted center hole.
+   ROUND 3 FIX: the empty/track portion previously used --bg-surface-2 against a --bg-surface hole —
+   two very close dark tones with almost no contrast, so at 0%/unavailable ringPercent (Preview's
+   isolated demo state starts every holding at 0 shares) the whole ring rendered as a near-invisible
+   flat disc, reading as "nothing happened" rather than "an empty ring" — this was the actual root
+   cause behind the iPhone report of only seeing the old "-" placeholder. --border now gives the
+   track a always-visible ring outline regardless of fill percentage. Size bumped 48px->56px to read
+   as a real focal element per the approved mockup, not a small badge. */
+.holding-mobile-weight{position:relative;display:grid;place-items:center;align-content:center;width:56px;height:56px;margin:0;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--ring-value,0)*1%),var(--border) 0);text-align:center;line-height:1.1}
+.holding-mobile-weight::before{content:'';position:absolute;inset:6px;border-radius:50%;background:var(--bg-surface)}
+.holding-mobile-weight strong{position:relative;z-index:1;color:var(--text-primary);font-size:14px;font-weight:700;white-space:nowrap}
 .holding-mobile-core{min-width:0}
 .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
 .holding-mobile-core .holding-symbol{flex:0 0 auto;font-size:18px}
@@ -495,27 +502,44 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holdings,.two,.params,.rebalance-settings,.rebalance-alert,.rebalance-summary,.decision-grid,.status-grid,.order-grid,.dip-alert-list,.dip-alert-fields,.dip-alert-result{grid-template-columns:1fr!important;gap:8px!important}
   .holding{padding:10px;min-width:0}
   .holding-compact{padding:8px 10px}
-  .holding-card-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .holding-card-identity{flex-wrap:wrap}
-  .holding-card-average-cost{display:none}
-  .holding-card-shares{order:1}
-  .holding-card-price{order:2}
-  .holding-card-today-change{order:2}
-  .holding-card-market-value{order:3}
-  .holding-card-unrealized-pnl{order:3}
-  .holding-card-detail{padding:7px 8px}.holding-card-detail>strong{font-size:14px}
-  .holding-card-summary>.holding-edit-button{order:1;grid-column:auto;justify-self:stretch;min-height:36px}
-  /* UR-TODO-071 Decision 2: the single drag handle replaces the old ↑/↓ pair. It's a sibling of
-     .holding-card-identity now (not nested inside it, to satisfy Desktop's "row's rightmost
-     independent operation area" requirement — see the ≥901px block), so on mobile it needs its
-     own placement: identity drops its full-row span (grid-column:1/-1 from the base rule) so the
-     handle can share row 1 with it as the second of the 2 mobile columns — no header height
-     penalty, no need for a 320px-only wrap fallback beyond the existing flex-wrap on identity's
-     own internal content (weight badge + title). Both keep their CSS `order` default (0), which
-     is what places them first, before shares/price/etc — no extra order rule needed here.
-     Touch target size carried over from UR-TODO-070's iPhone Preview round-1 verdict (34px). */
-  .holding-card-identity{grid-column:auto}
-  .holding-order-handle{width:34px;height:34px;min-width:34px}
+  /* UR-TODO-073 refinement round 3: mobile compact card restructured into an "investment summary
+     card" per the approved reference mockup — ring+name/symbol header, one prominent market-value/
+     unrealized-P&L block, one demoted price/today-change row, then a full-width Secondary 詳細
+     button — instead of a 6-field data-table spread evenly across a 2-column grid. Achieved purely
+     via grid-template-areas remapping the EXISTING DOM children (no JSX/DOM change, no data
+     removed): 股數／均價 already have a second display surface (HoldingDetailContent's 總股數／成交均價
+     fields), so they're hidden here rather than shown twice; 現價／今日漲跌 have no other display
+     surface anywhere in the app, so they stay visible, just demoted into one compact row instead of
+     two separately-boxed tiles. This keeps every previously-visible data point available somewhere
+     in the UI — nothing is removed, only reprioritized. */
+  .holding-card-summary{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    grid-template-areas:
+      "identity identity handle"
+      "value value value"
+      "pnl pnl pnl"
+      "meta meta2 ."
+      "detail detail detail";
+    gap:6px;
+  }
+  .holding-card-identity{grid-area:identity;flex-wrap:wrap}
+  .holding-card-shares,.holding-card-average-cost{display:none}
+  /* full-width (not side-by-side) so a long NT$ amount or a wrapped +amount/+pct pair never forces
+     extra line-wrap height — compactness instead comes from tighter vertical padding below. */
+  .holding-card-market-value,.holding-card-unrealized-pnl{padding-top:4px!important;padding-bottom:4px!important}
+  .holding-card-market-value{grid-area:value}
+  .holding-card-unrealized-pnl{grid-area:pnl}
+  .holding-card-price{grid-area:meta}
+  .holding-card-today-change{grid-area:meta2;text-align:right}
+  .holding-card-price>span,.holding-card-today-change>span{display:inline;margin-right:4px}
+  .holding-card-price,.holding-card-today-change{padding:0}
+  .holding-card-price>strong,.holding-card-today-change>strong{display:inline;font-size:12px}
+  .holding-card-detail>strong{font-size:14px}
+  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:stretch;min-height:36px}
+  /* UR-TODO-071 Decision 2 (unchanged contract): single drag handle, own top-right placement. Named
+     grid-area (not `order`) now drives visual placement, so the handle simply gets its own area. */
+  .holding-order-handle{grid-area:handle;width:34px;height:34px;min-width:34px;align-self:start}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-weight{width:46px;height:46px}
   .holding-mobile-core{min-width:0}
@@ -588,11 +612,18 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-metrics{grid-template-columns:1fr}
   .holding-snapshot{grid-template-columns:1fr 1fr}
   .holding-mobile-summary{grid-template-columns:44px minmax(0,1fr) auto;gap:7px}
-  .holding-mobile-weight{width:44px;height:44px}
+  /* UR-TODO-073 round 3: keep the ring reasonably prominent even at very narrow widths (320px)
+     rather than shrinking it all the way down with the rest of the legacy .holding-mobile-* set. */
+  .holding-mobile-weight{width:52px;height:52px}
   .holding-mobile-quote{font-size:13px;gap:4px}
   .holding-mobile-quote .holding-quote-change{font-size:13px}
   .holding-mobile-value>strong{max-width:78px;font-size:17px}
   .holding-card-detail{padding:8px}.holding-card-detail>strong{font-size:13px}
+  /* UR-TODO-073 round 3: this block's generic .holding-card-detail{padding:8px} above (pre-existing,
+     applies to every field) was quietly re-padding the compact 現價／今日漲跌 meta row back up at
+     narrow widths, undoing the ≤768px block's padding:0 for that specific pair — re-assert it here
+     so it wins by source order at this narrower breakpoint too. */
+  .holding-card-price,.holding-card-today-change{padding:0}
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
 }
 

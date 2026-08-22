@@ -32,11 +32,12 @@ test('V6.16 scopes mobile PnL wrapping and retains desktop card layout', () => {
   assert.match(styles, /@media \(max-width: 768px\)[\s\S]*\.holding-card-summary/);
 });
 
-test('V6.16 hides average cost only in the mobile summary without leaving a blank grid slot', () => {
+test('V6.16 hides average cost (and, since UR-TODO-073 round 3, shares — both remain visible via 詳細/HoldingDetailContent) in the mobile summary without leaving a blank grid slot', () => {
   const mobileStyles = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileStyles, /\.holding-card-average-cost\{display:none\}/);
-  // UR-TODO-070: mobile summary reflow now uses `order` (股數|詳細, 現價|今日漲跌, 市值|未實現損益)
-  // instead of forcing shares onto its own full-width row.
-  assert.match(mobileStyles, /\.holding-card-shares\{order:1\}/);
+  assert.match(mobileStyles, /\.holding-card-shares,\.holding-card-average-cost\{display:none\}/);
+  // UR-TODO-073 round 3: mobile summary reflow now uses named grid-template-areas (identity/value/
+  // pnl/meta/meta2/detail/handle) instead of the old `order`-based reflow — hidden elements simply
+  // have no area assigned, so there is no blank slot by construction (no `order` rules needed here).
+  assert.match(mobileStyles, /grid-template-areas:\s*\n\s*"identity identity handle"\s*\n\s*"value value value"\s*\n\s*"pnl pnl pnl"\s*\n\s*"meta meta2 \."\s*\n\s*"detail detail detail"/);
   assert.doesNotMatch(styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)')), /\.holding-card-average-cost\{display:none\}/);
 });

@@ -196,3 +196,42 @@ test('UR-TODO-073 second refinement round: no residual legacy hardcoded hex on t
     }
   }
 });
+
+test('UR-TODO-073 third refinement round root-cause fix: the allocation ring track is always visible (var(--border), not a low-contrast --bg-surface-2-vs-hole pair) regardless of fill percentage — this was the actual reason the ring read as "nothing" at Preview\'s 0-share demo state, not a caching issue', () => {
+  const ringRule = /\.holding-mobile-weight\{[^}]*\}/.exec(styles)?.[0] ?? '';
+  assert.match(ringRule, /background:conic-gradient\(var\(--primary\) calc\(var\(--ring-value,0\)\*1%\),var\(--border\) 0\)/);
+  assert.doesNotMatch(ringRule, /var\(--bg-surface-2\) 0\)/, 'the track color must not be --bg-surface-2 again (near-invisible against the --bg-surface hole)');
+});
+
+test('UR-TODO-073 third refinement round: mobile Holding Card is restructured into an investment-summary layout (ring/name header, prominent value+P&L, demoted price/today-change, Secondary 詳細) via grid-template-areas — every previously-visible data point remains available somewhere (股數/均價 in 詳細, 現價/今日漲跌 stay on the compact card)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /grid-template-areas:/);
+  for (const [cls, area] of [
+    ['.holding-card-identity', 'identity'],
+    ['.holding-card-market-value', 'value'],
+    ['.holding-card-unrealized-pnl', 'pnl'],
+    ['.holding-card-price', 'meta'],
+    ['.holding-card-today-change', 'meta2'],
+    ['.holding-order-handle', 'handle'],
+  ]) {
+    assert.match(mobileBlock, new RegExp(cls.replace('.', '\\.') + '\\{grid-area:' + area));
+  }
+  assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail/);
+  assert.match(mobileBlock, /\.holding-card-shares,\.holding-card-average-cost\{display:none\}/);
+});
+
+test('UR-TODO-073 third refinement round: the ≤420px breakpoint\'s generic .holding-card-detail padding no longer silently re-pads the demoted 現價/今日漲跌 row back up (the exact class of bug caught once already this Sprint)', () => {
+  const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('/* V3.1 application navigation */'));
+  assert.match(narrowBlock, /\.holding-card-price,\.holding-card-today-change\{padding:0\}/);
+});
+
+test('UR-TODO-073 third refinement round: UR-TODO-070/071/072 field data and interaction wiring in App.tsx are completely untouched (CSS-only presentation change)', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function HoldingDetailContent'));
+  assert.match(card, /holding-card-shares[\s\S]*row\.shares/);
+  assert.match(card, /holding-card-average-cost[\s\S]*row\.avgCost/);
+  assert.match(card, /holding-card-price[\s\S]*row\.quote\.price\.toFixed\(2\)/);
+  assert.match(card, /holding-card-today-change[\s\S]*quoteHeadline\.amountText/);
+  assert.match(card, /<HoldingOrderHandle label=\{row\.quote\.name\} isDragging=\{isDragging\} onDragStart=\{onDragStart\} onDragMove=\{onDragMove\} onDragEnd=\{onDragEnd\} onDragCancel=\{onDragCancel\} onKeyboardMove=\{onKeyboardMove\} \/>/);
+  assert.match(card, /className="holding-edit-button" aria-expanded=\{isDetailOpen\} aria-haspopup="dialog" onClick=\{onOpenDetail\}/);
+});
