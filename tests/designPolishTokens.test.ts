@@ -143,3 +143,56 @@ test('UR-TODO-073 no financial/persistence source files were touched by this Spr
     assert.doesNotMatch(src, /--bg-page|--primary|--market-up|--market-down/);
   }
 });
+
+test('UR-TODO-073 second refinement round: Bottom Navigation active/inactive icon+label hierarchy — active is a Primary accent, inactive is neutral/muted, active background stays a soft tint (never a solid bright-blue block)', () => {
+  // Icons are lucide-react <Icon> with no hardcoded color prop (verified: they inherit currentColor
+  // from the enclosing <a>), so locking the <a>/.active color here locks the icon+label together.
+  assert.match(styles, /\.desktop-sidebar a,\.mobile-page-nav a\{color:var\(--text-muted\);/);
+  assert.match(styles, /\.mobile-page-nav a\.active\{color:var\(--primary-hover\);background:var\(--primary-soft\)\}/);
+  assert.match(styles, /\.desktop-sidebar a\.active\{background:var\(--primary-soft-strong\);color:var\(--primary-hover\);box-shadow:none\}/);
+  const nav = readFileSync(new URL('../src/components/layout/MobileBottomNav.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(nav, /color=["'#]/, 'icons must not hardcode a color prop — they rely on inherited currentColor');
+});
+
+test('UR-TODO-073 second refinement round: major page surfaces (Analysis/Market/Home/Tools/Portfolio-Risk) consume the shared surface/border/text tokens instead of legacy hardcoded hex', () => {
+  for (const cls of ['.performance-card', '.market-summary-card', '.dashboard-wealth-card', '.tool-card', '.portfolio-risk-card', '.investment-summary-card']) {
+    const rule = new RegExp(cls.replace('.', '\\.') + '(?:,[^{]*)?\\{[^}]*\\}').exec(styles)?.[0] ?? '';
+    assert.match(rule, /background:var\(--bg-surface\)/, `${cls} must use var(--bg-surface), not a legacy hardcoded card background`);
+    assert.match(rule, /border:1px solid var\(--border-subtle\)/, `${cls} must use var(--border-subtle), not a legacy hardcoded blue border`);
+  }
+});
+
+test('UR-TODO-073 second refinement round: market red/green semantics are unchanged across the newly-retokenized pages (Performance, Investment Summary, History)', () => {
+  for (const [cls, expected] of [
+    ['.performance-overview-grid strong.up,.performance-details strong.up', 'var(--market-up)'],
+    ['.performance-overview-grid strong.down,.performance-details strong.down', 'var(--market-down)'],
+    ['.investment-summary-grid .up,.investment-health-grid .up', 'var(--market-up)'],
+    ['.investment-summary-grid .down,.investment-health-grid .down', 'var(--market-down)'],
+    ['.history-stats strong.up', 'var(--market-up)'],
+    ['.history-stats strong.down', 'var(--market-down)'],
+    ['.market-summary-grid .up,.market-data-card>.up', 'var(--market-up)'],
+    ['.market-summary-grid .down,.market-data-card>.down', 'var(--market-down)'],
+  ]) {
+    assert.match(styles, new RegExp(cls.replace(/[.[\]()]/g, '\\$&') + '\\{color:' + expected.replace(/[()]/g, '\\$&') + '\\}'));
+  }
+});
+
+test('UR-TODO-073 second refinement round: Primary blue stays reserved for active/selected/CTA state — general cards/sections do not use a solid primary border by default', () => {
+  // Sample a handful of the now-retokenized "plain" card/section rules and confirm none of them
+  // hardcode --primary as a border by default (only .active/-active/.today/hover states may).
+  for (const cls of ['.performance-card', '.dashboard-wealth-card', '.investment-summary-card', '.market-summary-card']) {
+    const rule = new RegExp(cls.replace('.', '\\.') + '(?:,[^{]*)?\\{[^}]*\\}').exec(styles)?.[0] ?? '';
+    assert.doesNotMatch(rule, /border-color:var\(--primary\)[^-]|border:1px solid var\(--primary\)[^-]/, `${cls} must not default to a Primary-blue border`);
+  }
+});
+
+test('UR-TODO-073 second refinement round: no residual legacy hardcoded hex on the audited major-surface selectors (regression guard against a mobile/desktop override quietly reverting them again)', () => {
+  const legacyHex = ['#1d3d66', '#09182a', '#102033', '#eaf3ff', '#9fb3c8', '#8da3bd', '#2563eb', '#5b8def', '#3477cb', '#60a5fa', '#315b8d'];
+  for (const cls of ['.performance-card', '.market-summary-card', '.dashboard-wealth-card', '.tool-card', '.portfolio-risk-card', '.investment-summary-card', '.desktop-sidebar', '.mobile-page-nav']) {
+    const escaped = cls.replace('.', '\\.');
+    const occurrences = [...styles.matchAll(new RegExp(escaped + '[^{]*\\{[^}]*\\}', 'g'))];
+    for (const match of occurrences) {
+      for (const hex of legacyHex) assert.doesNotMatch(match[0], new RegExp(hex), `${cls} rule "${match[0].slice(0, 60)}..." must not contain legacy ${hex}`);
+    }
+  }
+});
