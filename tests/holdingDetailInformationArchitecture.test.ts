@@ -16,6 +16,30 @@ test('UR-TODO-075 Holding Detail starts with a read-only allocation summary hero
   assert.match(detailContent, /未實現損益/);
 });
 
+test('UR-TODO-075 detail header is a holding-detail title with the close control on the leading edge', () => {
+  const dialog = readFileSync(new URL('../src/components/HoldingDetailDialog.tsx', import.meta.url), 'utf8');
+  assert.match(dialog, /<button type="button" className="holding-detail-close"[\s\S]*?<\/button>\s*<h2 id=\{titleId\}>\{title\}<\/h2>/);
+  assert.match(dialog, /aria-label="返回持股列表"/);
+  assert.match(app, /title="持股詳細"/);
+});
+
+test('UR-TODO-075 information cards use single-column read rows and a dedicated charcoal surface hierarchy', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /--holding-detail-page:#0b0e12;--holding-detail-card:#171c24;--holding-detail-input:#10151c/);
+  assert.match(styles, /\.holding-detail-section dl\{display:block/);
+  assert.match(styles, /\.holding-detail-section dl div\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
+  assert.match(styles, /\.holding-detail-section dl div\+div\{border-top:1px solid var\(--holding-detail-divider\)/);
+  assert.match(styles, /\.holding-detail-hero\{[\s\S]*?background:var\(--holding-detail-card\)/);
+});
+
+test('UR-TODO-075 mobile detail is a full-height charcoal reading sheet with no horizontally-expanded card layout', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const mobile = styles.slice(styles.indexOf('@media (max-width: 768px)'));
+  assert.match(mobile, /\.holding-detail-dialog\{[\s\S]*?height:100dvh;max-height:100dvh;[\s\S]*?border-radius:0/);
+  assert.match(mobile, /\.holding-detail-body\{padding:18px 20px/);
+  assert.match(mobile, /\.holding-detail-hero\{grid-template-columns:112px minmax\(0,1fr\);/);
+});
+
 test('UR-TODO-075 Holding Detail groups read-only values into basic, profit-loss, and allocation sections', () => {
   assert.match(detailContent, /className="holding-detail-section holding-detail-basic"/);
   assert.match(detailContent, /基本資訊/);

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 export type HoldingDetailDialogProps = {
   titleId: string;
@@ -51,8 +51,8 @@ export default function HoldingDetailDialog({ titleId, title, onClose, children 
   return <div className="holding-detail-backdrop" onClick={onBackdropClick}>
     <div className="holding-detail-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <header className="holding-detail-header">
+        <button type="button" className="holding-detail-close" onClick={onClose} ref={closeButtonRef} aria-label="返回持股列表"><ChevronLeft size={24} aria-hidden="true" /></button>
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="holding-detail-close" onClick={onClose} ref={closeButtonRef} aria-label="關閉詳細視窗"><X size={18} aria-hidden="true" /></button>
       </header>
       <div className="holding-detail-body">{children}</div>
     </div>

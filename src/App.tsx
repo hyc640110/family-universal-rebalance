@@ -2268,7 +2268,7 @@ function App() {
           <div className="holdings">
             {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} isDetailOpen={selectedHoldingDetailSymbol === row.symbol} onOpenDetail={openHoldingDetail(row.symbol)} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
           </div>
-          {selectedHoldingDetailRow && <HoldingDetailDialog titleId="holding-detail-dialog-title" title={<>{selectedHoldingDetailRow.quote.name} <span className="holding-symbol">{selectedHoldingDetailRow.symbol}</span></>} onClose={closeHoldingDetail}>
+          {selectedHoldingDetailRow && <HoldingDetailDialog titleId="holding-detail-dialog-title" title="持股詳細" onClose={closeHoldingDetail}>
             <HoldingDetailContent row={selectedHoldingDetailRow} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[selectedHoldingDetailRow.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(selectedHoldingDetailRow.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }} />
           </HoldingDetailDialog>}
         </SectionCard>
