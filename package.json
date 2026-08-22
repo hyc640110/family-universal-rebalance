@@ -48,7 +48,7 @@
     "test:ur-todo-070": "tsx --test tests/holdingDisplayOrder.test.ts tests/holdingDisplayOrderPersistence.test.ts tests/v6AssetsCardInformation.test.ts",
     "test:ur-todo-071": "tsx --test tests/holdingCardDragReorder.test.ts tests/holdingOrderHandle.test.ts tests/holdingCardDragReorderStructure.test.ts tests/holdingCardDragReorderPersistence.test.ts",
     "test:ur-todo-072": "tsx --test tests/holdingDetailDialog.test.ts tests/holdingDetailDialogStructure.test.ts",
-    "test:ur-todo-075": "tsx --test tests/holdingDetailInformationArchitecture.test.ts",
+    "test:ur-todo-075": "tsx --test tests/holdingDetailInformationArchitecture.test.ts tests/holdingListSurfaceRefinement.test.ts",
     "test:ur-todo-073": "tsx --test tests/designPolishTokens.test.ts",
     "test:v5-8-1-allocation-presets": "tsx --test tests/allocationPresets.test.ts",
     "test:v5-9-investment-intelligence": "tsx --test tests/investmentIntelligence.test.ts",
