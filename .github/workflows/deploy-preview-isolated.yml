@@ -1,0 +1,106 @@
+name: Deploy Isolated Preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Feature branch name or commit SHA to publish to the isolated Preview site
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-preview-hosting
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject missing or Production main refs
+        env:
+          PREVIEW_REF: ${{ inputs.ref }}
+        run: |
+          if [ -z "$PREVIEW_REF" ]; then
+            echo "Preview ref is required."
+            exit 1
+          fi
+          case "$PREVIEW_REF" in
+            main|refs/heads/main)
+              echo "Preview ref must not be main."
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout requested Preview source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 1
+
+      - name: Reject Preview refs that resolve to the current Production main commit
+        run: |
+          PREVIEW_SHA="$(git rev-parse --verify HEAD^{commit})"
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ -z "$MAIN_SHA" ]; then
+            echo "Unable to resolve the current main commit."
+            exit 1
+          fi
+          if [ "$PREVIEW_SHA" = "$MAIN_SHA" ]; then
+            echo "Preview ref must not resolve to the current main commit."
+            exit 1
+          fi
+
+      - name: Verify Preview deploy credential is present
+        env:
+          DEPLOY_TOKEN: ${{ secrets.ISOLATED_PREVIEW_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "Preview deploy credential is required."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm ci --include=dev --no-audit --no-fund
+
+      - name: Build isolated Preview site
+        run: VITE_APP_BASE=/family-universal-rebalance-preview/ npm run build:preview
+
+      - name: Prepare static Preview output
+        run: |
+          mkdir preview-site
+          cp -R dist-preview/. preview-site/
+          touch preview-site/.nojekyll
+
+      - name: Checkout Preview deployment target
+        uses: actions/checkout@v4
+        with:
+          repository: hyc640110/family-universal-rebalance-preview
+          ref: main
+          path: preview-target
+          token: ${{ secrets.ISOLATED_PREVIEW_DEPLOY_TOKEN }}
+          persist-credentials: true
+
+      - name: Publish static output to isolated Preview branch
+        run: |
+          git -C preview-target checkout -B preview
+          git -C preview-target rm -r --ignore-unmatch .
+          cp -R preview-site/. preview-target/
+          git -C preview-target add --all
+          if git -C preview-target diff --cached --quiet; then
+            echo "Isolated Preview output is unchanged."
+            exit 0
+          fi
+          git -C preview-target config user.name "github-actions[bot]"
+          git -C preview-target config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C preview-target commit -m "chore(preview): publish ${{ inputs.ref }}"
+          git -C preview-target push origin preview
