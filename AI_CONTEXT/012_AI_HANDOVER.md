@@ -1,5 +1,14 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：Holding Card Unrealized P&L Display Refinement（MERGED／Production Verified，2026-08-22）
+
+- 正式狀態：PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) 已 MERGED／Production Verified；final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e`，merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8`（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`，一般 2-parent merge，未使用 admin override），mergedAt `2026-08-22T15:56:54Z`，mergedBy `hyc640110`。
+- **最終 UI contract（下一位 AI／開發者必須遵守，不得回改）**：Mobile Holding Card「未實現損益」區塊固定為三行，由上到下：①label「未實現損益」②損益百分比③損益金額。例如「未實現損益／-1.7%／-5.9 萬元」。不得恢復成先前「僅百分比＋label 兩行、隱藏金額」的舊版排列。未新增外框／背景框；正報酬紅／負報酬綠／hold 中性色維持既有 `.up`／`.down`／`.hold` 語意；`signedMoney(row.pnl)`／`pnlPct` 等財務計算與資料來源完全未變；Desktop（`≥901px`）9-column row 版面未受影響。
+- 實作機制：純 CSS `flex-direction` 排序（外層 `column` + 內層 `<strong>` 用 `column-reverse`），JSX/DOM 零變動；320px 寬度額外修正 `white-space:nowrap` 避免文字換行造成卡片增高。
+- Preview 證據：Deploy Isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2`；[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 皆 PASS。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常；390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤；Isolated Preview repo／`preview` branch 未因本次 Merge 被觸發或改變。
+- 邊界與下一步：此變更**獨立於 UR-TODO-074**（已 CLOSED／Production Verified，狀態與內容維持不變，本次未回頭修改該 Todo 條目）；`AI_CONTEXT/008_TODO_BACKLOG.md` 本次治理 closeout 為 0 diff，未新增任何 Todo 編號。後續若要再調整 Holding Card 未實現損益排版，必須由使用者提出獨立需求，不得自行回改本次已 Production Verified 的三行排序。
+
 ## 最新交接快照：Mobile Bottom Navigation Icon Refinement（MERGED／Production Verified，2026-08-22）
 
 - 正式狀態：PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) 已 MERGED／Production Verified；final head `c49f11f85451d629c71424a7677fda4c4059bbd3`，merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6`（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`，一般 2-parent merge，未使用 admin override），mergedAt `2026-08-22T14:30:40Z`，mergedBy `hyc640110`。
