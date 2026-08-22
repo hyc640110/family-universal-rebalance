@@ -576,9 +576,21 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      value+detail rows), which is what created the oversized gap. `center` + a small explicit `gap`
      keeps them tightly grouped; they no longer individually align with the value/detail rows, which
      this round's acceptance criteria explicitly deprioritizes in favor of the tight grouping. */
-  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end;justify-content:center;gap:3px;text-align:right}
+  /* Follow-up refinement (post UR-TODO-074): 未實現損益 now shows all three lines — label, then
+     percentage, then absolute amount — instead of hiding the amount. Outer container stays a normal
+     (non-reversed) column so the label (first DOM child) renders on top; the inner <strong> (second
+     DOM child, containing [amount, pct] in that DOM order) is itself flipped to column-reverse so its
+     last DOM child (pct) renders above its first (amount) — giving label/pct/amount top-to-bottom
+     with zero DOM/JSX changes. */
+  .holding-card-unrealized-pnl{grid-area:pnl;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;text-align:right;white-space:nowrap}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{background:transparent!important;border:0!important}
-  .holding-card-unrealized-pnl strong>span:first-child{display:none}
+  /* white-space:nowrap (overriding the base rule's wrap-enabled default) so the "auto"-sized pnl grid
+     column sizes to each line's natural single-line width instead of wrapping to 2 lines under the
+     narrower 320px bucket — caught via 320px Preview measurement showing the percentage/amount
+     wrapping and the card growing to ~176px instead of staying in the ~140px range. */
+  .holding-card-unrealized-pnl strong{display:flex;flex-direction:column-reverse;align-items:flex-end;gap:1px;flex-wrap:nowrap;white-space:nowrap;overflow-wrap:normal}
+  .holding-card-unrealized-pnl strong>span:first-child{font-size:12px;font-weight:600;white-space:nowrap}
+  .holding-card-unrealized-pnl strong>span:last-child{white-space:nowrap}
   .holding-card-detail>strong{font-size:14px}
   /* 詳細 becomes a compact Secondary action (not a full-width bar): auto width (with a min-width so it
      reads as a real button, not a tight pill) left-aligned under the name/value column, matching the

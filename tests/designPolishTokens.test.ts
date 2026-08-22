@@ -264,15 +264,16 @@ test('UR-TODO-073 fourth refinement round (hard acceptance criterion): 市值 la
   assert.match(mobileBlock, /\.holding-card-market-value>strong\{flex:1 1 auto/);
 });
 
-test('UR-TODO-073 fourth refinement round: unrealized P/L is percentage-primary (visually above), 未實現損益 label secondary (visually below, right-aligned) — same DOM, column-reverse flex; the absolute NT$ amount is hidden here only (still shown once in the 詳細 Sheet summary strip)', () => {
+test('Follow-up refinement (post UR-TODO-074): 未實現損益 shows three stacked lines — label on top, percentage second, absolute amount third — same DOM (label, then <strong> containing [amount, pct] in that order), achieved via an outer normal column plus an inner column-reverse on <strong> (no JSX change)', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileBlock, /\.holding-card-unrealized-pnl\{grid-area:pnl;display:flex;flex-direction:column-reverse;align-items:flex-end/);
-  assert.match(mobileBlock, /\.holding-card-unrealized-pnl strong>span:first-child\{display:none\}/);
-  // The pct span (signedPct) must remain the only visible child of <strong> — verified against the
-  // live App.tsx JSX contract (two <span> children: amount first, pct second) in the previous test.
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl\{grid-area:pnl;display:flex;flex-direction:column;align-items:flex-end/);
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl strong\{display:flex;flex-direction:column-reverse/);
+  // both spans must stay visible now (amount is no longer hidden) — verified against the live
+  // App.tsx JSX contract (two <span> children: amount first, pct second, unchanged from before).
+  assert.doesNotMatch(mobileBlock, /\.holding-card-unrealized-pnl strong>span:first-child\{display:none\}/, 'the amount must no longer be hidden');
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function HoldingDetailContent'));
-  assert.match(card, /holding-card-unrealized-pnl[\s\S]*<span>\{signedMoney\(row\.pnl\)\}<\/span><span>\{signedPct\(pnlPct\)\}<\/span>/);
+  assert.match(card, /holding-card-unrealized-pnl[\s\S]*<span>\{signedMoney\(row\.pnl\)\}<\/span><span>\{signedPct\(pnlPct\)\}<\/span>/, 'no JSX/DOM change: still label, then <strong> with [amount, pct] children in that order');
 });
 
 test('UR-TODO-074: 市值 shares a row with the top half of P&L\'s percentage, and 詳細 shares a row with the bottom half of P&L\'s label — the pnl grid-area spans both rows as one contiguous area (same DOM as before, no JSX change), so the percentage lines up with 市值 and 未實現損益 lines up with 詳細 — still no per-field box (background/border neutralized for the pnl tone classes at this breakpoint)', () => {
@@ -338,11 +339,14 @@ test('UR-TODO-074 round 2 (iPhone Preview acceptance): 詳細 is a visibly wider
   assert.ok(Number(minWidthMatch[1]) >= 80, `詳細 button min-width (${minWidthMatch[1]}px) must be ≥80px, clearly wider than the round-1 ~56px`);
   assert.doesNotMatch(buttonRule, /justify-self:stretch/, '詳細 must stay a compact button, not a full-width bar');
   const pnlRule = /\.holding-card-unrealized-pnl\{[^}]*\}/.exec(mobileBlock)?.[0] ?? '';
-  assert.match(pnlRule, /flex-direction:column-reverse/, 'percentage-primary/label-secondary stacking order must be unchanged');
-  assert.doesNotMatch(pnlRule, /justify-content:space-between/, 'space-between stretches percentage and label to opposite ends of the tall pnl area — the exact bug reported in this round');
+  // Follow-up refinement (post UR-TODO-074): the outer container is now a normal (non-reversed)
+  // column — label (未實現損益) is DOM-first and now also visually first (on top), with the inner
+  // <strong> separately flipped to column-reverse to put pct above amount below it.
+  assert.match(pnlRule, /flex-direction:column(?!-reverse)/, 'outer pnl container is a normal column so the label (DOM-first) renders on top');
+  assert.doesNotMatch(pnlRule, /justify-content:space-between/, 'space-between stretches percentage and label to opposite ends of the tall pnl area — the exact bug reported in a previous round');
   const gapMatch = /gap:(\d+)px/.exec(pnlRule);
-  assert.ok(gapMatch, 'pnl percentage/label must have an explicit small gap so they read as one group');
-  assert.ok(Number(gapMatch[1]) <= 5, `pnl gap (${gapMatch[1]}px) must be small (≤5px) so 未實現損益 reads as tightly grouped with its percentage`);
+  assert.ok(gapMatch, 'pnl label/percentage/amount must have an explicit small gap so they read as one group');
+  assert.ok(Number(gapMatch[1]) <= 5, `pnl gap (${gapMatch[1]}px) must be small (≤5px) so 未實現損益 reads as tightly grouped with its percentage/amount`);
 });
 
 test('UR-TODO-074 round 2 (iPhone Preview acceptance): dark surface tokens are darkened/more-neutral than the UR-TODO-073 baseline while keeping the page→surface→surface-2 three-layer hierarchy distinct and --border still subtle (not a bright frame)', () => {
@@ -424,4 +428,10 @@ test('UR-TODO-074 round 3: ring-to-content gap widened (from the round-1/2 8px g
     assert.match(block, new RegExp(`padding-left:${offset}px`), `${label}: identity/market-value offset`);
     assert.match(block, new RegExp(`margin-left:${offset}px`), `${label}: 詳細 button offset`);
   }
+});
+
+test('Follow-up refinement (post UR-TODO-074): the 未實現損益 label/percentage/amount stack forces single-line (nowrap) text so the "auto"-sized pnl grid column sizes to natural content width instead of wrapping to 2 lines and inflating card height at the ≤360px bucket (caught via 320px Preview measurement: card height jumped to ~176px before this fix, back to ~139px after)', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl\{[^}]*white-space:nowrap/);
+  assert.match(mobileBlock, /\.holding-card-unrealized-pnl strong\{[^}]*flex-wrap:nowrap[^}]*white-space:nowrap/);
 });
