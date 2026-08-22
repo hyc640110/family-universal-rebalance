@@ -92,7 +92,12 @@ jobs:
 
       - name: Publish static output to isolated Preview branch
         run: |
-          git -C preview-target checkout -B preview
+          if git -C preview-target ls-remote --exit-code --heads origin preview > /dev/null; then
+            git -C preview-target fetch origin preview:refs/remotes/origin/preview
+            git -C preview-target checkout -B preview origin/preview
+          else
+            git -C preview-target checkout -B preview
+          fi
           git -C preview-target rm -r --ignore-unmatch .
           cp -R preview-site/. preview-target/
           git -C preview-target add --all
