@@ -1,6 +1,29 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-074 iPhone Preview 驗收 PASS — Ready for Review（2026-08-22）
+## 最新交接快照：UR-TODO-074 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
+
+### 正式決策
+**UR-TODO-074 = CLOSED／Production Verified。** 使用者於 iPhone Preview 驗收 PASS 快照之後明確授權 Merge：PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410)（final head `5f6a3a316e431945c424301d57bea8dc99c407c5`）已由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87`（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `0d1cdacad30df11fa8a8074333a70ff8d877ee87`。
+
+### Production Deploy 與驗證
+- push-to-main 觸發之正式 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114)：`event=push`，`headSha` 與 merge commit 一致，`conclusion=success`。
+- 唯讀 Production 驗證（全程未寫入任何 Production 使用者資料）全數 PASS：HTTP 200；deployment `sha`／`environment=github-pages`／`state=success`；實際 asset hash `index-DraZnquv.css`／`index-C3FwlKw8.js` 確認為本次新 build；Holding Card Allocation Ring 尺寸/環厚/與內容間距、「詳細」按鈕（88×37px）、drag handle、Holding Detail Dialog 開關（含新增現價／今日漲跌欄位）、dark surface deep token（body `rgb(7,8,10)`／card `rgb(12,15,17)`）、台股上漲紅／下跌綠未反轉，320／390／430／1000／1280／1600 六組寬度（Assets／Home／Analysis／Market／Tools／Settings）皆無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint 無關）外無新增錯誤。
+- Production 帳號既有 4 檔真實持股（00662／00670L／00865B／00631L）ring 顯示 0%，與 UR-TODO-073 Production 驗證時相同，為使用者帳戶既有真實 0 股狀態（非本次 Sprint 缺陷）。
+
+### Scope boundary（重要，供下一位 AI／開發者遵守）
+1. UR-TODO-074 已 CLOSED／Production Verified，UI 已通過驗收且已上線，**不得再修改** Holding Card／Ring／詳細按鈕／P&L 排版／dark surface tokens，除非使用者明確重新提出新一輪需求（視為新 Todo）。
+2. 未經使用者明確下達新一輪「開始開發」，AI 不得自行挑選下一個 Todo、不得自行建立新功能 Branch。
+3. 本次 governance final closeout 於全新分支 `docs/ur-todo-074-final-closeout`（自新 `origin/main` `0d1cdac...` 開出）進行，未繼續在已合併的 `feat/ur-todo-074-holding-card-compact-layout` 上 commit。
+
+### Governance closeout（本次快照）
+`003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`（本快照）已同步更新記錄 Merge／Deploy／Production Verification 事實；Full／Lite Bundle 將於此快照後重新產生。本次治理 closeout commit 僅修改 `AI_CONTEXT/**` 與 Bundle exports，`src/**`／`tests/**`／`package*.json`／`workers/**`／`.github/**` 均 0 diff。
+
+### 下一位 AI／使用者
+- UR-TODO-074 已正式 CLOSED／Production Verified，無需再回頭處理。
+- 下一步產品工作需等待使用者另外明確指示（不得自行挑選或提升任何 deferred item 優先級）。
+- `stash@{0}`～`stash@{9}` 等既有 stash 全程未被 pop／apply／drop／修改，維持原狀。
+
+## 前一交接快照：UR-TODO-074 iPhone Preview 驗收 PASS — Ready for Review（2026-08-22）
 
 ### 正式決策
 **UR-TODO-074 = IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED。尚未 Merge、尚未 Production Verified。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `eeb2178f0682b687b51a1387e0587bd3d78ba371`，Branch `feat/ur-todo-074-holding-card-compact-layout` 自 `origin/main` `9c979acfc2ae070be49152b57932b1b2d176129f` 開出，本輪治理 closeout 後已由 Draft **轉為 Ready for review**（依使用者本輪明確指示）。**AI 未自行 Merge、未部署 Production、未使用 admin override。**
