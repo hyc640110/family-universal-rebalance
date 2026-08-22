@@ -28,9 +28,13 @@ test('V6.6 compact list consumes trusted Quote fields without calculating from a
   assert.doesNotMatch(todayChange, /avgCost|row\.pnl|quoteDateStatus|isTodayQuote/);
   assert.doesNotMatch(helper, /price\s*-/);
   assert.match(styles, /holding-quote-change/);
-  assert.match(styles, /holding-card-price>strong\.up\{color:#ff5b5b\}/);
-  assert.match(styles, /holding-card-price>strong\.down\{color:#43d17a\}/);
-  assert.match(styles, /holding-card-price>strong\.hold\{color:#9fb3c8\}/);
+  // UR-TODO-073: colors are now design tokens rather than literal hex, but the Taiwan-market
+  // red-up/green-down/muted-hold mapping and the underlying hex values are unchanged — verify both.
+  assert.match(styles, /holding-card-price>strong\.up\{color:var\(--market-up\)\}/);
+  assert.match(styles, /holding-card-price>strong\.down\{color:var\(--market-down\)\}/);
+  assert.match(styles, /holding-card-price>strong\.hold\{color:var\(--text-secondary\)\}/);
+  assert.match(styles, /--market-up:#ff5b5b/);
+  assert.match(styles, /--market-down:#43d17a/);
   assert.match(styles, /grid-template-columns:minmax\(0,1fr\)/);
 });
 

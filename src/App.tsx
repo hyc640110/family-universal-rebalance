@@ -777,11 +777,16 @@ function HoldingCompactCard({ row, totalAssets, isDetailOpen, onOpenDetail, isDr
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
   const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
+  // UR-TODO-073 refinement: presentation-only ring fill derived from the same marketValue/totalAssets
+  // ratio formatCompactHoldingWeight already uses — no new data source, just a numeric twin of that
+  // existing string for the conic-gradient below. Clamped defensively; CSS default (0) covers any
+  // non-finite/zero-total edge case identically to compactWeight's own "—" fallback.
+  const ringPercent = Number.isFinite(row.marketValue) && Number.isFinite(totalAssets) && totalAssets > 0 ? Math.max(0, Math.min(100, row.marketValue / totalAssets * 100)) : 0;
   const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <article ref={registerCardElement} className={`holding holding-compact ${isDragging ? 'is-dragging' : ''}`}>
     <div className="holding-card-summary">
       <div className="holding-card-identity">
-        <p className="holding-mobile-weight" aria-label={`持有比例 ${compactWeight}`}><strong>{compactWeight}</strong></p>
+        <p className="holding-mobile-weight" style={{ '--ring-value': ringPercent } as CSSProperties} aria-label={`持有比例 ${compactWeight}`}><strong>{compactWeight}</strong></p>
         <h3 className="holding-title"><span className="holding-name" title={row.quote.name}>{row.quote.name}</span><span className="holding-symbol">{row.symbol}</span></h3>
       </div>
       <p className="holding-card-detail holding-card-shares"><span>股數</span><strong>{row.shares.toLocaleString('zh-TW')} 股</strong></p>

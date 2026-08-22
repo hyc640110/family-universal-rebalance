@@ -67,7 +67,13 @@ test('UR-TODO-071 the drag handle has touch-action:none and user-select:none sco
   assert.doesNotMatch(styles, /\.holding-compact\{[^}]*touch-action:none/);
 });
 
-test('UR-TODO-071 Mobile: holding-card-identity gives up its full-row span so the handle can share row 1 with it', () => {
+test('UR-TODO-071 Mobile: holding-card-identity shares row 1 with the handle, not a full-row span', () => {
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
-  assert.match(mobileBlock, /\.holding-card-identity\{grid-column:auto\}/);
+  // UR-TODO-073 round 3: the mobile summary reflow switched from `order`+`grid-column:auto` to named
+  // grid-template-areas — identity now occupies the "identity identity handle" row's first two
+  // (of three) columns, with the handle in the third, which is the same "share row 1, not full-row"
+  // placement this test originally locked, just expressed via the new mechanism.
+  assert.match(mobileBlock, /"identity identity handle"/);
+  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity/);
+  assert.match(mobileBlock, /\.holding-order-handle\{grid-area:handle/);
 });

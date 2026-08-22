@@ -13,20 +13,24 @@ test('UR-TODO-002 item 5: 未實現損益 wrapper carries a tone-specific class 
   assert.doesNotMatch(todayChangeCell, /holding-card-today-change holding-card-today-change-/);
 });
 
-test('UR-TODO-002 item 5: base and desktop (>=901px) styles both give 未實現損益 a tinted, accent-bordered container per tone', () => {
-  assert.match(styles, /\.holding-card-unrealized-pnl-up\{background:rgba\(255,91,91,\.\d+\);border-color:#ff5b5b;border-left-width:3px\}/);
-  assert.match(styles, /\.holding-card-unrealized-pnl-down\{background:rgba\(67,209,122,\.\d+\);border-color:#43d17a;border-left-width:3px\}/);
-  assert.match(styles, /\.holding-card-unrealized-pnl-hold\{background:rgba\(159,179,200,\.\d+\);border-color:#9fb3c8;border-left-width:3px\}/);
+test('UR-TODO-002 item 5: base and desktop (>=901px) styles both give 未實現損益 an accent-bordered container per tone', () => {
+  // UR-TODO-073 refinement: the tint/border was lightened further (3px→2px, hold tone dropped its
+  // tint/border entirely since "無漲跌" carries no color meaning worth framing) as part of reducing
+  // the "framed box" look across the card — up/down keep a lighter but still distinct accent.
+  assert.match(styles, /\.holding-card-unrealized-pnl-up\{background:rgba\(255,91,91,\.\d+\);border-color:var\(--market-up\);border-left-width:2px\}/);
+  assert.match(styles, /\.holding-card-unrealized-pnl-down\{background:rgba\(67,209,122,\.\d+\);border-color:var\(--market-down\);border-left-width:2px\}/);
+  assert.match(styles, /\.holding-card-unrealized-pnl-hold\{background:transparent;border-color:transparent;border-left-width:2px\}/);
   const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
-  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-up\{background:rgba\(255,91,91,\.\d+\);border-left-color:#ff5b5b\}/);
-  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-down\{background:rgba\(67,209,122,\.\d+\);border-left-color:#43d17a\}/);
-  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-hold\{background:rgba\(159,179,200,\.\d+\);border-left-color:#9fb3c8\}/);
+  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-up\{background:rgba\(255,91,91,\.\d+\);border-left-color:var\(--market-up\)\}/);
+  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-down\{background:rgba\(67,209,122,\.\d+\);border-left-color:var\(--market-down\)\}/);
+  assert.match(desktopBlock, /\.holding-card-unrealized-pnl-hold\{background:transparent;border-left-color:transparent\}/);
 });
 
 test('UR-TODO-002 item 5: does not touch the shared red/down/hold text color rules that today-change and unrealized-pnl already share', () => {
-  assert.match(styles, /\.holding-card-today-change>strong\.up,\.holding-card-unrealized-pnl>strong\.up\{color:#ff5b5b\}/);
-  assert.match(styles, /\.holding-card-today-change>strong\.down,\.holding-card-unrealized-pnl>strong\.down\{color:#43d17a\}/);
-  assert.match(styles, /\.holding-card-today-change>strong\.hold,\.holding-card-unrealized-pnl>strong\.hold\{color:#9fb3c8\}/);
+  // UR-TODO-073: retokenized (var(--market-up)/(--market-down)/(--text-secondary)) — same colors.
+  assert.match(styles, /\.holding-card-today-change>strong\.up,\.holding-card-unrealized-pnl>strong\.up\{color:var\(--market-up\)\}/);
+  assert.match(styles, /\.holding-card-today-change>strong\.down,\.holding-card-unrealized-pnl>strong\.down\{color:var\(--market-down\)\}/);
+  assert.match(styles, /\.holding-card-today-change>strong\.hold,\.holding-card-unrealized-pnl>strong\.hold\{color:var\(--text-secondary\)\}/);
 });
 
 test('UR-TODO-002 items 1-4 (price/percent same line, amount own line, arrow, shared tone) remain intact from UR-TODO-033 - not redone', () => {

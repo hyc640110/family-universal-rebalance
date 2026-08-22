@@ -1,6 +1,39 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
+## 最新交接快照：UR-TODO-073 Phase 1 Closeout — Design Polish（IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED FOR PHASE-1 CLOSEOUT，2026-08-22）
+
+### 正式決策
+**UR-TODO-073 Phase 1 = IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED FOR PHASE-1 CLOSEOUT。尚未 Merge、尚未 Production Verified。** PR [#408](https://github.com/hyc640110/family-universal-rebalance/pull/408) final head `ce665c38f6cf557943130348819f8dfbebd23d60`，仍為 Draft／已轉 Ready for review（依本次 governance closeout 授權範圍，見下方 Ready Gate 說明），**AI 未自行 Merge、未部署 Production**。
+
+### Scope boundary（重要，供下一位 AI／開發者遵守）
+使用者已明確決定：
+1. UR-TODO-073 Phase 1（dark surface hierarchy／typography 放大／visual hierarchy／共用 Card-Button-Input-Modal polish／全站 dark token 覆蓋／Mobile Bottom Nav／Desktop Sidebar 視覺 polish／台股紅漲綠跌語意）現況**已可接受，結束 073 收尾**。
+2. Holding Card 的 compact 資訊排版仍有改善空間，但**明確 defer 至獨立的 UR-TODO-074**，不再擴大 PR #408 範圍。
+3. **後續若要繼續精修 Holding Card 排版，必須在 UR-TODO-074（新 branch／新 PR）進行，不得再回頭修改 PR #408 的 `src/styles.css`／`App.tsx`。**
+
+### 四輪迭代摘要（完整內容見 `008_TODO_BACKLOG.md` UR-TODO-073 條目）
+1. 建立 design token 系統＋全站套用起點（Assets／Holding Card／Nav／Modal／共用 primitives）。
+2. 修正 mobile media query 殘留 hardcoded hex 的 cascade 回歸；擴大 token 覆蓋至 Home／Analysis／Market／Tools／Settings／Portfolio-Risk（約 850 處 hex→token）；修正 Desktop Sidebar active 色彩不一致。
+3. Root cause 稽核並修正 allocation ring 因軌道/挖空對比不足而近乎不可見的問題（非 cache 問題）；Holding Card mobile 版面初步精簡。
+4. 依使用者提供之參考圖，把「市值」label／金額改為同排（hard acceptance criterion）、未實現損益改為百分比主要／label 次要；390px 卡片高度由 ~306px 降至 219px。
+
+### Governance closeout（本次快照）
+`003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`／`017_Design_System.md` 已同步更新；Full／Lite Bundle 已重新產生。本次治理 closeout commit 僅修改 `AI_CONTEXT/**` 與 Bundle exports，`src/**`／`tests/**`／`package*.json`／`.github/**` 均 0 diff。
+
+### 下一位 AI／使用者
+- **等待使用者明確 Merge 授權**，AI 不得自行 Merge PR #408、不得部署 Production。
+- Merge 後應另行進行 Production 唯讀驗證，並在 `003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md` 補記 UR-TODO-073 正式 CLOSED／Production Verified（本次快照僅為 Phase-1 closeout，非最終 Production 驗證）。
+- UR-TODO-074（Holding Card Compact Information Layout Refinement）已建檔為 OPEN／PLANNED，**尚未開始開發**；未經使用者明確下達「開始開發」，不得自行建立其功能 Branch 或修改 Holding Card 相關程式碼。
+
+## 前一交接快照：UR-TODO-073 Design Polish — Dark Surface / Typography / Visual Hierarchy（OPEN／PLANNED，純治理建檔，2026-08-21）
+
+- 狀態：**UR-TODO-073 已正式建檔為 OPEN／PLANNED，尚未開始開發、未建立功能 Branch、未修改 `src/**`／`tests/**`。** 本輪為純 Review Mode 治理建檔，未 Commit／Push／PR。
+- 觸發依據：使用者實際使用 Production 後提出四項視覺體感問題（底色可更接近黑色、藍色過多導致操作層級不清、主要字體偏小、卡片／按鈕／Modal 不夠一致），並已確認「深色模式・字體放大版」設計方向。符合 Maintenance Mode 既有觸發條件第 2 項（真實使用 UX friction）與第 5 項（使用者明確新產品需求）。已確認無 Backlog 重複範圍，073 為下一個合理編號。
+- Phase 1 正式範圍與 Non-goals、Typography intended range、Visual Hierarchy contract、台股金融色彩契約、UR-TODO-072 interaction contract 保留條款、完整 Acceptance Criteria，皆已正式寫入 `008_TODO_BACKLOG.md` UR-TODO-073 條目，此處不重複列出，請以該條目為準。
+- **重要：本機曾發現一份未經授權的 pre-existing 草稿**——`feat/ur-todo-073-dark-design-polish` branch（本機，尚未 push）working tree 上有一份 `src/styles.css` 的未 commit 修改（design tokens／typography／button hierarchy 相關內容），研判為先前某次被中斷的開發嘗試留下，與本輪明確要求的「Review Mode、`src/**` 0 diff」衝突。**已用 `git stash` 完整保留（未 commit、未丟棄、未套用）**，訊息前綴 `UR-TODO-073 prep:`，可用 `git stash list` 找到。**此草稿不代表 073 已通過 Contract Audit 或已開始正式開發**；下一位 AI／開發者若要正式開始 Phase 1，必須先依標準 Development Mode 流程（唯讀初始化 → 最新 origin/main → 新 Branch → CSS/UI Contract Audit → 實作）重新走一遍，並自行判斷該 stash 內容的技術品質是否可用，不得直接 pop 沿用未經稽核的既有 diff 當作已完成的 Phase 1 產出。
+- 下一位 AI／使用者：**UR-TODO-073 尚未開始開發，不得未經使用者明確下達「開始開發」自行建立功能 Branch 或開始 Phase 1 implementation。** 若使用者要求開始，先依 `008_TODO_BACKLOG.md` UR-TODO-073 的 Development Workflow 預先契約，從當時最新 `origin/main` 重新確認基線，再進行 CSS／UI Contract Audit。
+
+## 前一交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
 
 ### 正式決策
 **UR-TODO-072 = CLOSED／Production Verified。** iPhone Safari 真機人工驗收 PASS；PR #406 已 Merge；Production Deploy 成功並完成唯讀驗證。
