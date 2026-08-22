@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T08:10:20.533075+00:00
+Generated UTC: 2026-08-22T08:25:43.394028+00:00
 
 ## Manifest
 
@@ -11,21 +11,21 @@ Generated UTC: 2026-08-22T08:10:20.533075+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `a53ed3d44deab2f474ac1ea523ea5cc1b5e4c968712c92c2f063fcd34c6cdf7b`
+- `003_CURRENT_STATUS.md` — SHA-256 `5e0db50974a1c1526b2b1ce8627fd6acc8bd96d26b42e571915c1cc61a40b7c4`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `e444472b2a68a49d5e2efe5052f612702d2bfbefad20dd093c28d357b0ba8230`
+- `008_TODO_BACKLOG.md` — SHA-256 `33c22503293411f17ac651f227d7c7e54fba96361c021b0b5b629f3f322681e2`
 - `009_CHANGELOG.md` — SHA-256 `9b846815d73957a621e3119c8f403b348de5406fdd73638308ba41007b5ab7d4`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `925e5ba9440bfe0426dbfac2617f6b783f76abfda1124c04970d399bc18445cc`
+- `012_AI_HANDOVER.md` — SHA-256 `8a5fc440f09b9d68277e8611c55e88a26e274e8d890b7e1e9fe035421a7b98cb`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
 - `016_Product_Decisions.md` — SHA-256 `2737aec539cf8b8a8c570b3e3220cebbe62e2a710d220d180fbcd3a08838c05b`
-- `017_Design_System.md` — SHA-256 `2940e9512237df3bb28ed3caac5eef87c8f4d6d809d8a5a6be7c1ea55a2c5cde`
+- `017_Design_System.md` — SHA-256 `70dec359afb66025473b66303e24acefa452e09ed528fd55e720d4c567c909c8`
 - `018_Dashboard_UX_Guideline.md` — SHA-256 `580a9751811e4c469495f4bfa8e4af3772565654b8ceb9262cbd52121ebde59a`
 - `019_Idea_Pool.md` — SHA-256 `e90c9bd7de9b6dc4be1032b96f1b0803a5876c3fcc3a3678ecd27712f3b0d346`
 - `020_Architecture_Decisions.md` — SHA-256 `8bbfaf4d9b7966e3e7b4104ad8b8d0d160a4e446e6afc9161b849b6e758cf82d`
@@ -654,11 +654,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.47
+# Universal Rebalance Current Status v4.48
 
 最後更新：2026-08-22
 
-**UR-TODO-074 Holding Card Compact Information Layout Refinement：IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED（2026-08-22）。尚未 Merge、尚未 Production Verified。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `eeb2178f0682b687b51a1387e0587bd3d78ba371`，Branch `feat/ur-todo-074-holding-card-compact-layout` 自 `origin/main` `9c979acfc2ae070be49152b57932b1b2d176129f` 開出，經四輪迭代開發並各自完成 CI PASS＋Preview 部署＋iPhone Safari 真機驗收：Mobile Holding Card 由 UR-TODO-073 收尾時的 4 列版面收斂為 3 列（現價／今日漲跌改於 HoldingDetailContent 顯示，未刪除任何資料）；Allocation Ring 外徑由 52px 放大至 320px:64px／390px:70px／430px:76px 並以圓弧弦寬幾何驗證確保各長度百分比不溢出；環厚（punch-hole inset）縮薄、Ring 與內容間距加大至 14–16px；「詳細」按鈕加寬至 min-width 88px；未實現損益百分比與 label 間距收緊為 3px 緊密成組；股票名稱於 Mobile 範圍化放大為 20px（不動全域 `--font-name`，桌面／Detail Sheet 不受影響）；`--bg-page`／`--bg-surface`／`--bg-surface-2`／`--border` 深色 token 加深並大幅降低藍色 hue 偏移，另修正 4 處全站遺留、未 token 化的硬編碼藍灰色結構性 surface。**使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED）。** `financial semantic diff = 0`、`persistence semantic diff = 0`：`src/lib/**`、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet/Modal interaction contract（UR-TODO-072）、Navigation IA 全程 0 diff（UR-TODO-070／071／072／073 既有 regression test 全數持續 pass，並新增本 Todo 專屬 regression test）。台股上漲紅／下跌綠市場色彩契約全程未反轉。CI Verification run [32560902583](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560902583) success；同 head 之 Preview run [32560979984](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560979984) success。**本次結論不宣稱 Production Verified 或 CLOSED——PR #410 尚未 Merge、尚未部署 Production，正式驗證留待 Merge 後另行記錄。詳見 `008_TODO_BACKLOG.md` UR-TODO-074 正式條目。**
+**UR-TODO-074 Holding Card Compact Information Layout Refinement 已正式 CLOSED／Production Verified（2026-08-22）。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `5f6a3a316e431945c424301d57bea8dc99c407c5` 已由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87` 合併（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`；**未使用 admin override**）；`origin/main` 正式基線更新為 `0d1cdacad30df11fa8a8074333a70ff8d877ee87`。merge 後 main push 觸發之 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114) success（`event=push`，headSha 與 merge commit 一致），`build`／`deploy` 兩個 job 皆 success。Production 已唯讀確認：HTTP 200、deployment sha 一致（`environment=github-pages`，`state=success`）、公開 CSS/JS asset 為本次新 build（`index-DraZnquv.css`／`index-C3FwlKw8.js`）、body/page 背景 `rgb(7,8,10)`／card 背景 `rgb(12,15,17)` 為本輪加深後的 dark token、Holding Card Allocation Ring 尺寸與環厚（320px:64px／390px:70px／430px:76px，inset 5–6px）與 Preview 驗收版本一致、Ring 與內容間距 16px、「詳細」按鈕 88×37px、drag handle 存在、Holding Detail Dialog 可正確開啟並顯示新增之現價／今日漲跌欄位、以 Escape 正確關閉（`role="dialog"`／`aria-modal="true"`）、台股上漲紅（`#ff5b5b`）／下跌綠（`#43d17a`）未反轉，320／390／430／1000／1280／1600 六組寬度於 Assets 頁與 Home／Analysis／Market／Tools／Settings 頁皆無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint UI 變更無關的既有 rate-limiting，非本次引入之 regression）外無新增錯誤。Production 該帳號 4 檔既有真實持股（00662／00670L／00865B／00631L）ring 顯示 0% 為使用者帳戶既有真實 0 股狀態（與 UR-TODO-073 Production 驗證時相同，非本次 Sprint 缺陷），驗證全程僅唯讀查詢與一次不涉資料變更的 Dialog 開關互動，未寫入任何 Production 使用者資料。
+
+經四輪迭代開發與 Preview iPhone Safari 真機驗收（詳細逐輪內容見 `008_TODO_BACKLOG.md` UR-TODO-074 正式條目）：Mobile Holding Card 由 UR-TODO-073 收尾時的 4 列版面收斂為 3 列（現價／今日漲跌改於 HoldingDetailContent 顯示，未刪除任何資料）；Allocation Ring 外徑由 52px 放大至 320px:64px／390px:70px／430px:76px 並以圓弧弦寬幾何驗證確保各長度百分比不溢出，環厚縮薄、Ring 與內容間距加大至 14–16px；「詳細」按鈕加寬至 min-width 88px；未實現損益百分比與 label 間距收緊為 3px 緊密成組；股票名稱於 Mobile 範圍化放大為 20px（不動全域 `--font-name`，桌面／Detail Sheet 不受影響）；`--bg-page`／`--bg-surface`／`--bg-surface-2`／`--border` 深色 token 加深並大幅降低藍色 hue 偏移，另修正 4 處全站遺留、未 token 化的硬編碼藍灰色結構性 surface。使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED），並明確授權 Merge。`financial semantic diff = 0`、`persistence semantic diff = 0`：`src/lib/**`、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet/Modal interaction contract（UR-TODO-072）、Navigation IA 全程 0 diff（UR-TODO-070／071／072／073 既有 regression test 全數持續 pass，並新增本 Todo 專屬 regression test）。台股上漲紅／下跌綠市場色彩契約全程未反轉。**UR-TODO-074 正式 CLOSED／Production Verified。**
 
 **UR-TODO-073 Design Polish Phase 1 已正式 CLOSED／Production Verified（2026-08-22）。** PR [#408](https://github.com/hyc640110/family-universal-rebalance/pull/408) final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f` 已由 `hyc640110` 於 `2026-08-22T04:22:58Z` 以一般 2-parent merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e` 合併（parents `ef65d42c7a121a2bfd06b4fae48aee39ce2d7a44`／`1a8c4f7941b23ccab0754385ae69798fa8c6108f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `d348372599c4bdcfba8d5b4d5fb21722366bc33e`。PR CI Verification run [32551227987](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32551227987) success；merge 後 main push 觸發之 Deploy GitHub Pages run [32551553647](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32551553647) success，head 與 merge commit 一致，regression gate／TypeScript／production build／Pages deploy 均 success。Production 已唯讀確認：HTTP 200、deployment sha 一致（`environment=github-pages`，`state=success`）、公開 CSS/JS asset 為本次新 build（`index-CsKMDuqO.css`／`index-tBOP6UcQ.js`）、body/page 背景為新 dark surface（`#0b0f14`）、Mobile Bottom Navigation 與 Desktop Sidebar active/inactive 視覺一致（active `#4a90ff` + soft tint 背景、inactive `#7f8a9a`）、Holding Card 股票名稱（18px）大於 symbol（13px）、市值 label/金額同排、「詳細」為 Secondary（`#151d2a` 背景，非亮藍）、drag handle 存在、Holding Detail Dialog 可正確開啟並以 Escape 關閉（`role="dialog"`／`aria-modal="true"`）、台股上漲紅（`rgb(255,91,91)`）／下跌綠（`rgb(67,209,122)`）未反轉，320／390／430／1000／1280／1600 六組寬度皆無 horizontal overflow，console 全程無錯誤；驗證全程僅唯讀查詢與一次不涉資料變更的 Dialog 開關互動，未寫入任何 Production 使用者資料。
 
@@ -4296,7 +4298,7 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 ### UR-TODO-074 Holding Card Compact Information Layout Refinement
 
 - 優先級：P3（UR-TODO-073 Phase 1 的直接 follow-up，由使用者 iPhone Safari 真機驗收後明確提出）
-- 狀態：**IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED（2026-08-22）。尚未 Merge、尚未 Production Verified。**
+- 狀態：**CLOSED／Production Verified（2026-08-22）。**
 - 提出日期：2026-08-22
 - 背景／觸發依據：使用者於 UR-TODO-073 Phase 1 第四輪 Preview 真機驗收後確認整體 dark design language（背景層次、字體、共用元件、Navigation、全站色彩一致性）已可接受並結束 073 範圍，但認為 Holding Card 的資訊編排（市值／未實現損益／現價／今日漲跌的實際排列方式與卡片高度）仍有精修空間，明確要求另開小型 Sprint 處理，避免持續擴大 PR #408 範圍。
 - 產品目標：在不改變任何既有資料欄位、財務語意與互動契約的前提下，以使用者提供的參考圖為 visual direction，進一步精修 Holding Card 的 compact information layout，讓 iPhone 單一 viewport 可看到更多持股，同時維持字體清晰可讀。
@@ -4327,7 +4329,9 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 3. **第三輪**（iPhone 驗收回報環厚過粗、詳細按鈕過窄、P&L 間距過遠、全站深色底色偏藍灰）：Ring punch-hole inset 縮小（環變細，外徑不變）；「詳細」按鈕加寬至 min-width 88px／高度 37px；未實現損益百分比與 label 間距由 `justify-content:space-between`（推至整個 pnl 區域頂/底端）改為 `justify-content:center;gap:3px`（緊密成組）；`--bg-page`／`--bg-surface`／`--bg-surface-2` 深色 token 加深並降低藍色 hue 偏移。
 4. **第四輪**（iPhone 驗收回報 Ring 與右側內容間距過近、股票名稱可再放大、深色底色仍只在 Holding Card 區域明顯生效）：Ring 與內容間距由 8px 加大為 14–16px；股票名稱於 Mobile 範圍化放大為 20px（透過 `.holding-card-identity .holding-name` 選擇器，不動全域 `--font-name` token，桌面／Detail Sheet header 不受影響）；root-cause 稽核找出全站仍有 4 處 UR-TODO-073 之前遺留、未 token 化的硬編碼藍灰色結構性 surface（`.order-section.order-muted`、`.rebalance-group .group-main`、`.runtime-attribution-derived-evidence-item`、`.household-liquidity-diagnostics-toggle`）並改為既有 token；`--bg-page`／`--bg-surface`／`--bg-surface-2`／`--border` 進一步加深並將藍色 hue bias 由約 10–15 降至 3 以內，同時維持 page→surface→surface-2 三層可辨識層次。
 
-**使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED）。** `financial semantic diff = 0`、`persistence semantic diff = 0`：`src/lib/**`、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet/Modal interaction contract（UR-TODO-072）、Navigation IA 全程 0 diff（UR-TODO-070／071／072／073 既有 regression test 全數持續 pass，並新增本 Todo 專屬 regression test 鎖定 ring 尺寸/inset/gap、詳細按鈕寬度、P&L 間距、dark token 層次與硬編碼洩漏修正）。台股「上漲＝紅、下跌＝綠」市場色彩契約全程未反轉。CI Verification run [32560902583](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560902583) success；同 head 之 Preview workflow_dispatch run [32560979984](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32560979984) success。**本次結論不宣稱 Production Verified 或 CLOSED——PR #410 尚未 Merge、尚未部署 Production，正式驗證留待 Merge 後另行記錄。**
+**使用者於 2026-08-22 完成第四輪 Preview iPhone Safari 真機驗收，結論正式為 PASS（USER ACCEPTED），並明確授權 Merge。** `financial semantic diff = 0`、`persistence semantic diff = 0`：`src/lib/**`、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet/Modal interaction contract（UR-TODO-072）、Navigation IA 全程 0 diff（UR-TODO-070／071／072／073 既有 regression test 全數持續 pass，並新增本 Todo 專屬 regression test 鎖定 ring 尺寸/inset/gap、詳細按鈕寬度、P&L 間距、dark token 層次與硬編碼洩漏修正）。台股「上漲＝紅、下跌＝綠」市場色彩契約全程未反轉。PR CI Verification run [32561604196](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561604196) success。
+
+**Production Merge／Deploy／Verification Closeout（2026-08-22）**：PR #410（final head `5f6a3a316e431945c424301d57bea8dc99c407c5`）由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87`（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`）合併，**未使用 admin override，非 squash／非 rebase**。merge 後 push-to-main 觸發之 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114)（`event=push`，headSha 與 merge commit 一致）成功完成，`build`／`deploy` 兩個 job 皆 success。Production 唯讀驗證（不涉任何資料寫入）全數 PASS：HTTP 200、GitHub Pages deployment `sha`／`environment=github-pages`／`state=success` 一致、實際 asset hash（`index-DraZnquv.css`／`index-C3FwlKw8.js`）確認為本次新 build、Holding Card Ring 尺寸/環厚/間距、「詳細」按鈕（88×37px）、drag handle、Holding Detail Dialog 開關（含新增之現價／今日漲跌欄位）、dark surface 深色 token（body `rgb(7,8,10)`／card `rgb(12,15,17)`）、台股上漲紅／下跌綠語意，於 320／390／430／1000／1280／1600 六組寬度（Assets／Home／Analysis／Market／Tools／Settings 頁）皆確認無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint UI 變更無關）外無新增錯誤。Production 上該帳號 4 檔既有真實持股（00662／00670L／00865B／00631L）ring 顯示 0% 為使用者帳戶既有真實 0 股狀態（與 UR-TODO-073 Production 驗證時相同，非本次 Sprint 缺陷）。**UR-TODO-074 正式 CLOSED／Production Verified。**
 
 ### UR-TODO-072 Holding Card Detail Modal/Sheet
 
@@ -5849,7 +5853,30 @@ interface ServiceResult<T> {
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-074 iPhone Preview 驗收 PASS — Ready for Review（2026-08-22）
+## 最新交接快照：UR-TODO-074 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
+
+### 正式決策
+**UR-TODO-074 = CLOSED／Production Verified。** 使用者於 iPhone Preview 驗收 PASS 快照之後明確授權 Merge：PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410)（final head `5f6a3a316e431945c424301d57bea8dc99c407c5`）已由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87`（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `0d1cdacad30df11fa8a8074333a70ff8d877ee87`。
+
+### Production Deploy 與驗證
+- push-to-main 觸發之正式 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114)：`event=push`，`headSha` 與 merge commit 一致，`conclusion=success`。
+- 唯讀 Production 驗證（全程未寫入任何 Production 使用者資料）全數 PASS：HTTP 200；deployment `sha`／`environment=github-pages`／`state=success`；實際 asset hash `index-DraZnquv.css`／`index-C3FwlKw8.js` 確認為本次新 build；Holding Card Allocation Ring 尺寸/環厚/與內容間距、「詳細」按鈕（88×37px）、drag handle、Holding Detail Dialog 開關（含新增現價／今日漲跌欄位）、dark surface deep token（body `rgb(7,8,10)`／card `rgb(12,15,17)`）、台股上漲紅／下跌綠未反轉，320／390／430／1000／1280／1600 六組寬度（Assets／Home／Analysis／Market／Tools／Settings）皆無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint 無關）外無新增錯誤。
+- Production 帳號既有 4 檔真實持股（00662／00670L／00865B／00631L）ring 顯示 0%，與 UR-TODO-073 Production 驗證時相同，為使用者帳戶既有真實 0 股狀態（非本次 Sprint 缺陷）。
+
+### Scope boundary（重要，供下一位 AI／開發者遵守）
+1. UR-TODO-074 已 CLOSED／Production Verified，UI 已通過驗收且已上線，**不得再修改** Holding Card／Ring／詳細按鈕／P&L 排版／dark surface tokens，除非使用者明確重新提出新一輪需求（視為新 Todo）。
+2. 未經使用者明確下達新一輪「開始開發」，AI 不得自行挑選下一個 Todo、不得自行建立新功能 Branch。
+3. 本次 governance final closeout 於全新分支 `docs/ur-todo-074-final-closeout`（自新 `origin/main` `0d1cdac...` 開出）進行，未繼續在已合併的 `feat/ur-todo-074-holding-card-compact-layout` 上 commit。
+
+### Governance closeout（本次快照）
+`003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`（本快照）已同步更新記錄 Merge／Deploy／Production Verification 事實；Full／Lite Bundle 將於此快照後重新產生。本次治理 closeout commit 僅修改 `AI_CONTEXT/**` 與 Bundle exports，`src/**`／`tests/**`／`package*.json`／`workers/**`／`.github/**` 均 0 diff。
+
+### 下一位 AI／使用者
+- UR-TODO-074 已正式 CLOSED／Production Verified，無需再回頭處理。
+- 下一步產品工作需等待使用者另外明確指示（不得自行挑選或提升任何 deferred item 優先級）。
+- `stash@{0}`～`stash@{9}` 等既有 stash 全程未被 pop／apply／drop／修改，維持原狀。
+
+## 前一交接快照：UR-TODO-074 iPhone Preview 驗收 PASS — Ready for Review（2026-08-22）
 
 ### 正式決策
 **UR-TODO-074 = IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED。尚未 Merge、尚未 Production Verified。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `eeb2178f0682b687b51a1387e0587bd3d78ba371`，Branch `feat/ur-todo-074-holding-card-compact-layout` 自 `origin/main` `9c979acfc2ae070be49152b57932b1b2d176129f` 開出，本輪治理 closeout 後已由 Draft **轉為 Ready for review**（依使用者本輪明確指示）。**AI 未自行 Merge、未部署 Production、未使用 admin override。**
@@ -9621,13 +9648,13 @@ Review → Architecture Review → Product Review → Development → Verificati
 
 # Universal Rebalance Design System
 
-版本：v1.0.1（UR-TODO-073 Production Verified Closeout）
+版本：v1.1.0（UR-TODO-074 Production Verified Closeout）
 
 最後更新：2026-08-22
 
-**狀態：Section 2.2–2.6、2.10–2.12 已依 UR-TODO-073 Phase 1（PR #408，final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`，merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`，**已 Merge／已 Production Verified，2026-08-22**）四輪 Preview 人工驗收通過並經 Production 唯讀驗證確認的實際落地 CSS 正式記錄。Section 2.1、2.7、2.8、2.9 仍待補完（非本 Sprint 範圍）。**
+**狀態：Section 2.2–2.6、2.10–2.13 已依 UR-TODO-073（PR #408）／UR-TODO-074（PR #410，merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87`，**已 Merge／已 Production Verified，2026-08-22**）Preview 人工驗收通過並經 Production 唯讀驗證確認的實際落地 CSS 正式記錄。Section 2.1、2.7、2.8、2.9 仍待補完（非本 Sprint 範圍）。**
 
-**重要邊界聲明**：本文件記錄的是**已穩定、已通過 Preview 真機驗收**的全站共用 token／primitive 規則（背景層次、文字階層、Primary/Secondary 色彩、共用 Card/Button/Input 慣例、Navigation、Modal/Sheet）。**Holding Card 內部的具體 grid/row 排列方式、目前的卡片高度（約 219px @390px）、市值/未實現損益/現價/今日漲跌的實際欄位配置，明確不視為本文件的正式規範**——這些項目已由使用者於 UR-TODO-073 Phase 1 收尾時明確 defer 至獨立的 **UR-TODO-074（Holding Card Compact Information Layout Refinement）**，仍在持續精修中，記錄於此會造成規範與實作脫節。
+**重要邊界聲明**：本文件記錄的是**已穩定、已通過 Preview 真機驗收與 Production 驗證**的全站共用 token／primitive 規則（背景層次、文字階層、Primary/Secondary 色彩、共用 Card/Button/Input 慣例、Navigation、Modal/Sheet），以及 Section 2.13 記錄的 Holding Card Mobile Compact Layout 正式契約（UR-TODO-074 Production Verified）。**Holding Card 桌面（`≥901px`）9-column row 版面與 Holding Detail Dialog 內部排版不在本文件正式規範範圍**，維持既有 UR-TODO-071／072 條目為準。
 
 ## 0. 文件定位
 
@@ -9657,10 +9684,11 @@ Review → Architecture Review → Product Review → Development → Verificati
 固定深色介面（不提供 Light Mode／Theme toggle，為刻意產品決策，見 `008_TODO_BACKLOG.md` UR-TODO-073 條目）。CSS custom properties 定義於 `src/styles.css` `:root`：
 
 **背景層次（page → surface → surface-2，禁止 OLED 純黑）**
-- `--bg-page: #0b0f14`（全站背景，接近黑但非 `#000000`）
-- `--bg-surface: #111827`（Card／Section／Nav 主要表面，比 page 略亮）
-- `--bg-surface-2: #151d2a`（次層表面，如 input 背景、Modal/Sheet 主體、次要資訊區塊——比 surface 再亮一階，維持三層可辨識層次）
-- `--bg-surface-inset: #0c141d`（input 內凹背景）
+- `--bg-page: #07080a`（全站背景，接近黑但非 `#000000`；UR-TODO-074 Production Verified 收斂值，較 UR-TODO-073 初版更暗、更中性，降低藍色 hue 偏移）
+- `--bg-surface: #0c0f11`（Card／Section／Nav 主要表面，比 page 略亮）
+- `--bg-surface-2: #131619`（次層表面，如 input 背景、Modal/Sheet 主體、次要資訊區塊——比 surface 再亮一階，維持三層可辨識層次）
+- `--bg-surface-inset: #050607`（input 內凹背景）
+- 三層 token 的藍色 channel 刻意壓低至僅比紅／綠 channel 高 2–3（而非 UR-TODO-073 初版的 10–15），避免多張巢狀 surface-2-on-surface 卡片並排時視覺上讀成「藍灰」而非「中性深灰／近黑」。
 
 **文字階層**
 - `--text-primary: #f1f5f9`（主要資訊：持股名稱、主要金額）
@@ -9673,7 +9701,7 @@ Review → Architecture Review → Product Review → Development → Verificati
 - `--primary-soft: rgba(45,123,255,.14)` / `--primary-soft-strong: rgba(45,123,255,.24)`（Active Navigation 背景 soft tint，禁止用實色 `--primary` 當作大面積 active 背景）
 
 **邊框與陰影**
-- `--border: #2b3748`（一般邊框，如 input、次要按鈕邊框）
+- `--border: #23272b`（一般邊框，如 input、次要按鈕邊框；UR-TODO-074 隨背景加深同步微調，維持相對層次不變）
 - `--border-subtle: rgba(148,163,184,.10)`（Card 邊框，刻意調得非常淡——層次主要靠 surface 對比與陰影，而非高對比藍框）
 - `--shadow-card: 0 2px 8px rgba(0,0,0,.4)`（Card 淡陰影，取代重邊框建立 elevation）
 - `--shadow-modal: 0 24px 64px rgba(0,0,0,.6)`（Modal/Sheet 較強陰影）
@@ -9698,7 +9726,7 @@ Mobile-first，桌機不得為資訊密度犧牲 Mobile 可讀性。已落地 to
 - `--font-pnl: 18px`（損益百分比，字重 700）
 - `--font-button: 15px`（按鈕文字，字重 700）
 
-視覺主次原則：**主要資訊（名稱／金額／百分比）> 次要資訊（symbol／label／輔助說明）**。此原則已於 Holding Card 落地（名稱 > symbol），具體欄位排列方式見 UR-TODO-074（尚未定案，不寫入本文件）。
+視覺主次原則：**主要資訊（名稱／金額／百分比）> 次要資訊（symbol／label／輔助說明）**。此原則已於 Holding Card 落地（名稱 > symbol），具體欄位排列方式見下方 2.13 節（UR-TODO-074 Production Verified 後正式記錄）。
 
 行動裝置最低字級（`≤768px`）：`h1` 1.7rem、`h2` 1.1rem、`h3` 1.05rem、`button` .95rem——不得為求版面緊湊而低於此地板值。
 
@@ -9760,6 +9788,17 @@ Navigation IA（項目、順序、路由）不在本文件範圍，見既有 `NA
 - 主體表面使用 `--bg-surface-2`（比 page／一般 Card 表面更亮一階，明確區隔出 elevation），陰影 `--shadow-modal`。
 - Interaction contract（scroll 還原、focus 管理、`role="dialog"`、safe-area、background scroll lock 等）屬 UR-TODO-072 正式契約，見 `008_TODO_BACKLOG.md`，本文件不重複定義、亦不得被本文件的視覺規則覆蓋。
 
+### 2.13 Holding Card（Mobile Compact Layout，UR-TODO-074 Production Verified）
+
+僅記錄已經 Production Verified 且穩定的排版契約；一次性 workaround（如特定像素微調的推導過程）不在此重複，詳見 `008_TODO_BACKLOG.md` UR-TODO-074 條目的逐輪記錄。
+
+- **版面結構**：Mobile（`≤768px`）為 3 列 grid：第 1 列「股票名稱＋Symbol」與 drag handle；第 2 列「市值」label＋金額（同排）；第 3 列 compact「詳細」按鈕，與未實現損益 label 同排。未實現損益的百分比與 label 共用一個 grid-area（`pnl`），跨第 2／3 列顯示，百分比為主要視覺、label 為次要視覺（column-reverse，緊密成組，間距 3px）。
+- **Allocation Ring**：置於卡片左側，因巢狀於 identity 容器內，以 `position:absolute` 達成跨列視覺效果（不變動 grid 容器的直接子元素數量，保護 UR-TODO-071 桌面 9-column row 的既有依賴）。外徑依斷點縮放：320px 64px／390px 70px／421–768px 76px；punch-hole 環厚（inset）5–6px，百分比文字 14–16px，皆已透過圓弧弦寬（chord-width，非僅外接矩形寬度）幾何驗證確保 1–2 位小數的百分比字串不溢出。Ring 與右側內容欄之間維持 14–16px 固定間距。
+- **股票名稱**：Mobile 範圍內透過 `.holding-card-identity .holding-name` 選擇器放大為 20px（僅此情境，不變動全域 `--font-name` token，桌面 9-column row 與 Holding Detail Dialog header 仍使用未變動的 `--font-name`）。
+- **「詳細」按鈕**：Secondary Action，`min-width: 88px`、`min-height: 37px`，非全寬。
+- **現價／今日漲跌**：Mobile 摘要卡不顯示（無其他欄位可承接時，優先移至 Holding Detail Sheet 顯示，而非直接刪除資料點）。
+- 以上排版契約僅適用於 Mobile Compact Card；桌面（`≥901px`）9-column row 版面（見既有 UR-TODO-071 條目）與 Holding Detail Dialog 內部排版不在此規範範圍。
+
 ---
 
 ## 3. 版本歷史
@@ -9767,6 +9806,7 @@ Navigation IA（項目、順序、路由）不在本文件範圍，見既有 `NA
 - v0.1（2026-07-25）：建立骨架，落地 V7.0A Foundation & Product Governance 的一部分；章節內容待 V7.0E 啟動後補完。
 - v1.0（2026-08-22）：依 UR-TODO-073 Phase 1（PR #408，final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`）四輪 Preview 人工驗收通過的實際落地 CSS，正式補完 Section 2.2 色彩系統、2.3 文字排印、2.4 間距系統、2.5 卡片、2.6 按鈕、2.10 響應式斷點、2.11 導覽、2.12 Modal／Sheet。Holding Card 內部具體排版明確排除於本次記錄範圍，defer 至 UR-TODO-074。Section 2.1／2.7／2.8／2.9 仍待補完。
 - v1.0.1（2026-08-22）：PR #408 已 Merge（merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`）並經 Production 唯讀驗證確認，UR-TODO-073 正式 CLOSED／Production Verified；本節內容未變動，僅更新頂部狀態旗標與版本歷史。
+- v1.1.0（2026-08-22）：UR-TODO-074（PR #410，merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87`）已 Merge 並經 Production 唯讀驗證確認，正式 CLOSED／Production Verified。更新 Section 2.2 背景層次／邊框 token 為 UR-TODO-074 收斂後的加深、降藍值；新增 Section 2.13 記錄 Holding Card Mobile Compact Layout 的正式排版契約（Ring 位置與尺寸、股票名稱 Mobile-only 放大、詳細按鈕尺寸、未實現損益分組方式）。
 
 <!-- END FILE: 017_Design_System.md -->
 
