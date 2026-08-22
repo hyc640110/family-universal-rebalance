@@ -512,8 +512,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
      child count, which the ≥901px desktop 9-column row (UR-TODO-071 contract, implicit source-order
      placement) depends on being stable. Because the ring is absolutely positioned it does not
      inflate identity's own (row 1) track height, so it visually overlaps down into the value/detail
-     rows below it (its 52px height vs. row 1's ~22px text line) without pushing them down — this is
-     the intended "ring beside the compact text block" look. value/detail get a matching
+     rows below it (its ≥62px height vs. row 1's ~22px text line — see the narrower-breakpoint ring
+     overrides below for the exact size at each width) without pushing them down — this is the
+     intended "ring beside the compact text block" look. value/detail get a matching
      padding-left/margin-left so their text starts where the name text starts (not under the ring).
      現價／今日漲跌 have no other display surface in the app, so — unlike 股數／均價, which already had
      one in HoldingDetailContent — a compact quote line is added there (see App.tsx) before they are
@@ -528,11 +529,11 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
     column-gap:10px;
     row-gap:3px;
   }
-  .holding-card-identity{grid-area:identity;position:relative;padding-left:60px;flex-wrap:wrap}
+  .holding-card-identity{grid-area:identity;position:relative;padding-left:84px;flex-wrap:wrap}
   .holding-card-shares,.holding-card-average-cost,.holding-card-price,.holding-card-today-change{display:none}
   /* 市值 label+amount stay on the SAME row/line (hard acceptance criterion, unchanged since UR-TODO-073
      round 4) — reusing the existing span+strong DOM, laid out as a row not a column. */
-  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;padding-left:60px}
+  .holding-card-market-value{grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;padding-left:84px}
   .holding-card-market-value>span{flex:0 0 auto;margin-bottom:0}
   .holding-card-market-value>strong{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* P/L stays the "percentage primary, label secondary" block (same DOM, column-reverse) as UR-TODO-073
@@ -545,13 +546,22 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-card-detail>strong{font-size:14px}
   /* 詳細 becomes a compact Secondary action (not a full-width bar): auto width, left-aligned under
      the name/value column, matching the reference's small pill button. */
-  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;margin-left:60px;min-height:30px;padding:5px 12px}
+  .holding-card-summary>.holding-edit-button{grid-area:detail;justify-self:start;align-self:center;width:auto;margin-left:84px;min-height:30px;padding:5px 12px}
   /* UR-TODO-071 Decision 2 (unchanged contract): single drag handle, own top-right placement. Named
      grid-area (not `order`) now drives visual placement, so the handle simply gets its own area. */
   .holding-order-handle{grid-area:handle;width:30px;height:30px;min-width:30px;align-self:start;justify-self:end}
-  /* Ring: absolutely positioned per the note above; 52px keeps it a real focal element (per the
-     UR-TODO-073 round-3 fix for track/hole contrast) without competing with the holding name. */
-  .holding-mobile-weight{position:absolute;top:0;left:0;width:52px;height:52px}
+  /* UR-TODO-074 refinement: ring enlarged from 52px to 76px (still absolutely positioned, per the
+     note above — this bucket covers 421-768px, e.g. 430px) so it reads as a real focal element on
+     iPhone rather than a small badge. inset/font-size were picked (not just scaled linearly from the
+     original 6px/56px ring) by checking that the widest realistic single-holding percentage strings
+     (67.4%/10.7%/48.8%, i.e. up to 5 characters) fit inside the CIRCULAR punch-hole — a rectangular
+     text box can be narrower than the hole's diameter and still poke past the curved edge near its
+     corners, so the fit was verified via chord-width at the text's actual height, not a naive
+     width-vs-diameter comparison; each bucket keeps a few px of margin. Narrower buckets below
+     override all three further (≤420px, ≤360px). */
+  .holding-mobile-weight{position:absolute;top:0;left:0;width:76px;height:76px}
+  .holding-mobile-weight::before{inset:9px}
+  .holding-mobile-weight strong{font-size:16px}
   .holding-mobile-summary{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;min-width:0}
   .holding-mobile-core{min-width:0}
   .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
@@ -627,10 +637,33 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holding-mobile-quote .holding-quote-change{font-size:13px}
   .holding-mobile-value>strong{max-width:78px;font-size:17px}
   /* UR-TODO-074: .holding-card-detail>strong font-size only here (not the shorthand `padding:8px`
-     used pre-UR-TODO-074 — that would have reset the 60px padding-left/margin-left the ≤768px block
+     used pre-UR-TODO-074 — that would have reset the padding-left/margin-left the ≤768px block
      now relies on to align 市值/詳細 with the name text past the absolutely-positioned ring). */
   .holding-card-detail>strong{font-size:13px}
   .holding-editor-summary{grid-template-columns:1fr;gap:5px}
+  /* UR-TODO-074 refinement: this bucket covers ~361-420px (e.g. 390px iPhone width) — ring scaled
+     down slightly from the ≤768px 76px default, with matching offsets so 市值/詳細 still align under
+     the name text; inset/font-size verified via the same chord-width fit check as the default
+     bucket above (67.4%/10.7%/48.8% all fit the circular punch-hole with a few px of margin). */
+  .holding-card-identity{padding-left:78px}
+  .holding-card-market-value{padding-left:78px}
+  .holding-card-summary>.holding-edit-button{margin-left:78px}
+  .holding-mobile-weight{width:70px;height:70px}
+  .holding-mobile-weight::before{inset:8px}
+  .holding-mobile-weight strong{font-size:15px}
+}
+
+@media (max-width: 360px) {
+  /* UR-TODO-074 refinement: narrowest phones (e.g. 320px) get the smallest ring in this scale — still
+     clearly larger than the pre-refinement 52px, with offsets/inset/font verified via the same
+     chord-width fit check so 67.4%-length percentages keep fitting inside the circular punch-hole
+     (not just its square bounding box) without overflowing the ring. */
+  .holding-card-identity{padding-left:72px}
+  .holding-card-market-value{padding-left:72px}
+  .holding-card-summary>.holding-edit-button{margin-left:72px}
+  .holding-mobile-weight{width:64px;height:64px}
+  .holding-mobile-weight::before{inset:7px}
+  .holding-mobile-weight strong{font-size:14px}
 }
 
 /* V3.1 application navigation */

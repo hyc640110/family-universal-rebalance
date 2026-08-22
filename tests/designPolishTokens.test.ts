@@ -267,8 +267,42 @@ test('UR-TODO-074: 詳細 is a compact Secondary action (auto width, not a full-
   const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
   assert.match(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:start;align-self:center;width:auto/);
   assert.doesNotMatch(mobileBlock, /\.holding-card-summary>\.holding-edit-button\{grid-area:detail;justify-self:stretch/);
-  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:60px/);
-  assert.match(mobileBlock, /\.holding-mobile-weight\{position:absolute;top:0;left:0;width:52px;height:52px\}/);
+  assert.match(mobileBlock, /\.holding-card-identity\{grid-area:identity;position:relative;padding-left:84px/);
+  assert.match(mobileBlock, /\.holding-mobile-weight\{position:absolute;top:0;left:0;width:76px;height:76px\}/);
   const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
   assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\)/, 'the ≥901px desktop 9-column row template must be untouched by this Sprint');
+});
+
+test('UR-TODO-074 ring-size refinement: allocation ring is enlarged (not left at the original 52px badge size) at every mobile bucket, and every bucket\'s punch-hole is large enough that realistic single-holding percentage strings (up to 5 characters, e.g. 67.4%/10.7%/48.8%) fit inside the CIRCLE (verified via chord-width at the text\'s actual rendered height, not just width-vs-diameter — a rectangle narrower than a circle\'s diameter can still poke past its curved edge near the corners), with matching text-alignment offsets so 市值/詳細 keep lining up under the name text', () => {
+  const mobileBlock = styles.slice(styles.indexOf('@media (max-width: 768px)'), styles.indexOf('@media (max-width: 420px)'));
+  const narrowBlock = styles.slice(styles.indexOf('@media (max-width: 420px)'), styles.indexOf('@media (max-width: 360px)'));
+  const narrowestBlock = styles.slice(styles.indexOf('@media (max-width: 360px)'), styles.indexOf('/* V3.1 application navigation */'));
+  const buckets = [
+    { label: '421-768px (e.g. 430px)', block: mobileBlock, ring: 76, inset: 9, font: 16, offset: 84, offsetSelectors: true },
+    { label: '≤420px (e.g. 390px)', block: narrowBlock, ring: 70, inset: 8, font: 15, offset: 78, offsetSelectors: true },
+    { label: '≤360px (e.g. 320px)', block: narrowestBlock, ring: 64, inset: 7, font: 14, offset: 72, offsetSelectors: true },
+  ];
+  // A monospace-ish digit/percent glyph is comfortably covered by treating each character as
+  // ~0.62em wide (verified against real rendered widths during this Sprint's Preview testing, which
+  // measured 42.8-49px for 5-character strings at 14-16px font — this constant stays conservatively
+  // above that per-character average so the regression guard doesn't rely on live font metrics).
+  const CHAR_WIDTH_EM = 0.62;
+  const LINE_HEIGHT = 1.1;
+  for (const { label, block, ring, inset, font, offset } of buckets) {
+    assert.match(block, new RegExp(`\\.holding-mobile-weight\\{(position:absolute;top:0;left:0;)?width:${ring}px;height:${ring}px\\}`), `${label}: ring size`);
+    assert.match(block, new RegExp(`\\.holding-mobile-weight::before\\{inset:${inset}px\\}`), `${label}: punch-hole inset`);
+    assert.match(block, new RegExp(`\\.holding-mobile-weight strong\\{font-size:${font}px\\}`), `${label}: percentage font-size`);
+    assert.match(block, new RegExp(`\\.holding-card-identity\\{(grid-area:identity;position:relative;)?padding-left:${offset}px`), `${label}: identity offset must match ring+gap`);
+    assert.match(block, new RegExp(`\\.holding-card-market-value\\{(grid-area:value;display:flex;align-items:baseline;gap:6px;min-width:0;)?padding-left:${offset}px`), `${label}: market-value offset must match ring+gap`);
+    assert.match(block, new RegExp(`margin-left:${offset}px`), `${label}: 詳細 button offset must match ring+gap`);
+    assert.ok(ring > 52, `${label}: ring size ${ring}px must be larger than the pre-refinement 52px badge`);
+    const holeDiameter = ring - 2 * inset;
+    const textHeight = font * LINE_HEIGHT;
+    const textWidth = '67.4%'.length * font * CHAR_WIDTH_EM;
+    const chordWidth = 2 * Math.sqrt(Math.max(0, (holeDiameter / 2) ** 2 - (textHeight / 2) ** 2));
+    assert.ok(textWidth <= chordWidth, `${label}: a 5-character percentage (~${textWidth.toFixed(1)}px) must fit the ${holeDiameter}px punch-hole's chord width at this text height (${chordWidth.toFixed(1)}px), not just its diameter`);
+  }
+  // the underlying conic-gradient/ring-value mechanism (real allocation % fill) is untouched by any
+  // of the size overrides above — only width/height/inset/font-size/offsets change per breakpoint.
+  assert.match(styles, /background:conic-gradient\(var\(--primary\) calc\(var\(--ring-value,0\)\*1%\),var\(--border\) 0\)/);
 });
