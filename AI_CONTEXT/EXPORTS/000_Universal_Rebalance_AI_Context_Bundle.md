@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T08:25:43.394028+00:00
+Generated UTC: 2026-08-22T09:03:55.399288+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-22T08:25:43.394028+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `5e0db50974a1c1526b2b1ce8627fd6acc8bd96d26b42e571915c1cc61a40b7c4`
+- `003_CURRENT_STATUS.md` — SHA-256 `fa020fcd426ce9f1343396c0510e52b1696495e8d32ab225595f7965fed60758`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `33c22503293411f17ac651f227d7c7e54fba96361c021b0b5b629f3f322681e2`
+- `008_TODO_BACKLOG.md` — SHA-256 `28a139d100fcfc88b8bc5824da714ec119b9c90d12401b0a15051a80b118f327`
 - `009_CHANGELOG.md` — SHA-256 `9b846815d73957a621e3119c8f403b348de5406fdd73638308ba41007b5ab7d4`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `8a5fc440f09b9d68277e8611c55e88a26e274e8d890b7e1e9fe035421a7b98cb`
+- `012_AI_HANDOVER.md` — SHA-256 `c4e8875319386f09a54444117198240cc8f613ce066c5bb90dea9a2269eab9b5`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -657,6 +657,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v4.48
 
 最後更新：2026-08-22
+
+**UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（2026-08-22，Development Mode）。** 使用者明確提出新的持股詳細頁 UX 需求並拍板方案 B：詳細頁先呈現持股摘要、基本／損益／配置資訊，投資設定預設收合，資產管理危險操作獨立置底。唯讀 Contract Audit 確認既有 `HoldingDetailContent` 已直接重用 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`，本 Sprint 只重整 presentation，不建立第二套 update path 或 editable snapshot。已由最新 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d` 建立獨立 branch `feat/ur-todo-075-holding-detail-ia`；TDD 新增 5 項資訊架構 regression test 並掛入 `test:ci`。`test:ur-todo-075` 5/5、`test:ur-todo-072` 19/19、完整 `test:ci`、TypeScript、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 均通過；本機 390px／1280px Preview 無 horizontal overflow，投資設定預設收合且可展開。**尚待建立 Draft PR 與使用者 Preview 驗收；尚未 Merge，未部署 Production。** `src/lib/**`、schema、persistence、localStorage／JSON Backup、Ledger／attribution、Rebalance／AI／CLEC／Household Liquidity 均為 0 diff。
 
 **UR-TODO-074 Holding Card Compact Information Layout Refinement 已正式 CLOSED／Production Verified（2026-08-22）。** PR [#410](https://github.com/hyc640110/family-universal-rebalance/pull/410) final head `5f6a3a316e431945c424301d57bea8dc99c407c5` 已由 `hyc640110` 於 `2026-08-22T08:16:44Z` 以一般 2-parent merge commit `0d1cdacad30df11fa8a8074333a70ff8d877ee87` 合併（parents `9c979acfc2ae070be49152b57932b1b2d176129f`／`5f6a3a316e431945c424301d57bea8dc99c407c5`；**未使用 admin override**）；`origin/main` 正式基線更新為 `0d1cdacad30df11fa8a8074333a70ff8d877ee87`。merge 後 main push 觸發之 Deploy GitHub Pages run [32561862114](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32561862114) success（`event=push`，headSha 與 merge commit 一致），`build`／`deploy` 兩個 job 皆 success。Production 已唯讀確認：HTTP 200、deployment sha 一致（`environment=github-pages`，`state=success`）、公開 CSS/JS asset 為本次新 build（`index-DraZnquv.css`／`index-C3FwlKw8.js`）、body/page 背景 `rgb(7,8,10)`／card 背景 `rgb(12,15,17)` 為本輪加深後的 dark token、Holding Card Allocation Ring 尺寸與環厚（320px:64px／390px:70px／430px:76px，inset 5–6px）與 Preview 驗收版本一致、Ring 與內容間距 16px、「詳細」按鈕 88×37px、drag handle 存在、Holding Detail Dialog 可正確開啟並顯示新增之現價／今日漲跌欄位、以 Escape 正確關閉（`role="dialog"`／`aria-modal="true"`）、台股上漲紅（`#ff5b5b`）／下跌綠（`#43d17a`）未反轉，320／390／430／1000／1280／1600 六組寬度於 Assets 頁與 Home／Analysis／Market／Tools／Settings 頁皆無 horizontal overflow，console 除既有外部報價 API 429（與本 Sprint UI 變更無關的既有 rate-limiting，非本次引入之 regression）外無新增錯誤。Production 該帳號 4 檔既有真實持股（00662／00670L／00865B／00631L）ring 顯示 0% 為使用者帳戶既有真實 0 股狀態（與 UR-TODO-073 Production 驗證時相同，非本次 Sprint 缺陷），驗證全程僅唯讀查詢與一次不涉資料變更的 Dialog 開關互動，未寫入任何 Production 使用者資料。
 
@@ -3142,7 +3144,20 @@ Hotfix 仍需：
 
 # Universal Rebalance Todo Backlog v2.2
 
-最後更新：2026-08-21
+最後更新：2026-08-22
+
+### UR-TODO-075 Holding Detail Information Architecture & Visual Refinement
+
+- 優先級：P3（使用者於 Production 實際使用後提出的新持股詳細頁 UX／資訊層級需求）
+- 狀態：**IMPLEMENTED／本機驗證完成，尚未建立 Draft PR**
+- 提出／開發日期：2026-08-22
+- 問題：UR-TODO-072 的 Detail Dialog 已解決 inline 展開造成的頁面過長，但詳細頁第一屏仍以大量輸入欄位為主，難以快速查看持股狀態、損益與配置。
+- 目標：以既有 Production 詳細頁全部功能為基準，改為「摘要卡（Allocation Ring、名稱、symbol、市值、未實現損益）→ 基本資訊 → 損益資訊 → 配置資訊 → 預設收合投資設定 → 獨立資產管理危險操作區」。資產占比只保留一個 denominator；以既有目前比例與目標比例即時計算配置偏離，不新增持久化欄位。
+- 已確認互動：方案 B——`<details>` 的「投資設定」預設收合；展開後保留總股數、成交均價、目標比例、資產分類、波段最高價、逢低提醒與首頁重點標的全部既有 handler。封存已清倉維持最底部獨立區塊及原確認流程。
+- 明確不包含：Holding schema／AppState、財務公式、報價或 P&L 語意、Rebalance／AI Decision／CLEC／Household Liquidity、Financial Event Ledger／attribution、holdingDisplayOrder、localStorage／JSON Backup、Firebase／sync；台股上漲紅／下跌綠市場色彩契約不得反轉。
+- Contract Audit：`HoldingDetailContent` 由 `m.rows` 每次 render 取最新 row，沿用 `updateHolding`、`updateDipAlert`、`toggleFocusedSymbol`、`confirmRemoveHoldingAsset`；不得建立第二套資料更新或 editable snapshot。當總資產無法推導目前比例時，Ring 顯示 `—`、配置偏離顯示 `—`，不得把未知值轉為 0。
+- 驗收證據：`test:ur-todo-075` 5/5、`test:ur-todo-072` 19/19、完整 `test:ci`、TypeScript、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 均通過；390px 與 1280px 本機 Preview 無 horizontal overflow，設定預設收合且展開可操作。下一步建立 Draft PR；不得自行 Merge 或部署 Production。
+- Branch：`feat/ur-todo-075-holding-detail-ia`，基線 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d`。
 
 2026-08-21 **UR-TODO-072（Holding Card Detail Modal/Sheet）正式 CLOSED／Production Verified。** PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `5e939433c272d87f2a794554f9ec1373a50d4bf3`。PR required CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success，同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成 **iPhone Safari 真機人工驗收，結論 PASS**；merge 後 main Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致，Production 已唯讀確認 HTTP 200、`environment=github-pages`、deployment sha 一致、持股卡片維持 compact、「詳細」入口正確開啟對應 Dialog，console 無錯誤，未寫入任何 Production 使用者資料。持股卡片「詳細」由 inline 展開改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 bottom sheet），完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／localStorage／JSON Backup／`holdingDisplayOrder` persistence／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均未變更。Preview 階段發現並修正一項真實 UX 缺陷：關閉 Dialog 還原焦點時純 `.focus()` 會把觸發按鈕捲入可視範圍造成頁面跳動，已改用 `.focus({ preventScroll: true })`。新增 19 tests（`test:ur-todo-072`）已納入 `test:ci`；`test:ur-todo-070`（25 tests）／`test:ur-todo-071`（41 tests）重新執行確認無回歸。詳見下方 **UR-TODO-072** 正式條目。
 
@@ -5852,6 +5867,15 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（IN PROGRESS，2026-08-22）
+
+- Branch／基線：`feat/ur-todo-075-holding-detail-ia` 自 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d` 建立於隔離 worktree；原正式 checkout 的未追蹤檔與 stash 均未操作。
+- 已確認決策：方案 B，投資設定預設收合。摘要卡、基本資訊、損益資訊、配置資訊均為唯讀 presentation；所有既有設定 handler 與封存確認流程原樣重用。
+- 安全邊界：未知目前比例／偏離顯示 `—`；不得寫入 0。不得變更財務公式、schema、localStorage／JSON Backup、Ledger／attribution、Rebalance、AI Decision、CLEC、Household Liquidity 或 `holdingDisplayOrder`。
+- 已完成證據：`test:ur-todo-075` 5/5 pass；`test:ur-todo-072` 19/19 baseline pass；本機 Preview 390px 與 1280px 均無 horizontal overflow，投資設定預設收合且展開後可見 6 個既有 input／toggle。
+- 已完成驗證：完整 `test:ci`、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 全數通過。
+- 尚待：Draft PR 與使用者 Preview 驗收。不得自行 Merge 或部署 Production。
 
 ## 最新交接快照：UR-TODO-074 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
 

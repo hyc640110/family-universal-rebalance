@@ -1,5 +1,14 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（IN PROGRESS，2026-08-22）
+
+- Branch／基線：`feat/ur-todo-075-holding-detail-ia` 自 `origin/main` `7e479636f7245b1cd0d8102db5a8b95f5822016d` 建立於隔離 worktree；原正式 checkout 的未追蹤檔與 stash 均未操作。
+- 已確認決策：方案 B，投資設定預設收合。摘要卡、基本資訊、損益資訊、配置資訊均為唯讀 presentation；所有既有設定 handler 與封存確認流程原樣重用。
+- 安全邊界：未知目前比例／偏離顯示 `—`；不得寫入 0。不得變更財務公式、schema、localStorage／JSON Backup、Ledger／attribution、Rebalance、AI Decision、CLEC、Household Liquidity 或 `holdingDisplayOrder`。
+- 已完成證據：`test:ur-todo-075` 5/5 pass；`test:ur-todo-072` 19/19 baseline pass；本機 Preview 390px 與 1280px 均無 horizontal overflow，投資設定預設收合且展開後可見 6 個既有 input／toggle。
+- 已完成驗證：完整 `test:ci`、Production／Preview build、Bundle 2 項驗證與 `git diff --check` 全數通過。
+- 尚待：Draft PR 與使用者 Preview 驗收。不得自行 Merge 或部署 Production。
+
 ## 最新交接快照：UR-TODO-074 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
 
 ### 正式決策

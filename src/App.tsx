@@ -818,20 +818,24 @@ function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdat
   onRemove: (symbol: SymbolCode) => void;
 }) {
   const pnlPct = row.cost ? row.pnl / row.cost * 100 : 0;
-  const compactWeight = formatCompactHoldingWeight(row.marketValue, totalAssets);
-  // UR-TODO-074: 現價／今日漲跌 no longer show in the compact mobile summary card (see
-  // .holding-card-price/.holding-card-today-change display:none in styles.css); this is their one
-  // remaining display surface, same pattern as 股數／均價 already had before this Sprint.
+  const currentWeight = Number.isFinite(row.marketValue) && Number.isFinite(totalAssets) && totalAssets > 0 ? row.marketValue / totalAssets * 100 : null;
+  const targetWeight = row.targetWeight ?? 0;
+  const allocationDeviation = currentWeight === null ? null : currentWeight - targetWeight;
+  const ringPercent = currentWeight === null ? 0 : Math.max(0, Math.min(100, currentWeight));
   const quoteHeadline = formatCompactQuoteHeadline(row.quote.change, row.quote.changePct, row.quote.previousClose, row.quote.previousCloseTrusted === true);
   return <div className="holding-editor">
-    <div className="holding-editor-summary" aria-label="持股詳細資料">
-      <p><span>總投入成本</span><strong>{money(row.cost)}</strong></p>
-      <p><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} / {signedPct(pnlPct)}</strong></p>
-      <p><span>目前比例</span><strong>{compactWeight}</strong></p>
-      <p><span>{row.quote.error ? '參考價' : '現價'}</span><strong className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元{quoteHeadline.percentText !== '—' && <span className="holding-quote-percent" aria-hidden="true">{quoteHeadline.arrow && ` ${quoteHeadline.arrow}`} {quoteHeadline.percentText}</span>}</strong></p>
-      <p><span>今日漲跌</span><strong className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</strong></p>
-    </div>
-    <div className="holding-editor-grid">
+    <section className="holding-detail-hero" aria-label="持股摘要">
+      <p className="holding-detail-allocation-ring" style={{ '--ring-value': ringPercent } as CSSProperties} aria-label={`目前比例 ${currentWeight === null ? '未知' : `${currentWeight.toFixed(1)}%`}`}><strong>{currentWeight === null ? '—' : `${currentWeight.toFixed(1)}%`}</strong></p>
+      <div className="holding-detail-identity"><span>持股摘要</span><strong>{row.quote.name}</strong><small>{row.symbol}</small></div>
+      <p className="holding-detail-hero-value"><span>市值</span><strong>{money(row.marketValue)}</strong></p>
+      <p className="holding-detail-hero-pnl"><span>未實現損益</span><strong className={tone(row.pnl)}>{signedMoney(row.pnl)} <small>{signedPct(pnlPct)}</small></strong></p>
+    </section>
+    <section className="holding-detail-section holding-detail-basic" aria-labelledby="holding-detail-basic-title"><h3 id="holding-detail-basic-title">基本資訊</h3><dl><div><dt>總股數</dt><dd>{row.shares.toLocaleString('zh-TW')} 股</dd></div><div><dt>成交均價</dt><dd>{row.avgCost.toFixed(2)} 元</dd></div><div><dt>{row.quote.error ? '參考價' : '現價'}</dt><dd className={`holding-quote-change ${quoteHeadline.tone}`}>{row.quote.price.toFixed(2)} 元</dd></div><div><dt>市值</dt><dd>{money(row.marketValue)}</dd></div></dl></section>
+    <section className="holding-detail-section holding-detail-pnl" aria-labelledby="holding-detail-pnl-title"><h3 id="holding-detail-pnl-title">損益資訊</h3><dl><div><dt>未實現損益</dt><dd className={tone(row.pnl)}>{signedMoney(row.pnl)}</dd></div><div><dt>未實現損益率</dt><dd className={tone(row.pnl)}>{signedPct(pnlPct)}</dd></div><div><dt>今日漲跌</dt><dd className={`holding-quote-change ${quoteHeadline.tone}`} aria-label={quoteHeadline.ariaLabel}>{quoteHeadline.amountText}</dd></div><div><dt>總投入成本</dt><dd>{money(row.cost)}</dd></div></dl></section>
+    <section className="holding-detail-section holding-detail-allocation" aria-labelledby="holding-detail-allocation-title"><h3 id="holding-detail-allocation-title">配置資訊</h3><dl><div><dt>目前比例</dt><dd>{currentWeight === null ? '—' : `${currentWeight.toFixed(1)}%`}</dd></div><div><dt>目標比例</dt><dd>{targetWeight}%</dd></div><div><dt>配置偏離</dt><dd className={allocationDeviation === null ? 'hold' : tone(allocationDeviation)}>{allocationDeviation === null ? '—' : `${allocationDeviation > 0 ? '+' : ''}${allocationDeviation.toFixed(1)} 個百分點`}</dd></div><div><dt>資產分類</dt><dd>{assetClassLabel(row.assetClass)}</dd></div></dl></section>
+    <details className="holding-detail-settings">
+      <summary>投資設定</summary>
+      <div className="holding-editor-grid">
       <label>總股數<DraftInput type="number" min="0" value={row.shares} onCommit={value => onUpdate(row.symbol, 'shares', parsePositive(value))} /></label>
       <label>成交均價<DraftInput type="number" min="0" step="0.01" value={row.avgCost} onCommit={value => onUpdate(row.symbol, 'avgCost', parsePositive(value))} /></label>
       <label>目標比例 %<DraftInput inputMode="decimal" value={row.targetWeight ?? ''} onCommit={value => onUpdate(row.symbol, 'targetWeight', clampTarget(Number(value)))} /><small>{assetClassLabel(row.assetClass)}配置目標，限制 {MIN_GROWTH_TARGET}%～{MAX_GROWTH_TARGET}%。未分配比例由現金承擔。</small></label>
@@ -839,8 +843,9 @@ function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdat
       <label>波段最高價<DraftInput type="number" min="0" step="0.01" value={dipSetting.referencePrice || ''} onCommit={value => onUpdateDipAlert(row.symbol, { referencePrice: parsePositive(value) })} /><small>僅在逢低提醒啟用時用於觀察，不會自動交易。</small></label>
       <label className="holding-dip-toggle"><span>逢低提醒</span><input type="checkbox" checked={dipSetting.enabled} onChange={event => { const checked = event.currentTarget.checked; onUpdateDipAlert(row.symbol, { enabled: checked }); }} /> 啟用逢低加碼觀察</label>
       <label className="holding-focus-toggle"><span>重點標的</span><input type="checkbox" checked={isFocused} onChange={() => onToggleFocused(row.symbol)} /> 設為首頁重點標的</label>
-    </div>
-    <button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button>
+      </div>
+    </details>
+    <section className="holding-detail-danger-zone" aria-labelledby="holding-detail-danger-title"><h3 id="holding-detail-danger-title">資產管理</h3><button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button></section>
   </div>;
 }
 /** UR-TODO-048 phase B: allocationPreset is always 'custom' now (see coerceAllocationPresetToCustom); this is read-only display only, no write path. */
