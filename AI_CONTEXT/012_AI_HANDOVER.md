@@ -1,6 +1,29 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-073 Phase 1 Closeout — Design Polish（IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED FOR PHASE-1 CLOSEOUT，2026-08-22）
+## 最新交接快照：UR-TODO-073 Final Closeout — Merge／Production Deploy／Production Verified（CLOSED，2026-08-22）
+
+### 正式決策
+**UR-TODO-073 = CLOSED／Production Verified。** 使用者於 Phase 1 Closeout 快照之後明確授權 Merge：PR [#408](https://github.com/hyc640110/family-universal-rebalance/pull/408)（final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`）已由 `hyc640110` 於 `2026-08-22T04:22:58Z` 以一般 2-parent merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`（parents `ef65d42c7a121a2bfd06b4fae48aee39ce2d7a44`／`1a8c4f7941b23ccab0754385ae69798fa8c6108f`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `d348372599c4bdcfba8d5b4d5fb21722366bc33e`。
+
+### Production Deploy 與驗證
+- push-to-main 觸發之正式 Deploy GitHub Pages run [32551553647](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32551553647)：`event=push`，`headSha` 與 merge commit 一致，`conclusion=success`（非 `workflow_dispatch` 手動 Preview 觸發）。
+- 唯讀 Production 驗證（全程未寫入任何 Production 使用者資料）全數 PASS：HTTP 200；deployment `sha`／`environment=github-pages`／`state=success`；實際 asset hash `index-CsKMDuqO.css`／`index-tBOP6UcQ.js` 確認為本次新 build；dark surface（`--bg-page #0b0f14`）、typography 階層、Mobile Bottom Nav／Desktop Sidebar active-inactive 一致、Holding Card 名稱>symbol／市值同排／Secondary「詳細」按鈕／drag handle、Holding Detail Dialog 開關（`role="dialog"`／`aria-modal="true"`，Escape 關閉）、台股上漲紅／下跌綠未反轉，320／390／430／1000／1280／1600 六組寬度皆無 horizontal overflow，console 全程無錯誤。
+- Production 帳號既有 4 檔真實持股（00662／00670L／00865B／00631L）ring 顯示 0%，已確認為使用者帳戶既有真實 0 股狀態（非本次 Sprint 缺陷），並透過即時報價正常載入排除 API rate-limiting 干擾。
+
+### Scope boundary（重要，供下一位 AI／開發者遵守）
+1. Holding Card compact 排版精修**仍在 UR-TODO-074**（OPEN／PLANNED，**尚未開始開發**，未建立功能 Branch，未修改任何 Holding Card 相關程式碼），本次 Merge／Production Verified **不代表** UR-TODO-074 已開始或已授權開發。
+2. 未經使用者明確下達新一輪「開始開發」並指名 UR-TODO-074，AI 不得自行建立其功能 Branch、修改 `src/App.tsx`／`src/styles.css` 之 Holding Card 排版、或建立其 Preview。
+3. 本次 governance final closeout 於全新分支 `docs/ur-todo-073-final-closeout`（自新 `origin/main` `d348372...` 開出）進行，未繼續在已合併的 `feat/ur-todo-073-dark-design-polish` 上 commit。
+
+### Governance closeout（本次快照）
+`003_CURRENT_STATUS.md`／`008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`（本快照）已同步更新記錄 Merge／Deploy／Production Verification 事實；`017_Design_System.md` 維持既有 Phase 1 落地內容不變（無需因 Merge 而修改章節內容，狀態旗標見該檔頂部）。Full／Lite Bundle 將於此快照後重新產生。本次治理 closeout commit 僅修改 `AI_CONTEXT/**` 與 Bundle exports，`src/**`／`tests/**`／`package*.json`／`workers/**`／`.github/**` 均 0 diff。
+
+### 下一位 AI／使用者
+- UR-TODO-073 已正式 CLOSED／Production Verified，無需再回頭處理。
+- 下一步產品工作僅能是 **UR-TODO-074**，且必須等待使用者針對該 Todo 明確下達「開始開發」授權後才可開始（含建立功能 Branch）。
+- `stash@{0}`／`stash@{1}` 等既有 stash 全程未被 pop／apply／drop／修改，維持原狀。
+
+## 前一交接快照：UR-TODO-073 Phase 1 Closeout — Design Polish（IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED FOR PHASE-1 CLOSEOUT，2026-08-22）
 
 ### 正式決策
 **UR-TODO-073 Phase 1 = IMPLEMENTED／PREVIEW VERIFIED／USER ACCEPTED FOR PHASE-1 CLOSEOUT。尚未 Merge、尚未 Production Verified。** PR [#408](https://github.com/hyc640110/family-universal-rebalance/pull/408) final head `ce665c38f6cf557943130348819f8dfbebd23d60`，仍為 Draft／已轉 Ready for review（依本次 governance closeout 授權範圍，見下方 Ready Gate 說明），**AI 未自行 Merge、未部署 Production**。

@@ -1,10 +1,10 @@
 # Universal Rebalance Design System
 
-版本：v1.0（UR-TODO-073 Phase 1 Closeout）
+版本：v1.0.1（UR-TODO-073 Production Verified Closeout）
 
 最後更新：2026-08-22
 
-**狀態：Section 2.2–2.6、2.10–2.12 已依 UR-TODO-073 Phase 1（PR #408，final head `ce665c38f6cf557943130348819f8dfbebd23d60`）四輪 Preview 人工驗收通過的實際落地 CSS 正式記錄。Section 2.1、2.7、2.8、2.9 仍待補完（非本 Sprint 範圍）。**
+**狀態：Section 2.2–2.6、2.10–2.12 已依 UR-TODO-073 Phase 1（PR #408，final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`，merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`，**已 Merge／已 Production Verified，2026-08-22**）四輪 Preview 人工驗收通過並經 Production 唯讀驗證確認的實際落地 CSS 正式記錄。Section 2.1、2.7、2.8、2.9 仍待補完（非本 Sprint 範圍）。**
 
 **重要邊界聲明**：本文件記錄的是**已穩定、已通過 Preview 真機驗收**的全站共用 token／primitive 規則（背景層次、文字階層、Primary/Secondary 色彩、共用 Card/Button/Input 慣例、Navigation、Modal/Sheet）。**Holding Card 內部的具體 grid/row 排列方式、目前的卡片高度（約 219px @390px）、市值/未實現損益/現價/今日漲跌的實際欄位配置，明確不視為本文件的正式規範**——這些項目已由使用者於 UR-TODO-073 Phase 1 收尾時明確 defer 至獨立的 **UR-TODO-074（Holding Card Compact Information Layout Refinement）**，仍在持續精修中，記錄於此會造成規範與實作脫節。
 
@@ -144,4 +144,5 @@ Navigation IA（項目、順序、路由）不在本文件範圍，見既有 `NA
 ## 3. 版本歷史
 
 - v0.1（2026-07-25）：建立骨架，落地 V7.0A Foundation & Product Governance 的一部分；章節內容待 V7.0E 啟動後補完。
-- v1.0（2026-08-22）：依 UR-TODO-073 Phase 1（PR #408，final head `ce665c38f6cf557943130348819f8dfbebd23d60`）四輪 Preview 人工驗收通過的實際落地 CSS，正式補完 Section 2.2 色彩系統、2.3 文字排印、2.4 間距系統、2.5 卡片、2.6 按鈕、2.10 響應式斷點、2.11 導覽、2.12 Modal／Sheet。Holding Card 內部具體排版明確排除於本次記錄範圍，defer 至 UR-TODO-074。Section 2.1／2.7／2.8／2.9 仍待補完。
+- v1.0（2026-08-22）：依 UR-TODO-073 Phase 1（PR #408，final head `1a8c4f7941b23ccab0754385ae69798fa8c6108f`）四輪 Preview 人工驗收通過的實際落地 CSS，正式補完 Section 2.2 色彩系統、2.3 文字排印、2.4 間距系統、2.5 卡片、2.6 按鈕、2.10 響應式斷點、2.11 導覽、2.12 Modal／Sheet。Holding Card 內部具體排版明確排除於本次記錄範圍，defer 至 UR-TODO-074。Section 2.1／2.7／2.8／2.9 仍待補完。
+- v1.0.1（2026-08-22）：PR #408 已 Merge（merge commit `d348372599c4bdcfba8d5b4d5fb21722366bc33e`）並經 Production 唯讀驗證確認，UR-TODO-073 正式 CLOSED／Production Verified；本節內容未變動，僅更新頂部狀態旗標與版本歷史。
