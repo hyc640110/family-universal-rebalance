@@ -1,5 +1,12 @@
 # Universal Rebalance Changelog
 
+## Isolated Preview Infrastructure Final Closeout（2026-08-22，MERGED／Infrastructure Installed／Isolated Remote Preview Verified）
+
+- PR [#413](https://github.com/hyc640110/family-universal-rebalance/pull/413) final head `248b667ea8fe5c1a7ac43a4a69035bb3564142d1` 已由 `hyc640110` 於 `2026-08-22T12:48:33Z` 以一般 2-parent merge commit `e24b3d0bf60078d7e62e0fc88e347bc347add5e3` 合併（parents `7dc9219c2c82d23e4c486058ca88130a372df906`／`248b667ea8fe5c1a7ac43a4a69035bb3564142d1`；未使用 admin override）。
+- Merge 的既有 Production side effect：Deploy GitHub Pages run [32573997202](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32573997202) 以 `push/main` success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CABEEP71.js`、CSS `index-BdoQJe4A.css` 與 merge 前一致。
+- 首次 isolated runtime validation：Deploy Isolated Preview run [32574245054](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32574245054) 以 non-main source `202f96572d50e1c612854fa89c9ed6adda9b64de` success，僅建立 Preview repo `hyc640110/family-universal-rebalance-preview` 的 `preview` branch deployment commit `cdea4e4576bd325cda7590b49cb0517b43a99b78`。Preview Pages 由使用者手動設為 `preview`／`/(root)`；遠端 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) HTTP 200、`environment=preview`、base `/family-universal-rebalance-preview/`、JS `index-CyU7SXEZ.js`、CSS `index-BdoQJe4A.css`、390×844 smoke、console、Assets／Holding Detail 均 PASS。
+- 正式操作邊界：新功能 Preview 驗收優先使用 source repo 的 Deploy Isolated Preview → Preview repo `preview` branch → Preview Pages；明確提供非 main ref，維持 main 字串與 resolved main SHA fail-closed。不得把舊 Production Pages combined `/preview/` 視為標準 Preview 路徑；此 workflow 不使用 `actions/deploy-pages`、`github-pages` environment、combined artifact 或 Production build，且 Preview deployment 不得觸發 Production deployment。
+
 ## UR-TODO-075 Holding Detail Information Architecture & Visual Refinement（2026-08-22，CLOSED／Production Verified）
 
 - PR [#412](https://github.com/hyc640110/family-universal-rebalance/pull/412) final head `202f96572d50e1c612854fa89c9ed6adda9b64de` 已由 `hyc640110` 於 `2026-08-22T11:48:49Z` 以一般 2-parent merge commit `696ea2f4d1d9b5ae8fafcc192046a00a2301cb37` 合併（parents `7e479636f7245b1cd0d8102db5a8b95f5822016d`／`202f96572d50e1c612854fa89c9ed6adda9b64de`；未使用 admin override）。
