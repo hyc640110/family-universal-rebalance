@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T15:01:17.781296+00:00
+Generated UTC: 2026-08-22T16:06:01.169442+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-22T15:01:17.781296+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `a3f28dfd9b6a2f599b47ff23e71906a93f6f1197f19b8865bbd82455fbcff9de`
+- `003_CURRENT_STATUS.md` — SHA-256 `ab2dcf6e811b1a2121ec66444775aa614c62ff1b7ea8d8e7d9f47cffeff0d465`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
 - `008_TODO_BACKLOG.md` — SHA-256 `d11ccbaaa85e08e3d3c51be222ad195209c1f50dfc1f7eee25bd14aaea4d1a86`
-- `009_CHANGELOG.md` — SHA-256 `5018c21b6ef119ad1146c63ffa6d0f575e43c865cde9bda9b253592e5eaf8d64`
+- `009_CHANGELOG.md` — SHA-256 `f7f3154817deca8e2b71d260bcff703c6505d59f66f826c6865b752e84262c2e`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `d8a6b054e5006b72451bb04320712235ad8fb926d52d9a1fb1ae45b86addf9f9`
+- `012_AI_HANDOVER.md` — SHA-256 `fea7ffc5f37c794faa367fe3115d47a6bdaf0fe2442198dfca60567fc3df7524`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -654,9 +654,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.50
+# Universal Rebalance Current Status v4.51
 
 最後更新：2026-08-22
+
+**Holding Card Unrealized P&L Display Refinement 已正式 MERGED／Production Verified（2026-08-22）。** 使用者於 Production 實際使用後直接提出的獨立小型 UI refinement（非在 UR-TODO-074 範圍內執行，UR-TODO-074 仍維持既有 CLOSED／Production Verified 狀態不變）。PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e` 已由 `hyc640110` 於 `2026-08-22T15:56:54Z` 以一般 2-parent merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8` 合併（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`；未使用 admin override）。Mobile Holding Card 的「未實現損益」區塊正式 contract 改為三行：第一行 label「未實現損益」、第二行損益百分比、第三行損益金額（例如「未實現損益／-1.7%／-5.9 萬元」），純 presentation 調整（CSS flex-direction 排序），未新增外框／背景框，`signedMoney(row.pnl)`／`pnlPct` 等既有財務計算與資料來源完全未變；台股正報酬紅／負報酬綠／hold 中性色語意不變；Desktop（`≥901px`）9-column row 版面未受影響。isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2` 於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 驗收 PASS。main push 觸發之 Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常，390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤；Isolated Preview repo／`preview` branch 未因本次 Production Merge 被觸發或改變。
 
 **Mobile Bottom Navigation Icon Refinement 已正式 MERGED／Production Verified（2026-08-22）。** PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) final head `c49f11f85451d629c71424a7677fda4c4059bbd3` 已由 `hyc640110` 於 `2026-08-22T14:30:40Z` 以一般 2-parent merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6` 合併（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`；未使用 admin override）。main push 自動觸發 Deploy GitHub Pages run [32578914193](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578914193) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-CWU7xl9o.js`、CSS `index-BdoQJe4A.css` 正常。390×844 驗證 PASS、無 horizontal overflow，Desktop Sidebar 未受影響。Mobile Bottom Navigation 最終採 Lucide 線性 icon：首頁 `House`、資產 `BriefcaseBusiness`、分析 `ChartColumnBig` 均為 `fill=none`、`stroke=currentColor`、`strokeWidth=2.5`；市場 `LineChart`、工具 `Wrench`、設定 `Cog` 維持既有 metadata。六項順序、label、routing、active／inactive styling、layout／高度均未變，Desktop Sidebar 維持原本 icon 設定。isolated Preview run [32578703258](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32578703258) success，Preview deployment commit `f42e174dc034b2ad71bf5278917e445b6e9f4b80` 已於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 `environment=preview`、390×844、console 無 error 驗收，Production 完全未受影響。本次僅調整 Mobile Bottom Navigation icon metadata 與 regression tests；未變更 UI layout、runtime／workflow、Preview Infrastructure、schema、persistence、Ledger／attribution、Rebalance 或 AI Decision。
 
@@ -5315,6 +5317,15 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance Changelog
 
+## Holding Card Unrealized P&L Display Refinement（2026-08-22，MERGED／Production Verified）
+
+- PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e` 已由 `hyc640110` 於 `2026-08-22T15:56:54Z` 以一般 2-parent merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8` 合併（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`；未使用 admin override）。
+- 使用者於 Production 實際使用後直接提出：Mobile Holding Card「未實現損益」區塊最終排列改為三行——第一行 label「未實現損益」、第二行損益百分比、第三行損益金額（例如「未實現損益／-1.7%／-5.9 萬元」，正報酬「未實現損益／+35.2%／+13.9 萬元」）。此前版本僅顯示百分比＋label 兩行並隱藏金額；本次恢復顯示金額並調整為 label-primary 的三行排序。
+- 實作方式：純 CSS `flex-direction` 調整——外層容器改為一般（非 reverse）`column`，讓 DOM 中第一個子元素（label）自然排在最上；內層 `<strong>`（原本就依序包含 `[amount, pct]` 兩個 `<span>`）改為 `column-reverse`，讓 DOM 中排在後面的百分比視覺上排到金額之前。JSX/DOM 完全未變，`signedMoney(row.pnl)`／`pnlPct` 等既有財務計算與資料來源未修改。並修正 320px 寬度下三行文字因 `white-space:normal` 換行導致卡片增高的 regression（改為 `white-space:nowrap`）。
+- 未新增外框／背景框；台股正報酬紅／負報酬綠／hold 中性色語意維持不變；Desktop（`≥901px`）9-column row 版面完全未受影響。
+- 驗證：isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2` 於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 驗收 PASS。main push Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常，390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤。
+- 邊界：本次為 presentation-only 調整，未改變 financial semantics、quote calculation、market value/P&L calculation、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet interaction contract、Navigation IA、`src/lib/**`、runtime／workflow、Preview Infrastructure；Isolated Preview repo／`preview` branch 未因本次 Production Merge 被觸發或改變。此變更獨立於 UR-TODO-074（已 CLOSED／Production Verified，狀態不變），`AI_CONTEXT/008_TODO_BACKLOG.md` 未新增或修改任何 Todo 條目。
+
 ## Mobile Bottom Navigation Icon Refinement（2026-08-22，MERGED／Production Verified）
 
 - PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) final head `c49f11f85451d629c71424a7677fda4c4059bbd3` 已由 `hyc640110` 於 `2026-08-22T14:30:40Z` 以一般 2-parent merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6` 合併（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`；未使用 admin override）。
@@ -5892,6 +5903,15 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：Holding Card Unrealized P&L Display Refinement（MERGED／Production Verified，2026-08-22）
+
+- 正式狀態：PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) 已 MERGED／Production Verified；final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e`，merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8`（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`，一般 2-parent merge，未使用 admin override），mergedAt `2026-08-22T15:56:54Z`，mergedBy `hyc640110`。
+- **最終 UI contract（下一位 AI／開發者必須遵守，不得回改）**：Mobile Holding Card「未實現損益」區塊固定為三行，由上到下：①label「未實現損益」②損益百分比③損益金額。例如「未實現損益／-1.7%／-5.9 萬元」。不得恢復成先前「僅百分比＋label 兩行、隱藏金額」的舊版排列。未新增外框／背景框；正報酬紅／負報酬綠／hold 中性色維持既有 `.up`／`.down`／`.hold` 語意；`signedMoney(row.pnl)`／`pnlPct` 等財務計算與資料來源完全未變；Desktop（`≥901px`）9-column row 版面未受影響。
+- 實作機制：純 CSS `flex-direction` 排序（外層 `column` + 內層 `<strong>` 用 `column-reverse`），JSX/DOM 零變動；320px 寬度額外修正 `white-space:nowrap` 避免文字換行造成卡片增高。
+- Preview 證據：Deploy Isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2`；[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 皆 PASS。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常；390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤；Isolated Preview repo／`preview` branch 未因本次 Merge 被觸發或改變。
+- 邊界與下一步：此變更**獨立於 UR-TODO-074**（已 CLOSED／Production Verified，狀態與內容維持不變，本次未回頭修改該 Todo 條目）；`AI_CONTEXT/008_TODO_BACKLOG.md` 本次治理 closeout 為 0 diff，未新增任何 Todo 編號。後續若要再調整 Holding Card 未實現損益排版，必須由使用者提出獨立需求，不得自行回改本次已 Production Verified 的三行排序。
 
 ## 最新交接快照：Mobile Bottom Navigation Icon Refinement（MERGED／Production Verified，2026-08-22）
 

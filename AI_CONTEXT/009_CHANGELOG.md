@@ -1,5 +1,14 @@
 # Universal Rebalance Changelog
 
+## Holding Card Unrealized P&L Display Refinement（2026-08-22，MERGED／Production Verified）
+
+- PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e` 已由 `hyc640110` 於 `2026-08-22T15:56:54Z` 以一般 2-parent merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8` 合併（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`；未使用 admin override）。
+- 使用者於 Production 實際使用後直接提出：Mobile Holding Card「未實現損益」區塊最終排列改為三行——第一行 label「未實現損益」、第二行損益百分比、第三行損益金額（例如「未實現損益／-1.7%／-5.9 萬元」，正報酬「未實現損益／+35.2%／+13.9 萬元」）。此前版本僅顯示百分比＋label 兩行並隱藏金額；本次恢復顯示金額並調整為 label-primary 的三行排序。
+- 實作方式：純 CSS `flex-direction` 調整——外層容器改為一般（非 reverse）`column`，讓 DOM 中第一個子元素（label）自然排在最上；內層 `<strong>`（原本就依序包含 `[amount, pct]` 兩個 `<span>`）改為 `column-reverse`，讓 DOM 中排在後面的百分比視覺上排到金額之前。JSX/DOM 完全未變，`signedMoney(row.pnl)`／`pnlPct` 等既有財務計算與資料來源未修改。並修正 320px 寬度下三行文字因 `white-space:normal` 換行導致卡片增高的 regression（改為 `white-space:nowrap`）。
+- 未新增外框／背景框；台股正報酬紅／負報酬綠／hold 中性色語意維持不變；Desktop（`≥901px`）9-column row 版面完全未受影響。
+- 驗證：isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2` 於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 驗收 PASS。main push Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常，390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤。
+- 邊界：本次為 presentation-only 調整，未改變 financial semantics、quote calculation、market value/P&L calculation、schema、persistence、`holdingDisplayOrder`、drag reorder semantics、Holding Detail Sheet interaction contract、Navigation IA、`src/lib/**`、runtime／workflow、Preview Infrastructure；Isolated Preview repo／`preview` branch 未因本次 Production Merge 被觸發或改變。此變更獨立於 UR-TODO-074（已 CLOSED／Production Verified，狀態不變），`AI_CONTEXT/008_TODO_BACKLOG.md` 未新增或修改任何 Todo 條目。
+
 ## Mobile Bottom Navigation Icon Refinement（2026-08-22，MERGED／Production Verified）
 
 - PR [#416](https://github.com/hyc640110/family-universal-rebalance/pull/416) final head `c49f11f85451d629c71424a7677fda4c4059bbd3` 已由 `hyc640110` 於 `2026-08-22T14:30:40Z` 以一般 2-parent merge commit `688dc98295a5f1a3949f13330f7c580448b4ceb6` 合併（parents `3489e2b1e9f391f7f3056c93cd25cbbd0dfda9ad`／`c49f11f85451d629c71424a7677fda4c4059bbd3`；未使用 admin override）。
