@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, SetStateAction } from 'react';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { Briefcase, PieChart as PieChartIcon, RefreshCw, ShieldCheck, Trash2, TrendingUp } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, APP_VERSION, DEPLOYMENT_ENVIRONMENT, STORAGE_KEY, WORKER_URL as DEFAULT_WORKER_URL } from './constants/appInfo';
 import AppLayout from './components/layout/AppLayout';
@@ -67,7 +67,7 @@ import { buildHouseholdLiquidityInput } from './lib/householdLiquidityInputAdapt
 import { formatCompactHoldingWeight, formatCompactQuoteHeadline } from './lib/compactAssetCard';
 import { deriveCashFlow, normalizeCashFlowProfile, type CashFlowProfile } from './lib/cashFlow';
 import { normalizeRetirementPlan, type RetirementPlan } from './lib/retirementPlanner';
-import { deriveHistoryStats, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
+import { deriveHistoryStats, historyForRange, localSnapshotDate, netWorthSnapshotFromTotals, normalizeNetWorthHistory, upsertNetWorthSnapshot, type NetWorthSnapshot } from './lib/netWorthHistory';
 import { normalizeFxRateHistory, type FxRateRecord } from './lib/fxValuation';
 import { deriveCanonicalNetWorthTotals } from './lib/canonicalNetWorthTotals';
 import { createNetWorthSnapshotConsumerRows, createNetWorthSnapshotReadTimeViewFromState, toCompleteNetWorthSnapshots, upsertNetWorthSnapshotReadTimeView, type NetWorthSnapshotReadTimeView } from './lib/netWorthSnapshotReadBoundary';
@@ -127,6 +127,7 @@ import { moveHoldingDisplayOrder, moveHoldingDisplayOrderToIndex, normalizeHoldi
 import { resolveDragTargetIndex } from './lib/holdingCardDragGeometry';
 import HoldingOrderHandle from './components/HoldingOrderHandle';
 import HoldingDetailDialog from './components/HoldingDetailDialog';
+import { deriveAllocationDetailRows, deriveAllocationLegendItems, deriveSparklineChange, sparklinePointsFromHistory, type AllocationLegendItem } from './lib/assetAllocationOverview';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -718,10 +719,7 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
   const growthWeight = total > 0 ? num(m.growth) / total * 100 : 0;
   const defensiveWeight = total > 0 ? num(m.defensive) / total * 100 : 0;
   const allocationPct = (value: number) => `${num(value).toFixed(1)}%`;
-  const items = [
-    ...m.rows.map(row => ({ symbol: row.symbol, name: row.name, value: Math.max(0, num(row.marketValue)) })),
-    { symbol: 'CASH', name: '台幣現金', value: Math.max(0, num(m.cash)) }
-  ].filter(item => item.value > 0).map(item => ({ ...item, percent: total > 0 ? item.value / total * 100 : 0, color: allocationColor(item.symbol) })).sort((a, b) => b.percent - a.percent);
+  const items = deriveAllocationLegendItems(m.rows, m.cash, total, allocationColor);
   const radius = 44;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
@@ -759,6 +757,152 @@ function AllocationDonut({ m }: { m: ReturnType<typeof calculateMetrics> }) {
         </button>)}
         {items.length > 5 && <button type="button" className="allocation-expand" onClick={() => setShowAll(current => !current)}>{showAll ? '收合明細' : `展開明細（其餘 ${items.length - 5} 項）`}</button>}
       </div>
+    </div>
+  </div>;
+}
+/** UR-TODO-076: minimal inline trend line for a single summary card. Deliberately not the full
+ * `TrendChart` (no axis/gradient/tooltip) — a compact "is it going up or down" glance, not a page-level
+ * analytics chart. Fails closed (renders the insufficient-data message) whenever fewer than 2 real
+ * points are available; never interpolates or fabricates a line from a single value. */
+function MiniSparkline({ points, tone: toneClass }: { points: readonly { date: string; value: number }[]; tone: AllocationTone }) {
+  if (points.length < 2) return <p className="mini-sparkline mini-sparkline-empty">近1個月趨勢資料不足</p>;
+  const width = 100, height = 32, pad = 2;
+  const values = points.map(p => p.value);
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const coords = points.map((p, index) => {
+    const x = points.length > 1 ? pad + (index / (points.length - 1)) * (width - pad * 2) : width / 2;
+    const y = pad + (max - p.value) / span * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return <svg className={`mini-sparkline mini-sparkline-${toneClass}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近1個月趨勢">
+    <polyline points={coords} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>;
+}
+type AllocationTone = 'up' | 'down' | 'hold';
+function AssetOverviewCard({ icon: Icon, accent, label, value, subValue, change }: {
+  icon: typeof Briefcase;
+  accent: 'blue' | 'green' | 'red' | 'purple';
+  label: string;
+  value: string;
+  subValue?: string;
+  change: { delta: number; deltaPct: number | null; points: readonly { date: string; value: number }[] } | null;
+}) {
+  const changeTone: AllocationTone = change ? (change.delta > 0 ? 'up' : change.delta < 0 ? 'down' : 'hold') : 'hold';
+  return <div className={`asset-overview-card asset-overview-card-${accent}`}>
+    <div className="asset-overview-card-head">
+      <span className="asset-overview-card-icon" aria-hidden="true"><Icon size={18} /></span>
+      <span className="asset-overview-card-label">{label}</span>
+    </div>
+    <strong className="asset-overview-card-value">{value}</strong>
+    {subValue && <span className="asset-overview-card-sub">{subValue}</span>}
+    {change ? <span className={`asset-overview-card-change ${changeTone}`}>{signedMoney(change.delta)}{change.deltaPct !== null && ` (${signedPct(change.deltaPct)})`}</span> : <span className="asset-overview-card-change hold">近1個月資料不足</span>}
+    <MiniSparkline points={change?.points ?? []} tone={changeTone} />
+    <span className="asset-overview-card-caption">近1個月</span>
+  </div>;
+}
+/** UR-TODO-076: left-column donut+legend panel for the redesigned Assets-page "資產配置" section.
+ * Reuses the same `deriveAllocationLegendItems()`/`allocationColor()` data source as `AllocationDonut`
+ * (the Analytics-page donut, left untouched) but without its duplicate 總資產/成長/防守 summary row —
+ * that role is now covered by the four `AssetOverviewCard`s alongside it. Adds inline percent labels
+ * on large-enough donut segments and per-row amounts in the legend, per the approved reference layout. */
+function AssetAllocationDonutPanel({ items, totalAssets }: { items: AllocationLegendItem[]; totalAssets: number }) {
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const segments = items.map(item => {
+    const fullLength = item.percent / 100 * circumference;
+    const segment = { ...item, dash: Math.max(0, fullLength - 1.6), offset, midPercent: offset / circumference * 100 + item.percent / 2 };
+    offset += fullLength;
+    return segment;
+  });
+  const LABEL_THRESHOLD_PCT = 4;
+  const labelRadius = radius + 12;
+  const activeSymbol = hoveredSymbol ?? selectedSymbol;
+  const selected = items.find(item => item.symbol === activeSymbol);
+  const activate = (symbol: string) => setSelectedSymbol(current => current === symbol ? null : symbol);
+  if (items.length === 0) return <div className="allocation-empty">尚無可計入資產配置的市值資料。</div>;
+  return <div className="allocation-chart asset-allocation-donut-panel">
+    <div className="allocation-donut-layout">
+      <div className="allocation-donut-wrap">
+        <svg className="allocation-donut" viewBox="0 0 120 120" role="img" aria-label="目前資產配置甜甜圈圖">
+          <circle className="allocation-track" cx="60" cy="60" r={radius} />
+          <g transform="rotate(-90 60 60)">
+            {segments.map(segment => <circle key={segment.symbol} className={`allocation-segment ${activeSymbol === segment.symbol ? 'active' : ''}`} cx="60" cy="60" r={radius} stroke={segment.color} strokeDasharray={`${segment.dash} ${circumference - segment.dash}`} strokeDashoffset={-segment.offset} onMouseEnter={() => setHoveredSymbol(segment.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onClick={() => activate(segment.symbol)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(segment.symbol); } }} role="button" tabIndex={0}><title>{`${segment.name} ${pct(segment.percent)}`}</title></circle>)}
+          </g>
+          {segments.filter(segment => segment.percent >= LABEL_THRESHOLD_PCT).map(segment => {
+            const angleRad = (-90 + segment.midPercent / 100 * 360) * Math.PI / 180;
+            const x = 60 + labelRadius * Math.cos(angleRad);
+            const y = 60 + labelRadius * Math.sin(angleRad);
+            return <text key={`label-${segment.symbol}`} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="allocation-segment-label" aria-hidden="true">{pct(segment.percent)}</text>;
+          })}
+        </svg>
+        <div className="allocation-donut-center"><small>{selected ? selected.name : '總資產'}</small><strong>{selected ? pct(selected.percent) : money(totalAssets)}</strong>{!selected && <span>100%</span>}</div>
+      </div>
+      <div className="allocation-legend is-expanded">
+        {items.map(item => <button type="button" className={`allocation-legend-item asset-allocation-legend-item ${activeSymbol === item.symbol ? 'active' : ''}`} key={item.symbol} onMouseEnter={() => setHoveredSymbol(item.symbol)} onMouseLeave={() => setHoveredSymbol(null)} onFocus={() => setHoveredSymbol(item.symbol)} onBlur={() => setHoveredSymbol(null)} onClick={() => activate(item.symbol)}>
+          <i style={{ backgroundColor: item.color }} aria-hidden="true" />
+          <span><b>{item.symbol === 'CASH' ? '台幣現金' : item.symbol}</b>{item.symbol !== 'CASH' && <small>{item.name}</small>}</span>
+          <span className="asset-allocation-legend-figures"><strong>{pct(item.percent)}</strong><small>{money(item.value)}</small></span>
+        </button>)}
+      </div>
+    </div>
+  </div>;
+}
+/** UR-TODO-076: Desktop-only "資產明細（目前 vs 目標）" table. Per-holding trend always fail-closes
+ * (see UR-TODO-076 Contract Audit — no per-holding daily history is persisted anywhere today); never
+ * substitutes a fabricated sparkline. */
+function AssetAllocationDetailTable({ rows }: { rows: ReturnType<typeof deriveAllocationDetailRows> }) {
+  return <div className="asset-allocation-detail-scroll">
+    <div className="asset-allocation-detail-table" role="table" aria-label="資產明細，目前比例與目標比例">
+      <div className="asset-allocation-detail-row asset-allocation-detail-head" role="row">
+        <span role="columnheader">資產</span><span role="columnheader">類別</span><span role="columnheader">目前比例</span><span role="columnheader">目標比例</span><span role="columnheader">偏離</span><span role="columnheader">趨勢（近1個月）</span>
+      </div>
+      {rows.map(row => <div className="asset-allocation-detail-row" role="row" key={row.symbol}>
+        <span role="cell" data-label="資產" className="asset-allocation-detail-symbol"><i style={{ backgroundColor: row.color }} aria-hidden="true" />{row.symbol === 'CASH' ? '台幣現金' : row.symbol}</span>
+        <span role="cell" data-label="類別">{row.classLabel}</span>
+        <span role="cell" data-label="目前比例">{pct(row.percent)}</span>
+        <span role="cell" data-label="目標比例">{pct(row.targetPercent)}</span>
+        <span role="cell" data-label="偏離" className={row.deviationTone}>{signedPct(row.deviationPercent)} {row.deviationTone === 'up' ? '↑' : row.deviationTone === 'down' ? '↓' : ''}</span>
+        <span role="cell" data-label="趨勢（近1個月）" className="asset-allocation-detail-trend">資料不足</span>
+      </div>)}
+    </div>
+  </div>;
+}
+/** UR-TODO-076: top-level container for the redesigned "資產配置" section. Desktop (≥901px, via CSS)
+ * lays this out as donut+legend on the left and cards+detail-table on the right; Mobile (≤768px)
+ * stacks everything single-column and omits the detail table entirely (not just visually hidden —
+ * `isMobile` gates it out of the render tree, matching the approved reference: no Bottom Sheet, no
+ * second detail page). Tablet (769–900px) keeps the table, reflowed by CSS only. */
+function AssetAllocationOverview({ m, state, netWorthHistory, isMobile }: {
+  m: ReturnType<typeof calculateMetrics>;
+  state: Pick<AppState, 'holdings'>;
+  netWorthHistory: NetWorthSnapshot[];
+  isMobile: boolean;
+}) {
+  const items = useMemo(() => deriveAllocationLegendItems(m.rows, m.cash, m.totalAssets, allocationColor), [m.rows, m.cash, m.totalAssets]);
+  const cashTargetPercent = useMemo(() => getCashTarget(state.holdings), [state.holdings]);
+  const detailRows = useMemo(() => deriveAllocationDetailRows(items, m.rows, cashTargetPercent, holding => getEffectiveTargetPercent(holding, state.holdings), assetClassLabel), [items, m.rows, cashTargetPercent, state.holdings]);
+  const recentHistory = useMemo(() => historyForRange(netWorthHistory, '30d'), [netWorthHistory]);
+  const totalAssetsPoints = useMemo(() => sparklinePointsFromHistory(recentHistory, 'totalAssets'), [recentHistory]);
+  const cashPoints = useMemo(() => sparklinePointsFromHistory(recentHistory, 'cash'), [recentHistory]);
+  const totalAssetsChange = useMemo(() => { const c = deriveSparklineChange(totalAssetsPoints); return c ? { ...c, points: totalAssetsPoints } : null; }, [totalAssetsPoints]);
+  const cashChange = useMemo(() => { const c = deriveSparklineChange(cashPoints); return c ? { ...c, points: cashPoints } : null; }, [cashPoints]);
+  const growthWeight = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
+  return <div className="asset-allocation-overview">
+    <div className="asset-allocation-overview-primary">
+      <AssetAllocationDonutPanel items={items} totalAssets={m.totalAssets} />
+    </div>
+    <div className="asset-allocation-overview-secondary">
+      <div className="asset-overview-card-grid">
+        <AssetOverviewCard icon={Briefcase} accent="blue" label="總資產" value={money(m.totalAssets)} change={totalAssetsChange} />
+        <AssetOverviewCard icon={TrendingUp} accent="green" label="成長資產" value={pct(growthWeight)} subValue={money(m.growth)} change={null} />
+        <AssetOverviewCard icon={ShieldCheck} accent="red" label="防守資產" value={pct(m.defensiveRatio)} subValue={money(m.defensive)} change={null} />
+        <AssetOverviewCard icon={PieChartIcon} accent="purple" label="現金部位" value={pct(m.cashRatio)} subValue={money(m.cash)} change={cashChange} />
+      </div>
+      {!isMobile && <AssetAllocationDetailTable rows={detailRows} />}
     </div>
   </div>;
 }
@@ -2249,7 +2393,7 @@ function App() {
           <p>Beta {m.beta.toFixed(2)}、防守資產 {pct(m.defensiveRatio)}、槓桿 {m.leverage.toFixed(2)}x。成本與股數會隨持股、現金與自訂目標即時更新。</p>
           <p className="quote-summary"><span>股價更新：{isRefreshingQuotes ? '更新中…' : hasUpdatedQuotes && latestQuoteTime ? twShortTime(latestQuoteTime) : '尚未更新'}</span><strong className={quoteSummaryText === '報價正常' ? 'good' : 'warn'}>{quoteSummaryText}</strong></p>
         </SectionCard>
-        <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AllocationDonut m={m} /></SectionCard>
+        <SectionCard className="page-card for-assets" title="資產配置" isMobile={isMobile} collapsible={false} summary={`成長 ${pct(m.totalAssets ? m.growth / m.totalAssets * 100 : 0)}｜防守 ${pct(m.defensiveRatio)}`}><AssetAllocationOverview m={m} state={state} netWorthHistory={netWorthHistory} isMobile={isMobile} /></SectionCard>
         <div className="for-assets"><AllocationPresetSummary preset={state.allocationPreset} /></div>
         <Card className="page-card for-assets" title="新增持股">
           <p className="note">新增合法台股代號後會存入本機持股清單；按「更新股價」時會逐一呼叫目前 Worker 查價。已清倉資產可封存，保留給股息歷史使用。</p>
