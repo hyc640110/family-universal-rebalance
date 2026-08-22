@@ -84,12 +84,12 @@ test('UR-TODO-073 market up/down classes are retokenized only — mapping and un
   assert.ok(marketDown && success, 'both tokens must be defined');
 });
 
-test('UR-TODO-073 HoldingDetailDialog (UR-TODO-072 contract) shell classnames are all still present, only retokenized', () => {
+test('UR-TODO-073 / UR-TODO-075 HoldingDetailDialog keeps its shell and uses the approved full-screen mobile Detail contract', () => {
   for (const cls of ['.holding-detail-backdrop', '.holding-detail-dialog', '.holding-detail-header', '.holding-detail-close', '.holding-detail-body']) {
     assert.match(styles, new RegExp(cls.replace('.', '\\.') + '\\{'));
   }
-  // Desktop centered modal vs Mobile near-full-height sheet breakpoint switch (768px) must be unchanged.
-  assert.match(styles, /@media \(max-width: 768px\) \{[\s\S]*?\.holding-detail-dialog\{max-width:none;width:100%;height:96dvh;max-height:96dvh/);
+  // Desktop stays a centered dialog; the approved UR-TODO-075 mobile contract is a full-screen Detail.
+  assert.match(styles, /@media \(max-width: 768px\) \{[\s\S]*?\.holding-detail-dialog\{max-width:none;width:100%;height:100dvh;max-height:100dvh;border-radius:0/);
 });
 
 test('UR-TODO-073 mobile bottom nav and desktop sidebar structure/classnames are unchanged, only retokenized', () => {
