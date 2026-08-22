@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-21T15:22:17.208317+00:00
+Generated UTC: 2026-08-22T00:49:01.977650+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-21T15:22:17.208317+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `b7022be74a749ba56258f55dd7dcc14ee3caf1513b55bd85213f87543968eeb2`
+- `003_CURRENT_STATUS.md` — SHA-256 `b1897670970ae6857091889076f24126c0985002d892397ab4125c20044fb353`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `eb618ed19c93e5f1f8bf10ff3f730b25954693238f9466976b3d5ab9fd657c45`
+- `008_TODO_BACKLOG.md` — SHA-256 `724af66e3bd2ff57c977919c5d743b96060cc5a7dc4f54bacc9a160652c3871c`
 - `009_CHANGELOG.md` — SHA-256 `9b846815d73957a621e3119c8f403b348de5406fdd73638308ba41007b5ab7d4`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `007fdc54a936563affcf6ee9a9db14d286080b7a03b42b7be1eb79ba5ef4a9e7`
+- `012_AI_HANDOVER.md` — SHA-256 `f9de2a1d80098e0370c076c83a12d91fa25cdcd9df35f9683be0128065b21dc5`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -654,9 +654,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.43
+# Universal Rebalance Current Status v4.44
 
 最後更新：2026-08-21
+
+**新增 UR-TODO-073 Design Polish — Dark Surface / Typography / Visual Hierarchy（2026-08-21，OPEN／PLANNED，純治理建檔，尚未開始開發）。** 使用者於實際使用 Production 後明確提出視覺體感問題（底色可更接近黑色、藍色元素過多導致主次操作層級不清、主要資訊字體偏小、卡片／按鈕／Modal 不夠一致），並提供已確認的「深色模式・字體放大版」設計參考方向，符合 Maintenance Mode 既有 Sprint 觸發條件第 2 項（真實使用 UX friction）與第 5 項（使用者明確提出新的產品需求）。已確認 Backlog 無重複範圍（含 Deferred 清單），現有最大正式編號為 UR-TODO-072（CLOSED），073 為下一個合理編號。Phase 1 正式範圍：Global Design Tokens、Global base typography、共用 Card／Button／Input 樣式、Mobile Bottom Navigation 視覺 polish、Assets Page、Holding Compact Card、Holding Detail Modal／Sheet（僅視覺 presentation）。明確 Non-goals：Navigation IA 重構、Desktop sidebar、Dashboard 資訊架構重做、Light Mode／Theme toggle、任何財務語意或 persistence contract 變更（financial semantic diff = 0，persistence semantic diff = 0）。台股「上漲＝紅、下跌＝綠」市場色彩契約不得反轉，須與 UI success／danger／warning 語意色明確區分為兩個獨立軸線。UR-TODO-072 的 Holding Detail Dialog interaction contract（scroll 還原、focus、`role="dialog"`、safe-area、scroll lock 等）全數保留，本 Todo 只允許改變視覺 presentation。iPhone Safari Preview 真機人工驗收為 Merge 前必要條件，Production 不得在驗收前部署。本輪僅修改 `AI_CONTEXT/**` 治理文件與重建 Bundle，`src/**`／`tests/**`／`package*.json`／`workers/**`／`.github/**` 均 0 diff，未建立功能 Branch。**下一步：等待使用者明確下達「開始開發」後才進入 Phase 1 CSS／UI Contract Audit 與 implementation。** 詳見 `008_TODO_BACKLOG.md` UR-TODO-073 正式條目。
 
 **UR-TODO-072 Holding Card Detail Modal/Sheet 已正式 CLOSED／Production Verified（2026-08-21）。** PR [#406](https://github.com/hyc640110/family-universal-rebalance/pull/406) final head `a25f39359b2b1a7219eccfa13fe78102e1798a1f` 已由 `hyc640110` 於 `2026-08-21T15:16:18Z` 以一般 2-parent merge commit `5e939433c272d87f2a794554f9ec1373a50d4bf3` 合併（parents `614771ffd8013ad7eb8b238fa3cec439c338f54c`／`a25f39359b2b1a7219eccfa13fe78102e1798a1f`；**未使用 admin override**）；`origin/main` 正式基線更新為 `5e939433c272d87f2a794554f9ec1373a50d4bf3`。PR CI Verification run [32495590307](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495590307) success，同 head Preview workflow_dispatch run [32495783281](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32495783281) success，使用者已完成 **iPhone Safari 真機人工驗收，結論 PASS**；merge 後 main Deploy GitHub Pages run [32496693557](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32496693557) success，head 與 merge commit 一致。Production 已唯讀確認 HTTP 200、`environment=github-pages`、deployment sha 一致、持股卡片維持 compact 版面、`.holding-editor` inline 展開區塊零殘留、「詳細」入口正確開啟對應 Dialog、console 無錯誤，驗證全程未寫入任何 Production 使用者資料。Maintenance Mode 生效後第一個由真實 iPhone Production UX friction 觸發的 Sprint：持股卡片「詳細」不再於卡片下方 inline 展開，改為獨立 `HoldingDetailDialog`（Desktop 置中 modal／Mobile 近全高 sheet）。完全重用既有 `updateHolding`／`updateDipAlert`／`toggleFocusedSymbol`／`confirmRemoveHoldingAsset`；`Holding` schema／`AppState`／persistence／`holdingDisplayOrder`／Rebalance／AI Decision／CLEC／Household Liquidity／Financial Event Ledger／attribution 均 0 diff。Preview 測試發現並修正焦點還原造成頁面跳動的缺陷（改用 `focus({ preventScroll: true })`）。新增 19 tests（`test:ci` 已納入 `test:ur-todo-072`）；`test:ur-todo-070`／`071` 重新執行無回歸。詳見 `008_TODO_BACKLOG.md` UR-TODO-072 正式條目。
 
@@ -4233,6 +4235,45 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 **附註（非新 Todo）：FX Production Producer Enable** 維持既有 ADR-010／ADR-013 Controlled Rollout Policy 框架——翻轉 `FX_OPAQUE_PRODUCER_SOURCE_GATE` 對 Production 生效前提（目前 environment guard 使其恆為 OFF）屬獨立、明確授權的 product deployment decision，非新 Todo 編號、不因 UR-TODO-046 CLOSED 或上述任一 follow-up Todo 完成而自動觸發。
 
+### UR-TODO-073 Design Polish — Dark Surface / Typography / Visual Hierarchy
+
+- 優先級：P3（Maintenance / Real-Use-Case Driven Mode 下由真實使用 UX friction 觸發，使用者明確授權開發）
+- 狀態：**OPEN／PLANNED（治理建檔完成，2026-08-21；尚未開始開發，未建立功能 Branch，未修改 `src/**`／`tests/**`）**
+- 提出日期：2026-08-21
+- 背景／觸發依據：使用者於實際使用 Production 後，明確提出四項視覺體感問題：(1) 底色仍可更接近黑色、降低夜間刺眼感；(2) 藍色元素過多，主要／次要操作層級不夠明顯；(3) 主要資訊字體希望再大一些；(4) 卡片、按鈕、Modal／Sheet 希望更一致、更成熟。同時提供已確認的「深色模式・字體放大版」視覺參考圖，並明確選定此方向。同時符合 `003_CURRENT_STATUS.md` Maintenance Mode 既有 Sprint 觸發條件第 **2 項（真實使用 UX friction）**與第 **5 項（使用者明確提出新的產品需求）**。已 grep 全文 `008_TODO_BACKLOG.md`（含 Deferred 清單 012／015／017／018／019／020／024／025／054-C／055／056）確認無現有 Todo 涵蓋此範圍，非重複建檔；現有最大正式編號為 UR-TODO-072（CLOSED／Production Verified），073 為下一個合理編號。
+- 產品目標：改善 Universal Rebalance 實際使用時的視覺舒適度、Mobile 可讀性與全站視覺層級；維持固定深色介面、成熟金融 App 風格，明確不做 Gaming／Cyberpunk 視覺方向。
+- **Phase 1 正式範圍**：
+  1. Global Design Tokens（Color／Typography／Spacing／Radius／Surface／Border／Shadow）
+  2. Global base typography
+  3. 共用視覺樣式：Card／Button／Input
+  4. Mobile Bottom Navigation 視覺 polish（不改 Navigation IA）
+  5. Assets Page
+  6. Holding Compact Card
+  7. Holding Detail Modal／Sheet（僅視覺 presentation，見下方 UR-TODO-072 interaction contract 保留條款）
+  8. `AI_CONTEXT/017_Design_System.md`：待 Phase 1 實際落地後，依「最後實際落地的 implementation」正式補強；本次治理建檔僅記錄 intended contract，不得把尚未實作的具體 CSS 值宣稱為既成事實
+- **Typography 方向（Phase 1 intended design range，非已落地 CSS 事實，供開發驗證目標）**：Page title 22–24px；Section heading 18–20px；Holding name 18–20px；Major amount 18–20px；P/L percentage 17–18px；Body 15–16px；Secondary 13–14px；Caption 12–13px；Button 15–16px。Mobile 優先，不得為 Desktop 資訊密度犧牲 Mobile 可讀性。
+- **Visual Hierarchy（intended contract）**：Holding Card 資訊優先序為「股票名稱 > 主要金額／損益 > 配置比例 > 操作控制」；「詳細」須降為 Secondary Action，不得繼續使用與真正 Primary CTA 相同的大面積亮藍 filled style；Allocation ring 保留但降低視覺權重；Card 層級應主要依 surface contrast／spacing／subtle border 建立，而非大量高對比藍框。需建立至少 Primary／Secondary／Danger／Ghost 四種按鈕視覺層級。
+- **台股金融色彩契約（不可違反）**：市場漲跌語意維持「上漲＝紅、下跌＝綠」，不得因一般西方 Design System「green=positive／red=negative」慣例而反轉。須明確區分 (A) Market semantic color（market-up／market-down）與 (B) UI semantic color（success／danger／warning／info）兩個獨立軸線——例如「刪除／封存」可用 danger red、「操作成功」可用 success green，但不得影響市場價格紅漲綠跌契約。
+- **明確不包含（Non-goals）**：Navigation IA 重構、新增 Desktop sidebar、Dashboard 資訊架構重做、Light Mode、Theme toggle、任何新功能、`Holding` schema 修改、`AppState` financial semantics 修改、localStorage contract 修改、JSON Backup contract 修改、Financial Event Ledger 修改、attribution 修改、Household Liquidity 修改、Rebalance 修改、CLEC 修改、AI Decision 修改、market-data provider 修改、quote calculation 修改、`holdingDisplayOrder` 修改、逢低加碼演算法修改、`focusedSymbols` semantics 修改、transaction formulas 修改、portfolio calculation 修改。核心契約：**financial semantic diff = 0，persistence semantic diff = 0**。
+- **UR-TODO-072 Interaction Contract 保留（不得回歸）**：Holding Detail Sheet／Modal 的 Mobile near-full-height Sheet／Desktop centered Modal、scroll position preservation、`focus({ preventScroll: true })`、`role="dialog"`／`aria-modal="true"`、focus behavior、safe-area handling、background scroll lock、bottom navigation 不遮擋、最後一項可完整捲動、正確 holding context、archive 後正確關閉——本 Todo 僅允許改變其視覺 presentation，不得變動上述 interaction contract 任一項。
+- 依賴：UR-TODO-070／071／072（皆已 CLOSED／Production Verified，現行 `HoldingCompactCard`／`holdingDisplayOrder`／`HoldingOrderHandle`／`HoldingDetailDialog` 渲染與互動路徑為本次視覺 polish 的既有基礎，不得變動其資料與互動語意）。
+- **Phase 1 Acceptance Criteria**：
+  1. 深色背景比目前更接近黑色，但 Card／Input／Modal 仍可清楚分層。
+  2. Mobile 主要資訊字體明顯提升可讀性。
+  3. 「詳細」降為 Secondary Action，不再與 Primary CTA 搶視覺焦點。
+  4. Card 減少框中框與不必要高對比藍色 border。
+  5. Holding Detail Sheet／Modal 視覺層級改善，但 UR-TODO-072 interaction contract 零回歸。
+  6. Mobile Bottom Navigation：active 狀態清楚、inactive muted、active blue 不過度刺眼，且不改 Navigation IA。
+  7. 台股上漲紅／下跌綠不得反轉。
+  8. Responsive 無 horizontal overflow：320×700、390×844、430px width、1000×800、1280×800、1600px width。
+  9. 字體放大後：長股票名稱不破版、長金額不重疊、Card grid 不破壞、Bottom Navigation 不遮內容、Sheet 最底部仍可操作。
+  10. Regression：UR-TODO-070／071／072 既有 contract 持續通過（既有測試全數 pass，無回歸）。
+  11. **iPhone Safari Preview 真機人工驗收為 Merge 前必要條件**。
+  12. **Production 不得在人工驗收前部署**。
+  13. `test:ci`／`npx tsc -b`／`npm run build`／`git diff --check` 全數通過。
+- **Development Workflow 預先契約**：正式進入「開始開發」時才允許從當時最新 `origin/main` 建立／重建 feature branch；先做 CSS／UI Contract Audit，再建立 design tokens，再進行 Phase 1 implementation。不得假設治理建檔當下既有的本機空 branch 到開發當天仍是最新基線；若開發前 `origin/main` 已前進，必須重新同步最新基線後再開始。
+- **已知 pre-existing 未授權草稿（本次治理建檔一併記錄，供下一位 AI／開發者知悉）**：本機曾發現 `feat/ur-todo-073-dark-design-polish` branch 的 working tree 上有一份**未經本輪 Review Mode 授權**的 `src/styles.css` 草稿修改（design tokens／typography／button hierarchy 相關），為避免與本輪純治理範圍混淆，已以 `git stash` 保留（未 commit、未丟棄），訊息前綴 `UR-TODO-073 prep:`。**該草稿不代表本 Todo 已開始開發或已通過任何 Contract Audit**，未來若要繼續，必須先依上方 Development Workflow 契約重新從最新 `origin/main` 開始，並自行判斷該草稿內容是否仍適用，不得直接沿用未經 Audit 的既有 diff。
+
 ### UR-TODO-072 Holding Card Detail Modal/Sheet
 
 - 優先級：P3（Maintenance / Real-Use-Case Driven Mode 下由真實 iPhone Production 使用 UX friction 觸發，使用者明確授權開發）
@@ -5753,7 +5794,15 @@ interface ServiceResult<T> {
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
+## 最新交接快照：UR-TODO-073 Design Polish — Dark Surface / Typography / Visual Hierarchy（OPEN／PLANNED，純治理建檔，2026-08-21）
+
+- 狀態：**UR-TODO-073 已正式建檔為 OPEN／PLANNED，尚未開始開發、未建立功能 Branch、未修改 `src/**`／`tests/**`。** 本輪為純 Review Mode 治理建檔，未 Commit／Push／PR。
+- 觸發依據：使用者實際使用 Production 後提出四項視覺體感問題（底色可更接近黑色、藍色過多導致操作層級不清、主要字體偏小、卡片／按鈕／Modal 不夠一致），並已確認「深色模式・字體放大版」設計方向。符合 Maintenance Mode 既有觸發條件第 2 項（真實使用 UX friction）與第 5 項（使用者明確新產品需求）。已確認無 Backlog 重複範圍，073 為下一個合理編號。
+- Phase 1 正式範圍與 Non-goals、Typography intended range、Visual Hierarchy contract、台股金融色彩契約、UR-TODO-072 interaction contract 保留條款、完整 Acceptance Criteria，皆已正式寫入 `008_TODO_BACKLOG.md` UR-TODO-073 條目，此處不重複列出，請以該條目為準。
+- **重要：本機曾發現一份未經授權的 pre-existing 草稿**——`feat/ur-todo-073-dark-design-polish` branch（本機，尚未 push）working tree 上有一份 `src/styles.css` 的未 commit 修改（design tokens／typography／button hierarchy 相關內容），研判為先前某次被中斷的開發嘗試留下，與本輪明確要求的「Review Mode、`src/**` 0 diff」衝突。**已用 `git stash` 完整保留（未 commit、未丟棄、未套用）**，訊息前綴 `UR-TODO-073 prep:`，可用 `git stash list` 找到。**此草稿不代表 073 已通過 Contract Audit 或已開始正式開發**；下一位 AI／開發者若要正式開始 Phase 1，必須先依標準 Development Mode 流程（唯讀初始化 → 最新 origin/main → 新 Branch → CSS/UI Contract Audit → 實作）重新走一遍，並自行判斷該 stash 內容的技術品質是否可用，不得直接 pop 沿用未經稽核的既有 diff 當作已完成的 Phase 1 產出。
+- 下一位 AI／使用者：**UR-TODO-073 尚未開始開發，不得未經使用者明確下達「開始開發」自行建立功能 Branch 或開始 Phase 1 implementation。** 若使用者要求開始，先依 `008_TODO_BACKLOG.md` UR-TODO-073 的 Development Workflow 預先契約，從當時最新 `origin/main` 重新確認基線，再進行 CSS／UI Contract Audit。
+
+## 前一交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
 
 ### 正式決策
 **UR-TODO-072 = CLOSED／Production Verified。** iPhone Safari 真機人工驗收 PASS；PR #406 已 Merge；Production Deploy 成功並完成唯讀驗證。

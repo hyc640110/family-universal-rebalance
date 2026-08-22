@@ -1,4 +1,28 @@
-:root{font-family:Inter,'Noto Sans TC',system-ui,sans-serif;color:#eaf3ff;background:#071221;--font-eyebrow:12px;--font-badge:13px;--font-helper:14px;--font-caption:12px;--font-interactive-small:13px;--font-form-label:14px}
+:root{font-family:Inter,'Noto Sans TC',system-ui,sans-serif;color:var(--text-primary);background:var(--bg-page);--font-eyebrow:12px;--font-badge:13px;--font-helper:14px;--font-caption:12px;--font-interactive-small:14px;--font-form-label:14px}
+/* UR-TODO-073 Design Polish (V7.0E): global dark-surface / typography / visual-hierarchy tokens.
+   Values are intentionally NOT the mockup's raw hex -- tuned against this file's existing WCAG-passing
+   text/border contrast so no downstream selector needs a compensating override. --market-up/-down
+   preserve the existing Taiwan-market red-up/green-down convention (see .up/.down below); they are
+   deliberately a separate axis from --success/--danger (UI outcome semantics), never to be conflated. */
+:root{
+  --bg-page:#0b0f14;--bg-surface:#111827;--bg-surface-2:#151d2a;--bg-surface-inset:#0c141d;
+  --border:#2b3748;--border-subtle:rgba(148,163,184,.16);--border-strong:#3a4a61;
+  --text-primary:#f1f5f9;--text-secondary:#a7b0bf;--text-muted:#7f8a9a;
+  --primary:#2d7bff;--primary-hover:#4a90ff;--primary-soft:rgba(45,123,255,.14);--primary-soft-strong:rgba(45,123,255,.24);
+  --warning:#f59e0b;--warning-soft:rgba(245,158,11,.14);
+  --danger:#ef4444;--danger-soft:rgba(239,68,68,.14);--danger-strong:#7f1d1d;
+  --success:#22c55e;--success-soft:rgba(34,197,94,.14);
+  --market-up:#ff5b5b;--market-down:#43d17a;
+  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;
+  --shadow-card:0 1px 2px rgba(0,0,0,.28);--shadow-modal:0 24px 64px rgba(0,0,0,.6);
+  --font-name:18px;--font-symbol:13px;--font-amount:19px;--font-pnl:18px;--font-button:15px;
+  /* .ai-decision-* (AiDecisionCenterPage) referenced --muted/--card/--line/--accent below with no
+     :root definition anywhere in this file prior to this Sprint -- an undefined custom property that
+     silently fell back to the CSS initial value (transparent background / inherited text color).
+     Aliasing them here is a real, low-risk bug fix bundled into this token pass, not new surface. */
+  --muted:var(--text-secondary);--card:var(--bg-surface);--line:var(--border);--accent:var(--primary)
+}
 /* Mobile Safari and Chrome Android apply automatic "text size adjust" / font-boosting to text
    nodes as a post-layout readability heuristic, outside the CSS cascade — invisible in desktop
    browsers, desktop DevTools responsive mode, and Chromium mobile-UA emulation. Disabling it is
@@ -9,9 +33,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* Form controls don't inherit font-family/font-size from ancestors by default (Chromium's UA
    stylesheet hardcodes button/input/select to its own values regardless of ancestors). */
 button,input,select,textarea{font-family:inherit;font-size:inherit}
-body{margin:0;background:linear-gradient(135deg,#07111f,#0b1b31);min-height:100vh}
+body{margin:0;background:var(--bg-page);min-height:100vh}
 main{max-width:1320px;margin:auto;padding:28px}
-.hero{display:flex;justify-content:space-between;gap:24px;align-items:center;background:linear-gradient(135deg,#142f5d,#0d1e37);border:1px solid #1d3d66;border-radius:24px;padding:34px;margin-bottom:18px;box-shadow:0 20px 80px #0005}
+.hero{display:flex;justify-content:space-between;gap:24px;align-items:center;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:34px;margin-bottom:18px;box-shadow:var(--shadow-card)}
 .hero-actions{display:grid;grid-template-columns:1fr;gap:8px;width:min(420px,100%);min-width:0}
 .hero-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:44px;padding:9px 10px;white-space:nowrap}
 .hero-actions .hero-refresh{background:#2563eb}
@@ -36,20 +60,27 @@ h3{margin:0 0 10px}
    element type, so there is no structural difference left to drift. appearance:none/-webkit-appearance:
    none strips native <button> chrome (which otherwise resists explicit height); the fixed px height (not
    em-relative) keeps the box size independent of whatever a given browser does with font rendering. */
-button{border:0;border-radius:10px;background:#2563eb;color:white;font-weight:800;font-size:var(--font-interactive-small);padding:10px 16px;height:37px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
+/* UR-TODO-073: base <button> stays the Primary visual tier (solid --primary fill) -- the many
+   dark-surface/bordered buttons throughout this file (holding-edit-button, assets-quote-refresh,
+   analytics-view-toggle, etc.) are the existing Secondary tier and already override background/border
+   per selector, so retokenizing just this base rule raises their contrast without touching their JSX. */
+button{border:0;border-radius:var(--radius-sm);background:var(--primary);color:white;font-weight:700;font-size:var(--font-button);padding:10px 16px;height:37px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1.3;appearance:none;-webkit-appearance:none}
 button:hover{filter:brightness(1.12)}
 button:disabled{cursor:not-allowed;opacity:.45;filter:none}
-button.active{background:#3b82f6}
-button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
+button.active{background:var(--primary-hover)}
+button:focus-visible{outline:2px solid var(--primary-hover);outline-offset:2px}
+button.small,.small{padding:8px 12px;font-size:13px;border-radius:var(--radius-sm)}
+button.ghost{background:transparent;color:var(--text-secondary);box-shadow:none}
+button.ghost:hover{background:var(--bg-surface-2);color:var(--text-primary);filter:none}
 .import-preview>div{min-width:0}.import-preview-category,.import-preview-suggestion{display:inline-flex;align-items:center;gap:6px;min-width:0;vertical-align:middle}.import-preview-category{flex-wrap:wrap}.import-preview-category select{min-width:0;max-width:100%}.import-preview-suggestion{flex-wrap:wrap}.import-preview-suggestion-copy{min-width:0;overflow-wrap:anywhere}
 .import-reconciliation-preview{min-width:0;overflow-wrap:anywhere}
 @media(max-width:700px){.import-preview-category,.import-preview-suggestion{display:flex;margin-top:6px}.import-preview-suggestion{flex-direction:column;align-items:flex-start}.import-preview-suggestion button{max-width:100%;align-self:flex-start}}
 .visually-hidden-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.danger{background:#7f1d1d}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.stat,.card,.holding{background:#102033;border:1px solid #1d3d66;border-radius:14px;padding:16px}
-.stat small{display:block;color:#8da3bd}
+.danger{background:var(--danger-strong)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3)}
+.stat,.card,.holding{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);box-shadow:var(--shadow-card)}
+.stat small{display:block;color:var(--text-secondary)}
 .stat b{font-size:24px}
 .stat b .safety-container {
   display: flex;
@@ -70,34 +101,42 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
     font-size: 15px !important;
   }
 }
-.up,.bad{color:#ff5b5b}
-.down,.good{color:#43d17a}
+/* UR-TODO-073: retokenized only -- mapping unchanged. Taiwan market convention shang-zhang=red,
+   xia-die=green is preserved exactly (.up/.bad still resolve to --market-up red, .down/.good still
+   --market-down green); this is not the same axis as --success/--danger (UI outcome semantics) even
+   though .bad and .good happen to share these class names/colors with the market direction classes. */
+.up,.bad{color:var(--market-up)}
+.down,.good{color:var(--market-down)}
 .warn{color:#ffd166}
-.hold{color:#9fb3c8}
+.hold{color:var(--text-secondary)}
 .card{margin:16px 0}
 .collapsible-card{padding:0;overflow:hidden}
-.section-toggle-row{display:flex;align-items:stretch;gap:8px;background:#102033;border-radius:12px;padding:0 8px 0 0}
+.section-toggle-row{display:flex;align-items:stretch;gap:8px;background:var(--bg-surface);border-radius:var(--radius-lg);padding:0 8px 0 0}
 .section-toggle-row .section-toggle{min-width:0;flex:1}
 .section-card-action{display:flex;align-items:center;flex:0 0 auto}
-.section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#102033;color:#eaf3ff;border-radius:12px;padding:13px 14px;text-align:left}
+.section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-surface);color:var(--text-primary);border-radius:var(--radius-lg);padding:13px 14px;text-align:left}
 .section-toggle-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
-.section-toggle-title,.section-toggle-title>span{font-size:1rem;font-weight:900;overflow-wrap:anywhere}
+.section-toggle-title,.section-toggle-title>span{font-size:1.05rem;font-weight:700;overflow-wrap:anywhere}
 .section-toggle> b{font-size:.78rem;color:#93c5fd;white-space:nowrap}
 .section-toggle-eye{display:inline-flex;align-items:center;gap:4px}
 .section-toggle-status .section-status{display:inline-flex;align-items:center;min-height:24px;padding:3px 7px;border:1px solid currentColor;border-radius:999px;font-size:12px;font-weight:900;line-height:1.2}
-.section-summary{margin:0;padding:0 14px 13px;color:#9fb3c8;line-height:1.45;overflow-wrap:anywhere}
+.section-summary{margin:0;padding:0 14px 13px;color:var(--text-secondary);line-height:1.45;overflow-wrap:anywhere}
 .section-content{padding:0 14px 14px}
-.assets-quote-refresh{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 10px;white-space:nowrap;background:#2563eb;color:#fff;border-color:#60a5fa;box-shadow:none}
+.assets-quote-refresh{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 10px;white-space:nowrap;background:var(--primary);color:#fff;border-color:var(--primary-hover);box-shadow:none}
 .assets-quote-refresh:disabled{opacity:.7;cursor:wait}
 .assets-pull-refresh-surface{touch-action:pan-y}
-.asset-quote-provenance{margin:0 0 12px;padding:10px 12px;border:1px solid #1d3d66;border-radius:10px;background:#09182a;color:#cfe4ff}
-.asset-quote-provenance p{margin:0;color:#dbeafe;font-size:13px;line-height:1.45}.asset-quote-provenance ul{display:grid;gap:6px;margin:8px 0 0;padding:0;list-style:none}.asset-quote-provenance li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;min-width:0;color:#9fb3c8;font-size:12px;line-height:1.4}.asset-quote-provenance li b{color:#eaf3ff}.asset-quote-provenance li span{overflow-wrap:anywhere}
+.asset-quote-provenance{margin:0 0 12px;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface-2);color:#cfe4ff}
+.asset-quote-provenance p{margin:0;color:#dbeafe;font-size:13px;line-height:1.45}.asset-quote-provenance ul{display:grid;gap:6px;margin:8px 0 0;padding:0;list-style:none}.asset-quote-provenance li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;min-width:0;color:var(--text-secondary);font-size:12px;line-height:1.4}.asset-quote-provenance li b{color:var(--text-primary)}.asset-quote-provenance li span{overflow-wrap:anywhere}
 .holdings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .holding-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0;line-height:1.25;min-width:0}
-.holding-symbol{color:#fff;font-size:22px;font-weight:950;letter-spacing:.01em}
-.holding-name{color:#9fb3c8;font-size:15px;font-weight:800;overflow-wrap:anywhere}
-.quote-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:10px 12px;margin:10px 0 0;min-width:0}
-.quote-summary span{color:#8da3bd;font-size:12px}
+/* UR-TODO-073: swap visual prominence -- holding name is most important (primary, larger), symbol is
+   secondary metadata next to it. HoldingDetailDialog's own header (see .holding-detail-header h2
+   .holding-symbol below) already treated symbol as small/secondary before this Sprint; this brings the
+   compact card in line with that existing precedent instead of introducing a third convention. */
+.holding-symbol{color:var(--text-secondary);font-size:var(--font-symbol);font-weight:500;letter-spacing:.01em}
+.holding-name{color:var(--text-primary);font-size:var(--font-name);font-weight:700;overflow-wrap:anywhere}
+.quote-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px 12px;margin:10px 0 0;min-width:0}
+.quote-summary span{color:var(--text-secondary);font-size:12px}
 .quote-summary strong{font-size:14px;line-height:1.35;text-align:right}
 .quote-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .quote-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:900;line-height:1.2}
@@ -106,49 +145,54 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .quote{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:20px;margin:10px 0}
 .quote span{font-size:15px;font-weight:800;text-align:right}
 .holding-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px}
-.holding-metric{background:#09182a;border:1px solid #1d3d66;border-radius:12px;padding:10px;min-width:0}
-.holding-metric span{display:block;color:#8da3bd;font-size:12px;margin-bottom:6px}
-.holding-metric strong{display:block;color:#eaf3ff;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
-.holding-metric strong.up{color:#ff5b5b}
-.holding-metric strong.down{color:#43d17a}
-.holding-metric strong.hold{color:#9fb3c8}
+.holding-metric{background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px;min-width:0}
+.holding-metric span{display:block;color:var(--text-secondary);font-size:12px;margin-bottom:6px}
+.holding-metric strong{display:block;color:var(--text-primary);font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.holding-metric strong.up{color:var(--market-up)}
+.holding-metric strong.down{color:var(--market-down)}
+.holding-metric strong.hold{color:var(--text-secondary)}
 .holding-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0}
 .holding-mobile-summary{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;min-width:0}
 .holding-card-title{min-width:0}.holding-card-title .quote-meta{margin:7px 0 0}
-.holding-edit-button{flex:0 0 auto;min-height:36px;padding:7px 10px;border:1px solid #315b8d;background:#173b66;color:#dbeafe;font-size:13px;box-shadow:none}
-.holding-edit-button:hover{background:#214f85;filter:none}
+/* UR-TODO-073 section 8E: the "詳細" button is a Secondary action (surface + subtle border), never a
+   Primary filled CTA -- kept as its own selector rather than the shared button.small utility because
+   its sizing/placement is grid-driven per breakpoint (see the 901px+ and mobile overrides below). */
+.holding-edit-button{flex:0 0 auto;min-height:36px;padding:7px 10px;border:1px solid var(--border);background:var(--bg-surface-2);color:var(--text-primary);font-size:14px;font-weight:600;box-shadow:none}
+.holding-edit-button:hover{background:var(--primary-soft);border-color:var(--primary);filter:none}
 .holding-quote-error{margin:8px 0 0}
 .holding-card-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
 .holding-card-identity{display:flex;align-items:center;gap:9px;grid-column:1/-1;min-width:0}
 .holding-card-identity .holding-title{min-width:0}.holding-card-identity .holding-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.holding-order-handle{width:32px;height:32px;min-width:32px;min-height:0;padding:0;justify-self:end;align-self:center;display:grid;place-items:center;border:1px solid #315b8d;border-radius:6px;background:#173b66;color:#dbeafe;box-shadow:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.holding-order-handle:hover{background:#214f85;filter:none}
-.holding-order-handle:active,.holding-order-handle.is-dragging{cursor:grabbing;background:#2563eb;border-color:#5b8def}
-.holding-compact.is-dragging{opacity:.6;box-shadow:0 0 0 2px #5b8def inset}
-.holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid #1d3d66;border-radius:9px;background:#09182a}
-.holding-card-detail>span{display:block;margin-bottom:3px;color:#8da3bd;font-size:11px;font-weight:800;line-height:1.25}
-.holding-card-detail>strong{display:block;min-width:0;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
-.holding-card-price>strong.up{color:#ff5b5b}
-.holding-card-price>strong.down{color:#43d17a}
-.holding-card-price>strong.hold{color:#9fb3c8}
+.holding-order-handle{width:32px;height:32px;min-width:32px;min-height:0;padding:0;justify-self:end;align-self:center;display:grid;place-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface-2);color:var(--text-primary);box-shadow:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.holding-order-handle:hover{background:var(--primary-soft);filter:none}
+.holding-order-handle:active,.holding-order-handle.is-dragging{cursor:grabbing;background:var(--primary);border-color:var(--primary-hover);color:#fff}
+.holding-compact.is-dragging{opacity:.6;box-shadow:0 0 0 2px var(--primary-hover) inset}
+.holding-card-detail{min-width:0;margin:0;padding:8px 9px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface-2)}
+.holding-card-detail>span{display:block;margin-bottom:3px;color:var(--text-secondary);font-size:11px;font-weight:700;line-height:1.25}
+.holding-card-detail>strong{display:block;min-width:0;color:var(--text-primary);font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.holding-card-price>strong.up{color:var(--market-up)}
+.holding-card-price>strong.down{color:var(--market-down)}
+.holding-card-price>strong.hold{color:var(--text-secondary)}
 .holding-quote-percent{display:inline;margin-left:4px;font-size:12px;font-weight:700;white-space:nowrap}
-.holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:#ff5b5b}
-.holding-card-today-change>strong.down,.holding-card-unrealized-pnl>strong.down{color:#43d17a}
-.holding-card-today-change>strong.hold,.holding-card-unrealized-pnl>strong.hold{color:#9fb3c8}
+.holding-card-today-change>strong.up,.holding-card-unrealized-pnl>strong.up{color:var(--market-up)}
+.holding-card-today-change>strong.down,.holding-card-unrealized-pnl>strong.down{color:var(--market-down)}
+.holding-card-today-change>strong.hold,.holding-card-unrealized-pnl>strong.hold{color:var(--text-secondary)}
 .holding-card-unrealized-pnl{min-width:0}
-.holding-card-unrealized-pnl strong{display:flex;flex-wrap:wrap;gap:2px 5px;white-space:normal;overflow-wrap:anywhere}
+.holding-card-unrealized-pnl strong{display:flex;flex-wrap:wrap;gap:2px 5px;white-space:normal;overflow-wrap:anywhere;font-size:var(--font-pnl);font-weight:700}
 /* UR-TODO-002 item 5: distinguish 未實現損益 from 今日漲跌 via container weight (tint + accent border), not a new color family. */
-.holding-card-unrealized-pnl-up{background:rgba(255,91,91,.12);border-color:#ff5b5b;border-left-width:3px}
-.holding-card-unrealized-pnl-down{background:rgba(67,209,122,.12);border-color:#43d17a;border-left-width:3px}
-.holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.08);border-color:#9fb3c8;border-left-width:3px}
+.holding-card-unrealized-pnl-up{background:rgba(255,91,91,.12);border-color:var(--market-up);border-left-width:3px}
+.holding-card-unrealized-pnl-down{background:rgba(67,209,122,.12);border-color:var(--market-down);border-left-width:3px}
+.holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.08);border-color:var(--border);border-left-width:3px}
 .holding-card-summary>.holding-edit-button{justify-self:end;min-height:32px;padding:5px 10px}
 .holding-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
-.holding-snapshot>div{min-width:0;padding:10px;background:#09182a;border:1px solid #1d3d66;border-radius:10px}
-.holding-snapshot span{display:block;color:#8da3bd;font-size:12px;margin-bottom:5px}
-.holding-snapshot strong{display:block;color:#eaf3ff;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
-.holding-snapshot strong.up{color:#ff5b5b}.holding-snapshot strong.down{color:#43d17a}.holding-snapshot strong.hold{color:#9fb3c8}
-.holding-mobile-weight{display:grid;place-items:center;align-content:center;width:48px;height:48px;margin:0;border:2px solid #315b8d;border-radius:50%;background:#09182a;text-align:center;line-height:1.1}
-.holding-mobile-weight strong{color:#eaf3ff;font-size:12px;white-space:nowrap}
+.holding-snapshot>div{min-width:0;padding:10px;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm)}
+.holding-snapshot span{display:block;color:var(--text-secondary);font-size:12px;margin-bottom:5px}
+.holding-snapshot strong{display:block;color:var(--text-primary);font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.holding-snapshot strong.up{color:var(--market-up)}.holding-snapshot strong.down{color:var(--market-down)}.holding-snapshot strong.hold{color:var(--text-secondary)}
+/* UR-TODO-073: track/border toned down (--border instead of a saturated blue) so this circle no
+   longer competes with .holding-name for visual weight -- see section 8C in the Sprint brief. */
+.holding-mobile-weight{display:grid;place-items:center;align-content:center;width:48px;height:48px;margin:0;border:2px solid var(--border);border-radius:50%;background:var(--bg-surface-2);text-align:center;line-height:1.1}
+.holding-mobile-weight strong{color:var(--text-primary);font-size:12px;white-space:nowrap}
 .holding-mobile-core{min-width:0}
 .holding-mobile-core .holding-title{gap:6px;flex-wrap:nowrap;min-width:0}
 .holding-mobile-core .holding-symbol{flex:0 0 auto;font-size:18px}
@@ -163,29 +207,33 @@ button.small,.small{padding:8px 12px;font-size:13px;border-radius:8px}
 .holding-mobile-value .holding-edit-button{min-height:28px;padding:3px 8px;border-radius:7px;font-size:11px}
 .holding-editor{margin:0}
 .holding-editor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.holding-editor-summary p{min-width:0;margin:0;padding:8px;border:1px solid #1d3d66;border-radius:8px;background:#09182a}
-.holding-editor-summary span{display:block;color:#8da3bd;font-size:10px}
-.holding-editor-summary strong{display:block;margin-top:3px;color:#eaf3ff;font-size:12px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.holding-editor-summary strong.up{color:#ff5b5b}.holding-editor-summary strong.down{color:#43d17a}.holding-editor-summary strong.hold{color:#9fb3c8}
-.holding-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px}
-.holding-editor-grid label{margin:0}.holding-editor-grid .holding-dip-toggle,.holding-editor-grid .holding-focus-toggle{display:flex;flex-direction:row;align-items:center;align-self:end;min-height:42px;color:#eaf3ff;font-weight:800}
-.holding-dip-toggle input,.holding-focus-toggle input{width:auto}.holding-delete-button{display:inline-flex;align-items:center;gap:5px;margin-top:12px}
+.holding-editor-summary p{min-width:0;margin:0;padding:10px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface-2)}
+.holding-editor-summary span{display:block;color:var(--text-secondary);font-size:11px}
+.holding-editor-summary strong{display:block;margin-top:4px;color:var(--text-primary);font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holding-editor-summary strong.up{color:var(--market-up)}.holding-editor-summary strong.down{color:var(--market-down)}.holding-editor-summary strong.hold{color:var(--text-secondary)}
+.holding-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.holding-editor-grid label{margin:0}.holding-editor-grid .holding-dip-toggle,.holding-editor-grid .holding-focus-toggle{display:flex;flex-direction:row;align-items:center;align-self:end;min-height:44px;color:var(--text-primary);font-weight:700}
+.holding-dip-toggle input,.holding-focus-toggle input{width:auto}.holding-delete-button{display:inline-flex;align-items:center;gap:5px;margin-top:16px}
 /* UR-TODO-072: standalone Detail Modal/Sheet, replacing the old in-card inline expand. Desktop-first
    here (centered modal), overridden to a near-full-height bottom sheet under 768px. z-index 200 sits
    above every existing overlay in this file (desktop sidebar 70, mobile bottom nav 80), so the sheet
    is never occluded by the bottom navigation. Fixed positioning keeps this fully out of document
    flow, so opening/closing never changes the Assets page's height or scroll position. */
-.holding-detail-backdrop{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(3,9,18,.72)}
-.holding-detail-dialog{display:flex;flex-direction:column;width:100%;max-width:680px;max-height:85vh;background:#0c2136;border:1px solid #1d3d66;border-radius:16px;box-shadow:0 20px 60px #000a;overflow:hidden}
-.holding-detail-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #1d3d66;flex:0 0 auto}
-.holding-detail-header h2{margin:0;font-size:16px;display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.holding-detail-header h2 .holding-symbol{font-size:13px;color:#8da3bd}
-.holding-detail-close{flex:0 0 auto;width:36px;height:36px;min-height:0;padding:0;display:grid;place-items:center;border:1px solid #315b8d;border-radius:8px;background:#173b66;color:#dbeafe;box-shadow:none}
-.holding-detail-close:hover{background:#214f85;filter:none}
-.holding-detail-body{flex:1 1 auto;overflow-y:auto;padding:16px 18px calc(18px + env(safe-area-inset-bottom))}
-label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9fb3c8;margin:7px 0}
+/* UR-TODO-073 section 10: backdrop deepened + a touch of blur so it's unambiguous which holding is
+   being edited behind it; dialog surface uses --bg-surface-2 (one step brighter than --bg-page/
+   --bg-surface) so it reads as a clear elevation layer over the Assets page instead of blending in. */
+.holding-detail-backdrop{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(3,7,13,.78);backdrop-filter:blur(2px)}
+.holding-detail-dialog{display:flex;flex-direction:column;width:100%;max-width:680px;max-height:85vh;background:var(--bg-surface-2);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-modal);overflow:hidden}
+.holding-detail-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);flex:0 0 auto}
+.holding-detail-header h2{margin:0;font-size:var(--font-name);font-weight:700;display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary)}
+.holding-detail-header h2 .holding-symbol{font-size:var(--font-symbol);color:var(--text-secondary)}
+.holding-detail-close{flex:0 0 auto;width:36px;height:36px;min-height:0;padding:0;display:grid;place-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);box-shadow:none}
+.holding-detail-close:hover{background:var(--primary-soft);border-color:var(--primary);filter:none}
+.holding-detail-body{flex:1 1 auto;overflow-y:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text-secondary);margin:7px 0}
 label small{color:#93c5fd}
-input,select{width:100%;background:#09182a;border:1px solid #214466;border-radius:10px;color:#eaf3ff;padding:10px}
+input,select{width:100%;min-height:44px;background:var(--bg-surface-inset);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);padding:10px;box-sizing:border-box}
+input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 .two{display:grid;grid-template-columns:1fr;gap:16px}
 .allocation-chart{display:grid;gap:18px}
 .allocation-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -368,12 +416,12 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .holding-compact{min-height:64px;padding:0 14px;background:transparent;border-width:0 0 1px;border-radius:0}
   .holding-compact:first-child{border-top:1px solid #1d3d66}
   .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto auto;gap:6px;align-items:center;min-height:72px}
-  .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:15px;white-space:nowrap}.holding-card-identity .holding-symbol{font-size:16px}
+  .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:var(--font-name);white-space:nowrap}.holding-card-identity .holding-symbol{font-size:var(--font-symbol)}
   .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{padding:4px 8px;border-radius:6px;border-left-width:3px;border-left-style:solid}
-  .holding-card-unrealized-pnl-up{background:rgba(255,91,91,.1);border-left-color:#ff5b5b}
-  .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.1);border-left-color:#43d17a}
-  .holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.07);border-left-color:#9fb3c8}
+  .holding-card-unrealized-pnl-up{background:rgba(255,91,91,.1);border-left-color:var(--market-up)}
+  .holding-card-unrealized-pnl-down{background:rgba(67,209,122,.1);border-left-color:var(--market-down)}
+  .holding-card-unrealized-pnl-hold{background:rgba(159,179,200,.07);border-left-color:var(--border)}
   .holding-card-summary>.holding-edit-button{justify-self:end;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
   /* UR-TODO-071 Decision 2: handle is the row's own independent rightmost operation area — a 9th
      grid track appended after the existing 8 (identity...詳細), never shrinking their minmax
@@ -412,20 +460,20 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   input, select, textarea { font-size: 16px !important; }
   main { width:100%; padding:10px 10px calc(92px + env(safe-area-inset-bottom)); overflow-x:hidden; }
   .hero,.tabs,.card { width:100%; max-width:720px; margin-left:auto; margin-right:auto; }
-  .hero { padding:16px; gap:12px; margin-bottom:10px; border-radius:18px; }
+  .hero { padding:16px; gap:12px; margin-bottom:10px; border-radius:var(--radius-lg); }
   .tabs { margin:10px auto 12px; gap:8px; flex-wrap:wrap; }
   .tabs span { width:100%; margin-left:0; text-align:left; }
   .tabs .sync-bar { font-size:12px; line-height:1.55; max-width:none; }
-  .card { padding:12px; margin:10px auto; border-radius:12px; }
-  h1{font-size:1.65rem!important;line-height:1.2}
-  h2{font-size:1rem;margin-bottom:10px}
-  h3{font-size:1rem}
-  button{min-height:42px;padding:9px 12px;font-size:.9rem!important}
+  .card { padding:14px; margin:10px auto; border-radius:var(--radius-lg); }
+  h1{font-size:1.7rem!important;line-height:1.25}
+  h2{font-size:1.1rem;margin-bottom:10px}
+  h3{font-size:1.05rem}
+  button{min-height:44px;padding:9px 12px;font-size:.95rem!important}
   .collapsible-card{padding:0;overflow:hidden}
-  .section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#102033;color:#eaf3ff;border-radius:12px;padding:13px 14px;text-align:left}
-  .section-toggle span{font-size:1rem;font-weight:900;word-break:keep-all!important}
+  .section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-surface);color:var(--text-primary);border-radius:var(--radius-lg);padding:13px 14px;text-align:left}
+  .section-toggle span{font-size:1.05rem;font-weight:700;word-break:keep-all!important}
   .section-toggle b{font-size:.78rem;color:#93c5fd;white-space:nowrap}
-  .section-summary{margin:0;padding:0 14px 13px;color:#9fb3c8;line-height:1.45}
+  .section-summary{margin:0;padding:0 14px 13px;color:var(--text-secondary);line-height:1.45}
   .section-content{padding:0 12px 12px}
   .section-action{margin-bottom:10px}
   .grid.stats,.loan-summary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%}
@@ -520,9 +568,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
   .footer-debug-details{padding:10px!important}
   .footer-debug-details summary{min-height:44px;align-items:flex-start}
   .footer-debug-details summary small{text-align:left;line-height:1.35}
-  /* UR-TODO-072: near-full-height bottom sheet on mobile instead of the desktop centered modal. */
+  /* UR-TODO-072: near-full-height bottom sheet on mobile instead of the desktop centered modal.
+     UR-TODO-073: radius/border tokenized, no contract change to the sheet's dimensions/edges. */
   .holding-detail-backdrop{align-items:flex-end;padding:0}
-  .holding-detail-dialog{max-width:none;width:100%;height:96dvh;max-height:96dvh;border-radius:16px 16px 0 0;border-width:1px 0 0}
+  .holding-detail-dialog{max-width:none;width:100%;height:96dvh;max-height:96dvh;border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-width:1px 0 0}
   .holding-detail-header{padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
   .holding-detail-body{padding:14px 16px calc(24px + env(safe-area-inset-bottom))}
 }
@@ -542,22 +591,24 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 /* V3.1 application navigation */
 .app-shell{min-height:100vh}
 .app-content{width:min(1180px,calc(100% - 260px));max-width:none;margin:0 24px 0 236px;padding:28px 0 56px}
-.desktop-sidebar{position:fixed;inset:0 auto 0 0;z-index:70;width:212px;padding:22px 16px;background:rgba(7,18,33,.98);border-right:1px solid #1d3d66;box-shadow:12px 0 34px #0005;display:flex;flex-direction:column;gap:28px}
+/* UR-TODO-073 section 12: inactive = muted, active = primary blue, but active background is a soft
+   tint (not a bright solid fill) so it doesn't compete with the current page's own content. */
+.desktop-sidebar{position:fixed;inset:0 auto 0 0;z-index:70;width:212px;padding:22px 16px;background:var(--bg-surface);border-right:1px solid var(--border-subtle);box-shadow:12px 0 34px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:28px}
 .sidebar-brand{display:flex;align-items:center;gap:11px;min-width:0}
 .sidebar-brand>div{display:grid;gap:3px;min-width:0}
 .sidebar-brand strong{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
-.sidebar-brand small{color:#8da3bd}
-.sidebar-mark{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:11px;background:#2563eb;color:white;font-weight:950}
+.sidebar-brand small{color:var(--text-secondary)}
+.sidebar-mark{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:var(--radius-md);background:var(--primary);color:white;font-weight:800}
 .desktop-sidebar nav{display:grid;gap:8px}
-.sidebar-subnav{display:grid;gap:4px;margin:2px 0 4px 24px}.desktop-sidebar .sidebar-subnav a{min-height:32px;padding:6px 10px;font-size:12px;color:#9fb3c8}.desktop-sidebar .sidebar-subnav a.active{background:#173b66;color:#fff}
-.desktop-sidebar a,.mobile-page-nav a{color:#9fb3c8;text-decoration:none;font-weight:850}
-.desktop-sidebar a{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 13px;border-radius:10px}
-.desktop-sidebar a:hover{background:#102b4b;color:#eaf3ff}
-.desktop-sidebar a.active{background:#2563eb;color:white;box-shadow:0 8px 24px #2563eb45}
+.sidebar-subnav{display:grid;gap:4px;margin:2px 0 4px 24px}.desktop-sidebar .sidebar-subnav a{min-height:32px;padding:6px 10px;font-size:12px;color:var(--text-secondary)}.desktop-sidebar .sidebar-subnav a.active{background:var(--primary-soft);color:var(--text-primary)}
+.desktop-sidebar a,.mobile-page-nav a{color:var(--text-muted);text-decoration:none;font-weight:600}
+.desktop-sidebar a{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 13px;border-radius:var(--radius-sm)}
+.desktop-sidebar a:hover{background:var(--bg-surface-2);color:var(--text-primary)}
+.desktop-sidebar a.active{background:var(--primary-soft-strong);color:var(--text-primary);box-shadow:none}
 .mobile-page-nav{display:none}
-.page-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:0 0 18px;padding:4px 2px 12px;border-bottom:1px solid #1d3d66}
-.page-header h1{font-size:30px;margin:.08em 0}
-.page-header p{margin:.3em 0;color:#9fb3c8}
+.page-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:0 0 18px;padding:4px 2px 12px;border-bottom:1px solid var(--border-subtle)}
+.page-header h1{font-size:30px;font-weight:700;margin:.08em 0;color:var(--text-primary)}
+.page-header p{margin:.3em 0;color:var(--text-secondary)}
 .page-header .eyebrow{font-size:11px;color:#60a5fa}
 .page-stack{min-width:0}
 .page-card{display:none}
@@ -700,9 +751,10 @@ input,select{width:100%;background:#09182a;border:1px solid #214466;border-radiu
 @media (max-width: 1023px){
   .desktop-sidebar{display:none}
   .app-content{width:100%;max-width:none;margin:0;padding:18px 16px calc(92px + env(safe-area-inset-bottom))}
-  .mobile-page-nav{position:fixed;left:0;right:0;bottom:0;z-index:80;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:7px 7px calc(7px + env(safe-area-inset-bottom));background:rgba(7,18,33,.98);border-top:1px solid #1d3d66;box-shadow:0 -10px 30px #0008}
-  .mobile-page-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:50px;border-radius:9px;font-size:12px;line-height:1.2}
-  .mobile-page-nav a.active{color:white;background:#2563eb}
+  .mobile-page-nav{position:fixed;left:0;right:0;bottom:0;z-index:80;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:7px 7px calc(7px + env(safe-area-inset-bottom));background:var(--bg-surface);border-top:1px solid var(--border-subtle);box-shadow:0 -10px 30px rgba(0,0,0,.4)}
+  .mobile-page-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:50px;border-radius:var(--radius-sm);font-size:12px;line-height:1.2;color:var(--text-muted)}
+  /* UR-TODO-073: soft tint instead of a solid bright-blue block -- "Active Blue does not glare" (section 12). */
+  .mobile-page-nav a.active{color:var(--primary-hover);background:var(--primary-soft)}
   .mobile-page-nav span{white-space:nowrap}
   .tool-grid{grid-template-columns:1fr}
 }

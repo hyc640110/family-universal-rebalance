@@ -1,6 +1,14 @@
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
+## 最新交接快照：UR-TODO-073 Design Polish — Dark Surface / Typography / Visual Hierarchy（OPEN／PLANNED，純治理建檔，2026-08-21）
+
+- 狀態：**UR-TODO-073 已正式建檔為 OPEN／PLANNED，尚未開始開發、未建立功能 Branch、未修改 `src/**`／`tests/**`。** 本輪為純 Review Mode 治理建檔，未 Commit／Push／PR。
+- 觸發依據：使用者實際使用 Production 後提出四項視覺體感問題（底色可更接近黑色、藍色過多導致操作層級不清、主要字體偏小、卡片／按鈕／Modal 不夠一致），並已確認「深色模式・字體放大版」設計方向。符合 Maintenance Mode 既有觸發條件第 2 項（真實使用 UX friction）與第 5 項（使用者明確新產品需求）。已確認無 Backlog 重複範圍，073 為下一個合理編號。
+- Phase 1 正式範圍與 Non-goals、Typography intended range、Visual Hierarchy contract、台股金融色彩契約、UR-TODO-072 interaction contract 保留條款、完整 Acceptance Criteria，皆已正式寫入 `008_TODO_BACKLOG.md` UR-TODO-073 條目，此處不重複列出，請以該條目為準。
+- **重要：本機曾發現一份未經授權的 pre-existing 草稿**——`feat/ur-todo-073-dark-design-polish` branch（本機，尚未 push）working tree 上有一份 `src/styles.css` 的未 commit 修改（design tokens／typography／button hierarchy 相關內容），研判為先前某次被中斷的開發嘗試留下，與本輪明確要求的「Review Mode、`src/**` 0 diff」衝突。**已用 `git stash` 完整保留（未 commit、未丟棄、未套用）**，訊息前綴 `UR-TODO-073 prep:`，可用 `git stash list` 找到。**此草稿不代表 073 已通過 Contract Audit 或已開始正式開發**；下一位 AI／開發者若要正式開始 Phase 1，必須先依標準 Development Mode 流程（唯讀初始化 → 最新 origin/main → 新 Branch → CSS/UI Contract Audit → 實作）重新走一遍，並自行判斷該 stash 內容的技術品質是否可用，不得直接 pop 沿用未經稽核的既有 diff 當作已完成的 Phase 1 產出。
+- 下一位 AI／使用者：**UR-TODO-073 尚未開始開發，不得未經使用者明確下達「開始開發」自行建立功能 Branch 或開始 Phase 1 implementation。** 若使用者要求開始，先依 `008_TODO_BACKLOG.md` UR-TODO-073 的 Development Workflow 預先契約，從當時最新 `origin/main` 重新確認基線，再進行 CSS／UI Contract Audit。
+
+## 前一交接快照：UR-TODO-072 Holding Card Detail Modal/Sheet（CLOSED／Production Verified，2026-08-21）
 
 ### 正式決策
 **UR-TODO-072 = CLOSED／Production Verified。** iPhone Safari 真機人工驗收 PASS；PR #406 已 Merge；Production Deploy 成功並完成唯讀驗證。
