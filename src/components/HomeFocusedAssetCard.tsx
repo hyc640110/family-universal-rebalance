@@ -47,12 +47,14 @@ export default function HomeFocusedAssetCard({ data, ladder }: Props) {
       : <p className="dashboard-support-line">{data.message}</p>}
 
     <div className={`dashboard-focused-asset-ladder dashboard-focused-asset-ladder-${ladder.status}`} aria-label="逢低加碼自動追蹤">
-      <p className="dashboard-focused-asset-ladder-heading"><LineChart size={15} aria-hidden="true" className="dashboard-focused-asset-ladder-icon" />逢低加碼自動追蹤{isLadderTracking && <span className="dashboard-focused-asset-ladder-badge">追蹤中</span>}</p>
-      <div className="dashboard-metric-columns dashboard-focused-asset-ladder-columns">
-        <div><span>目前高點</span><strong>{price(ladder.highWaterMark)}</strong></div>
-        <div><span>現價</span><strong>{price(ladder.currentPrice)}</strong></div>
-        <div><span>回撤</span><strong className={ladder.status === 'action-needed' ? 'warn' : 'good'}>{pct(ladder.drawdownPct, true)}</strong></div>
-        {ladder.status === 'normal' && ladder.nextLevelGapPct !== null && <div><span>下一級門檻</span><strong>{pct(ladder.nextLevelGapPct)}</strong></div>}
+      <div className="dashboard-focused-asset-ladder-row">
+        <p className="dashboard-focused-asset-ladder-heading"><LineChart size={15} aria-hidden="true" className="dashboard-focused-asset-ladder-icon" />逢低加碼自動追蹤{isLadderTracking && <span className="dashboard-focused-asset-ladder-badge">追蹤中</span>}</p>
+        <div className="dashboard-metric-columns dashboard-focused-asset-ladder-columns">
+          <div><span>目前高點</span><strong>{price(ladder.highWaterMark)}</strong></div>
+          <div><span>現價</span><strong>{price(ladder.currentPrice)}</strong></div>
+          <div><span>回撤</span><strong className={ladder.status === 'action-needed' ? 'warn' : 'good'}>{pct(ladder.drawdownPct, true)}</strong></div>
+          {ladder.status === 'normal' && ladder.nextLevelGapPct !== null && <div><span>下一級門檻</span><strong>{pct(ladder.nextLevelGapPct)}</strong></div>}
+        </div>
       </div>
       {ladder.status === 'action-needed' && ladder.triggeredLevel !== null
         ? <>

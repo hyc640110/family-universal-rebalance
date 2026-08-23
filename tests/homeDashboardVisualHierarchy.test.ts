@@ -65,17 +65,47 @@ test('UR-TODO-077 Mobile 2x2 summary grid is untouched (no new media-query overr
   assert.equal(occurrences.length, 1, 'only the pre-existing unconditional rule should define .investment-summary-grid base columns; the mobile 2x2 behaviour comes from the pre-existing @media(max-width:900px) override, which this Sprint must not duplicate or touch');
 });
 
-test('UR-TODO-077 Round 2: 重點標的 desktop layout puts identity (icon/name/cash) and the 目前配置/目標配置/偏離 metric columns in one horizontal row (dashboard-focused-asset-body, flex-direction:row), CTA pinned to the header row', () => {
+test('UR-TODO-077 Round 3: 重點標的 desktop layout gives identity (icon/name/cash) a fixed ~44% share and right-aligns the 目前配置/目標配置/偏離 metric columns (with column dividers) in the remaining space -- not a corner-pinned afterthought', () => {
   const focusedAssetCardSource = readFileSync(new URL('../src/components/HomeFocusedAssetCard.tsx', import.meta.url), 'utf8');
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-header-row">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-body">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-metric-columns">\s*<div><span>目前配置<\/span><strong>\{pct\(data\.currentWeight\)\}<\/strong><\/div>\s*<div><span>目標配置<\/span><strong>\{pct\(data\.targetWeight\)\}<\/strong><\/div>\s*<div><span>偏離<\/span><strong className=\{data\.status === 'action-needed' \? 'warn' : 'good'\}>\{pct\(data\.deviation, true\)\}<\/strong><\/div>\s*<\/div>/);
-  assert.match(styles, /\.dashboard-focused-asset-body\{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body\{display:flex;align-items:center;gap:20px\}/);
+  assert.match(styles, /\.dashboard-focused-asset-name-block\{min-width:0;flex:0 1 44%\}/, 'identity block must claim a real, fixed share of the row width, not just shrink-to-content in a corner');
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{flex:1 1 auto;justify-content:space-between\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:20px;border-left:1px solid var\(--border-subtle\)\}/, 'columns need a visible divider between them, per the TARGET reference');
 });
 
-test('UR-TODO-077 Round 2: Mobile (<=768px) stacks the focused-asset body to a single column and the metric-columns row becomes a full-width evenly-spaced 3-column row, not one run-on line of inline text', () => {
-  assert.match(styles, /@media\(max-width:768px\)\{\s*\.dashboard-focused-asset-body\{flex-direction:column;align-items:stretch\}\s*\.dashboard-metric-columns\{width:100%;justify-content:space-between;gap:10px\}/);
+test('UR-TODO-077 Round 3: the Mobile giant-whitespace bug is fixed at its root cause (identity block flex-basis reset to auto so it sizes to real content height, not the 220px Desktop-only basis), and metrics sit directly under the identity block with only the intended flex gap', () => {
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,400}\.dashboard-focused-asset-body\{flex-direction:column;align-items:stretch;gap:14px\}\s*\.dashboard-focused-asset-name-block\{flex:0 0 auto\}/, 'Mobile must explicitly reset the identity block to flex:0 0 auto -- without this, the Desktop "flex:0 1 44%" flex-basis becomes a HEIGHT basis once flex-direction flips to column, which was exactly this round\'s reported giant Mobile whitespace bug');
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;justify-content:space-between;gap:10px\}/);
   assert.doesNotMatch(styles, /\.dashboard-focused-asset-metrics\{/, 'the old single-line inline-text metrics class from Round 1 must be gone, replaced by the real dashboard-metric-columns layout used on both Desktop and Mobile');
+});
+
+test('UR-TODO-077 Round 3: no fixed min-height/spacer exists anywhere on the focused-asset identity block or body that could reintroduce a disconnect between rendered content height and visual height', () => {
+  const focusedAssetCardCss = styles.slice(styles.indexOf('.dashboard-focused-asset-card{'), styles.indexOf('.sim-chart{'));
+  assert.doesNotMatch(focusedAssetCardCss, /\.dashboard-focused-asset-(body|name-block|header-row)\{[^}]*min-height:(?!0)/, 'no non-zero min-height may be set on these containers -- height must always be driven by real content');
+});
+
+test('UR-TODO-077 Round 3: Desktop dip-tracking row spans the full card width (label fixed-width, metrics column fill the remaining space via flex:1 1 auto), Mobile stacks it to a single column', () => {
+  assert.match(styles, /\.dashboard-focused-asset-ladder-row\{display:flex;align-items:center;gap:24px;flex-wrap:wrap\}/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-heading\{display:flex;align-items:center;gap:6px;margin:0;flex:0 0 auto/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns\{flex:1 1 auto;justify-content:space-between\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-row\{flex-direction:column;align-items:stretch;gap:10px\}/);
+  const focusedAssetCardSource = readFileSync(new URL('../src/components/HomeFocusedAssetCard.tsx', import.meta.url), 'utf8');
+  assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-ladder-row">/);
+});
+
+test('UR-TODO-077 Round 3: Desktop typography is bumped one step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
+  assert.match(styles, /\.dashboard-focused-asset-name-block h2\{margin:0 0 8px;font-size:22px\}/);
+  assert.match(styles, /\.dashboard-metric-columns strong\{display:block;font-size:22px/);
+  assert.match(styles, /\.intelligence-heading h2\{margin:4px 0;font-size:22px\}/);
+  assert.match(styles, /\.investment-summary-grid strong,\.investment-health-grid strong\{display:block;margin-top:6px;color:var\(--text-primary\);font-size:25px/);
+  // the Assets-page shared rule (UR-TODO-076, already Production Verified) must stay untouched at 23px
+  assert.match(styles, /\.asset-overview-card-value\{font-size:23px;line-height:1\.25;overflow-wrap:anywhere\}/);
+  // Mobile must have its own smaller sizes, not inherit the Desktop bump unchanged
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.investment-summary-grid strong,\.investment-health-grid strong\{font-size:20px\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.intelligence-heading h2\{font-size:19px\}/);
 });
 
 test('UR-TODO-077 Round 2: dip-tracking (逢低加碼自動追蹤) has its own icon+heading row and a dedicated horizontal metrics row (高點/現價/回撤[/下一級門檻]), utilizing full card width instead of one narrow sentence', () => {
