@@ -72,9 +72,25 @@ test('UR-TODO-076 deviation coloring reuses the existing allocationTone/tone con
 });
 
 test('UR-TODO-076 responsive breakpoints: >=1025px two-column desktop layout, <=380px mobile card grid safety fallback', () => {
-  assert.match(styles, /@media\(min-width:1025px\)\{\s*\.asset-allocation-overview\{grid-template-columns:minmax\(300px,420px\) minmax\(0,1fr\)/);
-  assert.match(styles, /@media\(min-width:1025px\)[\s\S]{0,220}\.asset-overview-card-grid\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
+  assert.match(styles, /@media\(min-width:1025px\)\{\s*\.asset-allocation-overview\{grid-template-columns:minmax\(280px,360px\) minmax\(0,1fr\)/);
+  assert.match(styles, /@media\(min-width:1025px\)[\s\S]{0,220}\.asset-overview-card-grid\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media\(max-width:380px\)\{\s*\.asset-overview-card-grid\{grid-template-columns:1fr\}/);
+});
+
+test('UR-TODO-076 Round 2: growth/defensive fail-closed summary cards show exactly one empty-state message, not three stacked lines', () => {
+  const assetOverviewCardSection = app.slice(app.indexOf('function AssetOverviewCard'), app.indexOf('/** UR-TODO-076: left-column'));
+  assert.match(assetOverviewCardSection, /\{change && <span className=\{`asset-overview-card-change \$\{changeTone\}`\}>/);
+  assert.doesNotMatch(assetOverviewCardSection, /近1個月資料不足/, 'the redundant per-card "近1個月資料不足" line must be removed; MiniSparkline\'s own empty state is now the single fail-closed message');
+  assert.match(assetOverviewCardSection, /\{change && <span className="asset-overview-card-caption">近1個月<\/span>\}/, 'the trailing 近1個月 caption must only render alongside a real change (real sparkline), never alongside the fail-closed state');
+});
+
+test('UR-TODO-076 Round 2: legend rows are compact list rows (thin separators), not stacked mini-cards', () => {
+  assert.match(styles, /\.asset-allocation-legend-item\{grid-template-columns:8px minmax\(0,1fr\) auto;min-height:auto;padding:8px 4px;background:transparent;border:0;border-radius:6px;border-bottom:1px solid var\(--border-subtle\)\}/);
+});
+
+test('UR-TODO-076 Round 2: mobile donut is scoped-shrunk to this panel only, the Analytics-page AllocationDonut mobile sizing is untouched', () => {
+  assert.match(styles, /\.asset-allocation-donut-panel \.allocation-donut-wrap\{width:min\(230px,64vw\)\}/);
+  assert.match(styles, /\.allocation-donut-wrap\{width:min\(275px,78vw\)\}/, 'the pre-existing general mobile donut-wrap rule (used by AllocationDonut on the Analytics page) must remain unchanged');
 });
 
 test('UR-TODO-076 mobile 2x2 card grid order is 總資產/成長資產 then 防守資產/現金部位 (matches the approved reference layout)', () => {

@@ -796,9 +796,9 @@ function AssetOverviewCard({ icon: Icon, accent, label, value, subValue, change 
     </div>
     <strong className="asset-overview-card-value">{value}</strong>
     {subValue && <span className="asset-overview-card-sub">{subValue}</span>}
-    {change ? <span className={`asset-overview-card-change ${changeTone}`}>{signedMoney(change.delta)}{change.deltaPct !== null && ` (${signedPct(change.deltaPct)})`}</span> : <span className="asset-overview-card-change hold">近1個月資料不足</span>}
+    {change && <span className={`asset-overview-card-change ${changeTone}`}>{signedMoney(change.delta)}{change.deltaPct !== null && ` (${signedPct(change.deltaPct)})`}</span>}
     <MiniSparkline points={change?.points ?? []} tone={changeTone} />
-    <span className="asset-overview-card-caption">近1個月</span>
+    {change && <span className="asset-overview-card-caption">近1個月</span>}
   </div>;
 }
 /** UR-TODO-076: left-column donut+legend panel for the redesigned Assets-page "資產配置" section.
