@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Briefcase, LineChart, Percent, TrendingUp } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Briefcase, LineChart, Percent, TrendingUp } from 'lucide-react';
 import { type DashboardReminder } from '../lib/investmentDashboard';
 import PageFrame from './PageFrame';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
@@ -43,7 +43,11 @@ export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardRem
     <section className={`investment-intelligence-card ${intelligence.overallTone}`} aria-labelledby="investment-intelligence-title">
       <div className="investment-intelligence-row">
         <div className="investment-intelligence-status-block">
-          <header className="intelligence-heading"><AlertTriangle size={18} aria-hidden="true" className={`intelligence-status-icon ${intelligence.overallTone}`} /><div><p className="eyebrow">今日投資狀態</p><h2 id="investment-intelligence-title">{intelligence.overallStatus}</h2><p>{intelligence.title}</p></div><span className={`intelligence-status ${intelligence.overallTone}`}>{intelligence.overallStatus}</span></header>
+          <header className="intelligence-heading">
+            <span className={`dashboard-icon-circle dashboard-icon-circle-${intelligence.overallTone === 'bad' ? 'danger' : 'warning'}`} aria-hidden="true"><AlertCircle size={18} /></span>
+            <div><p className="eyebrow">今日投資狀態</p><h2 id="investment-intelligence-title">{intelligence.overallStatus}</h2><p>{intelligence.title}</p></div>
+            <span className={`intelligence-status ${intelligence.overallTone}`}>{intelligence.overallStatus}</span>
+          </header>
         </div>
         <p className="intelligence-summary">{intelligence.summary}</p>
         <div className="daily-decision-conclusion"><div><p className="eyebrow">今日建議結論</p><h3>{data.todayConclusion}</h3></div></div>
@@ -55,10 +59,10 @@ export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardRem
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">資產快照</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
       <div className="investment-summary-grid investment-summary-grid-compact">
-        <article className="asset-overview-card-blue"><span className="asset-overview-card-icon" aria-hidden="true"><Briefcase size={16} /></span><small>總資產</small><strong className="asset-overview-card-value">{money(data.total)}</strong></article>
-        <article className="asset-overview-card-purple"><span className="asset-overview-card-icon" aria-hidden="true"><LineChart size={16} /></span><small>淨資產</small><strong className="asset-overview-card-value">{money(data.net)}</strong></article>
-        <article className="asset-overview-card-green"><span className="asset-overview-card-icon" aria-hidden="true"><TrendingUp size={16} /></span><small>今日損益</small><strong className={tone(data.dayPnl)}>{money(data.dayPnl, true)}</strong><span>僅計入當日有效報價</span></article>
-        <article className="asset-overview-card-red"><span className="asset-overview-card-icon" aria-hidden="true"><Percent size={16} /></span><small>今日損益率</small><strong className={tone(data.dayPnlRate)}>{pct(data.dayPnlRate, true)}</strong><span>資料不足時不估算</span></article>
+        <article className="asset-overview-card-blue"><div className="dashboard-summary-card-head"><span className="dashboard-icon-circle dashboard-icon-circle-blue" aria-hidden="true"><Briefcase size={16} /></span><small>總資產</small></div><strong className="asset-overview-card-value">{money(data.total)}</strong></article>
+        <article className="asset-overview-card-purple"><div className="dashboard-summary-card-head"><span className="dashboard-icon-circle dashboard-icon-circle-purple" aria-hidden="true"><LineChart size={16} /></span><small>淨資產</small></div><strong className="asset-overview-card-value">{money(data.net)}</strong></article>
+        <article className="asset-overview-card-green"><div className="dashboard-summary-card-head"><span className="dashboard-icon-circle dashboard-icon-circle-green" aria-hidden="true"><TrendingUp size={16} /></span><small>今日損益</small></div><strong className={tone(data.dayPnl)}>{money(data.dayPnl, true)}</strong><span>僅計入當日有效報價</span></article>
+        <article className="asset-overview-card-red"><div className="dashboard-summary-card-head"><span className="dashboard-icon-circle dashboard-icon-circle-red" aria-hidden="true"><Percent size={16} /></span><small>今日損益率</small></div><strong className={tone(data.dayPnlRate)}>{pct(data.dayPnlRate, true)}</strong><span>資料不足時不估算</span></article>
       </div>
     </section>
 
