@@ -143,6 +143,15 @@ test('UR-TODO-077 Round 6: Mobile dip-tracking metrics stay on ONE row (not the 
   assert.doesNotMatch(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/);
 });
 
+test('UR-TODO-077 Round 7: Desktop-only (min-width:769px, the exact mirror of the existing max-width:768px Mobile boundary) widening of the config-metrics and dip-tracking inter-column padding-left from 18px/20px to 32px -- padding-left stays the single spacing source (not an added flex/grid gap), avoiding the Round 4->5 double-spacing bug', () => {
+  assert.match(styles, /@media\(min-width:769px\)\{\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:32px\}\s*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:32px\}\s*\}/);
+});
+
+test('UR-TODO-077 Round 7: the new Desktop spacing override is scoped so it structurally cannot alter Mobile\'s computed padding-left -- Mobile keeps its own explicit 14px (config metrics) / 10px (dip-tracking) overrides inside the untouched @media(max-width:768px) block, which is strictly more specific for any viewport <=768px than the new >=769px rule', () => {
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1400}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile config-metrics padding-left must remain 14px, unchanged by this round');
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:10px\}/, 'Mobile dip-tracking padding-left must remain 10px, unchanged by this round');
+});
+
 test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
   assert.match(styles, /\.dashboard-focused-asset-name-block h2\{margin:0 0 8px;font-size:24px\}/);
   assert.match(styles, /\.dashboard-metric-columns strong\{display:block;font-size:24px/);
