@@ -964,8 +964,15 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
    across all of it -- that (not the divider) was the actual cause of the reported oversized
    horizontal gaps. A grid track sized "auto" sizes the metrics group to its own content and
    right-aligns it against the row's end via justify-self, with no free space left inside it to
-   stretch into. */
-.dashboard-focused-asset-body{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px}
+   stretch into.
+   UR-TODO-077 Round 6: the 2-track version above had no third track to reserve any space after the
+   metrics -- an "auto" track that's the LAST track always ends flush with the row's own right edge,
+   so the metrics group necessarily landed pinned to the card's far right (this was the actual root
+   cause, not divider spacing). A third minmax() track is added purely as reserved empty space so
+   the metrics track ends before the card edge, landing the group in the card's middle-right zone
+   instead. Nothing is rendered in the third cell -- an unfilled grid cell still reserves its track
+   width, it doesn't collapse. */
+.dashboard-focused-asset-body{display:grid;grid-template-columns:minmax(260px,1fr) auto 150px;align-items:center;gap:20px}
 .dashboard-focused-asset-name-block{min-width:0}
 .dashboard-focused-asset-name-block h2{margin:0 0 8px;font-size:24px}
 .dashboard-focused-asset-name-block .dashboard-support-line{margin:0}
@@ -999,7 +1006,12 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
 .dashboard-focused-asset-ladder-heading{position:relative;display:flex;align-items:center;gap:6px;margin:0;flex:0 0 auto;color:var(--primary-hover);font-size:13px;font-weight:800}
 .dashboard-focused-asset-ladder-heading::after{content:'';position:absolute;left:100%;margin-left:12px;top:18%;bottom:18%;width:1px;background:var(--divider-soft)}
 .dashboard-focused-asset-ladder-icon{flex:0 0 auto}
-.dashboard-focused-asset-ladder-columns{flex:1 1 auto;justify-content:space-between}
+/* UR-TODO-077 Round 6: same double-spacing root cause as the Round 5 fix to the config metrics --
+   the shared .dashboard-metric-columns gap:24px was stacking on top of each column's own
+   padding-left:20px divider gutter, AND flex:1 1 auto;justify-content:space-between was stretching
+   the whole group across all remaining row width on top of that. Switched to content-sized
+   (flex:0 0 auto) with gap:0 so padding-left is the only spacing source, same as the config metrics. */
+.dashboard-focused-asset-ladder-columns{flex:0 0 auto;gap:0}
 /* Dividers between 高點/現價/回撤[/下一級門檻] reuse the same centered ::before pattern as the
    重點標的 config metrics above. */
 .dashboard-focused-asset-ladder-columns>div{position:relative}
@@ -1029,15 +1041,16 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   /* Round 5: the label's Desktop-only right-edge divider must not float next to it once the row
      stacks the label above the metrics (there's nothing beside it any more). */
   .dashboard-focused-asset-ladder-heading::after{content:none}
-  /* Round 5: switched from flex-wrap (where wrap points shift with content width, making "is this
-     div first in its line" impossible to know in pure CSS) to a fixed 2-column grid. With a fixed
-     column count the wrap points never move, so :nth-child(2n) reliably identifies "second column
-     of its row" for every possible metric count (3 or 4) and at every Mobile width -- no divider
-     can ever land at the start of a row. */
-  .dashboard-focused-asset-ladder-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;width:100%}
-  .dashboard-focused-asset-ladder-columns>div{min-width:0;padding-left:0}
-  .dashboard-focused-asset-ladder-columns>div+div::before{content:none}
-  .dashboard-focused-asset-ladder-columns>div:nth-child(2n)::before{content:'';position:absolute;left:-7px;top:18%;bottom:18%;width:1px;background:var(--divider-soft)}
+  /* UR-TODO-077 Round 6: Round 5's fixed 2-column grid solved the "divider isolated at the start of
+     a wrapped row" problem, but it did so by wrapping to 2 rows -- which the reference image never
+     asked for; 目前高點/現價/回撤/下一級門檻 must stay one row on Mobile just like Desktop. Reverted
+     to a single flex row with equal-width columns (flex:1 1 0) and the divider is drawn purely as a
+     ::before decoration inside each column's own padding-left gutter (the same pattern already used
+     for the config metrics above) -- the divider is never its own flex/grid item, so it cannot by
+     itself force a second row the way an extra grid column could. */
+  .dashboard-focused-asset-ladder-columns{width:100%}
+  .dashboard-focused-asset-ladder-columns>div{min-width:0;flex:1 1 0}
+  .dashboard-focused-asset-ladder-columns>div+div{padding-left:10px}
   .investment-summary-grid strong,.investment-health-grid strong{font-size:20px}
   .intelligence-heading h2{font-size:19px}
 }

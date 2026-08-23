@@ -70,9 +70,18 @@ test('UR-TODO-077 Round 3: 重點標的 desktop layout gives identity (icon/name
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-header-row">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-body">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-metric-columns">\s*<div><span>目前配置<\/span><strong>\{pct\(data\.currentWeight\)\}<\/strong><\/div>\s*<div><span>目標配置<\/span><strong>\{pct\(data\.targetWeight\)\}<\/strong><\/div>\s*<div><span>偏離<\/span><strong className=\{data\.status === 'action-needed' \? 'warn' : 'good'\}>\{pct\(data\.deviation, true\)\}<\/strong><\/div>\s*<\/div>/);
-  assert.match(styles, /\.dashboard-focused-asset-body\{display:grid;grid-template-columns:minmax\(0,1fr\) auto;align-items:center;gap:20px\}/, 'Round 5: identity claims the flexible 1fr track, metrics claim an auto (content-sized) track -- a grid track cannot be stretched into by its own content the way the old flex:1 1 auto;justify-content:space-between combo was');
+  assert.match(styles, /\.dashboard-focused-asset-body\{display:grid;grid-template-columns:minmax\(260px,1fr\) auto 150px;align-items:center;gap:20px\}/, 'Round 6: a 3rd fixed 150px track is added purely as reserved empty space after the metrics track -- with only 2 tracks (Round 5), the metrics track was always the LAST track and therefore always ended flush with the row/card right edge no matter how it was sized internally, which was the actual root cause of "metrics pinned to the far right", not divider spacing');
   assert.match(styles, /\.dashboard-focused-asset-name-block\{min-width:0\}/);
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{gap:0;justify-self:end\}/, 'metrics group is content-sized (auto grid track) and pinned to the row end, not stretched to fill the remaining row width');
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{gap:0;justify-self:end\}/, 'metrics group is content-sized (auto grid track) and right-aligned within its OWN track -- that track now ends before the card edge (there is a reserved spacer track after it), so the group lands in the middle-right zone instead of the card edge');
+});
+
+test('UR-TODO-077 Round 6: Desktop metrics block does not use margin-left:auto or a full-width/flex:1-style rule to position itself -- position comes purely from the 3-track grid template', () => {
+  assert.doesNotMatch(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{[^}]*margin-left:auto/, 'must not reposition the metrics group with an auto margin hack');
+  // the Desktop (non-media, base) rule specifically must not stretch to full width -- Mobile
+  // legitimately still has its own scoped "width:100%" rule inside the @768px block, which this
+  // check must not false-positive on.
+  const desktopSection = styles.slice(styles.indexOf('.dashboard-focused-asset-body{display:grid'), styles.indexOf('@media(max-width:768px){'));
+  assert.doesNotMatch(desktopSection, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{[^}]*width:100%/, 'must not stretch the metrics group to fill all remaining row width');
 });
 
 test('UR-TODO-077 Round 4: Desktop 重點標的 metric columns have a centered ::before divider (not a full-height border-left) using the --divider-soft token, since --border-subtle\'s .10 alpha was visually invisible against --bg-surface-2', () => {
@@ -101,13 +110,17 @@ test('UR-TODO-077 Round 3: no fixed min-height/spacer exists anywhere on the foc
   assert.doesNotMatch(focusedAssetCardCss, /\.dashboard-focused-asset-(body|name-block|header-row)\{[^}]*min-height:(?!0)/, 'no non-zero min-height may be set on these containers -- height must always be driven by real content');
 });
 
-test('UR-TODO-077 Round 3: Desktop dip-tracking row spans the full card width (label fixed-width, metrics column fill the remaining space via flex:1 1 auto), Mobile stacks it to a single column', () => {
+test('UR-TODO-077 Round 3: Desktop dip-tracking row is one horizontal row, Mobile stacks it to a single column', () => {
   assert.match(styles, /\.dashboard-focused-asset-ladder-row\{display:flex;align-items:center;gap:24px;flex-wrap:wrap\}/);
   assert.match(styles, /\.dashboard-focused-asset-ladder-heading\{position:relative;display:flex;align-items:center;gap:6px;margin:0;flex:0 0 auto/);
-  assert.match(styles, /\.dashboard-focused-asset-ladder-columns\{flex:1 1 auto;justify-content:space-between\}/);
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-row\{flex-direction:column;align-items:stretch;gap:10px\}/);
   const focusedAssetCardSource = readFileSync(new URL('../src/components/HomeFocusedAssetCard.tsx', import.meta.url), 'utf8');
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-ladder-row">/);
+});
+
+test('UR-TODO-077 Round 6: Desktop dip-tracking metrics are content-sized (flex:0 0 auto;gap:0), not stretched across the remaining row width -- the earlier flex:1 1 auto;justify-content:space-between combo (plus the shared gap:24px stacked on top of each column\'s own padding-left:20px divider gutter) is what produced the reported oversized gaps, same root cause as the Round 5 fix to the config metrics', () => {
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns\{flex:0 0 auto;gap:0\}/);
+  assert.doesNotMatch(styles, /\.dashboard-focused-asset-ladder-columns\{[^}]*justify-content:space-between/, 'space-between would stretch the group across all remaining row width again');
 });
 
 test('UR-TODO-077 Round 5: Desktop dip-tracking has a divider between every one of its regions -- 逢低加碼自動追蹤 label vs. metrics group (anchored to the label so it draws inside the row\'s existing 24px gap, adding no extra spacing), and between each of the up-to-4 metric columns (reusing the padding-left+::before pattern)', () => {
@@ -120,10 +133,14 @@ test('UR-TODO-077 Round 5: Desktop dip-tracking has a divider between every one 
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-heading::after\{content:none\}/);
 });
 
-test('UR-TODO-077 Round 5: Mobile dip-tracking metrics use a fixed 2-column grid (not flex-wrap) specifically so wrap points never shift with content width -- this lets :nth-child(2n) reliably mean "second column of its row" for any metric count, guaranteeing a divider never lands at the start of a wrapped row', () => {
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:10px 14px;width:100%\}/);
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/, 'the Desktop between-every-column divider must be explicitly cancelled on Mobile, since it would otherwise also land on the row-starting 3rd item in a 4-item grid');
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div:nth-child\(2n\)::before\{content:'';position:absolute;left:-7px;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
+test('UR-TODO-077 Round 6: Mobile dip-tracking metrics stay on ONE row (not the Round 5 2-column grid, which wrapped 4 items into 2 rows -- never asked for and a regression against the reference image). Equal-width flex columns (flex:1 1 0) plus the divider drawn purely as a ::before decoration inside each column\'s own padding-left gutter -- the divider is never its own flex item, so it cannot by itself force a wrap the way an extra grid column could', () => {
+  assert.doesNotMatch(styles, /\.dashboard-focused-asset-ladder-columns\{display:grid/, 'the Round 5 2-column grid (which wrapped this into 2 rows) must be fully reverted');
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns\{width:100%\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\{min-width:0;flex:1 1 0\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:10px\}/);
+  // the Desktop >div+div::before divider rule is NOT cancelled here (unlike Round 5) -- it is meant
+  // to keep applying on Mobile too, now that there's no separate grid-column divider to conflict with
+  assert.doesNotMatch(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/);
 });
 
 test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
