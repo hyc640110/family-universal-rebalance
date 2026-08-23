@@ -1,5 +1,47 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-078 Phase A Implementation — Draft PR／Awaiting Preview Acceptance（2026-08-23）
+
+- 正式狀態：**UR-TODO-078 Phase A = Implementation complete／Draft PR／Awaiting Preview acceptance。不得寫成 CLOSED 或 Production Verified。** Branch `feat/ur-todo-078-holding-history-foundation` 自 origin/main `adc6902`（含 PR #424）開出。
+- 新增檔案：`src/lib/holdingHistory.ts`（型別、normalize、producer、retention、upsert、equality helper）、`tests/holdingHistory.test.ts`（38 項純函式測試涵蓋 normalize/upsert/retention/availability/歷史完整性）、`tests/holdingHistoryPersistence.test.ts`（`normalizeState`／`backupPayload`／`stateFromBackup` 整合測試）。
+- 修改檔案：`src/App.tsx`（`AppState`／`BackupPayload` 新增 `holdingHistory?`；`normalizeState()`／`backupPayload()`／`stateFromBackup()` 三處接線；`calculateMetrics()` rows 新增 `quoteAvailable` 欄位；新增 producer `useMemo`＋`useEffect`）、`package.json`（新增 `test:ur-todo-078`，納入 `test:ci` chain）。**本輪未接任何 Consumer UI，`/assets` 既有畫面 0 diff。**
+- **開發中發現並修正的真實 bug**：producer effect 最初把「是否需要寫入」的相等性判斷放在 `setState()` updater 內部（仿照 `netWorthHistory` 既有寫法），但 `setState()`（`App.tsx:1371-1381`）**每次呼叫都無條件 `normalizeState()`＋`setStateValue()`**（緊鄰的既有 `dipAlerts` effect 上方註解已明確警告此陷阱），導致 updater 回傳未變更的狀態並不能真正阻止 re-render，形成同步無窮迴圈（Preview 驗證重現 `Maximum update depth exceeded`）。修正：比照 `dipAlerts` effect 既有模式，把相等性判斷移到 `setState()` 呼叫**之前**（用 `stateRef.current`），只在真正需要時才呼叫。已以 `git stash` A/B 測試確認修正正確且與本 Sprint 無關的既有 dev-server 迴圈問題（見下）不是同一件事。
+- **治理揭露（非本 Todo blocking item）**：本機 `dev` launch profile（`preview-deploy` mode，全新/無 localStorage 瀏覽器）本身存在一個**與本 Sprint 無關的既有問題**——載入時 console 重複出現 `Maximum update depth exceeded` 與一筆 404，且 `/assets` 路由會被導回首頁。已以 `git stash` A/B 測試確認**pristine origin/main 在完全相同環境下重現相同錯誤**，故非本 Todo regression。已建立獨立背景任務盤點（`task_c2a68a99`），不佔用本 Todo 範圍。首頁本身正確完整渲染（見 Preview 驗證章節）。
+- 驗證結果：`npm run test:ur-todo-078`（38/38 pass）；`test:ci` chain 除既有已知的 Windows CRLF/LF-only `clecTwReferenceHistoricalValidation.test.ts` 失敗（與本 Sprint 0 diff，`git stash` 前後行為不受影響）外，其餘所有步驟（`test:ci:unit-ts` 1089/1089、`test:ci:unit-mjs`、`test:ci:checks`、`test:ur-todo-016/070/071/072/073/075/076/077` 等）逐一獨立執行皆 pass；`npx tsc -b` 通過；`npm run build`／`npm run build:preview` 皆成功；`git diff --check` 通過；`npm audit --omit=dev --audit-level=high` 顯示 4 項既有依賴（`nanoid`／`postcss`／`react-router`）漏洞，均為**既有、與本 Sprint 無新增依賴變更無關**（`package-lock.json` 0 diff）。
+- Preview 人工驗證：本機 dev server 首頁渲染正確、內容完整（重點標的卡／今日投資狀態／資產快照／狀態確認皆正常顯示），未建立任何 Production 測試持股，驗證全程唯讀。
+- 下一步：等待使用者於 isolated Preview 驗收後授權將 PR 轉為 Ready for review 並手動 Merge；AI 不得自行 Merge 或部署 Production。
+
+## 前一交接快照：UR-TODO-078 Final Contract Reconciliation — Phase A READY FOR DEVELOPMENT（2026-08-23）
+
+- 正式決策：對齊最新 origin/main `adc6902`（含 PR #424 UR-TODO-077 Governance Closeout）後，完成 UR-TODO-078 Phase A 逐行 Persistence／Backup／Sync／Schema Wiring Audit。**UR-TODO-078 Phase A 狀態由「OPEN／NEEDS CONTRACT AUDIT／PLANNED」正式升級為「Phase A = READY FOR DEVELOPMENT」**，仍未開始開發、未建功能 Branch，等待使用者明確下達「開始開發」。編號 UR-TODO-078 經比對 origin/main 最新 `008_TODO_BACKLOG.md` pristine 版本確認**無衝突**，維持不變。
+- 本輪逐行核對修正上一輪兩處錯誤／類推：
+  1. **`quoteAvailable` 定義修正**：正式定義為 `hasPreservedQuote || hasLatestPrice`（`src/App.tsx:549`，與 `calculateMetrics()` 判斷 `price` 是否為「真實市場觀測值」而非 `avgCost` 回退值的同一條件），非上一輪誤寫的僅 `hasLatestPrice`。
+  2. **`SYNCABLE_TOP_LEVEL_FIELDS` 推翻**：逐行核對確認此陣列僅是已退役 Firebase 雲端同步 `baselineFieldFingerprints` 的欄位 allowlist（`src/lib/syncState.ts:33-42`），該機制在現行每個寫入路徑皆被 `withoutRetiredCloudSyncMetadata()` 主動剔除、永不再產生，`holdingHistory` **不需要**加入此陣列，加入也沒有任何功能效果。
+- Persistence Wiring 逐行確認結論：`normalizeState()`（`src/App.tsx:415`）是顯式欄位列舉建構，**不是**通用 spread-through，新 top-level 欄位必須明確解析＋帶出（沿用 `netWorthHistory` 於 `src/App.tsx:448/450` 的既有模式），否則加進 `AppState` type 也不會被實際 persist。寫入路徑：`writeState()`（`App.tsx:477`）→ `localStorage.setItem(STORAGE_KEY, ...)`；讀取路徑：`readStateWithSnapshotView()`（`App.tsx:461-476`）。
+- Backup Wiring 逐行確認結論：`backupPayload()`（`App.tsx:491-498`）／`stateFromBackup()`（`App.tsx:505-529`）皆為顯式欄位列舉，`holdingHistory` 需分別在兩處新增對應行（比照 `netWorthHistory` 於 `App.tsx:498`／`524` 的既有寫法）；舊 Backup 缺欄位時 fallback 為 `undefined`→ 經 `normalizeState()` 正規化為 `[]`。
+- Schema／Version 最終判斷：**A. NO SCHEMA BUMP**，附四點實證（既有五個 `*SchemaVersion` 欄位皆對應獨立模組 breaking-change migration；`focusedSymbols`／`holdingDisplayOrder`／`cashFlowProfile`／`retirementPlan` 等其他 additive top-level 欄位同樣無配對版本欄位；`holdingHistory` 無舊資料需遷移）。
+- Retention 邊界公式明訂：沿用 `historyForRange()`（`netWorthHistory.ts:50`）完全相同公式 `cutoff = shiftCanonicalCalendarDay(canonicalCalendarDay(now), -364)`，`snapshot.date >= cutoff` 即保留，恰好 365 個 canonical calendar day（Asia/Taipei），第 365 天保留、第 366 天淘汰，消除 off-by-one 模糊。
+- Normalize contract 正式補齊：snapshot 層級 malformed（date 非法／holdings 非 array）整筆跳過；entry 層級 malformed（symbol／shares／price／marketValue／assetClass 任一欄位非法）**僅跳過該筆 entry**，不連坐拖垮同日其他健康 entry；duplicate date 採「最後一筆勝出」（`selectLastOccurrenceByDate()`），與 `netWorthHistory` 既有粒度一致。
+- Phase A Development Readiness Gate：Snapshot／Producer／Availability write／Normalize／Retention／Persistence wiring／Backup wiring／Sync wiring／Schema decision／Storage sizing 十項全數 ✅ 明確，**判定 READY FOR DEVELOPMENT**。僅存兩項非阻斷待辦，皆屬 Phase B Consumer Contract Audit 範圍：(1) `quoteAvailable=false` 資料點是否／如何進入 sparkline 計算；(2) Phase B 啟動需等 Phase A 上線累積足夠天數真實 snapshot。
+- 完整 Contract Spec 見 `008_TODO_BACKLOG.md`（v2.5）UR-TODO-078 正式條目。
+- 下一步：等待使用者明確下達「開始開發」後才進入 Phase A 唯讀盤點確認與 implementation；本輪僅修改 `AI_CONTEXT/**` 治理文件並重建 Bundle，`src/**`／`tests/**` 均 0 diff，未建立功能 Branch，未 Commit／Push。
+
+## 前一交接快照：UR-TODO-078 Per-Holding Historical Snapshot Foundation 建檔（OPEN／NEEDS CONTRACT AUDIT／PLANNED，2026-08-23）
+
+- 正式決策：新增 **UR-TODO-078**（下一個可用正式編號，經比對 Backlog 最大編號 UR-TODO-077 後確認無重複），純治理建檔，**未開始開發、未建立功能 Branch、未修改任何 `src/**`／`tests/**`**。完整 Contract Spec 見 `008_TODO_BACKLOG.md` UR-TODO-078 正式條目。
+- 背景：UR-TODO-076 開發前 Contract Audit 已明確拍板「成長資產／防守資產／個股近 1 個月趨勢無逐日持久化資料」時採 fail-closed，不偽造 sparkline；本 Todo 是該決策的正式後續，建立可被未來 Consumer 使用的真實 per-holding 歷史 snapshot 基礎設施。
+- 已拍板的 Snapshot Contract：一天一筆 `HoldingHistorySnapshot { date, holdings: HoldingHistoryEntry[] }`，`HoldingHistoryEntry { symbol, shares, price, marketValue, assetClass, quoteAvailable }`；日期沿用 `canonicalCalendarDay()`（Asia/Taipei，不建立第二套日期邏輯）。
+- Producer Contract：App-observed（非背景排程、非交易所每日收盤），成功取得有效報價後依 `calculateMetrics()` rows 產生今日 snapshot，同日重複更新整筆覆蓋（非逐 holding merge），使用者當天未開 App／未成功更新報價則當天可能無 snapshot（非完整每日收盤資料）。
+- Availability Contract：Quote unavailable 日採**方案 B（保留 entry 並標記 `quoteAvailable=false`，非整日跳過）**，理由與既有 `calculateMetrics()` quote fallback 慣例及 `netWorthHistory` 的 `*Available` boolean 旗標慣例一致，避免方案 A 在「使用者仍持有但報價暫時失敗」時製造假性歷史缺口。
+- Retention Contract：只保留最近 **365 天**，超過自動淘汰（純函式處理於 upsert 內，需 365／366 天 boundary tests）；上線前不存在的 snapshot＝不存在，禁止任何形式 historical backfill；closed／archived holding 舊歷史不追溯刪除。
+- Persistence Contract：`AppState` 新增 additive optional `holdingHistory?: HoldingHistorySnapshot[]`（不覆寫／不重用 `netWorthHistory`，語意不同）；新增獨立 normalization（snapshot 層級 malformed 整筆跳過、entry 層級 malformed 該筆跳過，不互相拖累）；`BackupPayload` 新增對應欄位、Export 條件式寫入、舊 Backup 缺欄位 fallback＝`[]`；`SYNCABLE_TOP_LEVEL_FIELDS` 需新增 `'holdingHistory'`；**判斷不需要 schema version bump**（純 additive 欄位，與 `netWorthHistory` 加入時的既有慣例一致）。
+- Storage Sizing：10／20／50 檔持股 × 365 天估算約 400–470KB／800–950KB／2.0–2.4MB，相對 localStorage 常見 5–10MB 上限有餘裕，目前產品規模（家庭用戶少量持股）無需改 persistence backend。
+- Trend 語意（供未來 Phase B 遵循）：Per-holding 用 `marketValue`（非股價）；Growth／Defensive 聚合須用**每個 snapshot 保存當下的 `assetClass`**（非用「今天的分類」回頭解釋歷史），理由與「歷史資料不可回溯竄改」一致。
+- 分階段：**Phase A＝Foundation（本 Todo，本輪僅完成規格，未開發）**；**Phase B＝Asset Allocation Consumer（per-holding／growth／defensive sparkline，需獨立授權，且需等待 Phase A 上線後累積足夠天數真實 snapshot 才有意義驗收）**，兩者不同 Sprint 交付。
+- 明確不包含：server-side scheduler、background daily job、交易所 daily close history、歷史股價 provider、transaction replay、corporate-action replay、split／dividend reconstruction、365 天以前 backfill、cloud database migration、Firebase revival、auto trading、Rebalance formula 變更。
+- 尚未拍板／待下一輪 Contract Audit 確認之事項（開發前必須先做，非 blocking 本次治理建檔）：localStorage 實際 persist 流程（`normalizeState()`／等義函式）接線位置的唯讀盤點尚未逐行核對程式碼，僅依既有 `netWorthHistory` 慣例類推；`quoteAvailable=false` 資料點在 Consumer trend 計算中的確切處理規則（是否整段標記不連續等）留待 Phase B 開發前另行 Contract Audit。
+- 下一步：等待使用者明確下達「開始開發」後才進入 Phase A 唯讀盤點與 implementation；本輪未更新 `003_CURRENT_STATUS.md` 之外，未修改任何 production code。
+
 ## 最新交接快照：UR-TODO-077 首頁 Desktop/Mobile Visual Hierarchy Refinement Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
 
 - 正式決策：**UR-TODO-077 = CLOSED／Production Verified。** 使用者於 isolated Preview 完成多輪（共 12 輪 UI Refinement）Desktop／Mobile 人工驗收，結論 PASS，並明確授權 Merge。PR [#423](https://github.com/hyc640110/family-universal-rebalance/pull/423) final head `13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c` 已由 `hyc640110` 於 `2026-08-23T09:22:57Z` 以一般 2-parent merge commit `b5297a007d82602acdbdc466476bca7bf88de972`（parents `2a6abbf728bdc4072c0fef09212be1e5eabf4676`／`13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `b5297a007d82602acdbdc466476bca7bf88de972`。
