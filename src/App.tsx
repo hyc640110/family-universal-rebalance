@@ -703,15 +703,20 @@ function getDecisionSummary(rb: ReturnType<typeof rebalance>, orderHelper: Order
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的成長資產部位，避免一次打滿；目前目標為成長資產 ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
-// UR-TODO-076 Round 4 (Accent Boost): each Round 3 color pushed further along the same hue (HSL
-// lightness/saturation raised ~15-20%, never a hue change) so foreground accents read clearly
-// against the still-dark page/surface backgrounds -- every value here was re-verified to have a
-// HIGHER WCAG contrast ratio against --bg-surface-2 than its Round 3 predecessor (never a
-// regression), see UR-TODO-076 Round 4 test coverage. Still the single shared allocationColor()
-// SSOT reused by Donut/Legend/detail-table dot AND the pre-existing Analytics-page AllocationDonut
-// alike -- "同一資產必須使用完全一致的 accent color" only holds with exactly one color source.
-const ALLOCATION_COLORS = ['#7cb0fc', '#4fe9a6', '#fcc66f', '#ef95e3', '#73defc', '#c6e65c', '#fd8e87', '#b287fd', '#fcbb7d', '#5ce3cb'];
-const FIXED_ALLOCATION_COLORS: Record<string, string> = { CASH: '#fbd06a', '00631L': '#ff707b', '0050': '#5c9eff', '00662': '#40e793', '00685L': '#ffa05c', '00865B': '#b49bfd', '00895': '#47e3f5' };
+// UR-TODO-076 Round 5 (Correct Saturation, Reduce Washed-Out Colors): Round 4 raised HSL "S/L"
+// numerically but, measured in OKLCH (the perceptual model), it actually LOST chroma while
+// lightness kept climbing toward white -- every Round 4 color had LOWER OKLCH chroma than its
+// Round 3 predecessor despite the higher raw brightness, which is exactly why Preview read as
+// pastel/washed-out instead of vivid. Round 5 fixes the actual lever: same hue, OKLCH lightness
+// pulled back down (never pushed further up) while chroma is raised toward the sRGB gamut edge at
+// that lightness (pulled back ~8% from the absolute edge to avoid clipping artifacts). Every named
+// color here was re-verified to have BOTH a lower OKLCH L and a higher OKLCH C than its Round 4
+// predecessor, and WCAG contrast against --bg-surface-2 stays >=4.5 (most well above), see
+// UR-TODO-076 Round 5 test coverage. Still the single shared allocationColor() SSOT reused by
+// Donut/Legend/detail-table dot AND the pre-existing Analytics-page AllocationDonut alike --
+// "同一資產必須使用完全一致的 accent color" only holds with exactly one color source.
+const ALLOCATION_COLORS = ['#1d7bf6', '#36da97', '#b58121', '#db29cd', '#279ebb', '#a2c02d', '#f72a39', '#9b5bf6', '#b7701e', '#31c4ad'];
+const FIXED_ALLOCATION_COLORS: Record<string, string> = { CASH: '#f8bd32', '00631L': '#ff4d5f', '0050': '#3388ff', '00662': '#37df88', '00685L': '#ff812b', '00865B': '#9a6cf5', '00895': '#3adff3' };
 function allocationColor(symbol: string) {
   if (FIXED_ALLOCATION_COLORS[symbol]) return FIXED_ALLOCATION_COLORS[symbol];
   const hash = Array.from(symbol).reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 7);
