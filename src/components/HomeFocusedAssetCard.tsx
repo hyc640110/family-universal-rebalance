@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { INVESTMENT_DECISION_ROUTES } from '../lib/toolNavigation';
 import type { HomeFocusedAssetCardData } from '../lib/homeFocusedAssetCard';
 import type { HomeFocusedAssetLadderData } from '../lib/homeFocusedAssetLadderCard';
@@ -18,21 +19,27 @@ const price = (value: number | null) => { const amount = finite(value); return a
 // rather than showing an empty-state shell.
 export default function HomeFocusedAssetCard({ data, ladder }: Props) {
   if (!data || !ladder) return null;
+  // UR-TODO-077: "追蹤中" is derived purely from the already-exposed `ladder.status` — no new
+  // persisted field. `status !== 'unavailable'` covers exactly the cases where the ladder actually
+  // has a usable high-water-mark and is being evaluated ('normal' or 'action-needed'); it is
+  // 'unavailable' whenever tracking is disabled or has no data yet, so the badge never claims an
+  // active state the underlying engine hasn't actually reached.
+  const isLadderTracking = ladder.status !== 'unavailable';
   return <section className={`dashboard-focused-asset-card dashboard-focused-asset-card-${data.status}`} aria-labelledby="dashboard-focused-asset-title">
     <div className="dashboard-section-heading">
-      <div><p className="eyebrow">重點標的</p><h2 id="dashboard-focused-asset-title">{data.name ? `${data.name}（${data.symbol}）` : data.symbol}</h2></div>
+      <div><p className="eyebrow"><Star size={13} aria-hidden="true" className="dashboard-focused-asset-icon" />重點標的</p><h2 id="dashboard-focused-asset-title">{data.name ? `${data.name}（${data.symbol}）` : data.symbol}</h2></div>
       <Link className="dashboard-text-link" to={INVESTMENT_DECISION_ROUTES.rebalanceRecommendation}>查看再平衡建議</Link>
     </div>
     <p className="dashboard-support-line"><span>可投入現金</span> <b>{money(data.investableCash)}</b></p>
-    {data.currentWeight !== null && data.targetWeight !== null && <p className="dashboard-support-line">
-      目前配置 <b>{pct(data.currentWeight)}</b>｜目標配置 <b>{pct(data.targetWeight)}</b>｜偏離 <b className={data.status === 'action-needed' ? 'warn' : 'good'}>{pct(data.deviation, true)}</b>
+    {data.currentWeight !== null && data.targetWeight !== null && <p className="dashboard-support-line dashboard-focused-asset-metrics">
+      <span>目前配置 <b>{pct(data.currentWeight)}</b></span><span>目標配置 <b>{pct(data.targetWeight)}</b></span><span>偏離 <b className={data.status === 'action-needed' ? 'warn' : 'good'}>{pct(data.deviation, true)}</b></span>
     </p>}
     {data.status === 'action-needed' && data.action && data.recommendedAmount !== null
       ? <p className="dashboard-focused-asset-action"><strong>{data.action === 'buy' ? '建議投入' : '建議賣出'}</strong><b>{money(data.recommendedAmount)}</b></p>
       : <p className="dashboard-support-line">{data.message}</p>}
 
     <div className={`dashboard-focused-asset-ladder dashboard-focused-asset-ladder-${ladder.status}`} aria-label="逢低加碼自動追蹤">
-      <p className="dashboard-focused-asset-ladder-heading">逢低加碼自動追蹤</p>
+      <p className="dashboard-focused-asset-ladder-heading">逢低加碼自動追蹤{isLadderTracking && <span className="dashboard-focused-asset-ladder-badge">追蹤中</span>}</p>
       <p className="dashboard-support-line">目前高點 <b>{price(ladder.highWaterMark)}</b>｜現價 <b>{price(ladder.currentPrice)}</b>｜回撤 <b className={ladder.status === 'action-needed' ? 'warn' : 'good'}>{pct(ladder.drawdownPct, true)}</b></p>
       {ladder.status === 'action-needed' && ladder.triggeredLevel !== null
         ? <>

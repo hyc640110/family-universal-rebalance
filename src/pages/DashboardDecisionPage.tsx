@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AlertTriangle, Briefcase, LineChart, Percent, TrendingUp } from 'lucide-react';
 import { type DashboardReminder } from '../lib/investmentDashboard';
 import PageFrame from './PageFrame';
 import type { deriveInvestmentIntelligence } from '../lib/investmentIntelligence';
@@ -40,9 +41,13 @@ export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardRem
     <HomeFocusedAssetCard data={data.focusedAssetCard} ladder={data.focusedAssetLadder} />
 
     <section className={`investment-intelligence-card ${intelligence.overallTone}`} aria-labelledby="investment-intelligence-title">
-      <header className="intelligence-heading"><div><p className="eyebrow">今日投資狀態</p><h2 id="investment-intelligence-title">{intelligence.overallStatus}</h2><p>{intelligence.title}</p></div><span className={`intelligence-status ${intelligence.overallTone}`}>{intelligence.overallStatus}</span></header>
-      <p className="intelligence-summary">{intelligence.summary}</p>
-      <div className="daily-decision-conclusion"><div><p className="eyebrow">今日建議結論</p><h3>{data.todayConclusion}</h3></div></div>
+      <div className="investment-intelligence-row">
+        <div className="investment-intelligence-status-block">
+          <header className="intelligence-heading"><AlertTriangle size={18} aria-hidden="true" className={`intelligence-status-icon ${intelligence.overallTone}`} /><div><p className="eyebrow">今日投資狀態</p><h2 id="investment-intelligence-title">{intelligence.overallStatus}</h2><p>{intelligence.title}</p></div><span className={`intelligence-status ${intelligence.overallTone}`}>{intelligence.overallStatus}</span></header>
+        </div>
+        <p className="intelligence-summary">{intelligence.summary}</p>
+        <div className="daily-decision-conclusion"><div><p className="eyebrow">今日建議結論</p><h3>{data.todayConclusion}</h3></div></div>
+      </div>
     </section>
 
     <CreditCardDueSoonCard reminders={data.creditCardDueSoonReminders} onAcknowledge={onAcknowledgeCreditCardReminder} />
@@ -50,17 +55,17 @@ export default function DashboardDecisionPage({ data, onAcknowledgeCreditCardRem
     <section className="investment-summary-card" aria-labelledby="investment-summary-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">資產快照</p><h2 id="investment-summary-title">資產與今日表現</h2></div><Link className="dashboard-text-link" to="/net-worth-history">查看淨資產歷史</Link></div>
       <div className="investment-summary-grid investment-summary-grid-compact">
-        <article><small>總資產</small><strong>{money(data.total)}</strong></article>
-        <article><small>淨資產</small><strong>{money(data.net)}</strong></article>
-        <article><small>今日損益</small><strong className={tone(data.dayPnl)}>{money(data.dayPnl, true)}</strong><span>僅計入當日有效報價</span></article>
-        <article><small>今日損益率</small><strong className={tone(data.dayPnlRate)}>{pct(data.dayPnlRate, true)}</strong><span>資料不足時不估算</span></article>
+        <article className="asset-overview-card-blue"><span className="asset-overview-card-icon" aria-hidden="true"><Briefcase size={16} /></span><small>總資產</small><strong className="asset-overview-card-value">{money(data.total)}</strong></article>
+        <article className="asset-overview-card-purple"><span className="asset-overview-card-icon" aria-hidden="true"><LineChart size={16} /></span><small>淨資產</small><strong className="asset-overview-card-value">{money(data.net)}</strong></article>
+        <article className="asset-overview-card-green"><span className="asset-overview-card-icon" aria-hidden="true"><TrendingUp size={16} /></span><small>今日損益</small><strong className={tone(data.dayPnl)}>{money(data.dayPnl, true)}</strong><span>僅計入當日有效報價</span></article>
+        <article className="asset-overview-card-red"><span className="asset-overview-card-icon" aria-hidden="true"><Percent size={16} /></span><small>今日損益率</small><strong className={tone(data.dayPnlRate)}>{pct(data.dayPnlRate, true)}</strong><span>資料不足時不估算</span></article>
       </div>
     </section>
 
     {data.reminders.length > 0 && <section className="dashboard-reminders-card" aria-labelledby="dashboard-reminders-title">
       <div className="dashboard-section-heading"><div><p className="eyebrow">狀態確認</p><h2 id="dashboard-reminders-title">有什麼資料或狀態需要確認</h2></div><Link className="dashboard-text-link" to="/settings">設定與備份</Link></div>
       <p className="dashboard-support-line"><span>最後股價更新</span> <b>{quoteTime(data.lastQuoteAt)}</b></p>
-      <ul className="dashboard-reminder-list">{data.reminders.map(item => <li key={item.key} className={item.tone}><strong>{item.title}</strong><span>{item.detail}</span></li>)}</ul>
+      <ul className="dashboard-reminder-list">{data.reminders.map(item => <li key={item.key} className={item.tone}><AlertTriangle size={15} aria-hidden="true" className="dashboard-reminder-icon" /><span><strong>{item.title}</strong><span>{item.detail}</span></span></li>)}</ul>
       <p className="dashboard-support-line"><Link className="dashboard-text-link" to={INVESTMENT_DECISION_ROUTES.investmentActionCenter}>{data.opportunities.length ? `${data.opportunities.length} 項值得查看的投資機會` : '目前沒有需要特別處理的投資機會'} →</Link></p>
     </section>}
   </PageFrame>;
