@@ -972,7 +972,13 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
    the metrics track ends before the card edge, landing the group in the card's middle-right zone
    instead. Nothing is rendered in the third cell -- an unfilled grid cell still reserves its track
    width, it doesn't collapse. */
-.dashboard-focused-asset-body{display:grid;grid-template-columns:minmax(260px,1fr) auto 150px;align-items:center;gap:20px}
+/* UR-TODO-077 Round 11: identity's track was minmax(260px,1fr) -- an unbounded 1fr track absorbs
+   ALL leftover row width, which is exactly what pushed the metrics group further right than the
+   reference image wants. Capped identity's growth at 340px and made the reserved spacer track
+   flexible (minmax(80px,1fr)) instead -- any leftover width beyond identity's cap now accumulates
+   in the invisible spacer on the right, not in identity, so the metrics group starts noticeably
+   further left. */
+.dashboard-focused-asset-body{display:grid;grid-template-columns:minmax(260px,340px) auto minmax(80px,1fr);align-items:center;gap:20px}
 .dashboard-focused-asset-name-block{min-width:0}
 .dashboard-focused-asset-name-block h2{margin:0 0 8px;font-size:24px}
 .dashboard-focused-asset-name-block .dashboard-support-line{margin:0}
@@ -1036,16 +1042,33 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
    untouched -- this block never matches at any Mobile viewport. */
 /* UR-TODO-077 Round 10: Round 9's 56px/44px column-gap was still narrower than the reference image
    -- widened further to 84px/64px, divider offset re-derived as exactly half of each new gap so it
-   stays centered (42px/32px clearance on both sides, well above the 12px minimum). */
+   stays centered (42px/32px clearance on both sides, well above the 12px minimum).
+   UR-TODO-077 Round 11: dip-tracking's 高點/現價/回撤/下一級門檻 needed to reach further toward the
+   card's right edge (per reference-image annotation) without losing the real, equal column-gap.
+   Switched .dashboard-focused-asset-ladder-columns from a content-sized flex row to flex:1 1 auto
+   (grows to fill the row's remaining width, same mechanism Rounds 5/6 removed) PLUS display:grid
+   with repeat(auto-fit,minmax(82px,1fr)) columns internally -- the key difference from the old
+   Round 5/6 bug is that the extra width here is absorbed by WIDER COLUMN TRACKS, not by extra space
+   added between them (which is what justify-content:space-between used to do). column-gap stays a
+   fixed, independent value either way, so the divider's -halfGap centering math stays exactly
+   correct no matter how wide the columns grow. auto-fit (not a hardcoded repeat(4,...)) is required
+   because 下一級門檻 only renders sometimes (3 vs 4 real columns) -- a fixed 4-track template would
+   always reserve a phantom empty 4th track, which would visibly stop the LAST REAL column short of
+   the container's right edge whenever only 3 columns render; auto-fit collapses unused tracks to 0
+   and lets the tracks that do have content absorb all the freed space instead. Also added a small
+   white dot centered on each divider line (::after, distinct from the existing ::before line) per
+   feedback. */
 @media(min-width:769px){
   .dashboard-focused-asset-body .dashboard-metric-columns{column-gap:84px}
   .dashboard-focused-asset-body .dashboard-metric-columns>div{min-width:82px;padding-left:0}
   .dashboard-focused-asset-body .dashboard-metric-columns>div+div{padding-left:0}
   .dashboard-focused-asset-body .dashboard-metric-columns>div+div::before{left:-42px}
-  .dashboard-focused-asset-ladder-columns{column-gap:64px}
+  .dashboard-focused-asset-body .dashboard-metric-columns>div+div::after{content:'';position:absolute;left:-42px;top:50%;width:5px;height:5px;margin-left:-2.5px;margin-top:-2.5px;border-radius:50%;background:#fff}
+  .dashboard-focused-asset-ladder-columns{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));column-gap:64px}
   .dashboard-focused-asset-ladder-columns>div{min-width:82px;padding-left:0}
   .dashboard-focused-asset-ladder-columns>div+div{padding-left:0}
   .dashboard-focused-asset-ladder-columns>div+div::before{left:-32px}
+  .dashboard-focused-asset-ladder-columns>div+div::after{content:'';position:absolute;left:-32px;top:50%;width:5px;height:5px;margin-left:-2.5px;margin-top:-2.5px;border-radius:50%;background:#fff}
 }
 @media(max-width:768px){
   /* UR-TODO-077 Round 3: the identity block's flex-basis is reset to auto so it sizes to its real
