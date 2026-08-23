@@ -143,35 +143,35 @@ test('UR-TODO-077 Round 6: Mobile dip-tracking metrics stay on ONE row (not the 
   assert.doesNotMatch(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/);
 });
 
-test('UR-TODO-077 Round 9: Desktop config-metrics and dip-tracking use a REAL column-gap (an independent space between the two flex item boxes) instead of padding-left -- Rounds 7/8 drew the divider at left:0 of a padding-left box, i.e. right at the boundary already touching the previous column\'s value text; widening padding-left only made the box wider, it never created real breathing room on both sides', () => {
-  assert.match(styles, /@media\(min-width:769px\)\{\s*\.dashboard-focused-asset-body \.dashboard-metric-columns\{column-gap:56px\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:82px;padding-left:0\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:0\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{left:-28px\}\s*\.dashboard-focused-asset-ladder-columns\{column-gap:44px\}\s*\.dashboard-focused-asset-ladder-columns>div\{min-width:82px;padding-left:0\}\s*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:0\}\s*\.dashboard-focused-asset-ladder-columns>div\+div::before\{left:-22px\}\s*\}/, 'padding-left is reset to 0 (gap is now the only spacing source, avoiding the earlier double-spacing bug class); the divider ::before is repositioned to left:-halfGap so it sits in the true center of the gap, equidistant from both neighboring values regardless of their text width');
+test('UR-TODO-077 Round 10: Desktop config-metrics and dip-tracking column-gap widened further (56px->84px / 44px->64px) per direct reference-image comparison -- still a REAL column-gap (independent space between the two flex item boxes), not padding-left, and the divider offset is re-derived as exactly half of each new gap so it stays centered', () => {
+  assert.match(styles, /@media\(min-width:769px\)\{\s*\.dashboard-focused-asset-body \.dashboard-metric-columns\{column-gap:84px\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:82px;padding-left:0\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:0\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{left:-42px\}\s*\.dashboard-focused-asset-ladder-columns\{column-gap:64px\}\s*\.dashboard-focused-asset-ladder-columns>div\{min-width:82px;padding-left:0\}\s*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:0\}\s*\.dashboard-focused-asset-ladder-columns>div\+div::before\{left:-32px\}\s*\}/, 'padding-left stays reset to 0 (gap is the only spacing source); the divider ::before offset must equal exactly half the new gap so it remains centered, equidistant from both neighboring values regardless of their text width');
 });
 
-test('UR-TODO-077 Round 9: the Desktop real-gap override is scoped so it structurally cannot alter Mobile\'s computed gap/padding-left/divider-left -- Mobile keeps its own explicit gap:0, 14px (config metrics) / 10px (dip-tracking) padding-left, and the base ::before left:0, inside/via the untouched @media(max-width:768px) block, which the new >=769px rule never matches at any Mobile viewport', () => {
+test('UR-TODO-077 Round 10: the widened Desktop gap is scoped so it structurally cannot alter Mobile\'s computed gap/padding-left/divider-left -- Mobile keeps its own explicit gap:0, 14px (config metrics) / 10px (dip-tracking) padding-left, and the base ::before left:0, inside/via the untouched @media(max-width:768px) block, which the new >=769px rule never matches at any Mobile viewport', () => {
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1400}\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;gap:0\}/, 'Mobile config-metrics gap must remain 0, unchanged by this round');
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1400}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile config-metrics padding-left must remain 14px, unchanged by this round');
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:10px\}/, 'Mobile dip-tracking padding-left must remain 10px, unchanged by this round');
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/, 'the base (Mobile-effective) divider left:0 must remain untouched -- Round 9 only overrides `left` inside the >=769px block, never the base rule itself');
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/, 'the base (Mobile-effective) divider left:0 must remain untouched -- this round only overrides `left` inside the >=769px block, never the base rule itself');
 });
 
-test('UR-TODO-077 Round 9: Desktop DOM geometry -- config-metrics and dip-tracking dividers sit fully inside the real gap between neighboring value boxes with at least 12px clearance on both sides, never overlapping either value\'s bounding box', () => {
+test('UR-TODO-077 Round 10: Desktop DOM geometry -- config-metrics and dip-tracking dividers sit fully inside the real gap between neighboring value boxes with generous clearance on both sides, never overlapping either value\'s bounding box', () => {
   const configHtml = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(HomeFocusedAssetCard, {
     data: { symbol: '00631L', name: '元大台灣50正2', investableCash: 10000, currentWeight: 65.9, targetWeight: 30, deviation: 35.9, status: 'action-needed', action: 'sell', recommendedAmount: 5000, message: '' },
     ladder: deriveHomeFocusedAssetLadder({ enabled: true, highWaterMark: 35.95, triggeredLevel: null, currentPrice: 34.84, liquidity: { investableCash: 10000, dataCompleteness: 'complete', safetyCashShortfall: 0 }, executableBudget: null, externalFundingRequired: null })
   })));
   assert.match(configHtml, /dashboard-metric-columns/, 'sanity: the metric-columns markup is present for this geometry test to be meaningful');
-  // The Round 9 CSS contract itself is the source of truth for non-overlap: column-gap:56px/44px is
-  // an independent space the two flex boxes never occupy, and the divider is centered at -halfGap
-  // (28px/22px) inside it -- so as long as those two facts hold (already asserted above), every
-  // value box's edge is guaranteed >= halfGap (28px/22px, both >= the required 12px minimum) away
-  // from the divider by construction, for any text width. This test locks that arithmetic relationship
-  // so a future edit can't silently break it (e.g. widening a value's min-width without moving gap/2).
-  const halfGapConfig = 56 / 2;
-  const halfGapLadder = 44 / 2;
+  // The CSS contract itself is the source of truth for non-overlap: column-gap:84px/64px is an
+  // independent space the two flex boxes never occupy, and the divider is centered at -halfGap
+  // (42px/32px) inside it -- so as long as those two facts hold (already asserted above), every
+  // value box's edge is guaranteed >= halfGap away from the divider by construction, for any text
+  // width. This locks that arithmetic relationship so a future edit can't silently break it (e.g.
+  // widening a value's min-width without moving gap/2).
+  const halfGapConfig = 84 / 2;
+  const halfGapLadder = 64 / 2;
   assert.ok(halfGapConfig >= 12, 'config-metrics divider clearance must be >= 12px');
   assert.ok(halfGapLadder >= 12, 'dip-tracking divider clearance must be >= 12px');
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{left:-28px\}/, 'divider offset must equal exactly half of the 56px column-gap');
-  assert.match(styles, /\.dashboard-focused-asset-ladder-columns>div\+div::before\{left:-22px\}/, 'divider offset must equal exactly half of the 44px column-gap');
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{left:-42px\}/, 'divider offset must equal exactly half of the 84px column-gap');
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns>div\+div::before\{left:-32px\}/, 'divider offset must equal exactly half of the 64px column-gap');
 });
 
 test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {

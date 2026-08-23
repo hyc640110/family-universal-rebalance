@@ -1034,15 +1034,18 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
    min-width:769px, the exact mirror of the @media(max-width:768px) boundary below, so Mobile's own
    gap:0/padding-left:14px-or-10px overrides (and the base ::before left:0) are structurally
    untouched -- this block never matches at any Mobile viewport. */
+/* UR-TODO-077 Round 10: Round 9's 56px/44px column-gap was still narrower than the reference image
+   -- widened further to 84px/64px, divider offset re-derived as exactly half of each new gap so it
+   stays centered (42px/32px clearance on both sides, well above the 12px minimum). */
 @media(min-width:769px){
-  .dashboard-focused-asset-body .dashboard-metric-columns{column-gap:56px}
+  .dashboard-focused-asset-body .dashboard-metric-columns{column-gap:84px}
   .dashboard-focused-asset-body .dashboard-metric-columns>div{min-width:82px;padding-left:0}
   .dashboard-focused-asset-body .dashboard-metric-columns>div+div{padding-left:0}
-  .dashboard-focused-asset-body .dashboard-metric-columns>div+div::before{left:-28px}
-  .dashboard-focused-asset-ladder-columns{column-gap:44px}
+  .dashboard-focused-asset-body .dashboard-metric-columns>div+div::before{left:-42px}
+  .dashboard-focused-asset-ladder-columns{column-gap:64px}
   .dashboard-focused-asset-ladder-columns>div{min-width:82px;padding-left:0}
   .dashboard-focused-asset-ladder-columns>div+div{padding-left:0}
-  .dashboard-focused-asset-ladder-columns>div+div::before{left:-22px}
+  .dashboard-focused-asset-ladder-columns>div+div::before{left:-32px}
 }
 @media(max-width:768px){
   /* UR-TODO-077 Round 3: the identity block's flex-basis is reset to auto so it sizes to its real
