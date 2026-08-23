@@ -109,34 +109,49 @@ test('UR-TODO-076 detail table has no separate 目前金額 column (legend alrea
   assert.doesNotMatch(detailTableSection, /目前金額/);
 });
 
-test('UR-TODO-076 Round 3: FIXED_ALLOCATION_COLORS gives every named symbol one deterministic, brightened accent color (single SSOT, reused by every consumer)', () => {
-  assert.match(app, /const FIXED_ALLOCATION_COLORS: Record<string, string> = \{ CASH: '#f5c451', '00631L': '#ff5c68', '0050': '#3d8bfd', '00662': '#2fd480', '00685L': '#ff9142', '00865B': '#a78bfa', '00895': '#2dd4e8' \};/);
+test('UR-TODO-076 Round 4: FIXED_ALLOCATION_COLORS gives every named symbol one deterministic, further-boosted accent color (single SSOT, reused by every consumer)', () => {
+  assert.match(app, /const FIXED_ALLOCATION_COLORS: Record<string, string> = \{ CASH: '#fbd06a', '00631L': '#ff707b', '0050': '#5c9eff', '00662': '#40e793', '00685L': '#ffa05c', '00865B': '#b49bfd', '00895': '#47e3f5' \};/);
   assert.doesNotMatch(app, /const FIXED_ALLOCATION_COLORS2|ASSET_ALLOCATION_COLORS\b/, 'no second, Assets-only color mapping may be introduced -- allocationColor() must remain the single SSOT for every consumer (Donut/Legend/summary cards/Analytics-page AllocationDonut alike)');
 });
 
-test('UR-TODO-076 Round 3: summary card icon backgrounds and main value text share the same brightened per-card accent, without touching the .up/.down/.hold P&L tone contract', () => {
-  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-icon\{background:rgba\(45,123,255,\.22\);color:#5b9dff\}/);
-  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-value\{color:#5b9dff\}/);
-  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-icon\{background:rgba\(34,197,94,\.22\);color:#3ddc97\}/);
-  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-value\{color:#3ddc97\}/);
-  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-icon\{background:rgba\(239,68,68,\.22\);color:#ff7a68\}/);
-  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-value\{color:#ff7a68\}/);
-  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-icon\{background:rgba\(168,110,235,\.24\);color:#b98cf5\}/);
-  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-value\{color:#b98cf5\}/);
+test('UR-TODO-076 Round 4: summary card icon backgrounds and main value text share the same further-boosted per-card accent, without touching the .up/.down/.hold P&L tone contract', () => {
+  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-icon\{background:rgba\(45,123,255,\.28\);color:#75adff\}/);
+  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-value\{color:#75adff\}/);
+  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-icon\{background:rgba\(34,197,94,\.28\);color:#4ceba6\}/);
+  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-value\{color:#4ceba6\}/);
+  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-icon\{background:rgba\(239,68,68,\.28\);color:#ff8a7a\}/);
+  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-value\{color:#ff8a7a\}/);
+  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-icon\{background:rgba\(168,110,235,\.3\);color:#c298fb\}/);
+  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-value\{color:#c298fb\}/);
   // the shared P&L tone contract (.up/.bad red, .down/.good green) must remain byte-identical
   assert.match(styles, /\.up,\.bad\{color:var\(--market-up\)\}/);
   assert.match(styles, /\.down,\.good\{color:var\(--market-down\)\}/);
 });
 
-test('UR-TODO-076 Round 3: real totalAssets/cash sparklines still color by up/down/hold tone (market colors untouched), only the neutral idle stroke got brighter', () => {
+test('UR-TODO-076 Round 4: real totalAssets/cash sparklines still color by up/down/hold tone (market colors untouched); Round 4 did not touch the neutral idle sparkline stroke', () => {
   assert.match(styles, /\.mini-sparkline\{width:100%;height:32px;color:#c3cad4\}/);
   assert.match(styles, /\.mini-sparkline\.mini-sparkline-up\{color:var\(--market-up\)\}/);
   assert.match(styles, /\.mini-sparkline\.mini-sparkline-down\{color:var\(--market-down\)\}/);
 });
 
-test('UR-TODO-076 Round 3: growth/defensive/per-holding still fail closed -- color refinement did not add a fabricated sparkline anywhere', () => {
+test('UR-TODO-076 Round 4: growth/defensive/per-holding still fail closed -- color refinement did not add a fabricated sparkline anywhere', () => {
   assert.match(overviewSection, /label="成長資產"[\s\S]{0,80}change=\{null\}/);
   assert.match(overviewSection, /label="防守資產"[\s\S]{0,80}change=\{null\}/);
   const detailTableSection = app.slice(app.indexOf('function AssetAllocationDetailTable'), app.indexOf('function AssetAllocationOverview'));
   assert.match(detailTableSection, /className="asset-allocation-detail-trend">資料不足</);
+});
+
+test('UR-TODO-076 Round 4: every named symbol color has a higher WCAG contrast ratio against --bg-surface-2 than its Round 3 predecessor (accent boost never regresses readability)', () => {
+  const hexToRgb = (hex) => { const n = parseInt(hex.replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const relLum = (rgb) => { const srgb = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2]; };
+  const contrast = (a, b) => { const l1 = relLum(hexToRgb(a)) + 0.05, l2 = relLum(hexToRgb(b)) + 0.05; return l1 > l2 ? l1 / l2 : l2 / l1; };
+  const bgSurface2 = '#131619';
+  const round3 = { CASH: '#f5c451', '00631L': '#ff5c68', '0050': '#3d8bfd', '00662': '#2fd480', '00685L': '#ff9142', '00865B': '#a78bfa', '00895': '#2dd4e8' };
+  const round4 = { CASH: '#fbd06a', '00631L': '#ff707b', '0050': '#5c9eff', '00662': '#40e793', '00685L': '#ffa05c', '00865B': '#b49bfd', '00895': '#47e3f5' };
+  for (const symbol of Object.keys(round3)) {
+    const before = contrast(round3[symbol], bgSurface2);
+    const after = contrast(round4[symbol], bgSurface2);
+    assert.ok(after > before, `${symbol}: Round 4 contrast ${after.toFixed(2)} must exceed Round 3 contrast ${before.toFixed(2)}`);
+    assert.ok(after >= 4.5, `${symbol}: Round 4 contrast ${after.toFixed(2)} must still clear WCAG AA (4.5:1)`);
+  }
 });
