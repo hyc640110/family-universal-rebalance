@@ -108,3 +108,35 @@ test('UR-TODO-076 detail table has no separate 目前金額 column (legend alrea
   const detailTableSection = app.slice(app.indexOf('function AssetAllocationDetailTable'), app.indexOf('function AssetAllocationOverview'));
   assert.doesNotMatch(detailTableSection, /目前金額/);
 });
+
+test('UR-TODO-076 Round 3: FIXED_ALLOCATION_COLORS gives every named symbol one deterministic, brightened accent color (single SSOT, reused by every consumer)', () => {
+  assert.match(app, /const FIXED_ALLOCATION_COLORS: Record<string, string> = \{ CASH: '#f5c451', '00631L': '#ff5c68', '0050': '#3d8bfd', '00662': '#2fd480', '00685L': '#ff9142', '00865B': '#a78bfa', '00895': '#2dd4e8' \};/);
+  assert.doesNotMatch(app, /const FIXED_ALLOCATION_COLORS2|ASSET_ALLOCATION_COLORS\b/, 'no second, Assets-only color mapping may be introduced -- allocationColor() must remain the single SSOT for every consumer (Donut/Legend/summary cards/Analytics-page AllocationDonut alike)');
+});
+
+test('UR-TODO-076 Round 3: summary card icon backgrounds and main value text share the same brightened per-card accent, without touching the .up/.down/.hold P&L tone contract', () => {
+  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-icon\{background:rgba\(45,123,255,\.22\);color:#5b9dff\}/);
+  assert.match(styles, /\.asset-overview-card-blue \.asset-overview-card-value\{color:#5b9dff\}/);
+  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-icon\{background:rgba\(34,197,94,\.22\);color:#3ddc97\}/);
+  assert.match(styles, /\.asset-overview-card-green \.asset-overview-card-value\{color:#3ddc97\}/);
+  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-icon\{background:rgba\(239,68,68,\.22\);color:#ff7a68\}/);
+  assert.match(styles, /\.asset-overview-card-red \.asset-overview-card-value\{color:#ff7a68\}/);
+  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-icon\{background:rgba\(168,110,235,\.24\);color:#b98cf5\}/);
+  assert.match(styles, /\.asset-overview-card-purple \.asset-overview-card-value\{color:#b98cf5\}/);
+  // the shared P&L tone contract (.up/.bad red, .down/.good green) must remain byte-identical
+  assert.match(styles, /\.up,\.bad\{color:var\(--market-up\)\}/);
+  assert.match(styles, /\.down,\.good\{color:var\(--market-down\)\}/);
+});
+
+test('UR-TODO-076 Round 3: real totalAssets/cash sparklines still color by up/down/hold tone (market colors untouched), only the neutral idle stroke got brighter', () => {
+  assert.match(styles, /\.mini-sparkline\{width:100%;height:32px;color:#c3cad4\}/);
+  assert.match(styles, /\.mini-sparkline\.mini-sparkline-up\{color:var\(--market-up\)\}/);
+  assert.match(styles, /\.mini-sparkline\.mini-sparkline-down\{color:var\(--market-down\)\}/);
+});
+
+test('UR-TODO-076 Round 3: growth/defensive/per-holding still fail closed -- color refinement did not add a fabricated sparkline anywhere', () => {
+  assert.match(overviewSection, /label="成長資產"[\s\S]{0,80}change=\{null\}/);
+  assert.match(overviewSection, /label="防守資產"[\s\S]{0,80}change=\{null\}/);
+  const detailTableSection = app.slice(app.indexOf('function AssetAllocationDetailTable'), app.indexOf('function AssetAllocationOverview'));
+  assert.match(detailTableSection, /className="asset-allocation-detail-trend">資料不足</);
+});

@@ -703,8 +703,14 @@ function getDecisionSummary(rb: ReturnType<typeof rebalance>, orderHelper: Order
 }
 function advice(m: ReturnType<typeof calculateMetrics>) { if (m.cashRatio < 8 || m.leverage > 1.6) return ['風險降溫', `現金水位偏低或槓桿偏高，先補防守資產；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'bad'] as const; if (m.dayPnl < -m.stocks * 0.05) return ['小跌加碼', `可分批補足低於自訂目標的成長資產部位，避免一次打滿；目前目標為成長資產 ${pct(m.growthTargetPct)}。`, 'warn'] as const; return ['正常投入', `維持自訂目標配置；目前目標為成長資產 ${pct(m.growthTargetPct)}、防守資產 ${pct(m.defensiveTargetPct)}。`, 'good'] as const; }
 
-const ALLOCATION_COLORS = ['#5b8def', '#58c7a5', '#f3b75f', '#d783c7', '#7ec8e3', '#a9c46c', '#e77c75', '#a98ee8', '#e6a36d', '#67b6a8'];
-const FIXED_ALLOCATION_COLORS: Record<string, string> = { CASH: '#78a6f7', '00631L': '#f07d7d', '00865B': '#64c9a5' };
+// UR-TODO-076 Round 3 (Color & Contrast): brightened one saturation/contrast step from the prior
+// pastel palette so the shared allocationColor() SSOT reads clearly on the dark surfaces used
+// throughout the app (Donut/Legend/summary accents), without going neon. Every consumer of
+// allocationColor() — the Assets-page redesign and the pre-existing Analytics-page AllocationDonut
+// alike — picks this up automatically, which is intentional: "同一資產必須使用完全一致的 accent
+// color" only holds if there is exactly one color source, not a second Assets-only palette.
+const ALLOCATION_COLORS = ['#5b9dff', '#3ddc97', '#ffbb4d', '#e685d9', '#5cd3f5', '#b8d94a', '#ff8078', '#b48bfa', '#ffab5c', '#4bd6bd'];
+const FIXED_ALLOCATION_COLORS: Record<string, string> = { CASH: '#f5c451', '00631L': '#ff5c68', '0050': '#3d8bfd', '00662': '#2fd480', '00685L': '#ff9142', '00865B': '#a78bfa', '00895': '#2dd4e8' };
 function allocationColor(symbol: string) {
   if (FIXED_ALLOCATION_COLORS[symbol]) return FIXED_ALLOCATION_COLORS[symbol];
   const hash = Array.from(symbol).reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 7);
