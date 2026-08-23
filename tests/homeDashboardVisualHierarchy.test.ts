@@ -73,13 +73,24 @@ test('UR-TODO-077 Round 3: 重點標的 desktop layout gives identity (icon/name
   assert.match(styles, /\.dashboard-focused-asset-body\{display:flex;align-items:center;gap:20px\}/);
   assert.match(styles, /\.dashboard-focused-asset-name-block\{min-width:0;flex:0 1 44%\}/, 'identity block must claim a real, fixed share of the row width, not just shrink-to-content in a corner');
   assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{flex:1 1 auto;justify-content:space-between\}/);
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:20px;border-left:1px solid var\(--border-subtle\)\}/, 'columns need a visible divider between them, per the TARGET reference');
+});
+
+test('UR-TODO-077 Round 4: Desktop 重點標的 metric columns have a centered ::before divider (not a full-height border-left) using the --divider-soft token, since --border-subtle\'s .10 alpha was visually invisible against --bg-surface-2', () => {
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{text-align:right;position:relative\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:20px\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
+  assert.doesNotMatch(styles, /--divider-soft:rgba\(148,163,184,\.10\)/, 'the divider token must not reuse the too-faint --border-subtle alpha value');
 });
 
 test('UR-TODO-077 Round 3: the Mobile giant-whitespace bug is fixed at its root cause (identity block flex-basis reset to auto so it sizes to real content height, not the 220px Desktop-only basis), and metrics sit directly under the identity block with only the intended flex gap', () => {
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,400}\.dashboard-focused-asset-body\{flex-direction:column;align-items:stretch;gap:14px\}\s*\.dashboard-focused-asset-name-block\{flex:0 0 auto\}/, 'Mobile must explicitly reset the identity block to flex:0 0 auto -- without this, the Desktop "flex:0 1 44%" flex-basis becomes a HEIGHT basis once flex-direction flips to column, which was exactly this round\'s reported giant Mobile whitespace bug');
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;justify-content:space-between;gap:10px\}/);
   assert.doesNotMatch(styles, /\.dashboard-focused-asset-metrics\{/, 'the old single-line inline-text metrics class from Round 1 must be gone, replaced by the real dashboard-metric-columns layout used on both Desktop and Mobile');
+});
+
+test('UR-TODO-077 Round 4: Mobile 重點標的 metric columns are equal thirds (flex:1 1 0) with the same centered divider reused from Desktop, restoring the visual grouping the reference image shows', () => {
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1000}\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;gap:0\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1100}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:0;flex:1 1 0;text-align:left\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1200}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile keeps the padding-left so the shared ::before divider (defined outside the media query, not overridden here) still renders between columns');
 });
 
 test('UR-TODO-077 Round 3: no fixed min-height/spacer exists anywhere on the focused-asset identity block or body that could reintroduce a disconnect between rendered content height and visual height', () => {
@@ -96,16 +107,40 @@ test('UR-TODO-077 Round 3: Desktop dip-tracking row spans the full card width (l
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-ladder-row">/);
 });
 
-test('UR-TODO-077 Round 3: Desktop typography is bumped one step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
-  assert.match(styles, /\.dashboard-focused-asset-name-block h2\{margin:0 0 8px;font-size:22px\}/);
-  assert.match(styles, /\.dashboard-metric-columns strong\{display:block;font-size:22px/);
-  assert.match(styles, /\.intelligence-heading h2\{margin:4px 0;font-size:22px\}/);
-  assert.match(styles, /\.investment-summary-grid strong,\.investment-health-grid strong\{display:block;margin-top:6px;color:var\(--text-primary\);font-size:25px/);
+test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
+  assert.match(styles, /\.dashboard-focused-asset-name-block h2\{margin:0 0 8px;font-size:24px\}/);
+  assert.match(styles, /\.dashboard-metric-columns strong\{display:block;font-size:24px/);
+  assert.match(styles, /\.intelligence-heading h2\{margin:4px 0;font-size:23px\}/);
+  assert.match(styles, /\.intelligence-heading p\{margin:4px 0 0;color:var\(--text-secondary\);line-height:1\.5;font-size:17px\}/);
+  assert.match(styles, /\.daily-decision-conclusion h3\{margin:3px 0;color:var\(--text-primary\);font-size:18px\}/);
+  assert.match(styles, /\.investment-summary-grid strong,\.investment-health-grid strong\{display:block;margin-top:6px;color:var\(--text-primary\);font-size:27px/);
   // the Assets-page shared rule (UR-TODO-076, already Production Verified) must stay untouched at 23px
   assert.match(styles, /\.asset-overview-card-value\{font-size:23px;line-height:1\.25;overflow-wrap:anywhere\}/);
-  // Mobile must have its own smaller sizes, not inherit the Desktop bump unchanged
+  // Mobile must keep (or regain) its own smaller sizes, never silently inherit the Desktop bump
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.investment-summary-grid strong,\.investment-health-grid strong\{font-size:20px\}/);
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.intelligence-heading h2\{font-size:19px\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-name-block h2\{font-size:22px\}/, 'the +2px Desktop stock-name bump must not silently leak onto Mobile, which had no prior override for this selector');
+  assert.match(styles, /@media \(max-width:700px\)\{[\s\S]{0,400}\.intelligence-heading h2\{font-size:19px\}/);
+  assert.match(styles, /@media \(max-width:700px\)\{[\s\S]{0,400}\.intelligence-heading p\{font-size:16px\}/, 'the new Desktop blocking-reason font-size must not leak onto Mobile');
+  assert.match(styles, /@media \(max-width:700px\)\{[\s\S]{0,400}\.daily-decision-conclusion h3\{font-size:16px\}/, 'the new Desktop recommendation font-size must not leak onto Mobile');
+});
+
+test('UR-TODO-077 Round 4: 查看再平衡建議 CTA is a plain text link (no button/pill outline) -- reuses .dashboard-text-link color/weight only, no border/background/radius/padding box', () => {
+  assert.match(styles, /\.dashboard-focused-asset-cta\{flex:0 0 auto;white-space:nowrap\}/);
+  assert.doesNotMatch(styles, /\.dashboard-focused-asset-cta\{[^}]*border:/, 'the CTA must not have any border declaration left over from the earlier pill-button treatment');
+});
+
+test('UR-TODO-077 Round 4: 今日建議結論 has no full bordered rectangle -- distinguished from the card only by a subtle background shift, not an outline', () => {
+  assert.match(styles, /\.daily-decision-conclusion\{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:11px;background:var\(--bg-surface\)\}/);
+  assert.doesNotMatch(styles, /\.daily-decision-conclusion\{[^}]*border:1px solid/, 'no full border may remain on this block');
+});
+
+test('UR-TODO-077 Round 4: Desktop 今日投資狀態 3-region row (status | blocking-reason | recommendation) has two low-contrast gray dividers via --divider-soft, since the earlier --border-subtle divider (alpha .10) was effectively invisible against --bg-surface-2', () => {
+  assert.match(styles, /@media\(min-width:1025px\)\{\.investment-intelligence-row\{grid-template-columns:1\.2fr \.9fr 1\.2fr;align-items:center;gap:20px\}\.intelligence-summary\{padding-left:16px;border-left:1px solid var\(--divider-soft\)\}\.daily-decision-conclusion\{padding-left:28px;border-left:1px solid var\(--divider-soft\)\}\}/);
+});
+
+test('UR-TODO-077 Round 4: Mobile 今日投資狀態 primary content (icon/status/blocking-reason) is left-aligned (flex-start), not centered as a stacked column group', () => {
+  assert.match(styles, /@media \(max-width:700px\)\{\.investment-intelligence-card\{padding:14px\}\.intelligence-heading\{flex-direction:column;gap:7px;align-items:flex-start\}/, 'without align-items:flex-start, the column-direction flex container centers each stacked item block horizontally even though the text inside stays left-aligned, which is exactly the reported "整組置中" bug');
+  assert.match(styles, /\.intelligence-status\{align-self:flex-start\}/, '高風險 badge keeps its own left-aligned placement, unaffected by the row layout change');
 });
 
 test('UR-TODO-077 Round 2: dip-tracking (逢低加碼自動追蹤) has its own icon+heading row and a dedicated horizontal metrics row (高點/現價/回撤[/下一級門檻]), utilizing full card width instead of one narrow sentence', () => {
