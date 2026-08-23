@@ -70,27 +70,30 @@ test('UR-TODO-077 Round 3: 重點標的 desktop layout gives identity (icon/name
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-header-row">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-body">/);
   assert.match(focusedAssetCardSource, /<div className="dashboard-metric-columns">\s*<div><span>目前配置<\/span><strong>\{pct\(data\.currentWeight\)\}<\/strong><\/div>\s*<div><span>目標配置<\/span><strong>\{pct\(data\.targetWeight\)\}<\/strong><\/div>\s*<div><span>偏離<\/span><strong className=\{data\.status === 'action-needed' \? 'warn' : 'good'\}>\{pct\(data\.deviation, true\)\}<\/strong><\/div>\s*<\/div>/);
-  assert.match(styles, /\.dashboard-focused-asset-body\{display:flex;align-items:center;gap:20px\}/);
-  assert.match(styles, /\.dashboard-focused-asset-name-block\{min-width:0;flex:0 1 44%\}/, 'identity block must claim a real, fixed share of the row width, not just shrink-to-content in a corner');
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{flex:1 1 auto;justify-content:space-between\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body\{display:grid;grid-template-columns:minmax\(0,1fr\) auto;align-items:center;gap:20px\}/, 'Round 5: identity claims the flexible 1fr track, metrics claim an auto (content-sized) track -- a grid track cannot be stretched into by its own content the way the old flex:1 1 auto;justify-content:space-between combo was');
+  assert.match(styles, /\.dashboard-focused-asset-name-block\{min-width:0\}/);
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns\{gap:0;justify-self:end\}/, 'metrics group is content-sized (auto grid track) and pinned to the row end, not stretched to fill the remaining row width');
 });
 
 test('UR-TODO-077 Round 4: Desktop 重點標的 metric columns have a centered ::before divider (not a full-height border-left) using the --divider-soft token, since --border-subtle\'s .10 alpha was visually invisible against --bg-surface-2', () => {
   assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{text-align:right;position:relative\}/);
-  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:20px\}/);
   assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div::before\{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
   assert.doesNotMatch(styles, /--divider-soft:rgba\(148,163,184,\.10\)/, 'the divider token must not reuse the too-faint --border-subtle alpha value');
 });
 
+test('UR-TODO-077 Round 5: Desktop 重點標的 metric columns are spaced by padding-left ONLY (18px, no separate flex gap on top of it) -- the earlier gap:24px (from the shared .dashboard-metric-columns base rule) stacked on top of the 20px divider gutter is what produced the reported oversized horizontal gaps between 目前配置/目標配置/偏離', () => {
+  assert.match(styles, /\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:18px\}/);
+});
+
 test('UR-TODO-077 Round 3: the Mobile giant-whitespace bug is fixed at its root cause (identity block flex-basis reset to auto so it sizes to real content height, not the 220px Desktop-only basis), and metrics sit directly under the identity block with only the intended flex gap', () => {
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,400}\.dashboard-focused-asset-body\{flex-direction:column;align-items:stretch;gap:14px\}\s*\.dashboard-focused-asset-name-block\{flex:0 0 auto\}/, 'Mobile must explicitly reset the identity block to flex:0 0 auto -- without this, the Desktop "flex:0 1 44%" flex-basis becomes a HEIGHT basis once flex-direction flips to column, which was exactly this round\'s reported giant Mobile whitespace bug');
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,700}\.dashboard-focused-asset-body\{display:flex;flex-direction:column;align-items:stretch;gap:14px\}\s*\.dashboard-focused-asset-name-block\{flex:0 0 auto\}/, 'Mobile must explicitly reset the identity block to flex:0 0 auto -- without this, the Desktop "flex:0 1 44%" flex-basis becomes a HEIGHT basis once flex-direction flips to column, which was exactly this round\'s reported giant Mobile whitespace bug. Round 5 also needs an explicit display:flex here since the base (non-mobile) rule became a grid.');
   assert.doesNotMatch(styles, /\.dashboard-focused-asset-metrics\{/, 'the old single-line inline-text metrics class from Round 1 must be gone, replaced by the real dashboard-metric-columns layout used on both Desktop and Mobile');
 });
 
 test('UR-TODO-077 Round 4: Mobile 重點標的 metric columns are equal thirds (flex:1 1 0) with the same centered divider reused from Desktop, restoring the visual grouping the reference image shows', () => {
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1000}\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;gap:0\}/);
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1100}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:0;flex:1 1 0;text-align:left\}/);
-  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1200}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile keeps the padding-left so the shared ::before divider (defined outside the media query, not overridden here) still renders between columns');
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1200}\.dashboard-focused-asset-body \.dashboard-metric-columns\{width:100%;gap:0\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1300}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:0;flex:1 1 0;text-align:left\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1400}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile keeps the padding-left so the shared ::before divider (defined outside the media query, not overridden here) still renders between columns');
 });
 
 test('UR-TODO-077 Round 3: no fixed min-height/spacer exists anywhere on the focused-asset identity block or body that could reintroduce a disconnect between rendered content height and visual height', () => {
@@ -100,11 +103,27 @@ test('UR-TODO-077 Round 3: no fixed min-height/spacer exists anywhere on the foc
 
 test('UR-TODO-077 Round 3: Desktop dip-tracking row spans the full card width (label fixed-width, metrics column fill the remaining space via flex:1 1 auto), Mobile stacks it to a single column', () => {
   assert.match(styles, /\.dashboard-focused-asset-ladder-row\{display:flex;align-items:center;gap:24px;flex-wrap:wrap\}/);
-  assert.match(styles, /\.dashboard-focused-asset-ladder-heading\{display:flex;align-items:center;gap:6px;margin:0;flex:0 0 auto/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-heading\{position:relative;display:flex;align-items:center;gap:6px;margin:0;flex:0 0 auto/);
   assert.match(styles, /\.dashboard-focused-asset-ladder-columns\{flex:1 1 auto;justify-content:space-between\}/);
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-row\{flex-direction:column;align-items:stretch;gap:10px\}/);
   const focusedAssetCardSource = readFileSync(new URL('../src/components/HomeFocusedAssetCard.tsx', import.meta.url), 'utf8');
   assert.match(focusedAssetCardSource, /<div className="dashboard-focused-asset-ladder-row">/);
+});
+
+test('UR-TODO-077 Round 5: Desktop dip-tracking has a divider between every one of its regions -- 逢低加碼自動追蹤 label vs. metrics group (anchored to the label so it draws inside the row\'s existing 24px gap, adding no extra spacing), and between each of the up-to-4 metric columns (reusing the padding-left+::before pattern)', () => {
+  assert.match(styles, /\.dashboard-focused-asset-ladder-heading::after\{content:'';position:absolute;left:100%;margin-left:12px;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns>div\{position:relative\}/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:20px\}/);
+  assert.match(styles, /\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
+  // Mobile: the label's right-edge divider must not float next to it once the row stacks the label
+  // above the metrics -- nothing sits beside it any more once flex-direction becomes column.
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-heading::after\{content:none\}/);
+});
+
+test('UR-TODO-077 Round 5: Mobile dip-tracking metrics use a fixed 2-column grid (not flex-wrap) specifically so wrap points never shift with content width -- this lets :nth-child(2n) reliably mean "second column of its row" for any metric count, guaranteeing a divider never lands at the start of a wrapped row', () => {
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:10px 14px;width:100%\}/);
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/, 'the Desktop between-every-column divider must be explicitly cancelled on Mobile, since it would otherwise also land on the row-starting 3rd item in a 4-item grid');
+  assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div:nth-child\(2n\)::before\{content:'';position:absolute;left:-7px;top:18%;bottom:18%;width:1px;background:var\(--divider-soft\)\}/);
 });
 
 test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
