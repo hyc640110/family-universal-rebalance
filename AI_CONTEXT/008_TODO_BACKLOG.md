@@ -1,6 +1,30 @@
-# Universal Rebalance Todo Backlog v2.2
+# Universal Rebalance Todo Backlog v2.3
 
-最後更新：2026-08-22
+最後更新：2026-08-23
+
+### UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計
+
+- 優先級：P3（使用者主動提出，Assets 頁「資產配置」區塊 Presentation／Responsive UX Redesign）
+- 狀態：**CLOSED／Production Verified（PR #421）**
+- 提出／開發日期：2026-08-23
+- 問題：既有「資產配置」區塊在 Desktop／Mobile 皆為單一堆疊 `AllocationDonut`，資訊密度與視覺層級與使用者提供的核准參考稿（Desktop 兩欄／Mobile 單欄＋2×2 摘要卡）有明顯落差；且無任何「近1個月趨勢」呈現。
+- 目標：Desktop（`≥1025px`）改為左右兩欄——左側 Donut＋Legend，右側四張 Summary Cards（總資產／成長資產／防守資產／現金部位）＋「資產明細（目前 vs 目標）」表格；Mobile（`≤768px`）改為單欄——Donut＋Legend，接著 2×2 摘要卡，**不 render** Desktop 明細表；Tablet（`769–1024px`）維持單欄流式排版但保留明細表。Desktop／Mobile 必須共用同一份資產資料、比例計算、成長／防守分類、目標配置、顏色 mapping 與趨勢資料來源，僅 presentation 依 breakpoint 不同。
+- 明確不包含：Rebalance 核心算法、Household Liquidity 公式、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution、transaction semantics、holdings 財務資料結構、Firebase archived-retirement contract、新增自動交易／市場預測、新建第二套資產 classification、為 sparkline 製造假歷史資料、Bottom Sheet／Mobile Desktop table、Production deployment 之外的任何自行 Merge。
+- Contract Audit（開發前唯讀盤點，確認正式）：
+  - 總資產 SSOT：`calculateMetrics()`（`src/App.tsx`），無第二套 totalAssets 計算。
+  - 成長／防守分類 SSOT：`normalizeAssetClass()`；現金恆定計入防守，非 `Holding`。「00631L 67.4%＝成長 67.4%」為使用者實際持股組合巧合（該使用者成長分類下唯一有股數的標的），非分類 bug，未修正分類邏輯。
+  - 目標配置／偏離 SSOT：`getEffectiveTargetPercent()`／`getCashTarget()`／既有 `tone()` 偏離色彩 contract（`up`＝紅／超配，`down`＝綠／低配，`hold`＝中性），沿用不新建公式。
+  - 趨勢資料 SSOT：`state.netWorthHistory`。僅 `totalAssets`／`cash` 有逐日真實歷史，可重用既有 `historyForRange()`；「成長資產」「防守資產」與 Desktop 個股趨勢欄**無任何逐日持久化資料**，經使用者明確拍板（AskUserQuestion 確認）採 **fail-closed**（顯示「近1個月趨勢資料不足」／「資料不足」），不新增 persistent history infrastructure，不偽造 sparkline。
+  - Symbol color mapping SSOT：`allocationColor()`／`FIXED_ALLOCATION_COLORS`／`ALLOCATION_COLORS`（`src/App.tsx`），為全站唯一色彩來源，Donut／Legend／Desktop 明細表 dot／既有 Analytics 頁 `AllocationDonut` 皆共用同一組色值，確保「同一資產必須使用完全一致的 accent color」。
+- 新增元件：`AssetAllocationOverview`／`AssetAllocationDonutPanel`／`AssetOverviewCard`／`AssetAllocationDetailTable`／`MiniSparkline`（`src/App.tsx`）；純資料轉換 helper `src/lib/assetAllocationOverview.ts`（`deriveAllocationLegendItems`／`deriveAllocationDetailRows`／`sparklinePointsFromHistory`／`deriveSparklineChange`／`allocationTone`）。既有 `AllocationDonut`（Analytics／Rebalance 頁）改為呼叫共用的 `deriveAllocationLegendItems()`，行為完全不變，未修改其 JSX 或版面。
+- 色彩迭代（Round 1～5，皆為同一 PR 內的 UI Refinement，非新 Sprint）：
+  1. Round 1：建立 deterministic color mapping（`FIXED_ALLOCATION_COLORS`／`ALLOCATION_COLORS`），確保未來新增合法持股仍可取得穩定顏色。
+  2. Round 2：Desktop／Mobile 視覺密度精修（Legend 由大型 card 改為 compact row、Summary Card 加寬、明細表 padding 調整、Mobile Donut 縮小、fail-closed 訊息去重）。
+  3. Round 3：首次提高飽和度／對比（HSL 模型）。
+  4. Round 4：延續 HSL 加亮策略，結果在 OKLCH 模型下量測**每個命名 symbol 的 Chroma 反而低於 Round 3**（Lightness 過高導致偏白），使用者驗收後判定方向錯誤。
+  5. Round 5（最終定案）：改以 OKLCH 模型修正——同色相下降低 Lightness、提高 Chroma（拉向 sRGB gamut 邊界並回退約 8% 避免 clipping），程式化驗證 7 個命名 symbol 之 Chroma 全數高於 Round 4、Lightness 全數低於 Round 4、hue 偏移皆在 ±8° 內、對 `--bg-surface-2` WCAG 對比全數 ≥4.5:1。最終 palette：`00631L`＝`#ff4d5f`、`0050`＝`#3388ff`、`00662`＝`#37df88`、`00685L`＝`#ff812b`、`00865B`＝`#9a6cf5`、台幣現金＝`#f8bd32`、`00895`＝`#3adff3`；Summary Card 主數值 accent：總資產`#3686f6`、成長資產`#37de99`、防守資產`#f84436`、現金部位`#aa65f7`（icon 背景 alpha `.25`）。`.up`／`.down`／`.hold` P&L 語意色 contract 全程未變。
+- 驗收與正式結案：使用者已完成 Desktop 與 iPhone Safari Preview 人工驗收，結論 **PASS**，並明確授權 Merge。`npm run test:ur-todo-076` 38/38 pass（含 OKLCH chroma/lightness/hue/WCAG 程式化驗證，非僅比對 hex 字串）；`test:ur-todo-070／071／072／073／075` regression 25／41／19／36／9 全數 pass；TypeScript／Production build／Preview build／`git diff --check` 均通過。本機 Windows `npm run test:ci` 因既有 `clecTwReferenceHistoricalValidation.test.ts` CRLF/LF 環境差異（與本 Sprint 0 diff）致 `&&` chain 提前中止，已改採逐一獨立執行受影響腳本驗證，並以 GitHub Actions `CI Verification`（Linux／LF checkout，本次多次 head 皆 success）作為完整 chain 之權威依據。PR [#421](https://github.com/hyc640110/family-universal-rebalance/pull/421) final head `1a9f3ecf6b30a27633e310be4b74cba70626cfb3` 已由 `hyc640110` 於 `2026-08-23T02:31:04Z` 合併為一般 2-parent merge commit `afa4ce631c48e4eca152d961144fab8b81e9a990`（parents `10c1014be558ad446095971be295d90e6d6af399`／`1a9f3ecf6b30a27633e310be4b74cba70626cfb3`；未使用 admin override）。main push Deploy GitHub Pages run [32613055998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32613055998) success。Production HTTP 200／deployment `environment=github-pages`／`state=success`（sha 與 merge commit 一致）；Desktop 1280px 與 Mobile 390px 唯讀驗證 PASS（詳見 `003_CURRENT_STATUS.md` 對應條目），Summary Card computed color 實測確認為 Round 5 最終 palette，console 無新增錯誤。
+- 正式邊界：`src/lib/**`（既有部分）、schema、persistence、`holdingDisplayOrder`、Rebalance、AI Decision、CLEC、Household Liquidity、Financial Event Ledger、attribution 均 0 semantic diff；Analytics／Rebalance 頁既有 `AllocationDonut`／`AllocationAnalysis` 版面與互動完全未修改（僅共用色彩 SSOT 一併套用新 palette）。
 
 ### UR-TODO-075 Holding Detail Information Architecture & Visual Refinement
 

@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-22T16:06:01.169442+00:00
+Generated UTC: 2026-08-23T02:37:48.788713+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-22T16:06:01.169442+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `ab2dcf6e811b1a2121ec66444775aa614c62ff1b7ea8d8e7d9f47cffeff0d465`
+- `003_CURRENT_STATUS.md` — SHA-256 `1d6b85f307952666540f919ec8ab069ba156495edd81af6b15ce55eff6d3be4b`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `d11ccbaaa85e08e3d3c51be222ad195209c1f50dfc1f7eee25bd14aaea4d1a86`
+- `008_TODO_BACKLOG.md` — SHA-256 `c2db6afa5591fc548adcc5b21b2472dd57d9081622e8aee531a9601e15e00346`
 - `009_CHANGELOG.md` — SHA-256 `f7f3154817deca8e2b71d260bcff703c6505d59f66f826c6865b752e84262c2e`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `fea7ffc5f37c794faa367fe3115d47a6bdaf0fe2442198dfca60567fc3df7524`
+- `012_AI_HANDOVER.md` — SHA-256 `cdfb8219d42f1e2e6b67391de20b0234491402a9a264e368aae5884e129d2a73`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -654,9 +654,13 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.51
+# Universal Rebalance Current Status v4.52
 
-最後更新：2026-08-22
+最後更新：2026-08-23
+
+**UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計 已正式 CLOSED／Production Verified（2026-08-23）。** PR [#421](https://github.com/hyc640110/family-universal-rebalance/pull/421) final head `1a9f3ecf6b30a27633e310be4b74cba70626cfb3` 已由 `hyc640110` 於 `2026-08-23T02:31:04Z` 以一般 2-parent merge commit `afa4ce631c48e4eca152d961144fab8b81e9a990` 合併（parents `10c1014be558ad446095971be295d90e6d6af399`／`1a9f3ecf6b30a27633e310be4b74cba70626cfb3`；未使用 admin override）；`origin/main` 正式基線更新為 `afa4ce631c48e4eca152d961144fab8b81e9a990`。merge 後 main push 觸發之 Deploy GitHub Pages run [32613055998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32613055998) success（`build`／`deploy` 兩個 job 皆 success，`build` job 內 `npm run test:ci` regression gate 通過），headSha 與 merge commit 一致。Production 已唯讀確認：HTTP 200、deployment `environment=github-pages`／`state=success`（deployment id `6043616037`，sha 與 merge commit 一致）、公開 JS/CSS asset 為本次新 build（`index-sdQjMtq5.js`／`index-Cv_kSaAA.css`）；Desktop 1280px 與 Mobile 390px 皆唯讀 DOM／computed-style 驗證 PASS：新版「資產配置」Donut＋Legend（無市值資料時正確 fail-closed 顯示「尚無可計入資產配置的市值資料」）、四張 Summary Cards（總資產／成長資產／防守資產／現金部位）、Desktop「目前 vs 目標」明細表存在且欄位完整、Mobile 確認明細表不進入 render tree、無「查看資產明細」文字、無 Bottom Sheet／Modal、390×844 無 horizontal overflow、console 無新增錯誤；Summary Card 主數值 computed color 實測為 Round 5 最終 palette（`rgb(54,134,246)`／`rgb(55,222,153)`／`rgb(248,68,54)`／`rgb(170,101,247)`，icon 背景 alpha `.25`），確認未回退 Round 4 washed-out 版本。驗證全程僅唯讀查詢與 resize，未寫入任何 Production 使用者資料、未建立測試持股、未修改設定。
+
+Desktop（`≥1025px`）改為左右兩欄（Donut＋Legend｜四卡＋明細表），Mobile（`≤768px`）改為單欄＋2×2 卡片且明細表不 render，Tablet（`769–1024px`）維持單欄但保留明細表。Desktop／Mobile 共用同一份 `calculateMetrics()`／`rebalanceOrderHelper` 既有 SSOT（`m.totalAssets`／`m.growth`／`m.defensive`／`m.cash`／`getEffectiveTargetPercent`／`getCashTarget`），新增的 `src/lib/assetAllocationOverview.ts` 僅為純資料轉換（legend 組成、target/deviation 欄位、sparkline 取樣），未新建第二套財務公式；`normalizeAssetClass()`、allocation／target／deviation 語意、`netWorthHistory` contract、schema、persistence、Rebalance、Household Liquidity、AI Decision、CLEC、Simulator 均為 0 semantic diff。趨勢資料唯讀 Contract Audit 確認僅 `totalAssets`／`cash` 有逐日真實歷史（`state.netWorthHistory`），「成長資產」「防守資產」摘要卡與 Desktop 個股趨勢欄一律 fail-closed 顯示「資料不足」，不偽造 sparkline，此為使用者於開發前明確拍板的方案。色彩歷經五輪迭代（Round 1 建立 deterministic color mapping → Round 2 版面密度精修 → Round 3 首次調高飽和度但因 HSL 模型侷限造成 OKLCH chroma 實際下降、變得偏白 → Round 4 誤判方向、持續加亮更淡 → Round 5 改以 OKLCH 模型修正，同色相下降低 Lightness、提高 Chroma），最終 Round 5 為正式定案 palette：`00631L`=`#ff4d5f`、`0050`=`#3388ff`、`00662`=`#37df88`、`00685L`=`#ff812b`、`00865B`=`#9a6cf5`、台幣現金=`#f8bd32`、`00895`=`#3adff3`，經 Production 實測 computed style 確認生效。既有 Analytics／Rebalance 頁 `AllocationDonut`／`AllocationAnalysis` 完全未修改（僅透過共用 `allocationColor()` SSOT 一併套用新色，符合「同一資產必須使用完全一致的 accent color」的既定設計）。詳見 `008_TODO_BACKLOG.md` UR-TODO-076 正式條目。
 
 **Holding Card Unrealized P&L Display Refinement 已正式 MERGED／Production Verified（2026-08-22）。** 使用者於 Production 實際使用後直接提出的獨立小型 UI refinement（非在 UR-TODO-074 範圍內執行，UR-TODO-074 仍維持既有 CLOSED／Production Verified 狀態不變）。PR [#419](https://github.com/hyc640110/family-universal-rebalance/pull/419) final head `890be6890a443e3ad33cfc08d90e5503dc2b7e3e` 已由 `hyc640110` 於 `2026-08-22T15:56:54Z` 以一般 2-parent merge commit `08a6a18487c04458b9d6a53fde5a8786ddb812e8` 合併（parents `ab12ad80d2f6faf0eb4564c821b5b42c1caa58cc`／`890be6890a443e3ad33cfc08d90e5503dc2b7e3e`；未使用 admin override）。Mobile Holding Card 的「未實現損益」區塊正式 contract 改為三行：第一行 label「未實現損益」、第二行損益百分比、第三行損益金額（例如「未實現損益／-1.7%／-5.9 萬元」），純 presentation 調整（CSS flex-direction 排序），未新增外框／背景框，`signedMoney(row.pnl)`／`pnlPct` 等既有財務計算與資料來源完全未變；台股正報酬紅／負報酬綠／hold 中性色語意不變；Desktop（`≥901px`）9-column row 版面未受影響。isolated Preview run [32582868426](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32582868426) success，deployment commit `d7d0cdf59b4ad60b43d1ed26188eea433530aaf2` 於 [Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 完成 390×844／320／430px 無 horizontal overflow、正負報酬顏色、Desktop regression 驗收 PASS。main push 觸發之 Deploy GitHub Pages run [32583231935](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32583231935) success；Production HTTP 200、`environment=production`、base `/family-universal-rebalance/`、JS `index-RGsu96bu.js`、CSS `index-CWbm8h-J.css` 正常，390×844／320／430px 無 horizontal overflow，1000／1280／1600px 無 regression，console 無阻擋性錯誤；Isolated Preview repo／`preview` branch 未因本次 Production Merge 被觸發或改變。
 
@@ -3148,9 +3152,33 @@ Hotfix 仍需：
 
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
-# Universal Rebalance Todo Backlog v2.2
+# Universal Rebalance Todo Backlog v2.3
 
-最後更新：2026-08-22
+最後更新：2026-08-23
+
+### UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計
+
+- 優先級：P3（使用者主動提出，Assets 頁「資產配置」區塊 Presentation／Responsive UX Redesign）
+- 狀態：**CLOSED／Production Verified（PR #421）**
+- 提出／開發日期：2026-08-23
+- 問題：既有「資產配置」區塊在 Desktop／Mobile 皆為單一堆疊 `AllocationDonut`，資訊密度與視覺層級與使用者提供的核准參考稿（Desktop 兩欄／Mobile 單欄＋2×2 摘要卡）有明顯落差；且無任何「近1個月趨勢」呈現。
+- 目標：Desktop（`≥1025px`）改為左右兩欄——左側 Donut＋Legend，右側四張 Summary Cards（總資產／成長資產／防守資產／現金部位）＋「資產明細（目前 vs 目標）」表格；Mobile（`≤768px`）改為單欄——Donut＋Legend，接著 2×2 摘要卡，**不 render** Desktop 明細表；Tablet（`769–1024px`）維持單欄流式排版但保留明細表。Desktop／Mobile 必須共用同一份資產資料、比例計算、成長／防守分類、目標配置、顏色 mapping 與趨勢資料來源，僅 presentation 依 breakpoint 不同。
+- 明確不包含：Rebalance 核心算法、Household Liquidity 公式、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution、transaction semantics、holdings 財務資料結構、Firebase archived-retirement contract、新增自動交易／市場預測、新建第二套資產 classification、為 sparkline 製造假歷史資料、Bottom Sheet／Mobile Desktop table、Production deployment 之外的任何自行 Merge。
+- Contract Audit（開發前唯讀盤點，確認正式）：
+  - 總資產 SSOT：`calculateMetrics()`（`src/App.tsx`），無第二套 totalAssets 計算。
+  - 成長／防守分類 SSOT：`normalizeAssetClass()`；現金恆定計入防守，非 `Holding`。「00631L 67.4%＝成長 67.4%」為使用者實際持股組合巧合（該使用者成長分類下唯一有股數的標的），非分類 bug，未修正分類邏輯。
+  - 目標配置／偏離 SSOT：`getEffectiveTargetPercent()`／`getCashTarget()`／既有 `tone()` 偏離色彩 contract（`up`＝紅／超配，`down`＝綠／低配，`hold`＝中性），沿用不新建公式。
+  - 趨勢資料 SSOT：`state.netWorthHistory`。僅 `totalAssets`／`cash` 有逐日真實歷史，可重用既有 `historyForRange()`；「成長資產」「防守資產」與 Desktop 個股趨勢欄**無任何逐日持久化資料**，經使用者明確拍板（AskUserQuestion 確認）採 **fail-closed**（顯示「近1個月趨勢資料不足」／「資料不足」），不新增 persistent history infrastructure，不偽造 sparkline。
+  - Symbol color mapping SSOT：`allocationColor()`／`FIXED_ALLOCATION_COLORS`／`ALLOCATION_COLORS`（`src/App.tsx`），為全站唯一色彩來源，Donut／Legend／Desktop 明細表 dot／既有 Analytics 頁 `AllocationDonut` 皆共用同一組色值，確保「同一資產必須使用完全一致的 accent color」。
+- 新增元件：`AssetAllocationOverview`／`AssetAllocationDonutPanel`／`AssetOverviewCard`／`AssetAllocationDetailTable`／`MiniSparkline`（`src/App.tsx`）；純資料轉換 helper `src/lib/assetAllocationOverview.ts`（`deriveAllocationLegendItems`／`deriveAllocationDetailRows`／`sparklinePointsFromHistory`／`deriveSparklineChange`／`allocationTone`）。既有 `AllocationDonut`（Analytics／Rebalance 頁）改為呼叫共用的 `deriveAllocationLegendItems()`，行為完全不變，未修改其 JSX 或版面。
+- 色彩迭代（Round 1～5，皆為同一 PR 內的 UI Refinement，非新 Sprint）：
+  1. Round 1：建立 deterministic color mapping（`FIXED_ALLOCATION_COLORS`／`ALLOCATION_COLORS`），確保未來新增合法持股仍可取得穩定顏色。
+  2. Round 2：Desktop／Mobile 視覺密度精修（Legend 由大型 card 改為 compact row、Summary Card 加寬、明細表 padding 調整、Mobile Donut 縮小、fail-closed 訊息去重）。
+  3. Round 3：首次提高飽和度／對比（HSL 模型）。
+  4. Round 4：延續 HSL 加亮策略，結果在 OKLCH 模型下量測**每個命名 symbol 的 Chroma 反而低於 Round 3**（Lightness 過高導致偏白），使用者驗收後判定方向錯誤。
+  5. Round 5（最終定案）：改以 OKLCH 模型修正——同色相下降低 Lightness、提高 Chroma（拉向 sRGB gamut 邊界並回退約 8% 避免 clipping），程式化驗證 7 個命名 symbol 之 Chroma 全數高於 Round 4、Lightness 全數低於 Round 4、hue 偏移皆在 ±8° 內、對 `--bg-surface-2` WCAG 對比全數 ≥4.5:1。最終 palette：`00631L`＝`#ff4d5f`、`0050`＝`#3388ff`、`00662`＝`#37df88`、`00685L`＝`#ff812b`、`00865B`＝`#9a6cf5`、台幣現金＝`#f8bd32`、`00895`＝`#3adff3`；Summary Card 主數值 accent：總資產`#3686f6`、成長資產`#37de99`、防守資產`#f84436`、現金部位`#aa65f7`（icon 背景 alpha `.25`）。`.up`／`.down`／`.hold` P&L 語意色 contract 全程未變。
+- 驗收與正式結案：使用者已完成 Desktop 與 iPhone Safari Preview 人工驗收，結論 **PASS**，並明確授權 Merge。`npm run test:ur-todo-076` 38/38 pass（含 OKLCH chroma/lightness/hue/WCAG 程式化驗證，非僅比對 hex 字串）；`test:ur-todo-070／071／072／073／075` regression 25／41／19／36／9 全數 pass；TypeScript／Production build／Preview build／`git diff --check` 均通過。本機 Windows `npm run test:ci` 因既有 `clecTwReferenceHistoricalValidation.test.ts` CRLF/LF 環境差異（與本 Sprint 0 diff）致 `&&` chain 提前中止，已改採逐一獨立執行受影響腳本驗證，並以 GitHub Actions `CI Verification`（Linux／LF checkout，本次多次 head 皆 success）作為完整 chain 之權威依據。PR [#421](https://github.com/hyc640110/family-universal-rebalance/pull/421) final head `1a9f3ecf6b30a27633e310be4b74cba70626cfb3` 已由 `hyc640110` 於 `2026-08-23T02:31:04Z` 合併為一般 2-parent merge commit `afa4ce631c48e4eca152d961144fab8b81e9a990`（parents `10c1014be558ad446095971be295d90e6d6af399`／`1a9f3ecf6b30a27633e310be4b74cba70626cfb3`；未使用 admin override）。main push Deploy GitHub Pages run [32613055998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32613055998) success。Production HTTP 200／deployment `environment=github-pages`／`state=success`（sha 與 merge commit 一致）；Desktop 1280px 與 Mobile 390px 唯讀驗證 PASS（詳見 `003_CURRENT_STATUS.md` 對應條目），Summary Card computed color 實測確認為 Round 5 最終 palette，console 無新增錯誤。
+- 正式邊界：`src/lib/**`（既有部分）、schema、persistence、`holdingDisplayOrder`、Rebalance、AI Decision、CLEC、Household Liquidity、Financial Event Ledger、attribution 均 0 semantic diff；Analytics／Rebalance 頁既有 `AllocationDonut`／`AllocationAnalysis` 版面與互動完全未修改（僅共用色彩 SSOT 一併套用新 palette）。
 
 ### UR-TODO-075 Holding Detail Information Architecture & Visual Refinement
 
@@ -5903,6 +5931,16 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計 Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
+
+- 正式決策：**UR-TODO-076 = CLOSED／Production Verified。** 使用者已完成 Desktop 與 iPhone Safari Preview 人工驗收，結論 PASS，並明確授權 Merge。PR [#421](https://github.com/hyc640110/family-universal-rebalance/pull/421) final head `1a9f3ecf6b30a27633e310be4b74cba70626cfb3` 已由 `hyc640110` 於 `2026-08-23T02:31:04Z` 以一般 2-parent merge commit `afa4ce631c48e4eca152d961144fab8b81e9a990`（parents `10c1014be558ad446095971be295d90e6d6af399`／`1a9f3ecf6b30a27633e310be4b74cba70626cfb3`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `afa4ce631c48e4eca152d961144fab8b81e9a990`。
+- **最終 UI contract（下一位 AI／開發者必須遵守，不得回改）**：Desktop（`≥1025px`）「資產配置」為兩欄（左 Donut＋Legend／右四張 Summary Cards＋「目前 vs 目標」明細表）；Mobile（`≤768px`）為單欄＋2×2 Summary Cards，**明細表不進入 render tree**（非 CSS 隱藏），不得加回 Bottom Sheet／Modal／「查看資產明細」；Tablet（`769–1024px`）維持單欄流式但保留明細表。「成長資產」「防守資產」摘要卡與 Desktop 個股趨勢欄**永久 fail-closed**（顯示「資料不足」），除非未來新增逐日持久化 growth／defensive／per-holding 快照基礎建設（須另立獨立 UR-TODO 並重新 Contract Audit），不得偽造 sparkline。色彩正式定案為 **Round 5** palette（見下），**不得回退 Round 3／Round 4 的 washed-out 版本**。
+- Round 5 最終 color token（`src/App.tsx` `FIXED_ALLOCATION_COLORS`）：`00631L`＝`#ff4d5f`、`0050`＝`#3388ff`、`00662`＝`#37df88`、`00685L`＝`#ff812b`、`00865B`＝`#9a6cf5`、`CASH`＝`#f8bd32`、`00895`＝`#3adff3`；Summary Card 主數值 accent：藍`#3686f6`／綠`#37de99`／紅`#f84436`／紫`#aa65f7`（icon 背景 alpha `.25`）。此 palette 經 OKLCH chroma／lightness／hue 偏移／WCAG 對比程式化驗證（`tests/assetAllocationOverviewStructure.test.ts`），未來若要再調色須延續同一驗證方法（不得只比對 hex 字串），且不得讓任一命名 symbol 的 OKLCH lightness 全面高於 Round 5。
+- 實作機制：新元件 `AssetAllocationOverview`／`AssetAllocationDonutPanel`／`AssetOverviewCard`／`AssetAllocationDetailTable`／`MiniSparkline`（`src/App.tsx`）＋純資料轉換 helper `src/lib/assetAllocationOverview.ts`；既有 Analytics／Rebalance 頁 `AllocationDonut`／`AllocationAnalysis` 完全未修改（僅透過共用 `allocationColor()` SSOT 一併套用新色）。趨勢資料僅 `totalAssets`／`cash` 有真實 `state.netWorthHistory` 逐日歷史可用。
+- Preview 證據：多輪 Deploy Isolated Preview run 皆 success（最終輪 [32611511937](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32611511937)），[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 多次 Desktop／Mobile 驗收 PASS。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32613055998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32613055998) success（`build`／`deploy` 皆 success，`build` 內 `npm run test:ci` regression gate 通過）；Production HTTP 200、deployment `environment=github-pages`／`state=success`（id `6043616037`，sha 與 merge commit一致）、JS `index-sdQjMtq5.js`／CSS `index-Cv_kSaAA.css`；Desktop 1280px／Mobile 390px 唯讀 DOM／computed-style 驗證 PASS（無 horizontal overflow、Summary Card accent 色實測與 Round 5 一致、明細表 Desktop 存在／Mobile 不 render、無「查看資產明細」文字、console 無新增錯誤），驗證全程未寫入 Production 使用者資料。
+- 邊界與下一步：`src/lib/**`（既有部分）、schema、persistence、`normalizeAssetClass()`、allocation／target／deviation 語意、`netWorthHistory` contract、Rebalance、Household Liquidity、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution 均為 0 semantic diff。後續若要再調整資產配置區塊視覺或新增 growth／defensive／per-holding 真實趨勢，必須由使用者提出獨立需求並重新 Contract Audit，不得自行回改本次已 Production Verified 的 Round 5 版面與色彩。
 
 ## 最新交接快照：Holding Card Unrealized P&L Display Refinement（MERGED／Production Verified，2026-08-22）
 
