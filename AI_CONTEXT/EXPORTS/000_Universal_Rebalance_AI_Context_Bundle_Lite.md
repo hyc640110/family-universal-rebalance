@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-23T02:37:48.788713+00:00
+Generated UTC: 2026-08-23T09:30:06.564670+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `1d6b85f307952666540f919ec8ab069ba156495edd81af6b15ce55eff6d3be4b`
-- `008_TODO_BACKLOG.md` — SHA-256 `c2db6afa5591fc548adcc5b21b2472dd57d9081622e8aee531a9601e15e00346`
-- `012_AI_HANDOVER.md` — SHA-256 `cdfb8219d42f1e2e6b67391de20b0234491402a9a264e368aae5884e129d2a73`
+- `003_CURRENT_STATUS.md` — SHA-256 `07137ba315f9740df88158c7e7de64eba1fc8d25ebe9617b18796d8ef7b5c4ee`
+- `008_TODO_BACKLOG.md` — SHA-256 `6cf1a4481a0247d9011a2267601f863130a7ac0745f97d2c209bf8243d1be11c`
+- `012_AI_HANDOVER.md` — SHA-256 `16e96ab69fb2a6b92e3f0a856bb35e237c5f8ae2b7ee2c00daa755fe3f8e5655`
 
 ---
 
@@ -425,9 +425,11 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
-# Universal Rebalance Current Status v4.52
+# Universal Rebalance Current Status v4.53
 
 最後更新：2026-08-23
+
+**UR-TODO-077 首頁 Desktop/Mobile Visual Hierarchy Refinement 已正式 CLOSED／Production Verified（2026-08-23）。** PR [#423](https://github.com/hyc640110/family-universal-rebalance/pull/423) final head `13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c` 已由 `hyc640110` 於 `2026-08-23T09:22:57Z` 以一般 2-parent merge commit `b5297a007d82602acdbdc466476bca7bf88de972` 合併（parents `2a6abbf728bdc4072c0fef09212be1e5eabf4676`／`13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c`；未使用 admin override、未 squash、未 rebase）；`origin/main` 正式基線更新為 `b5297a007d82602acdbdc466476bca7bf88de972`。merge 後 main push 觸發之 Deploy GitHub Pages run [32630843714](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32630843714) success（`build`／`deploy` 兩個 job 皆 success，`build` job 內 `npm run test:ci` regression gate 通過，headSha 與 merge commit 一致；run annotations 中出現的 "Unable to download artifact(s): Artifact has expired" 為既有 workflow 內建的「重用上次 Preview artifact，過期時 fallback 為以 main 鏡像 Preview」機制觸發 fallback 分支，該分支步驟本身仍為 success，非本次部署失敗）。Production 已唯讀確認：HTTP 200、公開 JS/CSS asset 為本次新 build（`index-IG_qcyn1.js`／`index-hMnE973C.css`，與本機最終 build 產物檔名一致）、console 無新增錯誤；Desktop 1280px 與 Mobile 390px 皆唯讀 DOM／computed-style 驗證 PASS：重點標的卡「目前配置／目標配置／偏離」與「目前高點／現價／回撤／下一級門檻」為最終驗收版本（Desktop 84px／64px 真實 column-gap＋置中文字＋`--divider-soft-bright` 淺灰 divider＋偏離/下一級門檻延伸至卡片右緣、Mobile 維持既有 flex 版面與 14px／10px padding-left 完全未變）、「查看再平衡建議」為無外框文字 CTA、今日投資狀態／資產快照（Desktop 單列四卡／Mobile 2×2）／狀態確認／Bottom Navigation 六項 routing 正常、Desktop 與 Mobile 皆無 horizontal overflow。**使用者人工驗收在 isolated Preview 環境（多輪、最終 Round 12）完成 PASS；Production 端本次僅由 AI 執行唯讀 DOM／computed-style／console／HTTP smoke 驗證，未進行也不等同於使用者於 Production 環境的人工驗收。** 驗證全程僅唯讀查詢與 resize，未寫入任何 Production 使用者資料、未建立測試持股、未修改設定、未觸發任何會改資料的操作。`src/lib/**` 全程 0 diff：`deriveHomeFocusedAssetCard()`／`deriveHomeFocusedAssetLadder()`／`deriveInvestmentIntelligence()`／focusedSymbols／todayDecision／investmentDashboard semantics／dip ladder 演算法／credit-card reminder semantics／navigation routes／Rebalance／Household Liquidity／Risk／AI Decision／CLEC／Simulator／Financial Event Ledger／attribution／persistence／schema／localStorage／JSON Backup／quote provider／Worker 均為 0 semantic diff，本 Sprint 純為 Home Dashboard 的 presentation／CSS 調整。詳見 `008_TODO_BACKLOG.md` UR-TODO-077 正式條目。
 
 **UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計 已正式 CLOSED／Production Verified（2026-08-23）。** PR [#421](https://github.com/hyc640110/family-universal-rebalance/pull/421) final head `1a9f3ecf6b30a27633e310be4b74cba70626cfb3` 已由 `hyc640110` 於 `2026-08-23T02:31:04Z` 以一般 2-parent merge commit `afa4ce631c48e4eca152d961144fab8b81e9a990` 合併（parents `10c1014be558ad446095971be295d90e6d6af399`／`1a9f3ecf6b30a27633e310be4b74cba70626cfb3`；未使用 admin override）；`origin/main` 正式基線更新為 `afa4ce631c48e4eca152d961144fab8b81e9a990`。merge 後 main push 觸發之 Deploy GitHub Pages run [32613055998](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32613055998) success（`build`／`deploy` 兩個 job 皆 success，`build` job 內 `npm run test:ci` regression gate 通過），headSha 與 merge commit 一致。Production 已唯讀確認：HTTP 200、deployment `environment=github-pages`／`state=success`（deployment id `6043616037`，sha 與 merge commit 一致）、公開 JS/CSS asset 為本次新 build（`index-sdQjMtq5.js`／`index-Cv_kSaAA.css`）；Desktop 1280px 與 Mobile 390px 皆唯讀 DOM／computed-style 驗證 PASS：新版「資產配置」Donut＋Legend（無市值資料時正確 fail-closed 顯示「尚無可計入資產配置的市值資料」）、四張 Summary Cards（總資產／成長資產／防守資產／現金部位）、Desktop「目前 vs 目標」明細表存在且欄位完整、Mobile 確認明細表不進入 render tree、無「查看資產明細」文字、無 Bottom Sheet／Modal、390×844 無 horizontal overflow、console 無新增錯誤；Summary Card 主數值 computed color 實測為 Round 5 最終 palette（`rgb(54,134,246)`／`rgb(55,222,153)`／`rgb(248,68,54)`／`rgb(170,101,247)`，icon 背景 alpha `.25`），確認未回退 Round 4 washed-out 版本。驗證全程僅唯讀查詢與 resize，未寫入任何 Production 使用者資料、未建立測試持股、未修改設定。
 
@@ -1277,6 +1279,19 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 # Universal Rebalance Todo Backlog v2.3
 
 最後更新：2026-08-23
+
+### UR-TODO-077 首頁 Desktop/Mobile Visual Hierarchy Refinement
+
+- 優先級：P3（使用者主動提出，Home `/home` 首頁視覺層級與資訊密度 Presentation／Responsive UX Refinement，沿用 UR-TODO-076 Round 5 色彩語言）
+- 狀態：**CLOSED／Production Verified（PR #423）**
+- 提出／開發日期：2026-08-23
+- 問題：首頁重點標的卡、今日投資狀態、資產快照、狀態確認等區塊的視覺層級／資訊密度與使用者提供的多輪參考稿有落差；重點標的卡內「目前配置／目標配置／偏離」與「目前高點／現價／回撤／下一級門檻」欄位間距、位置、divider 呈現經多輪（共 12 輪 UI Refinement）反覆對齊參考圖才定案。
+- 目標：Desktop（`≥1025px`）今日投資狀態改為 3 欄橫向列（狀態｜原因｜建議），重點標的卡 icon＋accent bar 取代整面色塊填色，資產快照四卡單列＋icon 標頭；Mobile（`≤768px`）維持既有單欄堆疊與 2×2 摘要卡邏輯，本 Sprint 後期輪次明確要求 Mobile 完全不再修改。純 presentation／CSS／JSX 結構調整，不新增或修改任何持久化欄位。
+- 明確不包含：Rebalance 核心算法、Household Liquidity、Risk、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution、persistence、schema、localStorage、JSON Backup、quote provider、Worker、navigation routes、`deriveHomeFocusedAssetCard()`／`deriveHomeFocusedAssetLadder()`／`deriveInvestmentIntelligence()`／focusedSymbols／todayDecision／investmentDashboard semantics、credit-card reminder semantics。
+- Contract Audit：`src/lib/**` 全程 0 diff（PR #423 final diff僅 `package.json`／`HomeFocusedAssetCard.tsx`／`DashboardDecisionPage.tsx`／`styles.css`／新測試檔案共 5 個檔案，component 僅 `import type` 既有 lib 型別，未 import 或修改任何 lib 實作）；`isLadderTracking`（「追蹤中」badge）純衍生自既有已曝光的 `ladder.status`，無新增持久化欄位。
+- 重點標的卡欄位間距與 divider 迭代（12 輪 UI Refinement，皆為同一 PR 內累積修正，非新 Sprint）：Round 1～3 建立 accent-bar／icon-circle／metric-columns 基礎結構；Round 4 CTA／今日建議結論改為無外框、今日投資狀態 3 欄 divider、Mobile 今日投資狀態改左對齊；Round 5 修正「metrics 貼齊最右緣」根因（grid track 數量問題）；Round 6 修正「逢低加碼 metrics 應維持單列」被 Round 5 grid 誤拆為兩行的 regression；Round 7～8 Desktop-only（`@media(min-width:769px)`）漸進加大 padding-left 間距（18px→32px→44px）；Round 9 發現 padding-left 模式的根本限制（divider 貼字），改採真正 `column-gap`（56px／44px）＋ `::before` 置中於 gap 正中央（`left:-halfGap`）；Round 10 依參考圖再加大至 84px／64px；Round 11 改用 `flex:1 1 auto`＋`display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr))` 讓「偏離」／「下一級門檻」延伸至卡片右緣（`auto-fit` 而非固定 `repeat(4,...)`，避免資料只有 3 欄時多留一條看不見的第 4 軌卡住最後一欄）；Round 12（最終定案）比照套用到配置 metrics、標籤與數字改置中對齊、divider 移除白點裝飾並改用新增的 `--divider-soft-bright`（`rgba(226,232,240,.45)`）較亮 token（原 `--divider-soft` 保留供今日投資狀態 divider 沿用，未受影響）。全程 Desktop 調整皆包在 `@media(min-width:769px)`（Mobile `@media(max-width:768px)` 之精確鏡像邊界）內，Mobile computed style 每輪皆有 DOM 實測確認 0 diff。
+- 驗收與正式結案：使用者於 isolated Preview（Desktop + Mobile，多輪、最終 Round 12）人工驗收，結論 **PASS**，並明確授權 Merge。`npm run test:ur-todo-077` 36/36 pass；`homeFocusedAssetCard`／`homeFocusedAssetCardUi`／`homeFocusedAssetLadderCard`／`todayDecision`／`investmentDashboard`／`dailyDecisionWorkflow`／`dashboardHealthReminderConditional`／`focusedSymbols`／`v6MobileSimplifiedExperience` regression 共 72/72 pass；TypeScript／Production build／Preview build／`git diff --check` 均通過。本機 Windows `npm run test:ci` 因既有 `clecTwReferenceHistoricalValidation.test.ts` CRLF/LF 環境差異（與本 Sprint 0 diff）致 `&&` chain 提前中止，已改採逐一獨立執行受影響腳本驗證，並以 GitHub Actions `verify`（Linux／LF checkout，本次 head success）作為完整 chain 之權威依據。PR [#423](https://github.com/hyc640110/family-universal-rebalance/pull/423) final head `13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c` 已由 `hyc640110` 於 `2026-08-23T09:22:57Z` 合併為一般 2-parent merge commit `b5297a007d82602acdbdc466476bca7bf88de972`（parents `2a6abbf728bdc4072c0fef09212be1e5eabf4676`／`13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c`；未使用 admin override）。main push Deploy GitHub Pages run [32630843714](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32630843714) success。Production HTTP 200、JS `index-IG_qcyn1.js`／CSS `index-hMnE973C.css` 與本機最終 build 產物一致；Desktop 1280px 與 Mobile 390px 唯讀驗證 PASS（詳見 `003_CURRENT_STATUS.md` 對應條目），console 無新增錯誤。**使用者人工驗收發生於 Preview 環境，Production 端僅由 AI 執行唯讀 smoke／DOM 驗證，兩者不可混淆。**
+- 正式邊界：`src/lib/**`、schema、persistence、Rebalance、AI Decision、CLEC、Household Liquidity、Risk、Financial Event Ledger、attribution、navigation routes 均 0 semantic diff；今日投資狀態既有 3 欄 divider（`--divider-soft`）、CTA presentation、資產快照、狀態確認、信用卡提醒、bottom navigation、typography、card colors 除本 Sprint 明確調整項目外均未修改。
 
 ### UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計
 
@@ -3466,6 +3481,16 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-077 首頁 Desktop/Mobile Visual Hierarchy Refinement Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
+
+- 正式決策：**UR-TODO-077 = CLOSED／Production Verified。** 使用者於 isolated Preview 完成多輪（共 12 輪 UI Refinement）Desktop／Mobile 人工驗收，結論 PASS，並明確授權 Merge。PR [#423](https://github.com/hyc640110/family-universal-rebalance/pull/423) final head `13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c` 已由 `hyc640110` 於 `2026-08-23T09:22:57Z` 以一般 2-parent merge commit `b5297a007d82602acdbdc466476bca7bf88de972`（parents `2a6abbf728bdc4072c0fef09212be1e5eabf4676`／`13a87fc53eacbe17908c3d7d3a58c26ec8d7e19c`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `b5297a007d82602acdbdc466476bca7bf88de972`。
+- **最終 UI contract（下一位 AI／開發者必須遵守，不得回改）**：重點標的卡「目前配置／目標配置／偏離」與「目前高點／現價／回撤／下一級門檻」在 **Desktop（`≥769px`，`@media(min-width:769px)`，與既有 `@media(max-width:768px)` Mobile 斷點精確鏡像）** 使用真正 `column-gap`（配置 84px／逢低加碼 64px，**不得改回 padding-left 模式**，該模式已被證實會導致 divider 貼字）、`display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr))`（**不得改回固定 `repeat(4,...)`**，資料只有 3 欄時會多留看不見的第 4 軌卡住最後一欄）、divider `::before` 置中於 `left:-halfGap`（gap 的一半）並使用 `--divider-soft-bright`（`rgba(226,232,240,.45)`，**不得改回 `--divider-soft`**，該 token 對本卡片而言過暗）、label／value 文字置中（`text-align:center`）、無白點裝飾（Round 11 加入後於 Round 12 依使用者明確要求移除）。「查看再平衡建議」為無外框純文字 CTA（`.dashboard-focused-asset-cta`）。**Mobile（`≤768px`）本 Sprint 後期輪次明確要求完全不再修改**，維持既有 flex 版面、`padding-left:14px`（配置）／`10px`（逢低加碼）、`text-align:left`／`start`，每輪皆有 DOM computed-style 實測 0 diff 佐證。
+- 今日投資狀態最終 contract：Desktop `≥1025px` 為 3 欄橫向 grid（狀態｜原因｜建議，`--divider-soft`，非本輪修改對象，`.investment-intelligence-row`），Mobile 為左對齊（`align-items:flex-start`，非置中）堆疊。資產快照 Desktop 單列四卡＋icon 標頭、Mobile 既有 2×2 breakpoint 規則不變。
+- 實作機制：純 presentation／CSS／JSX 調整，`src/lib/**` 全程 0 diff。`isLadderTracking`（「追蹤中」badge）純衍生自既有已曝光的 `ladder.status`，非新增持久化欄位。修改檔案僅 `package.json`（新增 `test:ur-todo-077` script）、`src/components/HomeFocusedAssetCard.tsx`、`src/pages/DashboardDecisionPage.tsx`、`src/styles.css`、`tests/homeDashboardVisualHierarchy.test.ts`。
+- Preview 證據：多輪 Deploy Isolated Preview run 皆 success（最終輪 [32628746956](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32628746956)），[Preview](https://hyc640110.github.io/family-universal-rebalance-preview/) 多次 Desktop／Mobile 驗收 PASS。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32630843714](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32630843714) success（`build`／`deploy` 皆 success，`build` 內 `npm run test:ci` regression gate 通過；run annotations 中的 artifact-expired 訊息為既有 fallback 機制正常觸發，非部署失敗）；Production HTTP 200、JS `index-IG_qcyn1.js`／CSS `index-hMnE973C.css`（與本機最終 build 產物一致）；Desktop 1280px／Mobile 390px 唯讀 DOM／computed-style 驗證 PASS（無 horizontal overflow、重點標的卡 spacing／divider／文字置中皆為最終版本、Mobile 與修改前 computed style 一致、console 無新增錯誤），驗證全程未寫入 Production 使用者資料。**使用者人工驗收發生於 Preview 環境，Production 端本次僅由 AI 執行唯讀 smoke／DOM 驗證，不得混淆為 Production 人工驗收。**
+- 邊界與下一步：`src/lib/**`、schema、persistence、Rebalance、Household Liquidity、Risk、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution、navigation routes、`deriveHomeFocusedAssetCard()`／`deriveHomeFocusedAssetLadder()`／`deriveInvestmentIntelligence()`／focusedSymbols／todayDecision／investmentDashboard semantics／credit-card reminder semantics 均為 0 semantic diff。後續若要再調整首頁重點標的卡 spacing／divider／色彩，必須由使用者提出獨立需求，不得自行回改本次已 Production Verified 的 Round 12 最終版面（尤其是 column-gap／auto-fit grid／`--divider-soft-bright` 三項已明確標註「不得回改」的機制）。
 
 ## 最新交接快照：UR-TODO-076 資產配置區塊 Desktop/Mobile 重新設計 Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
 
