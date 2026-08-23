@@ -1019,15 +1019,20 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
 .dashboard-focused-asset-ladder-columns>div+div::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:1px;background:var(--divider-soft)}
 .dashboard-focused-asset-ladder-action-needed .dashboard-focused-asset-ladder-heading{color:#fcd34d}
 .dashboard-focused-asset-ladder-badge{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,.16);color:#37de99;font-size:11px;font-weight:800}
-/* UR-TODO-077 Round 7: Desktop-only widening of the config-metrics and dip-tracking inter-column
-   spacing (18px/20px felt too cramped per feedback). Scoped to min-width:769px -- the exact mirror
-   of the @media(max-width:768px) boundary below -- specifically so this cannot alter Mobile's
-   computed padding-left at all; Mobile keeps its own explicit 14px/10px overrides inside that block,
-   unconditionally untouched by this Sprint. padding-left stays the single source of spacing (not an
-   added gap) to avoid reintroducing the Round 4->5 double-spacing bug. */
+/* UR-TODO-077 Round 7/8: Desktop-only widening of the config-metrics and dip-tracking inter-column
+   spacing (18px/20px, then 32px, still felt too cramped per feedback). Scoped to min-width:769px --
+   the exact mirror of the @media(max-width:768px) boundary below -- specifically so this cannot
+   alter Mobile's computed padding-left at all; Mobile keeps its own explicit 14px/10px overrides
+   inside that block, unconditionally untouched by this Sprint. padding-left stays the single source
+   of horizontal spacing (not an added flex gap) to avoid reintroducing the Round 4->5
+   double-spacing bug; Round 8 additionally widens each column's own min-width so short values (e.g.
+   "-3.1%") don't just sit in a narrow box with a wide gutter before them -- the column itself reads
+   as more spacious, not just the gap between columns. */
 @media(min-width:769px){
-  .dashboard-focused-asset-body .dashboard-metric-columns>div+div{padding-left:32px}
-  .dashboard-focused-asset-ladder-columns>div+div{padding-left:32px}
+  .dashboard-focused-asset-body .dashboard-metric-columns>div{min-width:82px}
+  .dashboard-focused-asset-body .dashboard-metric-columns>div+div{padding-left:44px}
+  .dashboard-focused-asset-ladder-columns>div{min-width:82px}
+  .dashboard-focused-asset-ladder-columns>div+div{padding-left:44px}
 }
 @media(max-width:768px){
   /* UR-TODO-077 Round 3: the identity block's flex-basis is reset to auto so it sizes to its real

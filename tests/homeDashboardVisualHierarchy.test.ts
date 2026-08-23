@@ -143,13 +143,18 @@ test('UR-TODO-077 Round 6: Mobile dip-tracking metrics stay on ONE row (not the 
   assert.doesNotMatch(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div::before\{content:none\}/);
 });
 
-test('UR-TODO-077 Round 7: Desktop-only (min-width:769px, the exact mirror of the existing max-width:768px Mobile boundary) widening of the config-metrics and dip-tracking inter-column padding-left from 18px/20px to 32px -- padding-left stays the single spacing source (not an added flex/grid gap), avoiding the Round 4->5 double-spacing bug', () => {
-  assert.match(styles, /@media\(min-width:769px\)\{\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:32px\}\s*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:32px\}\s*\}/);
+test('UR-TODO-077 Round 8: Desktop-only (min-width:769px, the exact mirror of the existing max-width:768px Mobile boundary) further widening of config-metrics and dip-tracking spacing -- padding-left 32px->44px (still the single spacing source, no added flex/grid gap) PLUS each column\'s own min-width raised 60px(shared base)->82px, so short values read as sitting in a genuinely wider column rather than just a wider gutter before a narrow one', () => {
+  assert.match(styles, /@media\(min-width:769px\)\{\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\{min-width:82px\}\s*\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:44px\}\s*\.dashboard-focused-asset-ladder-columns>div\{min-width:82px\}\s*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:44px\}\s*\}/);
 });
 
-test('UR-TODO-077 Round 7: the new Desktop spacing override is scoped so it structurally cannot alter Mobile\'s computed padding-left -- Mobile keeps its own explicit 14px (config metrics) / 10px (dip-tracking) overrides inside the untouched @media(max-width:768px) block, which is strictly more specific for any viewport <=768px than the new >=769px rule', () => {
+test('UR-TODO-077 Round 8: the Round 8 spacing values are strictly wider than Round 7\'s (44px > 32px), confirming this round actually widened spacing rather than leaving it unchanged', () => {
+  assert.doesNotMatch(styles, /@media\(min-width:769px\)\{[^}]*padding-left:32px/, 'the old Round 7 32px value must not still be present inside the Desktop-scoped block');
+});
+
+test('UR-TODO-077 Round 8: the Desktop spacing override is scoped so it structurally cannot alter Mobile\'s computed padding-left/min-width -- Mobile keeps its own explicit 14px (config metrics) / 10px (dip-tracking) padding-left overrides, and the shared base min-width:60px, inside the untouched @media(max-width:768px) block / unconditional base rule, which are strictly more specific for any viewport <=768px than the new >=769px rule', () => {
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]{0,1400}\.dashboard-focused-asset-body \.dashboard-metric-columns>div\+div\{padding-left:14px\}/, 'Mobile config-metrics padding-left must remain 14px, unchanged by this round');
   assert.match(styles, /@media\(max-width:768px\)\{[\s\S]*\.dashboard-focused-asset-ladder-columns>div\+div\{padding-left:10px\}/, 'Mobile dip-tracking padding-left must remain 10px, unchanged by this round');
+  assert.match(styles, /\.dashboard-metric-columns>div\{min-width:60px\}/, 'the shared base min-width (which Mobile relies on) must remain untouched at 60px');
 });
 
 test('UR-TODO-077 Round 4: Desktop typography is bumped a further step for the explicitly-requested elements (stock name, allocation/ladder metric values, 今日投資狀態 primary status word, blocking-reason text, 今日建議結論 text, summary card values) without touching the shared Assets-page asset-overview-card-value base rule', () => {
