@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：UR-TODO-078 Phase B Consumer Contract Audit（READY FOR DEVELOPMENT，2026-08-25）
+
+- 正式決策：Phase A 維持 **CLOSED／Production Verified**；Phase B 已完成 Consumer Contract Audit，狀態為 **READY FOR DEVELOPMENT（尚未開始，仍須使用者明確「開始開發」）**，整體 UR-TODO-078 仍 OPEN。只消費真實 App-observed `holdingHistory`，不改 Phase A／財務公式／target／deviation／Rebalance／Worker。
+- 有效資料：`quoteAvailable===true` 才能成為 trend point；false 的 avgCost fallback 完全排除（不顯示、不可 partial、不可 gap），以 fail-closed 防止非市場值偽裝為歷史市值。per-holding 用 snapshot `marketValue`，保留有效 `shares=0` 的 0 值與 archived history；當日 `assetClass` 才是 Growth／Defensive 分類依據。
+- 聚合完整性：class 當日 snapshot 內任一已保存 entry unavailable，即整天 invalid、不加總部分資料；全數可用才加總 `marketValue`，空集合是可驗證的真實 0。Consumer 沒有當日 holdings 全集，不得猜測不存在的 entry 是缺漏。最近 30 日窗內最少 2 個有效 observation days 顯示趨勢；0／1 均「近1個月趨勢資料不足」。變化是 first-vs-last valid；缺日不補。維持「趨勢（近1個月）」與現有 MiniSparkline observation-order 等距 x 軸。
+- 實作邊界：Desktop per-holding cell＋Growth／Defensive Summary Cards 可在同一個 Phase B Sprint 完成；Mobile detail table 不 render，無 Bottom Sheet／Modal／歷史瀏覽器。建議將兩個 Consumer-specific selector 留在 `assetAllocationOverview.ts`，重用 `deriveSparklineChange`／`MiniSparkline`，以一次 `useMemo` index 避免逐 row 重掃。完整 acceptance tests 與契約見 `008_TODO_BACKLOG.md` §0.2。
+
 ## 最新交接快照：UR-TODO-078 Phase A Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
 
 - 正式決策：**UR-TODO-078 Phase A = CLOSED／Production Verified。整體 UR-TODO-078 維持 OPEN（Phase B = NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT），不得視為完全 CLOSED。** 使用者於 isolated Preview 完成人工驗收，結論 PASS，並明確授權 Merge。PR [#425](https://github.com/hyc640110/family-universal-rebalance/pull/425) final head `9264fb6a46755cc70e8471541c894e8aeb5178c6` 已由 `hyc640110` 於 `2026-08-23T16:49:39Z` 以一般 2-parent merge commit `350da693c1faa5fa12813e969f146e3d273b2038`（parents `adc69021dd35c68a3916c4e746be3379a18fcdcf`／`9264fb6a46755cc70e8471541c894e8aeb5178c6`）合併——**未使用 admin override，非 squash／非 rebase**。`origin/main` 新基線 = `350da693c1faa5fa12813e969f146e3d273b2038`。

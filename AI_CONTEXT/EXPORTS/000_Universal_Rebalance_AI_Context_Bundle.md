@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-23T16:56:39.260403+00:00
+Generated UTC: 2026-08-25T14:54:13.175520+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-08-23T16:56:39.260403+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `e5b40fd93256ef695bd2b3f6753d0d47c553818c6f7dbf521c751ffee8a8dd55`
+- `003_CURRENT_STATUS.md` — SHA-256 `2b1be614ddc6fbac2894a21da77a50bac56d2df5e6d40d03024daa35a3964c90`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `0b837e764dcf83743b6769b5abf2ffe955c5dc99bd38feb2e6612307881f17fd`
+- `008_TODO_BACKLOG.md` — SHA-256 `cdcfbab77b8b0a8910d259965128be5b94e2b2b14a33bb58bbab8e13e40e6fd0`
 - `009_CHANGELOG.md` — SHA-256 `f7f3154817deca8e2b71d260bcff703c6505d59f66f826c6865b752e84262c2e`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `b0f6b3aed0cd876b087fb759768882e3223b415a5601e7861ae7d932c3833eb0`
+- `012_AI_HANDOVER.md` — SHA-256 `e6d44b5c969f163854ada4d62a7e5f576ebae4a11b8d2987041c01757c677ecb`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -657,6 +657,8 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 # Universal Rebalance Current Status v4.57
 
 最後更新：2026-08-23
+
+**UR-TODO-078 Phase B Asset Allocation Historical Trend Consumer Contract Audit 已完成（2026-08-25，Review Mode）。** Phase A 維持 **CLOSED／Production Verified**；Phase B 由 **NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT** 改為 **READY FOR DEVELOPMENT（尚未開始；仍須使用者明確下達「開始開發」）**。正式 Consumer contract：僅 `quoteAvailable===true` 的 holding entry 可成為有效 point；不以 `quoteAvailable=false` 的 avgCost fallback 偽裝市場市值、不補線。per-holding trend 以同一 symbol 的 snapshot `marketValue`（含 `shares=0` 的真實 `0`）建 series；Growth／Defensive 每日以 snapshot 當日 `assetClass` 聚合，該 class 任一已保存 entry unavailable 即整天無效，不以部分加總冒充完整分類總值；空集合真實聚合為 0。最少 2 個有效 observation days 才顯示，0／1 點均為「近1個月趨勢資料不足」；「趨勢（近1個月）」語意為最近 30 個 Asia/Taipei calendar days 內已有的真實觀測，不保證 30 個交易日。既有 `MiniSparkline`／`deriveSparklineChange` 可重用（日期仍等距）；不得 backfill／interpolate／forward-fill。範圍僅 Desktop per-holding、Growth、Defensive consumer；Mobile detail table 維持不 render，財務公式／target／deviation 等均 0 semantic diff。詳見 `008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`。
 
 **UR-TODO-078 Per-Holding Historical Snapshot Foundation Phase A 已正式 CLOSED／Production Verified（2026-08-23）。** PR [#425](https://github.com/hyc640110/family-universal-rebalance/pull/425) final head `9264fb6a46755cc70e8471541c894e8aeb5178c6` 已由 `hyc640110` 於 `2026-08-23T16:49:39Z` 以一般 2-parent merge commit `350da693c1faa5fa12813e969f146e3d273b2038`（parents `adc69021dd35c68a3916c4e746be3379a18fcdcf`／`9264fb6a46755cc70e8471541c894e8aeb5178c6`；未使用 admin override）合併；`origin/main` 正式基線更新為 `350da693c1faa5fa12813e969f146e3d273b2038`。merge 後 main push 觸發之 Deploy GitHub Pages run [32652884649](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32652884649) success（`build`／`deploy` 皆 success，`build` 內 regression gate 通過，headSha 與 merge commit 一致）。Production 已唯讀確認：HTTP 200、deployment sha 一致、JS `index-ZiKPt2JD.js`／CSS `index-hMnE973C.css` 與本機最終 build 產物一致；以全新瀏覽器分頁驗證首頁與 `#/assets` 頁完整渲染，資產配置四張卡片維持 UR-TODO-076 既有 fail-closed「近1個月趨勢資料不足」、**Consumer sparkline 未出現**、持股報價正常、375px 無 horizontal overflow、console 0 error；另唯讀下載 Production bundle 確認 `holdingHistory`／`quoteAvailable` 欄位已隨部署生效，驗證檔案立即刪除，全程未寫入任何 Production 使用者資料。新增 `src/lib/holdingHistory.ts`（snapshot/entry 型別、entry 層級 fail-closed normalize、365 天 retention、same-day upsert、App-observed producer）並完成 `AppState`／`BackupPayload`／`normalizeState()`／`backupPayload()`／`stateFromBackup()` 接線；`calculateMetrics()` 新增 `quoteAvailable` 欄位；**Schema／Version：NO SCHEMA BUMP**；`SYNCABLE_TOP_LEVEL_FIELDS`／`netWorthHistory.ts`／`src/lib/**`（既有部分）／Worker／quote provider 均 0 diff；**本輪未接任何 Consumer UI**，`/assets` 既有畫面 0 diff。**UR-TODO-078 Phase A 正式 CLOSED／Production Verified；Phase B（per-holding／growth／defensive sparkline Consumer）維持 NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT，整體 UR-TODO-078 仍為 OPEN，不視為完全 CLOSED。** 詳見 `008_TODO_BACKLOG.md`（v2.6）／`012_AI_HANDOVER.md` UR-TODO-078 正式條目。
 
@@ -3169,10 +3171,21 @@ Hotfix 仍需：
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
 - 優先級：P3（使用者主動提出，為 UR-TODO-076 Contract Audit 已明確標記之「成長資產／防守資產／個股近 1 個月趨勢無逐日持久化資料」缺口建立正式 history / persistence contract，供未來 Consumer Sprint 使用）
-- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未完成），不得視為完全 CLOSED。
+- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = READY FOR DEVELOPMENT（2026-08-25 Consumer Contract Audit；尚未開始）。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未完成），不得視為完全 CLOSED。
 - 提出日期：2026-08-23（Final Contract Reconciliation：2026-08-23；Implementation：2026-08-23；Phase A Merge／Production Verified：2026-08-23）
 - 問題：目前資產配置頁的「近 1 個月趨勢」僅 `state.netWorthHistory` 有逐日真實歷史（`totalAssets`／`cash`），per-holding 市值、成長資產聚合、防守資產聚合皆無逐日持久化資料。UR-TODO-076 開發前 Contract Audit 已明確拍板：此缺口採 **fail-closed**（顯示「資料不足」），不得以「今日股數 × 歷史股價」、mock trend 或 fabricated sparkline 替代真實歷史。本 Todo 是該 fail-closed 決策的正式後續：建立可被未來 Consumer 使用的真實 per-holding 歷史 snapshot 基礎設施。
 - 目標（本輪 Foundation Phase 範圍）：新增獨立的 per-holding 歷史 snapshot data model、producer、retention、persistence（localStorage／JSON Backup／Sync）與 read-boundary normalization，不含任何 UI／sparkline consumer。
+
+#### 0.2 Phase B Consumer Contract Audit（2026-08-25，Review Mode）
+
+- **範圍與狀態**：契約已足夠開始獨立 Phase B Sprint；本輪沒有改動 `src/**`／`tests/**`，沒有 Branch／Commit／Push／PR／Deploy。Phase B 只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。
+- **有效 point（正式決定 A）**：只接受 `quoteAvailable === true` 且已經 read-boundary 正規化的 entry；`quoteAvailable=false` 完全排除，既不納入 series，也不以 fallback `marketValue` 顯示「非即時」圖線，更不留待現有 `MiniSparkline` 無法表達的 gap。理由：false 時 `price` 可來自 `avgCost` fallback，並非市場觀測；方案 A 最符合 fail-closed 與既有「不可把不完整總值當完整」語意。這不改寫 Phase A 的保存規則（Phase A 仍忠實保留 provenance）。
+- **最少點與 label（正式決定 B／C）**：最少 **2 個**有效 observation days；0／1 點皆顯示既有「近1個月趨勢資料不足」。保留「趨勢（近1個月）」；其意思是最近 30 個 Asia/Taipei calendar-day window 內可取得的真實 App-observed data，非承諾完整 30 天或交易日。兩點即沿用既有 `MiniSparkline`／`deriveSparklineChange` first-vs-last 語意；不得 fabricate 起點、插值或補值。
+- **per-holding selector**：概念輸入 `HoldingHistorySnapshot[]`、`symbol`、`range='30d'`、`now`；先以同一 `historyForRange()` calendar window 規則篩 snapshot，再選該 symbol 的有效 entry，輸出日期排序的 `{date, value: entry.marketValue}`、`firstValue`、`lastValue`、`absoluteChange`、`percentChange`、`status: 'insufficient'|'available'`。使用 `marketValue`，不是 price：原產品欄位是持有部位趨勢，且 shares 變更必須反映。`shares=0` 但 entry 有效時保留 `marketValue=0`，這是「真實持倉市值歷史」而不是報價走勢；archived／目前不在 detail rows 的 symbol 歷史保持存放，但 Phase B 不為其新建 UI row。
+- **Growth／Defensive aggregation**：每個 snapshot 僅以該日 `entry.assetClass` 分類，絕不可改用今日 Holding class 回溯重算。對某一 class，取該日 snapshot 中所有同 class entries；若任一 entry `quoteAvailable=false`，該 class **整天 invalid、不產生 point**，否則加總其 `marketValue`（空集合是可驗證的真實 0）。Consumer 沒有「當日應有 holdings 全集」可安全推斷，故不得把不存在的 entry 猜成缺漏、也不得捏造補值。這避免「4/5 檔」的 partial sum 被呈現為完整分類市值；Consumer 不得以 partial flag 冒充可比較趨勢。
+- **日期／變化／繪圖**：holdingHistory 是 App-observed；缺日期就是無觀測。沿用 `MiniSparkline` 目前依 observation 順序等距 x 軸的 contract，Phase B 不新建 calendar spacing；變化一律是 range 內 first valid point 與 last valid point，若 window 起日無 snapshot 不補造比較基準。
+- **必要 helper 與效能**：在 `assetAllocationOverview.ts` 新增 Consumer-specific pure selectors（建議 `deriveHoldingHistorySeries`、`deriveAssetClassHistorySeries`，各回傳 points/status；change 直接重用 `deriveSparklineChange`），不污染 `holdingHistory.ts` Foundation。`AssetAllocationOverview` 一次 `useMemo` 建立 30d index（date→entries、symbol→points 或同等單次掃描結果），再供 rows／兩張卡使用；365×50 的全量雖小，但逐 row 重掃 history 是可避免的 O(rows×days×holdings)。
+- **Phase B acceptance tests**：0／1／2 valid points；quote false 排除；symbol filtering；shares change 的 snapshot `marketValue`；有效 0-share；archived history 保存；Growth／Defensive 完整聚合；任一 unavailable 令 class day invalid、空集合聚合為 0；snapshot assetClass；不規則日期與 first/last change；無 backfill／fill；Mobile detail table 不 render；totalAssets／cash 既有 trend regression；target/deviation 0 semantic diff；financial semantics 0 diff。
 
 ---
 
@@ -6166,6 +6179,13 @@ interface ServiceResult<T> {
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：UR-TODO-078 Phase B Consumer Contract Audit（READY FOR DEVELOPMENT，2026-08-25）
+
+- 正式決策：Phase A 維持 **CLOSED／Production Verified**；Phase B 已完成 Consumer Contract Audit，狀態為 **READY FOR DEVELOPMENT（尚未開始，仍須使用者明確「開始開發」）**，整體 UR-TODO-078 仍 OPEN。只消費真實 App-observed `holdingHistory`，不改 Phase A／財務公式／target／deviation／Rebalance／Worker。
+- 有效資料：`quoteAvailable===true` 才能成為 trend point；false 的 avgCost fallback 完全排除（不顯示、不可 partial、不可 gap），以 fail-closed 防止非市場值偽裝為歷史市值。per-holding 用 snapshot `marketValue`，保留有效 `shares=0` 的 0 值與 archived history；當日 `assetClass` 才是 Growth／Defensive 分類依據。
+- 聚合完整性：class 當日 snapshot 內任一已保存 entry unavailable，即整天 invalid、不加總部分資料；全數可用才加總 `marketValue`，空集合是可驗證的真實 0。Consumer 沒有當日 holdings 全集，不得猜測不存在的 entry 是缺漏。最近 30 日窗內最少 2 個有效 observation days 顯示趨勢；0／1 均「近1個月趨勢資料不足」。變化是 first-vs-last valid；缺日不補。維持「趨勢（近1個月）」與現有 MiniSparkline observation-order 等距 x 軸。
+- 實作邊界：Desktop per-holding cell＋Growth／Defensive Summary Cards 可在同一個 Phase B Sprint 完成；Mobile detail table 不 render，無 Bottom Sheet／Modal／歷史瀏覽器。建議將兩個 Consumer-specific selector 留在 `assetAllocationOverview.ts`，重用 `deriveSparklineChange`／`MiniSparkline`，以一次 `useMemo` index 避免逐 row 重掃。完整 acceptance tests 與契約見 `008_TODO_BACKLOG.md` §0.2。
 
 ## 最新交接快照：UR-TODO-078 Phase A Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
 

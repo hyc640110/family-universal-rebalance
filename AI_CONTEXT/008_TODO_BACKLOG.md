@@ -5,10 +5,21 @@
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
 - 優先級：P3（使用者主動提出，為 UR-TODO-076 Contract Audit 已明確標記之「成長資產／防守資產／個股近 1 個月趨勢無逐日持久化資料」缺口建立正式 history / persistence contract，供未來 Consumer Sprint 使用）
-- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未完成），不得視為完全 CLOSED。
+- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = READY FOR DEVELOPMENT（2026-08-25 Consumer Contract Audit；尚未開始）。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未完成），不得視為完全 CLOSED。
 - 提出日期：2026-08-23（Final Contract Reconciliation：2026-08-23；Implementation：2026-08-23；Phase A Merge／Production Verified：2026-08-23）
 - 問題：目前資產配置頁的「近 1 個月趨勢」僅 `state.netWorthHistory` 有逐日真實歷史（`totalAssets`／`cash`），per-holding 市值、成長資產聚合、防守資產聚合皆無逐日持久化資料。UR-TODO-076 開發前 Contract Audit 已明確拍板：此缺口採 **fail-closed**（顯示「資料不足」），不得以「今日股數 × 歷史股價」、mock trend 或 fabricated sparkline 替代真實歷史。本 Todo 是該 fail-closed 決策的正式後續：建立可被未來 Consumer 使用的真實 per-holding 歷史 snapshot 基礎設施。
 - 目標（本輪 Foundation Phase 範圍）：新增獨立的 per-holding 歷史 snapshot data model、producer、retention、persistence（localStorage／JSON Backup／Sync）與 read-boundary normalization，不含任何 UI／sparkline consumer。
+
+#### 0.2 Phase B Consumer Contract Audit（2026-08-25，Review Mode）
+
+- **範圍與狀態**：契約已足夠開始獨立 Phase B Sprint；本輪沒有改動 `src/**`／`tests/**`，沒有 Branch／Commit／Push／PR／Deploy。Phase B 只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。
+- **有效 point（正式決定 A）**：只接受 `quoteAvailable === true` 且已經 read-boundary 正規化的 entry；`quoteAvailable=false` 完全排除，既不納入 series，也不以 fallback `marketValue` 顯示「非即時」圖線，更不留待現有 `MiniSparkline` 無法表達的 gap。理由：false 時 `price` 可來自 `avgCost` fallback，並非市場觀測；方案 A 最符合 fail-closed 與既有「不可把不完整總值當完整」語意。這不改寫 Phase A 的保存規則（Phase A 仍忠實保留 provenance）。
+- **最少點與 label（正式決定 B／C）**：最少 **2 個**有效 observation days；0／1 點皆顯示既有「近1個月趨勢資料不足」。保留「趨勢（近1個月）」；其意思是最近 30 個 Asia/Taipei calendar-day window 內可取得的真實 App-observed data，非承諾完整 30 天或交易日。兩點即沿用既有 `MiniSparkline`／`deriveSparklineChange` first-vs-last 語意；不得 fabricate 起點、插值或補值。
+- **per-holding selector**：概念輸入 `HoldingHistorySnapshot[]`、`symbol`、`range='30d'`、`now`；先以同一 `historyForRange()` calendar window 規則篩 snapshot，再選該 symbol 的有效 entry，輸出日期排序的 `{date, value: entry.marketValue}`、`firstValue`、`lastValue`、`absoluteChange`、`percentChange`、`status: 'insufficient'|'available'`。使用 `marketValue`，不是 price：原產品欄位是持有部位趨勢，且 shares 變更必須反映。`shares=0` 但 entry 有效時保留 `marketValue=0`，這是「真實持倉市值歷史」而不是報價走勢；archived／目前不在 detail rows 的 symbol 歷史保持存放，但 Phase B 不為其新建 UI row。
+- **Growth／Defensive aggregation**：每個 snapshot 僅以該日 `entry.assetClass` 分類，絕不可改用今日 Holding class 回溯重算。對某一 class，取該日 snapshot 中所有同 class entries；若任一 entry `quoteAvailable=false`，該 class **整天 invalid、不產生 point**，否則加總其 `marketValue`（空集合是可驗證的真實 0）。Consumer 沒有「當日應有 holdings 全集」可安全推斷，故不得把不存在的 entry 猜成缺漏、也不得捏造補值。這避免「4/5 檔」的 partial sum 被呈現為完整分類市值；Consumer 不得以 partial flag 冒充可比較趨勢。
+- **日期／變化／繪圖**：holdingHistory 是 App-observed；缺日期就是無觀測。沿用 `MiniSparkline` 目前依 observation 順序等距 x 軸的 contract，Phase B 不新建 calendar spacing；變化一律是 range 內 first valid point 與 last valid point，若 window 起日無 snapshot 不補造比較基準。
+- **必要 helper 與效能**：在 `assetAllocationOverview.ts` 新增 Consumer-specific pure selectors（建議 `deriveHoldingHistorySeries`、`deriveAssetClassHistorySeries`，各回傳 points/status；change 直接重用 `deriveSparklineChange`），不污染 `holdingHistory.ts` Foundation。`AssetAllocationOverview` 一次 `useMemo` 建立 30d index（date→entries、symbol→points 或同等單次掃描結果），再供 rows／兩張卡使用；365×50 的全量雖小，但逐 row 重掃 history 是可避免的 O(rows×days×holdings)。
+- **Phase B acceptance tests**：0／1／2 valid points；quote false 排除；symbol filtering；shares change 的 snapshot `marketValue`；有效 0-share；archived history 保存；Growth／Defensive 完整聚合；任一 unavailable 令 class day invalid、空集合聚合為 0；snapshot assetClass；不規則日期與 first/last change；無 backfill／fill；Mobile detail table 不 render；totalAssets／cash 既有 trend regression；target/deviation 0 semantic diff；financial semantics 0 diff。
 
 ---
 
