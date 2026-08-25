@@ -33,13 +33,13 @@ test('UR-TODO-076 target allocation reuses getEffectiveTargetPercent/getCashTarg
   assert.match(overviewSection, /getEffectiveTargetPercent\(holding, state\.holdings\)/);
 });
 
-test('UR-TODO-076 growth/defensive summary cards and the detail table trend column fail closed (no fabricated sparkline)', () => {
-  assert.match(overviewSection, /label="成長資產"[\s\S]{0,80}change=\{null\}/);
-  assert.match(overviewSection, /label="防守資產"[\s\S]{0,80}change=\{null\}/);
+test('UR-TODO-078-B growth/defensive summary cards and the detail table consume the holding-history trend index', () => {
+  assert.match(overviewSection, /deriveHoldingHistoryTrendIndex\(state\.holdingHistory/);
+  assert.match(overviewSection, /label="成長資產"[\s\S]{0,180}change=\{growthChange\}/);
+  assert.match(overviewSection, /label="防守資產"[\s\S]{0,180}change=\{defensiveChange\}/);
   const detailTableSection = app.slice(app.indexOf('function AssetAllocationDetailTable'), app.indexOf('function AssetAllocationOverview'));
   assert.match(detailTableSection, /趨勢（近1個月）/);
-  assert.match(detailTableSection, /className="asset-allocation-detail-trend">資料不足</);
-  assert.doesNotMatch(detailTableSection, /MiniSparkline/);
+  assert.match(detailTableSection, /<MiniSparkline points=\{trendPoints/);
 });
 
 test('UR-TODO-076 only totalAssets/cash sparklines are backed by real netWorthHistory (30d range)', () => {
@@ -56,7 +56,7 @@ test('UR-TODO-076 MiniSparkline fails closed with fewer than 2 real points inste
 });
 
 test('UR-TODO-076 Mobile does not render the Desktop allocation detail table (gated out of the render tree, not just CSS-hidden)', () => {
-  assert.match(overviewSection, /\{!isMobile && <AssetAllocationDetailTable rows=\{detailRows\} \/>\}/);
+  assert.match(overviewSection, /\{!isMobile && <AssetAllocationDetailTable rows=\{detailRows\} pointsBySymbol=\{holdingHistoryTrendIndex\.pointsBySymbol\} \/>\}/);
 });
 
 test('UR-TODO-076 no Bottom Sheet / second detail page / Desktop table variant was introduced for Mobile allocation', () => {
@@ -221,9 +221,9 @@ test('UR-TODO-076 Round 5: real totalAssets/cash sparklines still color by up/do
   assert.match(miniSparkline, /strokeWidth="2"/, 'sparkline stroke width must remain unchanged this round');
 });
 
-test('UR-TODO-076 Round 5: growth/defensive/per-holding still fail closed -- color refinement did not add a fabricated sparkline anywhere', () => {
-  assert.match(overviewSection, /label="成長資產"[\s\S]{0,80}change=\{null\}/);
-  assert.match(overviewSection, /label="防守資產"[\s\S]{0,80}change=\{null\}/);
+test('UR-TODO-078-B holding-history trends remain backed by the shared MiniSparkline fail-closed renderer', () => {
+  assert.match(overviewSection, /label="成長資產"[\s\S]{0,180}change=\{growthChange\}/);
+  assert.match(overviewSection, /label="防守資產"[\s\S]{0,180}change=\{defensiveChange\}/);
   const detailTableSection = app.slice(app.indexOf('function AssetAllocationDetailTable'), app.indexOf('function AssetAllocationOverview'));
-  assert.match(detailTableSection, /className="asset-allocation-detail-trend">資料不足</);
+  assert.match(detailTableSection, /<MiniSparkline points=\{trendPoints/);
 });

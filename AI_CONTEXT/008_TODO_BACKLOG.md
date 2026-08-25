@@ -5,14 +5,14 @@
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
 - 優先級：P3（使用者主動提出，為 UR-TODO-076 Contract Audit 已明確標記之「成長資產／防守資產／個股近 1 個月趨勢無逐日持久化資料」缺口建立正式 history / persistence contract，供未來 Consumer Sprint 使用）
-- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = READY FOR DEVELOPMENT（2026-08-25 Consumer Contract Audit；尚未開始）。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未完成），不得視為完全 CLOSED。
+- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = Implementation complete／Draft PR／Awaiting Preview acceptance（2026-08-25）。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未 Merge／Production Verified），不得視為完全 CLOSED。
 - 提出日期：2026-08-23（Final Contract Reconciliation：2026-08-23；Implementation：2026-08-23；Phase A Merge／Production Verified：2026-08-23）
 - 問題：目前資產配置頁的「近 1 個月趨勢」僅 `state.netWorthHistory` 有逐日真實歷史（`totalAssets`／`cash`），per-holding 市值、成長資產聚合、防守資產聚合皆無逐日持久化資料。UR-TODO-076 開發前 Contract Audit 已明確拍板：此缺口採 **fail-closed**（顯示「資料不足」），不得以「今日股數 × 歷史股價」、mock trend 或 fabricated sparkline 替代真實歷史。本 Todo 是該 fail-closed 決策的正式後續：建立可被未來 Consumer 使用的真實 per-holding 歷史 snapshot 基礎設施。
 - 目標（本輪 Foundation Phase 範圍）：新增獨立的 per-holding 歷史 snapshot data model、producer、retention、persistence（localStorage／JSON Backup／Sync）與 read-boundary normalization，不含任何 UI／sparkline consumer。
 
-#### 0.2 Phase B Consumer Contract Audit（2026-08-25，Review Mode）
+#### 0.2 Phase B Consumer Contract Audit／Implementation（2026-08-25）
 
-- **範圍與狀態**：契約已足夠開始獨立 Phase B Sprint；本輪沒有改動 `src/**`／`tests/**`，沒有 Branch／Commit／Push／PR／Deploy。Phase B 只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。
+- **範圍與狀態**：Phase B implementation 已完成，Draft PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428)／Awaiting Preview acceptance；只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card。Consumer selector 位於 `src/lib/assetAllocationOverview.ts`，Assets page 以一次 `useMemo` 建 index；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。`holdingHistory.ts` producer／persistence／schema、Worker、quote provider 均 0 diff。
 - **有效 point（正式決定 A）**：只接受 `quoteAvailable === true` 且已經 read-boundary 正規化的 entry；`quoteAvailable=false` 完全排除，既不納入 series，也不以 fallback `marketValue` 顯示「非即時」圖線，更不留待現有 `MiniSparkline` 無法表達的 gap。理由：false 時 `price` 可來自 `avgCost` fallback，並非市場觀測；方案 A 最符合 fail-closed 與既有「不可把不完整總值當完整」語意。這不改寫 Phase A 的保存規則（Phase A 仍忠實保留 provenance）。
 - **最少點與 label（正式決定 B／C）**：最少 **2 個**有效 observation days；0／1 點皆顯示既有「近1個月趨勢資料不足」。保留「趨勢（近1個月）」；其意思是最近 30 個 Asia/Taipei calendar-day window 內可取得的真實 App-observed data，非承諾完整 30 天或交易日。兩點即沿用既有 `MiniSparkline`／`deriveSparklineChange` first-vs-last 語意；不得 fabricate 起點、插值或補值。
 - **per-holding selector**：概念輸入 `HoldingHistorySnapshot[]`、`symbol`、`range='30d'`、`now`；先以同一 `historyForRange()` calendar window 規則篩 snapshot，再選該 symbol 的有效 entry，輸出日期排序的 `{date, value: entry.marketValue}`、`firstValue`、`lastValue`、`absoluteChange`、`percentChange`、`status: 'insufficient'|'available'`。使用 `marketValue`，不是 price：原產品欄位是持有部位趨勢，且 shares 變更必須反映。`shares=0` 但 entry 有效時保留 `marketValue=0`，這是「真實持倉市值歷史」而不是報價走勢；archived／目前不在 detail rows 的 symbol 歷史保持存放，但 Phase B 不為其新建 UI row。
