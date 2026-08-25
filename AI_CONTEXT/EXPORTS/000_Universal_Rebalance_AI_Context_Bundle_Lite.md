@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-25T15:17:33.603905+00:00
+Generated UTC: 2026-08-25T15:41:12.814580+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `abfc5f2b5daaae5d831e01635277aa47545fbd4e46da7fc79c75fdfdd3fee3fd`
-- `008_TODO_BACKLOG.md` — SHA-256 `6a70f3e716eed949f9edd02da3fef335044bbaf8fdd656bd4e32e444036911c8`
-- `012_AI_HANDOVER.md` — SHA-256 `3cb53dcd57128e889fd2ea315317093d89515daa94bc422a2e512ab1db22db32`
+- `003_CURRENT_STATUS.md` — SHA-256 `fbd75f5e2a3b6f1e174dd2959023e9157368b58a6066ab04bd2ae466e2d98104`
+- `008_TODO_BACKLOG.md` — SHA-256 `a031734a7e71818e7dcd45bd164a78b6ed3e1b1ef77ecc90c3638660c8f969c6`
+- `012_AI_HANDOVER.md` — SHA-256 `8ba1b99608c9427393a06532bd88a57e4f0a0d7b830e7045e7d2925a1b2bd09a`
 
 ---
 
@@ -429,7 +429,7 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 最後更新：2026-08-25
 
-**UR-TODO-078 Phase B Asset Allocation Historical Trend Consumer — Implementation complete／Draft PR／Awaiting Preview acceptance（2026-08-25）。** Draft PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) head `e7d85bca7d8e98291a999ed8160fdf9fefadd6ec`；branch `feat/ur-todo-078-phase-b-trend-consumer` 直接自最新 `origin/main` `4aec2a7fcc17ca16346633982182e82f4adb9179` 的 isolated worktree 開出。只新增 `assetAllocationOverview.ts` consumer index、Assets page 接線與測試。per-holding 僅採同 symbol、`quoteAvailable=true` 的 snapshot `marketValue`（保留真實 0）；Growth／Defensive 依 snapshot 當日 `assetClass` 聚合，任一該 class entry unavailable 即整日排除、空 class 為真實 0；30 個 Asia/Taipei calendar days 僅保留實際 observations，不補點。Desktop detail table 與兩張 summary cards 重用 `MiniSparkline`／`deriveSparklineChange`，小於兩點仍 fail-closed；Mobile detail table 維持不 render，總資產／現金仍只讀 `netWorthHistory`。未修改 Phase A producer／persistence／schema、財務公式、target／deviation、Rebalance、Liquidity、Worker 或 quote provider。`npx tsc -b`、`test:ur-todo-078-b`（6/6）、`test:ur-todo-076`（38/38）、Production build、Preview build、桌機與 320／390／430px 本機 Preview 皆通過；完整 `test:ci` 僅受既有 `test:ur-todo-014-a` fixture hash／CRLF static-regex 兩項失敗阻擋，與本 Sprint 無關。**Merge 尚未授權；Production deploy 尚未授權。**
+**UR-TODO-078 Phase B Asset Allocation Historical Trend Consumer — CLOSED／Production Verified（2026-08-25）。** 使用者已完成 isolated Preview 人工驗收並明確授權 Merge；PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) final head `11902877254b8164459c47847fe29ed1d434df18` 由 `hyc640110` 於 `2026-08-25T15:36:11Z` 以一般 2-parent merge commit `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9` 合併（parents `4aec2a7fcc17ca16346633982182e82f4adb9179`／`11902877254b8164459c47847fe29ed1d434df18`；未使用 admin override，非 squash／非 rebase）。功能 Merge 後 `origin/main` = `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9`。main push 自動觸發 Deploy GitHub Pages run [32866817283](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32866817283) success（event `push`、headSha 一致、main `npm run test:ci` regression gate success、Production build success、Pages deploy success）；artifact-expired annotation 已由 workflow fallback 正常處理，非部署失敗。Production HTTP 200；唯讀 DOM／computed-layout smoke 驗證首頁及 `#/assets` 正常、Desktop 與 320／390／430px 均無 horizontal overflow、Mobile detail table 未 render、console 0 error，未寫入使用者資料。現有真實資料僅不足有效點，Growth／Defensive 與 per-holding 正確 fail-closed 顯示「近1個月趨勢資料不足」；2+ valid points 的 Consumer correctness 已由 final-head deterministic tests 證明。Total Assets／Cash 仍使用 `netWorthHistory`；Growth／Defensive／per-holding 使用 `holdingHistory`。Phase B 對 Phase A Foundation（producer／persistence／Backup／retention／schema）及所有財務語意（公式、target、deviation、Rebalance、Liquidity、Risk、AI Decision、CLEC、Simulator、Ledger、attribution、quote provider、Worker）為 0 semantic diff。**UR-TODO-078 Phase A 與 Phase B 均已 Production Verified；經核對 Backlog 無其他未完成 phase，整體 UR-TODO-078 = CLOSED／Production Verified。**
 
 **UR-TODO-078 Phase B Asset Allocation Historical Trend Consumer Contract Audit 已完成（2026-08-25，Review Mode）。** Phase A 維持 **CLOSED／Production Verified**；Phase B 由 **NOT STARTED／REQUIRES CONSUMER CONTRACT AUDIT** 改為 **READY FOR DEVELOPMENT（尚未開始；仍須使用者明確下達「開始開發」）**。正式 Consumer contract：僅 `quoteAvailable===true` 的 holding entry 可成為有效 point；不以 `quoteAvailable=false` 的 avgCost fallback 偽裝市場市值、不補線。per-holding trend 以同一 symbol 的 snapshot `marketValue`（含 `shares=0` 的真實 `0`）建 series；Growth／Defensive 每日以 snapshot 當日 `assetClass` 聚合，該 class 任一已保存 entry unavailable 即整天無效，不以部分加總冒充完整分類總值；空集合真實聚合為 0。最少 2 個有效 observation days 才顯示，0／1 點均為「近1個月趨勢資料不足」；「趨勢（近1個月）」語意為最近 30 個 Asia/Taipei calendar days 內已有的真實觀測，不保證 30 個交易日。既有 `MiniSparkline`／`deriveSparklineChange` 可重用（日期仍等距）；不得 backfill／interpolate／forward-fill。範圍僅 Desktop per-holding、Growth、Defensive consumer；Mobile detail table 維持不 render，財務公式／target／deviation 等均 0 semantic diff。詳見 `008_TODO_BACKLOG.md`／`012_AI_HANDOVER.md`。
 
@@ -1290,19 +1290,19 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 # Universal Rebalance Todo Backlog v2.6
 
-最後更新：2026-08-23
+最後更新：2026-08-25
 
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
 - 優先級：P3（使用者主動提出，為 UR-TODO-076 Contract Audit 已明確標記之「成長資產／防守資產／個股近 1 個月趨勢無逐日持久化資料」缺口建立正式 history / persistence contract，供未來 Consumer Sprint 使用）
-- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = Implementation complete／Draft PR／Awaiting Preview acceptance（2026-08-25）。** 整體 UR-TODO-078 維持 OPEN（Phase B 尚未 Merge／Production Verified），不得視為完全 CLOSED。
+- 狀態：**Phase A = CLOSED／Production Verified（PR #425）。Phase B = CLOSED／Production Verified（PR #428）。整體 UR-TODO-078 = CLOSED／Production Verified（2026-08-25）。** Phase A 與 Phase B 已覆蓋本 Todo 全部正式 scope；無其他未完成 phase。
 - 提出日期：2026-08-23（Final Contract Reconciliation：2026-08-23；Implementation：2026-08-23；Phase A Merge／Production Verified：2026-08-23）
 - 問題：目前資產配置頁的「近 1 個月趨勢」僅 `state.netWorthHistory` 有逐日真實歷史（`totalAssets`／`cash`），per-holding 市值、成長資產聚合、防守資產聚合皆無逐日持久化資料。UR-TODO-076 開發前 Contract Audit 已明確拍板：此缺口採 **fail-closed**（顯示「資料不足」），不得以「今日股數 × 歷史股價」、mock trend 或 fabricated sparkline 替代真實歷史。本 Todo 是該 fail-closed 決策的正式後續：建立可被未來 Consumer 使用的真實 per-holding 歷史 snapshot 基礎設施。
 - 目標（本輪 Foundation Phase 範圍）：新增獨立的 per-holding 歷史 snapshot data model、producer、retention、persistence（localStorage／JSON Backup／Sync）與 read-boundary normalization，不含任何 UI／sparkline consumer。
 
-#### 0.2 Phase B Consumer Contract Audit／Implementation（2026-08-25）
+#### 0.2 Phase B Consumer Contract Audit／Implementation／Production Closeout（2026-08-25）
 
-- **範圍與狀態**：Phase B implementation 已完成，Draft PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428)／Awaiting Preview acceptance；只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card。Consumer selector 位於 `src/lib/assetAllocationOverview.ts`，Assets page 以一次 `useMemo` 建 index；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。`holdingHistory.ts` producer／persistence／schema、Worker、quote provider 均 0 diff。
+- **範圍與狀態**：Phase B 已 CLOSED／Production Verified。使用者 isolated Preview 人工驗收 PASS 後，PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) final head `11902877254b8164459c47847fe29ed1d434df18` 於 `2026-08-25T15:36:11Z` 由 `hyc640110` 以一般 2-parent merge commit `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9` 合併（parents `4aec2a7fcc17ca16346633982182e82f4adb9179`／`11902877254b8164459c47847fe29ed1d434df18`；未使用 admin override）。main push Deploy GitHub Pages [32866817283](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32866817283) success（headSha 一致、test:ci regression gate／Production build／Pages deploy 均 success），Production HTTP 200。Production 僅做唯讀 smoke／DOM／computed-layout 驗證：首頁與 `#/assets` 正常；Desktop、320／390／430px 無 horizontal overflow；Mobile detail table 不 render；console 0 error；未寫入使用者資料。只消費 Phase A `holdingHistory`，只接 Desktop per-holding trend cell、Growth Summary Card、Defensive Summary Card。Consumer selector 位於 `src/lib/assetAllocationOverview.ts`，Assets page 以一次 `useMemo` 建 index；Mobile detail table 仍以 `!isMobile` 排除，不新增 Bottom Sheet／Modal／歷史持股瀏覽器，也不改 Donut、target、deviation 或任何財務公式。現有真實資料不足 2 個 valid point 時顯示「近1個月趨勢資料不足」為正確 fail-closed；2+ point correctness 由同一 final-head deterministic tests 證明。`holdingHistory.ts` producer／persistence／schema、Worker、quote provider 均 0 diff。
 - **有效 point（正式決定 A）**：只接受 `quoteAvailable === true` 且已經 read-boundary 正規化的 entry；`quoteAvailable=false` 完全排除，既不納入 series，也不以 fallback `marketValue` 顯示「非即時」圖線，更不留待現有 `MiniSparkline` 無法表達的 gap。理由：false 時 `price` 可來自 `avgCost` fallback，並非市場觀測；方案 A 最符合 fail-closed 與既有「不可把不完整總值當完整」語意。這不改寫 Phase A 的保存規則（Phase A 仍忠實保留 provenance）。
 - **最少點與 label（正式決定 B／C）**：最少 **2 個**有效 observation days；0／1 點皆顯示既有「近1個月趨勢資料不足」。保留「趨勢（近1個月）」；其意思是最近 30 個 Asia/Taipei calendar-day window 內可取得的真實 App-observed data，非承諾完整 30 天或交易日。兩點即沿用既有 `MiniSparkline`／`deriveSparklineChange` first-vs-last 語意；不得 fabricate 起點、插值或補值。
 - **per-holding selector**：概念輸入 `HoldingHistorySnapshot[]`、`symbol`、`range='30d'`、`now`；先以同一 `historyForRange()` calendar window 規則篩 snapshot，再選該 symbol 的有效 entry，輸出日期排序的 `{date, value: entry.marketValue}`、`firstValue`、`lastValue`、`absoluteChange`、`percentChange`、`status: 'insufficient'|'available'`。使用 `marketValue`，不是 price：原產品欄位是持有部位趨勢，且 shares 變更必須反映。`shares=0` 但 entry 有效時保留 `marketValue=0`，這是「真實持倉市值歷史」而不是報價走勢；archived／目前不在 detail rows 的 symbol 歷史保持存放，但 Phase B 不為其新建 UI row。
@@ -3717,12 +3717,12 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 
 # Universal Rebalance AI Handover
 
-## 最新交接快照：UR-TODO-078 Phase B Historical Trend Consumer（Implementation complete／Draft PR／Awaiting Preview acceptance，2026-08-25）
+## 最新交接快照：UR-TODO-078 Phase B Final Closeout — Merge／Production Verified（CLOSED，2026-08-25）
 
-- 正式決策：Phase A 維持 **CLOSED／Production Verified**；Phase B implementation 已完成，Draft PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) 等待 Preview acceptance，整體 UR-TODO-078 仍 OPEN。只消費真實 App-observed `holdingHistory`，不改 Phase A／財務公式／target／deviation／Rebalance／Worker。
-- 有效資料：`quoteAvailable===true` 才能成為 trend point；false 的 avgCost fallback 完全排除（不顯示、不可 partial、不可 gap），以 fail-closed 防止非市場值偽裝為歷史市值。per-holding 用 snapshot `marketValue`，保留有效 `shares=0` 的 0 值與 archived history；當日 `assetClass` 才是 Growth／Defensive 分類依據。
-- 聚合完整性：class 當日 snapshot 內任一已保存 entry unavailable，即整天 invalid、不加總部分資料；全數可用才加總 `marketValue`，空集合是可驗證的真實 0。Consumer 沒有當日 holdings 全集，不得猜測不存在的 entry 是缺漏。最近 30 日窗內最少 2 個有效 observation days 顯示趨勢；0／1 均「近1個月趨勢資料不足」。變化是 first-vs-last valid；缺日不補。維持「趨勢（近1個月）」與現有 MiniSparkline observation-order 等距 x 軸。
-- 實作與驗證：Desktop per-holding cell＋Growth／Defensive Summary Cards 已在同一個 Phase B Sprint 完成；Mobile detail table 不 render，無 Bottom Sheet／Modal／歷史瀏覽器。`deriveHoldingHistoryTrendIndex()` 位於 `assetAllocationOverview.ts`，重用 `deriveSparklineChange`／`MiniSparkline`，Assets overview 僅以一次 `useMemo` 建立 index。`npx tsc -b`、Phase B 6/6、UR-TODO-076 38/38、兩種 build 與本機 Preview（桌機及 320／390／430px）皆通過；完整 `test:ci` 僅被既有 `UR-TODO-014-A` fixture hash／CRLF static-regex failures 阻擋。尚未 Merge，尚未 Production deploy。完整 acceptance tests 與契約見 `008_TODO_BACKLOG.md` §0.2。
+- 正式決策：**UR-TODO-078 Phase A = CLOSED／Production Verified；Phase B = CLOSED／Production Verified；整體 UR-TODO-078 = CLOSED／Production Verified。** Backlog 已核對無其他未完成 phase；不得自行啟動下一 Sprint。PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) final head `11902877254b8164459c47847fe29ed1d434df18` 由 `hyc640110` 於 `2026-08-25T15:36:11Z` 以一般 2-parent merge commit `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9` 合併（parents `4aec2a7fcc17ca16346633982182e82f4adb9179`／`11902877254b8164459c47847fe29ed1d434df18`；未使用 admin override，非 squash／非 rebase）；功能 Merge 後 `origin/main` = 該 SHA。
+- Production 證據：main push 自動觸發 Deploy GitHub Pages run [32866817283](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32866817283) success（event `push`、headSha 一致、main regression gate／Production build／Pages deploy success）；artifact-expired annotation 已由既有 fallback 正常處理，非失敗。Production HTTP 200。唯讀 DOM／computed-layout 驗證首頁及 `#/assets`：Desktop 與 320／390／430px 正常、無 horizontal overflow、Mobile detail table 不 render、無 Bottom Sheet／Modal、console 0 error；未建立假資料、未寫入 localStorage 或使用者資料。
+- Consumer contract：Total Assets／Cash 仍使用 `netWorthHistory`；Growth／Defensive／per-holding 使用真實 App-observed `holdingHistory`。`quoteAvailable===true` 才能成為 trend point；false 的 avgCost fallback 完全排除。per-holding 用 snapshot `marketValue`，保留有效 `shares=0` 的 0；分類使用 snapshot 當日 `assetClass`；class 任一 entry unavailable 即整日 invalid，空集合為真實 0；30 天 window 缺日不補。0／1 valid point 顯示「近1個月趨勢資料不足」為正確 fail-closed；現有 Production 真實資料正屬此狀態，未人工注入。2+ valid points correctness 已由同一 final-head deterministic tests 證明。
+- Phase A 與財務語意邊界：Phase B 是 historical read consumer。Phase A producer、persistence、Backup、365-day retention、schema、same-day overwrite、quoteAvailable producer semantics 皆 0 diff；calculateMetrics 財務公式、current allocation、target、deviation、Rebalance、Household Liquidity、Risk、AI Decision、CLEC、Simulator、Financial Event Ledger、attribution、quote provider、Worker 均 0 semantic diff。完整契約與驗收記錄見 `008_TODO_BACKLOG.md` §0.2。
 
 ## 最新交接快照：UR-TODO-078 Phase A Final Closeout — Merge／Production Verified（CLOSED，2026-08-23）
 
