@@ -11,6 +11,9 @@
  * Audit that established this boundary.
  */
 
+import { canonicalCalendarDay, shiftCanonicalCalendarDay } from './calendarDay';
+import type { HoldingHistoryAssetClass, HoldingHistorySnapshot } from './holdingHistory';
+
 export type AllocationTone = 'up' | 'down' | 'hold';
 
 /** Mirrors the existing generic `tone()` helper in App.tsx (positive=up/red, negative=down/green,
@@ -90,6 +93,79 @@ export function deriveAllocationDetailRows<H extends AllocationHoldingInput>(
 }
 
 export type SparklinePoint = { date: string; value: number };
+
+export type HoldingHistoryTrendIndex = {
+  pointsBySymbol: ReadonlyMap<string, SparklinePoint[]>;
+  pointsByAssetClass: Record<HoldingHistoryAssetClass, SparklinePoint[]>;
+};
+
+/**
+ * Phase B consumer-only window over Phase A snapshots. Missing calendar days deliberately remain
+ * missing: this never backfills, interpolates, or changes the persisted holding-history contract.
+ */
+function holdingHistoryForRange(
+  history: readonly HoldingHistorySnapshot[] | undefined,
+  range: '30d',
+  now: Date
+): HoldingHistorySnapshot[] {
+  if (!history?.length) return [];
+  const rangeDays: Record<typeof range, number> = { '30d': 30 };
+  const cutoff = shiftCanonicalCalendarDay(canonicalCalendarDay(now), -(rangeDays[range] - 1));
+  return history
+    .filter(snapshot => snapshot.date >= cutoff)
+    .slice()
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+/**
+ * Builds the one 30-day trend index consumed by the Assets overview. Per-holding lines include
+ * only quote-backed entries. A class day is all-or-nothing: one unavailable quote in that class
+ * omits that class point rather than presenting a misleading partial aggregate. An empty class is
+ * a real zero aggregate, so class changes across historical snapshots remain observable.
+ */
+export function deriveHoldingHistoryTrendIndex(
+  history: readonly HoldingHistorySnapshot[] | undefined,
+  range: '30d' = '30d',
+  now = new Date()
+): HoldingHistoryTrendIndex {
+  const pointsBySymbol = new Map<string, SparklinePoint[]>();
+  const pointsByAssetClass: Record<HoldingHistoryAssetClass, SparklinePoint[]> = { growth: [], defensive: [] };
+  for (const snapshot of holdingHistoryForRange(history, range, now)) {
+    for (const entry of snapshot.holdings) {
+      if (!entry.quoteAvailable) continue;
+      const points = pointsBySymbol.get(entry.symbol) ?? [];
+      points.push({ date: snapshot.date, value: entry.marketValue });
+      pointsBySymbol.set(entry.symbol, points);
+    }
+    for (const assetClass of ['growth', 'defensive'] as const) {
+      const classEntries = snapshot.holdings.filter(entry => entry.assetClass === assetClass);
+      if (classEntries.some(entry => !entry.quoteAvailable)) continue;
+      pointsByAssetClass[assetClass].push({
+        date: snapshot.date,
+        value: classEntries.reduce((total, entry) => total + entry.marketValue, 0)
+      });
+    }
+  }
+  return { pointsBySymbol, pointsByAssetClass };
+}
+
+export function deriveHoldingHistorySeries(
+  history: readonly HoldingHistorySnapshot[] | undefined,
+  symbol: string,
+  range: '30d' = '30d',
+  now = new Date()
+): SparklinePoint[] {
+  return deriveHoldingHistoryTrendIndex(history, range, now).pointsBySymbol.get(symbol) ?? [];
+}
+
+export function deriveAssetClassHistorySeries(
+  history: readonly HoldingHistorySnapshot[] | undefined,
+  assetClass: HoldingHistoryAssetClass,
+  range: '30d' = '30d',
+  now = new Date()
+): SparklinePoint[] {
+  return deriveHoldingHistoryTrendIndex(history, range, now).pointsByAssetClass[assetClass];
+}
 
 /**
  * Maps a real persisted `NetWorthSnapshot[]` history (already filtered to the desired range by the

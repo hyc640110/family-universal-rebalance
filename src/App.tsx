@@ -128,7 +128,7 @@ import { moveHoldingDisplayOrder, moveHoldingDisplayOrderToIndex, normalizeHoldi
 import { resolveDragTargetIndex } from './lib/holdingCardDragGeometry';
 import HoldingOrderHandle from './components/HoldingOrderHandle';
 import HoldingDetailDialog from './components/HoldingDetailDialog';
-import { deriveAllocationDetailRows, deriveAllocationLegendItems, deriveSparklineChange, sparklinePointsFromHistory, type AllocationLegendItem } from './lib/assetAllocationOverview';
+import { deriveAllocationDetailRows, deriveAllocationLegendItems, deriveHoldingHistoryTrendIndex, deriveSparklineChange, sparklinePointsFromHistory, type AllocationLegendItem } from './lib/assetAllocationOverview';
 
 type SymbolCode = string;
 export type Quote = { symbol: SymbolCode; name: string; price: number; previousClose: number | null; previousCloseDate?: string | null; previousCloseSource?: 'yahoo_regular_market_previous_close' | 'twse_official_previous_close' | 'unavailable'; previousCloseTrusted?: boolean; previousCloseReason?: string | null; change: number | null; changePct: number | null; quoteDate?: string; quoteTime?: string; volume: number; source: string; updatedAt: string; error?: string };
@@ -865,23 +865,30 @@ function AssetAllocationDonutPanel({ items, totalAssets }: { items: AllocationLe
     </div>
   </div>;
 }
-/** UR-TODO-076: Desktop-only "資產明細（目前 vs 目標）" table. Per-holding trend always fail-closes
- * (see UR-TODO-076 Contract Audit — no per-holding daily history is persisted anywhere today); never
- * substitutes a fabricated sparkline. */
-function AssetAllocationDetailTable({ rows }: { rows: ReturnType<typeof deriveAllocationDetailRows> }) {
+/** Desktop-only current-allocation table. It consumes Phase A snapshots only for current rows and
+ * still fails closed through MiniSparkline when fewer than two real observations exist. */
+function AssetAllocationDetailTable({ rows, pointsBySymbol }: {
+  rows: ReturnType<typeof deriveAllocationDetailRows>;
+  pointsBySymbol: ReadonlyMap<string, readonly { date: string; value: number }[]>;
+}) {
   return <div className="asset-allocation-detail-scroll">
     <div className="asset-allocation-detail-table" role="table" aria-label="資產明細，目前比例與目標比例">
       <div className="asset-allocation-detail-row asset-allocation-detail-head" role="row">
         <span role="columnheader">資產</span><span role="columnheader">類別</span><span role="columnheader">目前比例</span><span role="columnheader">目標比例</span><span role="columnheader">偏離</span><span role="columnheader">趨勢（近1個月）</span>
       </div>
-      {rows.map(row => <div className="asset-allocation-detail-row" role="row" key={row.symbol}>
-        <span role="cell" data-label="資產" className="asset-allocation-detail-symbol"><i style={{ backgroundColor: row.color }} aria-hidden="true" />{row.symbol === 'CASH' ? '台幣現金' : row.symbol}</span>
-        <span role="cell" data-label="類別">{row.classLabel}</span>
-        <span role="cell" data-label="目前比例">{pct(row.percent)}</span>
-        <span role="cell" data-label="目標比例">{pct(row.targetPercent)}</span>
-        <span role="cell" data-label="偏離" className={row.deviationTone}>{signedPct(row.deviationPercent)} {row.deviationTone === 'up' ? '↑' : row.deviationTone === 'down' ? '↓' : ''}</span>
-        <span role="cell" data-label="趨勢（近1個月）" className="asset-allocation-detail-trend">資料不足</span>
-      </div>)}
+      {rows.map(row => {
+        const trendPoints = pointsBySymbol.get(row.symbol) ?? [];
+        const trendChange = deriveSparklineChange(trendPoints);
+        const trendTone: AllocationTone = trendChange ? (trendChange.delta > 0 ? 'up' : trendChange.delta < 0 ? 'down' : 'hold') : 'hold';
+        return <div className="asset-allocation-detail-row" role="row" key={row.symbol}>
+          <span role="cell" data-label="資產" className="asset-allocation-detail-symbol"><i style={{ backgroundColor: row.color }} aria-hidden="true" />{row.symbol === 'CASH' ? '台幣現金' : row.symbol}</span>
+          <span role="cell" data-label="類別">{row.classLabel}</span>
+          <span role="cell" data-label="目前比例">{pct(row.percent)}</span>
+          <span role="cell" data-label="目標比例">{pct(row.targetPercent)}</span>
+          <span role="cell" data-label="偏離" className={row.deviationTone}>{signedPct(row.deviationPercent)} {row.deviationTone === 'up' ? '↑' : row.deviationTone === 'down' ? '↓' : ''}</span>
+          <div role="cell" data-label="趨勢（近1個月）" className="asset-allocation-detail-trend"><MiniSparkline points={trendPoints} tone={trendTone} /></div>
+        </div>;
+      })}
     </div>
   </div>;
 }
@@ -892,7 +899,7 @@ function AssetAllocationDetailTable({ rows }: { rows: ReturnType<typeof deriveAl
  * second detail page). Tablet (769–900px) keeps the table, reflowed by CSS only. */
 function AssetAllocationOverview({ m, state, netWorthHistory, isMobile }: {
   m: ReturnType<typeof calculateMetrics>;
-  state: Pick<AppState, 'holdings'>;
+  state: Pick<AppState, 'holdings' | 'holdingHistory'>;
   netWorthHistory: NetWorthSnapshot[];
   isMobile: boolean;
 }) {
@@ -902,8 +909,13 @@ function AssetAllocationOverview({ m, state, netWorthHistory, isMobile }: {
   const recentHistory = useMemo(() => historyForRange(netWorthHistory, '30d'), [netWorthHistory]);
   const totalAssetsPoints = useMemo(() => sparklinePointsFromHistory(recentHistory, 'totalAssets'), [recentHistory]);
   const cashPoints = useMemo(() => sparklinePointsFromHistory(recentHistory, 'cash'), [recentHistory]);
+  const holdingHistoryTrendIndex = useMemo(() => deriveHoldingHistoryTrendIndex(state.holdingHistory, '30d'), [state.holdingHistory]);
+  const growthPoints = holdingHistoryTrendIndex.pointsByAssetClass.growth;
+  const defensivePoints = holdingHistoryTrendIndex.pointsByAssetClass.defensive;
   const totalAssetsChange = useMemo(() => { const c = deriveSparklineChange(totalAssetsPoints); return c ? { ...c, points: totalAssetsPoints } : null; }, [totalAssetsPoints]);
   const cashChange = useMemo(() => { const c = deriveSparklineChange(cashPoints); return c ? { ...c, points: cashPoints } : null; }, [cashPoints]);
+  const growthChange = useMemo(() => { const c = deriveSparklineChange(growthPoints); return c ? { ...c, points: growthPoints } : null; }, [growthPoints]);
+  const defensiveChange = useMemo(() => { const c = deriveSparklineChange(defensivePoints); return c ? { ...c, points: defensivePoints } : null; }, [defensivePoints]);
   const growthWeight = m.totalAssets ? m.growth / m.totalAssets * 100 : 0;
   return <div className="asset-allocation-overview">
     <div className="asset-allocation-overview-primary">
@@ -912,11 +924,11 @@ function AssetAllocationOverview({ m, state, netWorthHistory, isMobile }: {
     <div className="asset-allocation-overview-secondary">
       <div className="asset-overview-card-grid">
         <AssetOverviewCard icon={Briefcase} accent="blue" label="總資產" value={money(m.totalAssets)} change={totalAssetsChange} />
-        <AssetOverviewCard icon={TrendingUp} accent="green" label="成長資產" value={pct(growthWeight)} subValue={money(m.growth)} change={null} />
-        <AssetOverviewCard icon={ShieldCheck} accent="red" label="防守資產" value={pct(m.defensiveRatio)} subValue={money(m.defensive)} change={null} />
+        <AssetOverviewCard icon={TrendingUp} accent="green" label="成長資產" value={pct(growthWeight)} subValue={money(m.growth)} change={growthChange} />
+        <AssetOverviewCard icon={ShieldCheck} accent="red" label="防守資產" value={pct(m.defensiveRatio)} subValue={money(m.defensive)} change={defensiveChange} />
         <AssetOverviewCard icon={PieChartIcon} accent="purple" label="現金部位" value={pct(m.cashRatio)} subValue={money(m.cash)} change={cashChange} />
       </div>
-      {!isMobile && <AssetAllocationDetailTable rows={detailRows} />}
+      {!isMobile && <AssetAllocationDetailTable rows={detailRows} pointsBySymbol={holdingHistoryTrendIndex.pointsBySymbol} />}
     </div>
   </div>;
 }
