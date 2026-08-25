@@ -529,7 +529,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outlin
   .holdings{grid-template-columns:1fr;gap:0}
   .holding-compact{min-height:64px;padding:0 14px;background:transparent;border-width:0 0 1px;border-radius:0}
   .holding-compact:first-child{border-top:1px solid var(--border-subtle)}
-  .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(82px,.75fr) minmax(116px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto auto;gap:6px;align-items:center;min-height:72px}
+  .holding-card-summary{grid-template-columns:minmax(152px,1.5fr) minmax(62px,.6fr) minmax(76px,.7fr) minmax(142px,.75fr) minmax(92px,1.1fr) minmax(88px,.85fr) minmax(132px,1.25fr) auto auto;column-gap:12px;row-gap:6px;align-items:center;min-height:72px}
   .holding-card-identity{grid-column:auto;gap:8px}.holding-card-identity .holding-title{display:grid;gap:2px}.holding-card-identity .holding-name{font-size:var(--font-name);white-space:nowrap}.holding-card-identity .holding-symbol{font-size:var(--font-symbol)}
   .holding-card-detail{padding:0;border:0;background:transparent}.holding-card-detail>span{font-size:11px}.holding-card-detail>strong{font-size:14px;white-space:nowrap}.holding-card-unrealized-pnl strong{white-space:nowrap;overflow-wrap:normal}
   .holding-card-unrealized-pnl-up,.holding-card-unrealized-pnl-down,.holding-card-unrealized-pnl-hold{padding:4px 8px;border-radius:6px;border-left-width:3px;border-left-style:solid}

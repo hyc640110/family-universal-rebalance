@@ -56,9 +56,9 @@ test('UR-TODO-071 an aria-live status region exists for reorder announcements, s
   assert.match(styles, /\.sr-only\{[^}]*clip:rect\(0,0,0,0\)/);
 });
 
-test('UR-TODO-071 Desktop grid extends to 9 tracks (existing 8 financial/action columns + 1 handle column), without shrinking the existing minmax floors', () => {
+test('UR-TODO-071 Desktop grid extends to 9 tracks (existing 8 financial/action columns + 1 handle column), while preserving the protected today-change spacing contract', () => {
   const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
-  assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\) minmax\(62px,\.6fr\) minmax\(76px,\.7fr\) minmax\(82px,\.75fr\) minmax\(116px,1\.1fr\) minmax\(88px,\.85fr\) minmax\(132px,1\.25fr\) auto auto;/);
+  assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\) minmax\(62px,\.6fr\) minmax\(76px,\.7fr\) minmax\(142px,\.75fr\) minmax\(92px,1\.1fr\) minmax\(88px,\.85fr\) minmax\(132px,1\.25fr\) auto auto;column-gap:12px;row-gap:6px;/);
 });
 
 test('UR-TODO-071 the drag handle has touch-action:none and user-select:none scoped to itself, not the whole holdings list', () => {
