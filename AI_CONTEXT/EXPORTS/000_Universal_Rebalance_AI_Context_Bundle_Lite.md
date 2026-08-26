@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-25T15:41:12.814580+00:00
+Generated UTC: 2026-08-26T01:55:01.314419+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `fbd75f5e2a3b6f1e174dd2959023e9157368b58a6066ab04bd2ae466e2d98104`
-- `008_TODO_BACKLOG.md` — SHA-256 `a031734a7e71818e7dcd45bd164a78b6ed3e1b1ef77ecc90c3638660c8f969c6`
-- `012_AI_HANDOVER.md` — SHA-256 `8ba1b99608c9427393a06532bd88a57e4f0a0d7b830e7045e7d2925a1b2bd09a`
+- `003_CURRENT_STATUS.md` — SHA-256 `bf0b02ba834e7565c32f7fb1c654b248d1aaeec869019051db18e4b88f2f89d2`
+- `008_TODO_BACKLOG.md` — SHA-256 `0aa44cdf5898fc44e30c7d39aae6955151f64914b6ae07620230fd33ea00d84c`
+- `012_AI_HANDOVER.md` — SHA-256 `7f99ed4892202e46f304f556cb4b607fd2a935220d599998094b4a288ff3e5d5`
 
 ---
 
@@ -427,7 +427,9 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 
 # Universal Rebalance Current Status v4.57
 
-最後更新：2026-08-25
+最後更新：2026-08-26
+
+**Holding Today Change Spacing Bugfix — CLOSED／Production Verified（2026-08-26）。** 此為獨立 bounded presentation bugfix，非 UR-TODO-033 reopened，未新增 Todo。PR [#430](https://github.com/hyc640110/family-universal-rebalance/pull/430) final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 由 `hyc640110` 於 `2026-08-26T01:50:29Z` 以一般 2-parent merge commit `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（parents `655b84b8b0519bcf202e3280eb01d83958d08d1d`／`f67461fa6de4b95dc0ab76233ac13f57c221187d`；未使用 admin override、非 squash／非 rebase）；`origin/main` 相符。push/main Deploy GitHub Pages run [32920475797](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32920475797) SUCCESS（main regression gate、Production build、Pages deploy success；舊 Preview artifact expired annotation 已由 fallback 處理，非 Production failure）。Production HTTP 200；唯讀驗證 1280／1440／1600 無 overflow、價格未跨 grid track，320／390／430 維持 `.holding-card-price`／`.holding-card-today-change` 不 render、Bottom Navigation 正常、console 0 error，未寫入使用者資料。CSS-only Desktop contract 為 price min `142px`、today-change `92px`、`column-gap:12px`／`row-gap:6px`；預覽人工驗收已確認實際數值 separation 25.71–33.97px。財務／quote／Worker／provider／persistence／schema／Rebalance／Liquidity／AI Decision／CLEC／Ledger 均 0 semantic diff；package／lockfile／dependency 亦 0 diff。4 個 high audit findings（nanoid、postcss、react-router）為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**，本輪未升級 dependency。
 
 **UR-TODO-078 Phase B Asset Allocation Historical Trend Consumer — CLOSED／Production Verified（2026-08-25）。** 使用者已完成 isolated Preview 人工驗收並明確授權 Merge；PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) final head `11902877254b8164459c47847fe29ed1d434df18` 由 `hyc640110` 於 `2026-08-25T15:36:11Z` 以一般 2-parent merge commit `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9` 合併（parents `4aec2a7fcc17ca16346633982182e82f4adb9179`／`11902877254b8164459c47847fe29ed1d434df18`；未使用 admin override，非 squash／非 rebase）。功能 Merge 後 `origin/main` = `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9`。main push 自動觸發 Deploy GitHub Pages run [32866817283](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32866817283) success（event `push`、headSha 一致、main `npm run test:ci` regression gate success、Production build success、Pages deploy success）；artifact-expired annotation 已由 workflow fallback 正常處理，非部署失敗。Production HTTP 200；唯讀 DOM／computed-layout smoke 驗證首頁及 `#/assets` 正常、Desktop 與 320／390／430px 均無 horizontal overflow、Mobile detail table 未 render、console 0 error，未寫入使用者資料。現有真實資料僅不足有效點，Growth／Defensive 與 per-holding 正確 fail-closed 顯示「近1個月趨勢資料不足」；2+ valid points 的 Consumer correctness 已由 final-head deterministic tests 證明。Total Assets／Cash 仍使用 `netWorthHistory`；Growth／Defensive／per-holding 使用 `holdingHistory`。Phase B 對 Phase A Foundation（producer／persistence／Backup／retention／schema）及所有財務語意（公式、target、deviation、Rebalance、Liquidity、Risk、AI Decision、CLEC、Simulator、Ledger、attribution、quote provider、Worker）為 0 semantic diff。**UR-TODO-078 Phase A 與 Phase B 均已 Production Verified；經核對 Backlog 無其他未完成 phase，整體 UR-TODO-078 = CLOSED／Production Verified。**
 
@@ -1290,7 +1292,9 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 # Universal Rebalance Todo Backlog v2.6
 
-最後更新：2026-08-25
+最後更新：2026-08-26
+
+> 2026-08-26 **Holding Today Change Spacing Bugfix = MERGED／Production Verified（PR #430）**：此為 bounded Desktop CSS-only presentation bugfix，不新增 Todo、也不重開 UR-TODO-033。PR final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（未使用 admin override）；main Deploy GitHub Pages run `32920475797` success、Production HTTP 200。最終 Desktop grid contract：price min 142px、today-change 92px、column-gap 12px、row-gap 6px；Preview 人工驗收與 Production 唯讀驗證完成，Mobile 0 regression、financial semantic 0 diff。依賴／lockfile 0 diff；4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**。
 
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
@@ -3716,6 +3720,12 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）
+
+- 正式決策：此為 bounded **Desktop-only／CSS-only** presentation bugfix，**不新增 Todo，亦非 UR-TODO-033 reopened**。PR [#430](https://github.com/hyc640110/family-universal-rebalance/pull/430) final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由 `hyc640110` 於 `2026-08-26T01:50:29Z` 以一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（parents `655b84b8b0519bcf202e3280eb01d83958d08d1d`／`f67461fa6de4b95dc0ab76233ac13f57c221187d`；未使用 admin override）。
+- Production 證據：push/main Deploy GitHub Pages [32920475797](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32920475797) SUCCESS，head 與 merge commit 一致，main regression gate、Production build、Pages deploy success；Production HTTP 200。唯讀驗證 1280／1440／1600 無 horizontal overflow／跨欄，320／390／430 維持 price/today-change 不 render、Bottom Navigation 正常、console 0 error；未寫入 Production 資料。真實 Production quote 此刻 unavailable 時正確顯示 `—`，未注入假資料；正／負／近零 spacing correctness 由同一 final-head tests 與使用者 isolated Preview 驗收（25.71–33.97px separation）證明。
+- 邊界：最終 CSS contract 為 price min 142px、today-change 92px、column-gap 12px、row-gap 6px。financial／quote semantics、tone、Worker、provider、persistence、schema、Rebalance、Household Liquidity、AI Decision、CLEC、Ledger／attribution 均 0 diff；package／lockfile／dependency 0 diff。nanoid／postcss／react-router 的 4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**，未在本輪升級 dependency。不得自行啟動下一 Sprint。
 
 ## 最新交接快照：UR-TODO-078 Phase B Final Closeout — Merge／Production Verified（CLOSED，2026-08-25）
 

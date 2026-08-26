@@ -1,5 +1,11 @@
 # Universal Rebalance AI Handover
 
+## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）
+
+- 正式決策：此為 bounded **Desktop-only／CSS-only** presentation bugfix，**不新增 Todo，亦非 UR-TODO-033 reopened**。PR [#430](https://github.com/hyc640110/family-universal-rebalance/pull/430) final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由 `hyc640110` 於 `2026-08-26T01:50:29Z` 以一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（parents `655b84b8b0519bcf202e3280eb01d83958d08d1d`／`f67461fa6de4b95dc0ab76233ac13f57c221187d`；未使用 admin override）。
+- Production 證據：push/main Deploy GitHub Pages [32920475797](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32920475797) SUCCESS，head 與 merge commit 一致，main regression gate、Production build、Pages deploy success；Production HTTP 200。唯讀驗證 1280／1440／1600 無 horizontal overflow／跨欄，320／390／430 維持 price/today-change 不 render、Bottom Navigation 正常、console 0 error；未寫入 Production 資料。真實 Production quote 此刻 unavailable 時正確顯示 `—`，未注入假資料；正／負／近零 spacing correctness 由同一 final-head tests 與使用者 isolated Preview 驗收（25.71–33.97px separation）證明。
+- 邊界：最終 CSS contract 為 price min 142px、today-change 92px、column-gap 12px、row-gap 6px。financial／quote semantics、tone、Worker、provider、persistence、schema、Rebalance、Household Liquidity、AI Decision、CLEC、Ledger／attribution 均 0 diff；package／lockfile／dependency 0 diff。nanoid／postcss／react-router 的 4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**，未在本輪升級 dependency。不得自行啟動下一 Sprint。
+
 ## 最新交接快照：UR-TODO-078 Phase B Final Closeout — Merge／Production Verified（CLOSED，2026-08-25）
 
 - 正式決策：**UR-TODO-078 Phase A = CLOSED／Production Verified；Phase B = CLOSED／Production Verified；整體 UR-TODO-078 = CLOSED／Production Verified。** Backlog 已核對無其他未完成 phase；不得自行啟動下一 Sprint。PR [#428](https://github.com/hyc640110/family-universal-rebalance/pull/428) final head `11902877254b8164459c47847fe29ed1d434df18` 由 `hyc640110` 於 `2026-08-25T15:36:11Z` 以一般 2-parent merge commit `8a652d6c16d6b93d3f03b8e5d41196f5c0b2e9b9` 合併（parents `4aec2a7fcc17ca16346633982182e82f4adb9179`／`11902877254b8164459c47847fe29ed1d434df18`；未使用 admin override，非 squash／非 rebase）；功能 Merge 後 `origin/main` = 該 SHA。
