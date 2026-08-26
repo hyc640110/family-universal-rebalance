@@ -1,6 +1,8 @@
 # Universal Rebalance Todo Backlog v2.6
 
-最後更新：2026-08-25
+最後更新：2026-08-26
+
+> 2026-08-26 **Holding Today Change Spacing Bugfix = MERGED／Production Verified（PR #430）**：此為 bounded Desktop CSS-only presentation bugfix，不新增 Todo、也不重開 UR-TODO-033。PR final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（未使用 admin override）；main Deploy GitHub Pages run `32920475797` success、Production HTTP 200。最終 Desktop grid contract：price min 142px、today-change 92px、column-gap 12px、row-gap 6px；Preview 人工驗收與 Production 唯讀驗證完成，Mobile 0 regression、financial semantic 0 diff。依賴／lockfile 0 diff；4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**。
 
 ### UR-TODO-078 Per-Holding Historical Snapshot Foundation
 
