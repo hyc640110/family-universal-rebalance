@@ -45,3 +45,17 @@ test('V6.6 same-line price+percent headline shows arrows and matches Taiwan-mark
   assert.deepEqual(formatCompactQuoteHeadline(0.25, 0.78, 0), { arrow: '', percentText: '—', amountText: '—', tone: 'hold', ariaLabel: '最近交易日漲跌資料不足' });
   assert.deepEqual(formatCompactQuoteHeadline(-2.18, -5.86, 37.19, false), { arrow: '', percentText: '—', amountText: '—', tone: 'hold', ariaLabel: '今日漲跌比較基準未驗證' });
 });
+
+test('holding list Desktop quote percentage and amount retain independent grid units with one protected 12px spacing source', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const card = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function AllocationPresetPanel'));
+  const summary = card.slice(card.indexOf('<div className="holding-card-summary">'), card.indexOf('<p className="holding-card-detail holding-card-market-value">'));
+  const desktopBlock = styles.slice(styles.indexOf('@media (min-width:901px)'), styles.indexOf('@media (max-width: 768px)'));
+
+  assert.match(summary, /holding-card-price/);
+  assert.match(summary, /holding-card-today-change/);
+  assert.match(desktopBlock, /\.holding-card-summary\{grid-template-columns:minmax\(152px,1\.5fr\) minmax\(62px,\.6fr\) minmax\(76px,\.7fr\) minmax\(142px,\.75fr\) minmax\(92px,1\.1fr\) minmax\(88px,\.85fr\) minmax\(132px,1\.25fr\) auto auto;column-gap:12px;row-gap:6px;/);
+  assert.doesNotMatch(desktopBlock, /\.holding-card-(?:price|today-change)\{[^}]*?(?:margin|padding|position:absolute)/);
+  assert.doesNotMatch(summary, /&nbsp;|\{`\s+\$\{quoteHeadline\.amountText\}/);
+});
