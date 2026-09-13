@@ -3,16 +3,16 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-09-13T14:55:11.119804+00:00
+Generated UTC: 2026-09-13T15:36:44.962780+00:00
 
 ## Manifest
 
 - `000_AI_START_HERE.md` — SHA-256 `91ea83fdd035202ae2627841b1d304de55a50e988a56955c3969737eb6f8d947`
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
-- `003_CURRENT_STATUS.md` — SHA-256 `bf0b02ba834e7565c32f7fb1c654b248d1aaeec869019051db18e4b88f2f89d2`
-- `008_TODO_BACKLOG.md` — SHA-256 `8544ee2e7baf9d6e339eb46724f4021ea41c1bcee6c3df6663d3d3f6ea8dfaa4`
-- `012_AI_HANDOVER.md` — SHA-256 `7f99ed4892202e46f304f556cb4b607fd2a935220d599998094b4a288ff3e5d5`
+- `003_CURRENT_STATUS.md` — SHA-256 `606a34414e5c9b9a91ed8b5ae7dae634cb17fcec0e3d67fb0a4c4d0d9cb07dd7`
+- `008_TODO_BACKLOG.md` — SHA-256 `14bf7ad1dfe1b1d3e792a2d0111934fcc2a8a4935010dc44a0f8d5c27952e5b0`
+- `012_AI_HANDOVER.md` — SHA-256 `be1630d39d07f8f532f23b2a58ddb7276d38bd05062f8a5e588f2d4a3a964465`
 
 ---
 
@@ -426,6 +426,10 @@ Universal Rebalance 是 React + Vite + TypeScript 的個人與家庭財富管理
 <!-- BEGIN FILE: 003_CURRENT_STATUS.md -->
 
 # Universal Rebalance Current Status v4.57
+
+**2026-09-13 治理基線追平：** PR #431（持股今日漲跌間距治理收尾）merge `cc50bf6b118240904d760db3ebf87c9691e2e6ac`；PR #432（持股詳細封存提示）經使用者驗收及明確授權後一般 Merge `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`，此為本次開發起點 origin/main。PR #432 CI `34764152351` success；正式 Pages `34764623868` build／deploy success，deployment `6423003149` SHA 一致，Production HTTP 200／environment=production／JS `index-BeiPkakq.js` 含修正；Production 互動驗收沿用使用者 Preview 驗收，未寫入正式資料。
+
+**UR-TODO-079 市場情報更新體驗：** 2026-09-13 已授權開發，獨立分支 `codex/market-refresh-experience`；功能與驗收條件見 Backlog，本輪尚未 Merge／Production 發布。
 
 最後更新：2026-08-26
 
@@ -1292,9 +1296,22 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 
 # Universal Rebalance Todo Backlog v2.6
 
+### UR-TODO-079 市場情報更新體驗
+
+- 優先級：P2（2026-09-13 使用者提出實際資料更新辨識問題並授權實作）
+- 狀態：本機實作與完整回歸／TypeScript／Production、Preview build 通過；等待 GitHub CI／隔離 Preview 使用者驗收，尚未 Merge／Production 發布。
+- 問題：App 啟動時查詢一次，長時間開啟或切回市場頁不會重新取得；缺少持續可見的查詢時間，容易誤認每日資料未更新。
+- 範圍：進入市場頁、回到可見分頁與停留期間檢查，距上次查詢滿 15 分鐘才自動重新取得；每分鐘檢查是否到期，隱藏／離頁不查詢。沿用既有 in-flight guard 與手動 no-store 路徑。常駐顯示查詢／服務確認時間，自動查詢也顯示結果；每項保留來源日期與資料狀態。
+- 日期契約：台北 calendar-day 差顯示資料年齡；超過 7 天僅為 UI 注意提示，不宣稱交易資料失效；週末前一交易日不判定過期。未知／未來日期顯示待確認，不補值。此提示不得參與 Financial Model 或 execution eligibility。
+- 不包含：新增全球指數／經濟事件來源（018／019）、Worker／provider／部署設定、持久化／Backup／財務計算、通知推播。
+- 驗收：首次／過期重訪查詢，15 分鐘內不重複，背景／離頁暫停與清理；成功／內容未變／失敗保留原資料皆有訊息；日期未知不 crash；桌機及 390px 可閱讀。
+- 補充：無可用數值的回應不得顯示「資料已更新」；無效日期顯示待確認。1600／390／320px 本機 Preview 無 horizontal overflow，手動重新取得能顯示內容未變；console 0 error。
+- 測試：marketRefreshExperience.test.ts、marketRefreshExperienceUi.test.ts 已納入 test:ci:unit-ts；既有市場資料合併／CORS／refresh tests 持續執行。
+
+
 ## 持股詳細封存提示修正（2026-09-13）
 
-- 狀態：實作完成，等待 CI／隔離 Preview 驗收；尚未 Merge／Production 發布。
+- 狀態：CLOSED／Production Verified。PR #432 已經使用者驗收並授權一般 Merge：a2c4c9686b5f2ea8816365cd5953f548b6fbfe57；Deploy GitHub Pages 34764623868 success，Production HTTP 200、environment=production、index-BeiPkakq.js 已確認含修正。
 - 歸屬：UR-TODO-072 詳細視窗既有封存錯誤提示的 bounded bugfix，不新增產品功能或重開原 Sprint。
 - 問題：持股股數大於 0 時封存被既有 guard 阻擋，但 assetMessage 只顯示於視窗背後。
 - 範圍：將既有訊息傳入 HoldingDetailContent，在資產管理按鈕旁的 status 區域顯示；開啟詳細時清除舊訊息。
@@ -3730,6 +3747,13 @@ PR [#252](https://github.com/hyc640110/family-universal-rebalance/pull/252) 已�
 <!-- BEGIN FILE: 012_AI_HANDOVER.md -->
 
 # Universal Rebalance AI Handover
+
+## UR-TODO-079 市場情報更新體驗（2026-09-13）
+
+- 起點 main `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`；branch `codex/market-refresh-experience`。原 dirty checkout／untracked／固定 stash 保留。
+- 決策：只改善查詢時機與時間辨識；前景市場頁 15 分鐘節流，日期逾 7 天僅提示，未知日期不冒充有效。自動查詢沿用原市場資料 request／merge，無財務／持久化／Worker 變更。
+- 尚未 Merge；下一步完成 CI 與 isolated Preview 使用者驗收。Backlog 為正式狀態來源，本快照不取代它。
+- 本次亦追平 PR #431／#432 基線與 #432 正式部署證據，未重開已完成封存修正。
 
 ## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）
 

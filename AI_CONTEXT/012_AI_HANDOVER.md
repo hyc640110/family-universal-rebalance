@@ -1,5 +1,12 @@
 # Universal Rebalance AI Handover
 
+## UR-TODO-079 市場情報更新體驗（2026-09-13）
+
+- 起點 main `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`；branch `codex/market-refresh-experience`。原 dirty checkout／untracked／固定 stash 保留。
+- 決策：只改善查詢時機與時間辨識；前景市場頁 15 分鐘節流，日期逾 7 天僅提示，未知日期不冒充有效。自動查詢沿用原市場資料 request／merge，無財務／持久化／Worker 變更。
+- 尚未 Merge；下一步完成 CI 與 isolated Preview 使用者驗收。Backlog 為正式狀態來源，本快照不取代它。
+- 本次亦追平 PR #431／#432 基線與 #432 正式部署證據，未重開已完成封存修正。
+
 ## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）
 
 - 正式決策：此為 bounded **Desktop-only／CSS-only** presentation bugfix，**不新增 Todo，亦非 UR-TODO-033 reopened**。PR [#430](https://github.com/hyc640110/family-universal-rebalance/pull/430) final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由 `hyc640110` 於 `2026-08-26T01:50:29Z` 以一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（parents `655b84b8b0519bcf202e3280eb01d83958d08d1d`／`f67461fa6de4b95dc0ab76233ac13f57c221187d`；未使用 admin override）。

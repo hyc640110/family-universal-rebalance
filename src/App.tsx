@@ -27,12 +27,14 @@ import CashFlowPage from './pages/CashFlowPage';
 import NetWorthHistoryPage from './pages/NetWorthHistoryPage';
 import DividendCenterPage from './pages/DividendCenterPage';
 import MarketIntelligencePage from './pages/MarketIntelligencePage';
+import { useMarketAutoRefresh } from './lib/useMarketAutoRefresh';
+import { safeMarketTime } from './lib/marketRefreshExperience';
 import AiDecisionCenterPage from './pages/AiDecisionCenterPage';
 import PortfolioRiskPage from './pages/PortfolioRiskPage';
 import RebalanceRecommendationPage from './pages/RebalanceRecommendationPage';
 import ClecStrategyCenterPage from './pages/ClecStrategyCenterPage';
 import InvestmentActionCenterPage from './pages/InvestmentActionCenterPage';
-import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, formatMarketTime, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
+import { buildUnavailableMarketSnapshot, fetchMarketSnapshot, mergeMarketSnapshot, type MarketSnapshot } from './lib/marketData';
 import { isMarketSectionEnabled, visibleMarketSnapshot } from './lib/marketSections';
 import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteMap, quoteRefreshErrorLabel, quoteRefreshRequestInit, refreshUrl } from './lib/dataRefresh';
 import { createQuoteRefreshController, type QuoteRefreshRequestOptions } from './lib/quoteRefreshController';
@@ -1433,9 +1435,11 @@ function App() {
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
   const marketRefreshInFlightRef = useRef(false);
   const [marketRefreshStatus, setMarketRefreshStatus] = useState('');
+  const [marketLastAttemptAt, setMarketLastAttemptAt] = useState<number | null>(null);
   const refreshMarketData = async (manual = false) => {
     if (marketRefreshInFlightRef.current) return;
     marketRefreshInFlightRef.current = true;
+    setMarketLastAttemptAt(Date.now());
     setIsRefreshingMarket(true);
     try {
       const next = await fetchMarketSnapshot(marketWorkerUrl, { manual });
@@ -1444,12 +1448,13 @@ function App() {
       const visibleUpdated = merged.updatedGroups.filter(isMarketSectionEnabled);
       const visibleReused = merged.reusedGroups.filter(isMarketSectionEnabled);
       const outcome = merged.incomplete && visibleReused.length ? (marketSnapshot.fetchedAt ? 'partial' : 'failed') : marketRefreshOutcome(marketContentSignature(visibleMarketSnapshot(marketSnapshot)), visibleMerged);
-      const detail = [visibleUpdated.length ? `本次受管理：${visibleUpdated.map(marketGroupLabel).join('、')}` : '', visibleReused.length ? `沿用前次：${visibleReused.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
-      if (manual) setMarketRefreshStatus(marketRefreshMessage(outcome, visibleMerged.fetchedAt, formatMarketTime, detail));
+      const detail = [visibleUpdated.length ? `已查詢：${visibleUpdated.map(marketGroupLabel).join('、')}` : '', visibleReused.length ? `沿用前次：${visibleReused.map(marketGroupLabel).join('、')}` : ''].filter(Boolean).join('；');
+      setMarketRefreshStatus(marketRefreshMessage(outcome, visibleMerged.fetchedAt, safeMarketTime, detail));
       setMarketSnapshot(current => outcome === 'failed' && current.fetchedAt ? current : merged.snapshot);
     } finally { marketRefreshInFlightRef.current = false; setIsRefreshingMarket(false); }
   };
   useEffect(() => { void refreshMarketData(); }, [marketWorkerUrl]);
+  useMarketAutoRefresh(currentPage === 'market', marketLastAttemptAt, () => { void refreshMarketData(true); });
   const [accountWarning, setAccountWarning] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState(now());
   useEffect(() => {
@@ -2400,7 +2405,7 @@ function App() {
         focusedAssetCard: homeFocusedAssetCard,
         focusedAssetLadder: homeFocusedAssetLadder,
       }} onAcknowledgeCreditCardReminder={acknowledgeCreditCardReminder} />}
-      {currentPage === 'market' && <MarketIntelligencePage snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
+      {currentPage === 'market' && <MarketIntelligencePage lastAttemptAt={marketLastAttemptAt} snapshot={marketSnapshot} isRefreshing={isRefreshingMarket} refreshMessage={marketRefreshStatus} onRefresh={() => { void refreshMarketData(true); }} />}
       {showOn('assets', 'analytics') && <DashboardPage>
         {currentPage === 'analytics' && <PerformanceAnalyticsPage assets={performanceAssets} history={netWorthHistory} snapshotView={netWorthSnapshotReadTimeViewRef.current} view={analyticsView} onViewChange={setAnalyticsView} />}
         {currentPage === 'analytics' && analyticsView === 'risk' && <Card className="page-card for-analytics analytics-summary-card" title="分析摘要"><AnalyticsSummary rb={rb} orderHelper={orderHelper} dipStatus={decisionSummary.dipStatus} /></Card>}

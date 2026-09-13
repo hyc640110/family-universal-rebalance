@@ -1,8 +1,21 @@
 # Universal Rebalance Todo Backlog v2.6
 
+### UR-TODO-079 市場情報更新體驗
+
+- 優先級：P2（2026-09-13 使用者提出實際資料更新辨識問題並授權實作）
+- 狀態：本機實作與完整回歸／TypeScript／Production、Preview build 通過；等待 GitHub CI／隔離 Preview 使用者驗收，尚未 Merge／Production 發布。
+- 問題：App 啟動時查詢一次，長時間開啟或切回市場頁不會重新取得；缺少持續可見的查詢時間，容易誤認每日資料未更新。
+- 範圍：進入市場頁、回到可見分頁與停留期間檢查，距上次查詢滿 15 分鐘才自動重新取得；每分鐘檢查是否到期，隱藏／離頁不查詢。沿用既有 in-flight guard 與手動 no-store 路徑。常駐顯示查詢／服務確認時間，自動查詢也顯示結果；每項保留來源日期與資料狀態。
+- 日期契約：台北 calendar-day 差顯示資料年齡；超過 7 天僅為 UI 注意提示，不宣稱交易資料失效；週末前一交易日不判定過期。未知／未來日期顯示待確認，不補值。此提示不得參與 Financial Model 或 execution eligibility。
+- 不包含：新增全球指數／經濟事件來源（018／019）、Worker／provider／部署設定、持久化／Backup／財務計算、通知推播。
+- 驗收：首次／過期重訪查詢，15 分鐘內不重複，背景／離頁暫停與清理；成功／內容未變／失敗保留原資料皆有訊息；日期未知不 crash；桌機及 390px 可閱讀。
+- 補充：無可用數值的回應不得顯示「資料已更新」；無效日期顯示待確認。1600／390／320px 本機 Preview 無 horizontal overflow，手動重新取得能顯示內容未變；console 0 error。
+- 測試：marketRefreshExperience.test.ts、marketRefreshExperienceUi.test.ts 已納入 test:ci:unit-ts；既有市場資料合併／CORS／refresh tests 持續執行。
+
+
 ## 持股詳細封存提示修正（2026-09-13）
 
-- 狀態：實作完成，等待 CI／隔離 Preview 驗收；尚未 Merge／Production 發布。
+- 狀態：CLOSED／Production Verified。PR #432 已經使用者驗收並授權一般 Merge：a2c4c9686b5f2ea8816365cd5953f548b6fbfe57；Deploy GitHub Pages 34764623868 success，Production HTTP 200、environment=production、index-BeiPkakq.js 已確認含修正。
 - 歸屬：UR-TODO-072 詳細視窗既有封存錯誤提示的 bounded bugfix，不新增產品功能或重開原 Sprint。
 - 問題：持股股數大於 0 時封存被既有 guard 阻擋，但 assetMessage 只顯示於視窗背後。
 - 範圍：將既有訊息傳入 HoldingDetailContent，在資產管理按鈕旁的 status 區域顯示；開啟詳細時清除舊訊息。
