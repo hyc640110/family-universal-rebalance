@@ -15,6 +15,14 @@ const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const compactCard = app.slice(app.indexOf('function HoldingCompactCard'), app.indexOf('function HoldingDetailContent'));
 const detailContent = app.slice(app.indexOf('function HoldingDetailContent'), app.indexOf('function AllocationPresetSummary'));
 
+test('archive rejection is visible inside the detail danger zone and old feedback is cleared on opening', () => {
+  const dangerZone = detailContent.slice(detailContent.indexOf('<section className="holding-detail-danger-zone"'));
+  assert.match(dangerZone, /role="status"[^>]*>\{archiveMessage\}/);
+  assert.match(app, /<HoldingDetailContent[^>]*archiveMessage=\{assetMessage\}/);
+  const open = app.slice(app.indexOf('const openHoldingDetail ='), app.indexOf('const closeHoldingDetail ='));
+  assert.match(open, /setAssetMessage\(''\)/);
+});
+
 test('UR-TODO-072 the old inline in-card detail region is fully removed from HoldingCompactCard', () => {
   assert.doesNotMatch(compactCard, /holding-editor/);
   assert.doesNotMatch(compactCard, /isEditing/);

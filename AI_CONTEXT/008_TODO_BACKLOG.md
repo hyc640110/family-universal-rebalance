@@ -1,5 +1,15 @@
 # Universal Rebalance Todo Backlog v2.6
 
+## 持股詳細封存提示修正（2026-09-13）
+
+- 狀態：實作完成，等待 CI／隔離 Preview 驗收；尚未 Merge／Production 發布。
+- 歸屬：UR-TODO-072 詳細視窗既有封存錯誤提示的 bounded bugfix，不新增產品功能或重開原 Sprint。
+- 問題：持股股數大於 0 時封存被既有 guard 阻擋，但 assetMessage 只顯示於視窗背後。
+- 範圍：將既有訊息傳入 HoldingDetailContent，在資產管理按鈕旁的 status 區域顯示；開啟詳細時清除舊訊息。
+- 不包含：封存資格、確認／取消／成功關閉流程、持股寫入、財務計算、schema、Backup、Worker、部署設定。
+- 驗收：未清倉點擊後視窗內可見提示且持股不被封存；切換持股無舊訊息；零股數確認／取消行為維持；桌機及 390px 可閱讀。先 RED 再 GREEN，新增測試沿用 test:ur-todo-072 納入 test:ci。
+
+
 最後更新：2026-08-26
 
 > 2026-08-26 **Holding Today Change Spacing Bugfix = MERGED／Production Verified（PR #430）**：此為 bounded Desktop CSS-only presentation bugfix，不新增 Todo、也不重開 UR-TODO-033。PR final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（未使用 admin override）；main Deploy GitHub Pages run `32920475797` success、Production HTTP 200。最終 Desktop grid contract：price min 142px、today-change 92px、column-gap 12px、row-gap 6px；Preview 人工驗收與 Production 唯讀驗證完成，Mobile 0 regression、financial semantic 0 diff。依賴／lockfile 0 diff；4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**。
