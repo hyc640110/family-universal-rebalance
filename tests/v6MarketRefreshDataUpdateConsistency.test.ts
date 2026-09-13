@@ -31,7 +31,7 @@ test('market refresh UI keeps asOf and fetchedAt semantics distinct and remains 
   const page = readFileSync(new URL('../src/pages/MarketIntelligencePage.tsx', import.meta.url), 'utf8');
   assert.match(app, /marketRefreshInFlightRef\.current/);
   assert.match(app, /fetchMarketSnapshot\(marketWorkerUrl, \{ manual \}\)/);
-  assert.match(page, /市場資料時間/); assert.match(page, /本次服務確認時間/); assert.match(page, /並非市場成交時間/);
+  assert.match(page, /市場資料時間/); assert.match(page, /最近服務確認時間/); assert.match(page, /並非市場成交時間/);
 });
 
 test('hidden global and event sections remain absent without mutating input snapshots', () => {

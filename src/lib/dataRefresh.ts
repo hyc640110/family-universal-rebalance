@@ -64,7 +64,8 @@ export const marketContentSignature = (snapshot: { status: string; items: Array<
   JSON.stringify({ status: snapshot.status, items: snapshot.items.map(item => ({ id: item.id, value: item.value, change: item.change, changePct: item.changePct, asOf: item.asOf, status: item.status })) });
 
 export const marketRefreshOutcome = (previousSignature: string | null, snapshot: { fetchedAt: string | null; status: string; items: Array<{ id: string; value: number | null; change: number | null; changePct: number | null; asOf: string | null; status: string }> }) : MarketRefreshOutcome => {
-  if (!snapshot.fetchedAt || snapshot.status === 'failed') return 'failed';
+  if (!snapshot.fetchedAt || !Number.isFinite(Date.parse(snapshot.fetchedAt)) || snapshot.status === 'failed'
+    || !snapshot.items.some(item => item.value !== null && Number.isFinite(item.value) && !['unavailable', 'failed', 'loading'].includes(item.status))) return 'failed';
   return previousSignature === marketContentSignature(snapshot) ? 'unchanged' : 'updated';
 };
 

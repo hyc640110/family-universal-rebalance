@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fetchMarketSnapshot, marketRefreshRequestInit, mergeMarketSnapshot, type MarketSnapshot } from '../src/lib/marketData';
 import { isValidQuoteTimestamp, marketContentSignature, marketRefreshMessage, marketRefreshOutcome, mergeQuoteRefresh, quoteRefreshErrorLabel, quoteRefreshRequestInit, quoteRefreshStatus, refreshUrl } from '../src/lib/dataRefresh';
 
-const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [{ id: 'taiex', value: 23000, change: 10, changePct: .04, asOf: '2026-07-17T08:00:00+08:00', status: 'closed' }], ...patch });
+const snapshot = (patch: Record<string, unknown> = {}) => ({ fetchedAt: '2026-07-17T08:00:00.000Z', status: 'recent-effective', items: [{ id: 'taiex', group: 'taiwan', name: '台灣加權指數', value: 23000, change: 10, changePct: .04, asOf: '2026-07-17T08:00:00+08:00', status: 'closed' }], ...patch });
 
 test('date controls declare a WebKit bounded-width contract without clipping the native picker', () => {
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
