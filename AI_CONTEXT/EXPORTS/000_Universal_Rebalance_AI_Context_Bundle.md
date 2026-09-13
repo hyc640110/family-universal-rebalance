@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-26T01:55:01.314419+00:00
+Generated UTC: 2026-09-13T14:55:11.119804+00:00
 
 ## Manifest
 
@@ -16,7 +16,7 @@ Generated UTC: 2026-08-26T01:55:01.314419+00:00
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `0aa44cdf5898fc44e30c7d39aae6955151f64914b6ae07620230fd33ea00d84c`
+- `008_TODO_BACKLOG.md` — SHA-256 `8544ee2e7baf9d6e339eb46724f4021ea41c1bcee6c3df6663d3d3f6ea8dfaa4`
 - `009_CHANGELOG.md` — SHA-256 `f7f3154817deca8e2b71d260bcff703c6505d59f66f826c6865b752e84262c2e`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
@@ -3169,6 +3169,16 @@ Hotfix 仍需：
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
 # Universal Rebalance Todo Backlog v2.6
+
+## 持股詳細封存提示修正（2026-09-13）
+
+- 狀態：實作完成，等待 CI／隔離 Preview 驗收；尚未 Merge／Production 發布。
+- 歸屬：UR-TODO-072 詳細視窗既有封存錯誤提示的 bounded bugfix，不新增產品功能或重開原 Sprint。
+- 問題：持股股數大於 0 時封存被既有 guard 阻擋，但 assetMessage 只顯示於視窗背後。
+- 範圍：將既有訊息傳入 HoldingDetailContent，在資產管理按鈕旁的 status 區域顯示；開啟詳細時清除舊訊息。
+- 不包含：封存資格、確認／取消／成功關閉流程、持股寫入、財務計算、schema、Backup、Worker、部署設定。
+- 驗收：未清倉點擊後視窗內可見提示且持股不被封存；切換持股無舊訊息；零股數確認／取消行為維持；桌機及 390px 可閱讀。先 RED 再 GREEN，新增測試沿用 test:ur-todo-072 納入 test:ci。
+
 
 最後更新：2026-08-26
 

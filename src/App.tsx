@@ -977,11 +977,12 @@ function HoldingCompactCard({ row, totalAssets, isDetailOpen, onOpenDetail, isDr
  * no second data-update path. `row` is read fresh from `m.rows` on every render (see
  * `selectedHoldingDetailRow` below), never copied into separate editable state, so the dialog can
  * never show a stale snapshot. */
-function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove }: {
+function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, archiveMessage, onUpdate, onUpdateDipAlert, onToggleFocused, onRemove }: {
   row: ReturnType<typeof calculateMetrics>['rows'][number];
   totalAssets: number;
   dipSetting: DipAlertSetting;
   isFocused: boolean;
+  archiveMessage: string;
   onUpdate: (symbol: SymbolCode, key: keyof Holding, value: number | AssetClass) => void;
   onUpdateDipAlert: (symbol: SymbolCode, patch: Partial<DipAlertSetting>) => void;
   onToggleFocused: (symbol: SymbolCode) => void;
@@ -1015,7 +1016,7 @@ function HoldingDetailContent({ row, totalAssets, dipSetting, isFocused, onUpdat
       <label className="holding-focus-toggle"><span>重點標的</span><input type="checkbox" checked={isFocused} onChange={() => onToggleFocused(row.symbol)} /> 設為首頁重點標的</label>
       </div>
     </details>
-    <section className="holding-detail-danger-zone" aria-labelledby="holding-detail-danger-title"><h3 id="holding-detail-danger-title">資產管理</h3><button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button></section>
+    <section className="holding-detail-danger-zone" aria-labelledby="holding-detail-danger-title"><h3 id="holding-detail-danger-title">資產管理</h3><button type="button" className="danger small holding-delete-button" onClick={() => onRemove(row.symbol)}><Trash2 size={15} aria-hidden="true" />封存已清倉</button><p className={archiveMessage ? 'warning-message' : undefined} role="status">{archiveMessage}</p></section>
   </div>;
 }
 /** UR-TODO-048 phase B: allocationPreset is always 'custom' now (see coerceAllocationPresetToCustom); this is read-only display only, no write path. */
@@ -1478,6 +1479,7 @@ function App() {
   const holdingDetailTriggerRef = useRef<HTMLButtonElement | null>(null);
   const openHoldingDetail = (symbol: SymbolCode) => (event: ReactMouseEvent<HTMLButtonElement>) => {
     holdingDetailTriggerRef.current = event.currentTarget;
+    setAssetMessage('');
     setSelectedHoldingDetailSymbol(symbol);
   };
   const closeHoldingDetail = () => {
@@ -2460,7 +2462,7 @@ function App() {
             {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} isDetailOpen={selectedHoldingDetailSymbol === row.symbol} onOpenDetail={openHoldingDetail(row.symbol)} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
           </div>
           {selectedHoldingDetailRow && <HoldingDetailDialog titleId="holding-detail-dialog-title" title="持股詳細" onClose={closeHoldingDetail}>
-            <HoldingDetailContent row={selectedHoldingDetailRow} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[selectedHoldingDetailRow.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(selectedHoldingDetailRow.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }} />
+            <HoldingDetailContent archiveMessage={assetMessage} row={selectedHoldingDetailRow} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[selectedHoldingDetailRow.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(selectedHoldingDetailRow.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }} />
           </HoldingDetailDialog>}
         </SectionCard>
         </div>

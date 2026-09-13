@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-08-26T01:55:01.314419+00:00
+Generated UTC: 2026-09-13T14:55:11.119804+00:00
 
 ## Manifest
 
@@ -11,7 +11,7 @@ Generated UTC: 2026-08-26T01:55:01.314419+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `003_CURRENT_STATUS.md` — SHA-256 `bf0b02ba834e7565c32f7fb1c654b248d1aaeec869019051db18e4b88f2f89d2`
-- `008_TODO_BACKLOG.md` — SHA-256 `0aa44cdf5898fc44e30c7d39aae6955151f64914b6ae07620230fd33ea00d84c`
+- `008_TODO_BACKLOG.md` — SHA-256 `8544ee2e7baf9d6e339eb46724f4021ea41c1bcee6c3df6663d3d3f6ea8dfaa4`
 - `012_AI_HANDOVER.md` — SHA-256 `7f99ed4892202e46f304f556cb4b607fd2a935220d599998094b4a288ff3e5d5`
 
 ---
@@ -1291,6 +1291,16 @@ UR-TODO-001 狀態依此由「待盤點」更新為**「已盤點」**（Rules �
 <!-- BEGIN FILE: 008_TODO_BACKLOG.md -->
 
 # Universal Rebalance Todo Backlog v2.6
+
+## 持股詳細封存提示修正（2026-09-13）
+
+- 狀態：實作完成，等待 CI／隔離 Preview 驗收；尚未 Merge／Production 發布。
+- 歸屬：UR-TODO-072 詳細視窗既有封存錯誤提示的 bounded bugfix，不新增產品功能或重開原 Sprint。
+- 問題：持股股數大於 0 時封存被既有 guard 阻擋，但 assetMessage 只顯示於視窗背後。
+- 範圍：將既有訊息傳入 HoldingDetailContent，在資產管理按鈕旁的 status 區域顯示；開啟詳細時清除舊訊息。
+- 不包含：封存資格、確認／取消／成功關閉流程、持股寫入、財務計算、schema、Backup、Worker、部署設定。
+- 驗收：未清倉點擊後視窗內可見提示且持股不被封存；切換持股無舊訊息；零股數確認／取消行為維持；桌機及 390px 可閱讀。先 RED 再 GREEN，新增測試沿用 test:ur-todo-072 納入 test:ci。
+
 
 最後更新：2026-08-26
 
