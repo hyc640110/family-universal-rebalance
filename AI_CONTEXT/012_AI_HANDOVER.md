@@ -4,7 +4,7 @@
 
 - 起點 main `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`；branch `codex/market-refresh-experience`。原 dirty checkout／untracked／固定 stash 保留。
 - 決策：只改善查詢時機與時間辨識；前景市場頁 15 分鐘節流，日期逾 7 天僅提示，未知日期不冒充有效。自動查詢沿用原市場資料 request／merge，無財務／持久化／Worker 變更。
-- 尚未 Merge；下一步完成 CI 與 isolated Preview 使用者驗收。Backlog 為正式狀態來源，本快照不取代它。
+- **已完成／Production Verified：** 使用者已完成 isolated Preview 驗收。PR [#433](https://github.com/hyc640110/family-universal-rebalance/pull/433) final head `f792048a1a6d4a5b26fadfdca521a71075c8ffe4` 於 `2026-09-13T15:49:45Z` 一般 Merge 為 `e5d3fb4f63ecd21a21aa12195be9a6f9fdffd145`，現為 `origin/main`。PR CI `34766253599`、Preview publish `34766253658`／Preview Pages `34766281613` success；main Deploy GitHub Pages `34766764187` build／deploy success，Production deployment `6423418218` SHA 一致、HTTP 200。正式市場頁已唯讀確認自動查詢、時間提示與官方資料載入正常；未寫入 Production 資料。UR-TODO-079 已在 Backlog 正式結案。
 - 本次亦追平 PR #431／#432 基線與 #432 正式部署證據，未重開已完成封存修正。
 
 ## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）

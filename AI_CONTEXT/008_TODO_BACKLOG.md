@@ -3,7 +3,7 @@
 ### UR-TODO-079 市場情報更新體驗
 
 - 優先級：P2（2026-09-13 使用者提出實際資料更新辨識問題並授權實作）
-- 狀態：本機實作與完整回歸／TypeScript／Production、Preview build 通過；等待 GitHub CI／隔離 Preview 使用者驗收，尚未 Merge／Production 發布。
+- 狀態：**CLOSED／Production Verified（2026-09-14 治理同步）。** PR [#433](https://github.com/hyc640110/family-universal-rebalance/pull/433) final head `f792048a1a6d4a5b26fadfdca521a71075c8ffe4` 已於 `2026-09-13T15:49:45Z` 合併為 `e5d3fb4f63ecd21a21aa12195be9a6f9fdffd145`。PR CI `34766253599`、isolated Preview publish `34766253658`／Preview Pages `34766281613`、merge 後 Deploy GitHub Pages `34766764187` 均 success；Production deployment `6423418218` SHA 一致，HTTP 200。使用者完成 Preview 驗收；正式市場頁唯讀確認自動查詢、時間提示與官方資料載入正常，未寫入使用者資料。
 - 問題：App 啟動時查詢一次，長時間開啟或切回市場頁不會重新取得；缺少持續可見的查詢時間，容易誤認每日資料未更新。
 - 範圍：進入市場頁、回到可見分頁與停留期間檢查，距上次查詢滿 15 分鐘才自動重新取得；每分鐘檢查是否到期，隱藏／離頁不查詢。沿用既有 in-flight guard 與手動 no-store 路徑。常駐顯示查詢／服務確認時間，自動查詢也顯示結果；每項保留來源日期與資料狀態。
 - 日期契約：台北 calendar-day 差顯示資料年齡；超過 7 天僅為 UI 注意提示，不宣稱交易資料失效；週末前一交易日不判定過期。未知／未來日期顯示待確認，不補值。此提示不得參與 Financial Model 或 execution eligibility。
@@ -23,7 +23,7 @@
 - 驗收：未清倉點擊後視窗內可見提示且持股不被封存；切換持股無舊訊息；零股數確認／取消行為維持；桌機及 390px 可閱讀。先 RED 再 GREEN，新增測試沿用 test:ur-todo-072 納入 test:ci。
 
 
-最後更新：2026-08-26
+最後更新：2026-09-14
 
 > 2026-08-26 **Holding Today Change Spacing Bugfix = MERGED／Production Verified（PR #430）**：此為 bounded Desktop CSS-only presentation bugfix，不新增 Todo、也不重開 UR-TODO-033。PR final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（未使用 admin override）；main Deploy GitHub Pages run `32920475797` success、Production HTTP 200。最終 Desktop grid contract：price min 142px、today-change 92px、column-gap 12px、row-gap 6px；Preview 人工驗收與 Production 唯讀驗證完成，Mobile 0 regression、financial semantic 0 diff。依賴／lockfile 0 diff；4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**。
 

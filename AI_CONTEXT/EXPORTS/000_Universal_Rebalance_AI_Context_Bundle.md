@@ -3,7 +3,7 @@
 此檔由 Repository 的 `AI_CONTEXT/` 自動產生，供 ChatGPT Project／Work 與 Claude Project 使用。
 不得手動修改本 Bundle；請修改來源文件後重新產生。
 
-Generated UTC: 2026-09-13T15:36:44.962780+00:00
+Generated UTC: 2026-09-14T11:39:56.622765+00:00
 
 ## Manifest
 
@@ -11,16 +11,16 @@ Generated UTC: 2026-09-13T15:36:44.962780+00:00
 - `000_AI_WORKSPACE_RULES.md` — SHA-256 `d51d595b8b07f67e21cf2a9ebdeea23b6b7f5e882e33fb952c6ceae179fa2a2a`
 - `001_README.md` — SHA-256 `bd1e0985e3d03817970071b5dd6ff0762331919ebd9cf8d826fcf19b835ee18b`
 - `002_MASTER_ROADMAP.md` — SHA-256 `2afae499ededeb53d7265cf70b68dbfe46a2b91999dcd20dc67c04bfa7f50115`
-- `003_CURRENT_STATUS.md` — SHA-256 `606a34414e5c9b9a91ed8b5ae7dae634cb17fcec0e3d67fb0a4c4d0d9cb07dd7`
+- `003_CURRENT_STATUS.md` — SHA-256 `2ac8cb7a4560909aeb3fecc24320343067e4353be7c57e781aa1961b661aeb2d`
 - `004_DEVELOPMENT_GUIDE.md` — SHA-256 `87e1cba02d18f9401ff8e82327df3c9072559a70cdab60afa326380f8d3ab684`
 - `005_AI_USER_CONTEXT.md` — SHA-256 `be7944f41845dfb37e2d199767ac10e2e32a14bd3a9c683b0e2af382ac2e6cbe`
 - `006_PROJECT_ARCHITECTURE.md` — SHA-256 `5a40ffcab1ec817c1b2f3f6216313c09f2367ec00316630a7ea0331e113b83af`
 - `007_GIT_WORKFLOW.md` — SHA-256 `b793f46f30b9b1c9afd674bcc6edba18306b3c6e3595e46f6859893b0c6eb288`
-- `008_TODO_BACKLOG.md` — SHA-256 `14bf7ad1dfe1b1d3e792a2d0111934fcc2a8a4935010dc44a0f8d5c27952e5b0`
+- `008_TODO_BACKLOG.md` — SHA-256 `914b8cfc8c64da1f020d39eb7767fc7eee348429e57828ee1043f9572cac630c`
 - `009_CHANGELOG.md` — SHA-256 `f7f3154817deca8e2b71d260bcff703c6505d59f66f826c6865b752e84262c2e`
 - `010_CODING_STANDARDS.md` — SHA-256 `f2bcf50582f4187560343802347ace998ced8a503b78be85628925a85c2c73f8`
 - `011_RELEASE_CHECKLIST.md` — SHA-256 `abc323a1c2536704add1e498353e616824e2a30c78d3fecfb9665834df3ff7e1`
-- `012_AI_HANDOVER.md` — SHA-256 `be1630d39d07f8f532f23b2a58ddb7276d38bd05062f8a5e588f2d4a3a964465`
+- `012_AI_HANDOVER.md` — SHA-256 `b908361382fc89faeef1bf8aab8f021765204373ec771305c76877ce72ec0524`
 - `013_HOUSEHOLD_LIQUIDITY_SPEC.md` — SHA-256 `8023cbbd3d443ff342702a19a5d8da6b75fcc5d2142e11af597211848e640e9f`
 - `014_TODO_GAP_AUDIT.md` — SHA-256 `67f2064171e931cee4c7d4c293f6c07fa14d1943c1a16e7d43649deb1c167bf4`
 - `015_CROSS_AI_COMPATIBILITY_SPEC.md` — SHA-256 `cda6437ea0dcb504115a319c59b51498c69fdf037e7b1a47a8d3b2a17ebb57de`
@@ -656,11 +656,11 @@ UR-TODO-009 子 PR1～7（PR #134、#137、#140、#143、#145、#147）均已 Me
 
 # Universal Rebalance Current Status v4.57
 
+**2026-09-14 治理基線追平：UR-TODO-079 市場情報更新體驗 = CLOSED／Production Verified。** PR [#433](https://github.com/hyc640110/family-universal-rebalance/pull/433) final head `f792048a1a6d4a5b26fadfdca521a71075c8ffe4` 已於 `2026-09-13T15:49:45Z` 以一般 2-parent merge commit `e5d3fb4f63ecd21a21aa12195be9a6f9fdffd145` 合併；此即目前 `origin/main` 基線。PR CI [34766253599](https://github.com/hyc640110/family-universal-rebalance/actions/runs/34766253599) success；isolated Preview publish [34766253658](https://github.com/hyc640110/family-universal-rebalance/actions/runs/34766253658) 與 Preview Pages [34766281613](https://github.com/hyc640110/family-universal-rebalance-preview/actions/runs/34766281613) success，使用者驗收完成。merge 後 Deploy GitHub Pages [34766764187](https://github.com/hyc640110/family-universal-rebalance/actions/runs/34766764187) build／deploy success，deployment `6423418218` SHA 一致；Production HTTP 200，正式市場頁已確認自動查詢、時間提示及官方台股／美債資料正常。此 Sprint 僅改善市場查詢時機與回饋，未接入 UR-TODO-018／019、未修改 Worker、provider、持久化、財務計算或部署設定；未寫入 Production 使用者資料。
+
 **2026-09-13 治理基線追平：** PR #431（持股今日漲跌間距治理收尾）merge `cc50bf6b118240904d760db3ebf87c9691e2e6ac`；PR #432（持股詳細封存提示）經使用者驗收及明確授權後一般 Merge `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`，此為本次開發起點 origin/main。PR #432 CI `34764152351` success；正式 Pages `34764623868` build／deploy success，deployment `6423003149` SHA 一致，Production HTTP 200／environment=production／JS `index-BeiPkakq.js` 含修正；Production 互動驗收沿用使用者 Preview 驗收，未寫入正式資料。
 
-**UR-TODO-079 市場情報更新體驗：** 2026-09-13 已授權開發，獨立分支 `codex/market-refresh-experience`；功能與驗收條件見 Backlog，本輪尚未 Merge／Production 發布。
-
-最後更新：2026-08-26
+最後更新：2026-09-14
 
 **Holding Today Change Spacing Bugfix — CLOSED／Production Verified（2026-08-26）。** 此為獨立 bounded presentation bugfix，非 UR-TODO-033 reopened，未新增 Todo。PR [#430](https://github.com/hyc640110/family-universal-rebalance/pull/430) final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 由 `hyc640110` 於 `2026-08-26T01:50:29Z` 以一般 2-parent merge commit `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（parents `655b84b8b0519bcf202e3280eb01d83958d08d1d`／`f67461fa6de4b95dc0ab76233ac13f57c221187d`；未使用 admin override、非 squash／非 rebase）；`origin/main` 相符。push/main Deploy GitHub Pages run [32920475797](https://github.com/hyc640110/family-universal-rebalance/actions/runs/32920475797) SUCCESS（main regression gate、Production build、Pages deploy success；舊 Preview artifact expired annotation 已由 fallback 處理，非 Production failure）。Production HTTP 200；唯讀驗證 1280／1440／1600 無 overflow、價格未跨 grid track，320／390／430 維持 `.holding-card-price`／`.holding-card-today-change` 不 render、Bottom Navigation 正常、console 0 error，未寫入使用者資料。CSS-only Desktop contract 為 price min `142px`、today-change `92px`、`column-gap:12px`／`row-gap:6px`；預覽人工驗收已確認實際數值 separation 25.71–33.97px。財務／quote／Worker／provider／persistence／schema／Rebalance／Liquidity／AI Decision／CLEC／Ledger 均 0 semantic diff；package／lockfile／dependency 亦 0 diff。4 個 high audit findings（nanoid、postcss、react-router）為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**，本輪未升級 dependency。
 
@@ -3177,7 +3177,7 @@ Hotfix 仍需：
 ### UR-TODO-079 市場情報更新體驗
 
 - 優先級：P2（2026-09-13 使用者提出實際資料更新辨識問題並授權實作）
-- 狀態：本機實作與完整回歸／TypeScript／Production、Preview build 通過；等待 GitHub CI／隔離 Preview 使用者驗收，尚未 Merge／Production 發布。
+- 狀態：**CLOSED／Production Verified（2026-09-14 治理同步）。** PR [#433](https://github.com/hyc640110/family-universal-rebalance/pull/433) final head `f792048a1a6d4a5b26fadfdca521a71075c8ffe4` 已於 `2026-09-13T15:49:45Z` 合併為 `e5d3fb4f63ecd21a21aa12195be9a6f9fdffd145`。PR CI `34766253599`、isolated Preview publish `34766253658`／Preview Pages `34766281613`、merge 後 Deploy GitHub Pages `34766764187` 均 success；Production deployment `6423418218` SHA 一致，HTTP 200。使用者完成 Preview 驗收；正式市場頁唯讀確認自動查詢、時間提示與官方資料載入正常，未寫入使用者資料。
 - 問題：App 啟動時查詢一次，長時間開啟或切回市場頁不會重新取得；缺少持續可見的查詢時間，容易誤認每日資料未更新。
 - 範圍：進入市場頁、回到可見分頁與停留期間檢查，距上次查詢滿 15 分鐘才自動重新取得；每分鐘檢查是否到期，隱藏／離頁不查詢。沿用既有 in-flight guard 與手動 no-store 路徑。常駐顯示查詢／服務確認時間，自動查詢也顯示結果；每項保留來源日期與資料狀態。
 - 日期契約：台北 calendar-day 差顯示資料年齡；超過 7 天僅為 UI 注意提示，不宣稱交易資料失效；週末前一交易日不判定過期。未知／未來日期顯示待確認，不補值。此提示不得參與 Financial Model 或 execution eligibility。
@@ -3197,7 +3197,7 @@ Hotfix 仍需：
 - 驗收：未清倉點擊後視窗內可見提示且持股不被封存；切換持股無舊訊息；零股數確認／取消行為維持；桌機及 390px 可閱讀。先 RED 再 GREEN，新增測試沿用 test:ur-todo-072 納入 test:ci。
 
 
-最後更新：2026-08-26
+最後更新：2026-09-14
 
 > 2026-08-26 **Holding Today Change Spacing Bugfix = MERGED／Production Verified（PR #430）**：此為 bounded Desktop CSS-only presentation bugfix，不新增 Todo、也不重開 UR-TODO-033。PR final head `f67461fa6de4b95dc0ab76233ac13f57c221187d` 已由一般 2-parent merge `36f2a4cf0fd89cea372cd278cbda349321db66aa` 合併（未使用 admin override）；main Deploy GitHub Pages run `32920475797` success、Production HTTP 200。最終 Desktop grid contract：price min 142px、today-change 92px、column-gap 12px、row-gap 6px；Preview 人工驗收與 Production 唯讀驗證完成，Mobile 0 regression、financial semantic 0 diff。依賴／lockfile 0 diff；4 個 high audit findings 為 **KNOWN PRE-EXISTING / NON-BLOCKING FOR PR #430**。
 
@@ -6217,7 +6217,7 @@ interface ServiceResult<T> {
 
 - 起點 main `a2c4c9686b5f2ea8816365cd5953f548b6fbfe57`；branch `codex/market-refresh-experience`。原 dirty checkout／untracked／固定 stash 保留。
 - 決策：只改善查詢時機與時間辨識；前景市場頁 15 分鐘節流，日期逾 7 天僅提示，未知日期不冒充有效。自動查詢沿用原市場資料 request／merge，無財務／持久化／Worker 變更。
-- 尚未 Merge；下一步完成 CI 與 isolated Preview 使用者驗收。Backlog 為正式狀態來源，本快照不取代它。
+- **已完成／Production Verified：** 使用者已完成 isolated Preview 驗收。PR [#433](https://github.com/hyc640110/family-universal-rebalance/pull/433) final head `f792048a1a6d4a5b26fadfdca521a71075c8ffe4` 於 `2026-09-13T15:49:45Z` 一般 Merge 為 `e5d3fb4f63ecd21a21aa12195be9a6f9fdffd145`，現為 `origin/main`。PR CI `34766253599`、Preview publish `34766253658`／Preview Pages `34766281613` success；main Deploy GitHub Pages `34766764187` build／deploy success，Production deployment `6423418218` SHA 一致、HTTP 200。正式市場頁已唯讀確認自動查詢、時間提示與官方資料載入正常；未寫入 Production 資料。UR-TODO-079 已在 Backlog 正式結案。
 - 本次亦追平 PR #431／#432 基線與 #432 正式部署證據，未重開已完成封存修正。
 
 ## 最新交接快照：Holding Today Change Spacing Bugfix Final Closeout — Merge／Production Verified（CLOSED，2026-08-26）
