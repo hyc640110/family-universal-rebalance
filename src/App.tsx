@@ -2276,6 +2276,13 @@ function App() {
       setAssetMessage('請輸入合法台股代號，例如 00981A、00670L、00662、00670L.TW 或 00670L.TWO。');
       return;
     }
+    const archivedHolding = safeHoldings(state.holdings).find(h => normalizeSymbol(h.symbol) === symbol && h.isArchived);
+    if (archivedHolding) {
+      restoreHoldingAsset(symbol);
+      setNewSymbolDraft('');
+      setAssetMessage(`${symbol} 已恢復為目前持股；請確認股數、成本與配置。`);
+      return;
+    }
     if (safeHoldings(state.holdings).some(h => normalizeSymbol(h.symbol) === symbol)) {
       setAssetMessage(`${symbol} 已在持股清單中。`);
       return;
@@ -2299,7 +2306,7 @@ function App() {
   const restoreHoldingAsset = (symbol: SymbolCode) => {
     const normalizedSymbol = normalizeSymbol(symbol);
     setState(s => ({ ...s, holdings: safeHoldings(s.holdings).map(h => normalizeSymbol(h.symbol) === normalizedSymbol ? { ...h, isArchived: false } : h) }));
-    setAssetMessage(`${normalizedSymbol} 已恢復為目前持股。`);
+    setAssetMessage(`${normalizedSymbol} 已恢復為目前持股；請確認股數、成本與配置。`);
   };
   /** UR-TODO-072: returns whether the holding was actually archived, so HoldingDetailDialog can
    * auto-close itself only on success (kept open — with the existing warning message — when shares
@@ -2466,6 +2473,10 @@ function App() {
           <div className="holdings">
             {orderHoldingRows(m.rows, state.holdingDisplayOrder).map(row => <HoldingCompactCard key={row.symbol} row={row} totalAssets={m.totalAssets} isDetailOpen={selectedHoldingDetailSymbol === row.symbol} onOpenDetail={openHoldingDetail(row.symbol)} isDragging={draggingHoldingSymbol === row.symbol} onDragStart={() => startHoldingDrag(row.symbol)} onDragMove={clientY => moveHoldingDragTo(row.symbol, clientY)} onDragEnd={() => endHoldingDrag(row.symbol, row.quote.name)} onDragCancel={cancelHoldingDrag} onKeyboardMove={direction => moveHoldingDisplay(row.symbol, row.quote.name, direction)} registerCardElement={registerHoldingCardElement(row.symbol)} />)}
           </div>
+          {safeHoldings(state.holdings).filter(item => item.isArchived).length > 0 && <section className="archived-holdings" aria-labelledby="archived-holdings-title">
+            <div className="archived-holdings-heading"><div><h3 id="archived-holdings-title">已清倉資產</h3><p>保留股息歷史；恢復後會重新列入持股管理。</p></div></div>
+            <div className="archived-holdings-list">{safeHoldings(state.holdings).filter(item => item.isArchived).map(item => <article className="archived-holding-item" key={`archived-${item.symbol}`}><div><strong>{item.symbol}</strong><span>{item.name || resolveSymbolName(item.symbol)}</span></div><button type="button" className="small" onClick={() => restoreHoldingAsset(item.symbol)}>恢復持股</button></article>)}</div>
+          </section>}
           {selectedHoldingDetailRow && <HoldingDetailDialog titleId="holding-detail-dialog-title" title="持股詳細" onClose={closeHoldingDetail}>
             <HoldingDetailContent archiveMessage={assetMessage} row={selectedHoldingDetailRow} totalAssets={m.totalAssets} dipSetting={normalizeDipAlertSetting(state.dipAlerts?.[selectedHoldingDetailRow.symbol] ?? defaultDipAlertSetting())} isFocused={state.focusedSymbols.includes(selectedHoldingDetailRow.symbol)} onUpdate={updateHolding} onUpdateDipAlert={updateDipAlert} onToggleFocused={toggleFocusedSymbol} onRemove={symbol => { if (confirmRemoveHoldingAsset(symbol)) closeHoldingDetail(); }} />
           </HoldingDetailDialog>}
